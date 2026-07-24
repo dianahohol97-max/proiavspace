@@ -36,16 +36,28 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
   const catalogEntry =
     THEME_CATALOG.find((entry) => entry.value === str(formData, 'theme')) ?? THEME_CATALOG[0]
 
-  const items: PricingItem[] = [0, 1, 2]
-    .map((index) => ({
-      name: str(formData, `price_name_${index}`),
-      price: str(formData, `price_amount_${index}`),
-      includes: String(formData.get(`price_includes_${index}`) ?? '')
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean),
-    }))
-    .filter((item) => item.name)
+  // Pricing packages arrive as a JSON array (unbounded count); tolerate bad input.
+  let items: PricingItem[] = []
+  try {
+    const parsed = JSON.parse(str(formData, 'pricing_json') || '[]')
+    if (Array.isArray(parsed)) {
+      items = parsed
+        .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object')
+        .map((p) => ({
+          name: String(p.name ?? '').trim(),
+          price: String(p.price ?? '').trim(),
+          includes: Array.isArray(p.includes)
+            ? p.includes.map((l) => String(l).trim()).filter(Boolean)
+            : String(p.includes ?? '')
+                .split('\n')
+                .map((l) => l.trim())
+                .filter(Boolean),
+        }))
+        .filter((item) => item.name)
+    }
+  } catch {
+    items = []
+  }
 
   // Enabled languages + their per-language text blocks. Translation fields are
   // kept even for a language that is momentarily unchecked, so toggling a
