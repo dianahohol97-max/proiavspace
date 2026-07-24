@@ -1,7 +1,8 @@
 import type { SiteContent } from '@/lib/site/content'
 import { LeadForm, type LeadFormLabels } from './LeadForm'
+import { PortfolioAlbums } from './PortfolioAlbums'
 import { SiteLangSwitch } from './SiteLangSwitch'
-import type { LangSwitch, PortfolioItem, SiteLabels } from './SiteRenderer'
+import { groupPortfolio, type LangSwitch, type PortfolioItem, type SiteLabels } from './SiteRenderer'
 import s from './SiteThemes.module.css'
 
 const RATIOS = [s.r34, s.r43, s.r11]
@@ -67,6 +68,9 @@ export function ThemeSilence({
   const rowB = portfolio.filter((_, i) => i % 2 === 1)
   const floats = portfolio.slice(0, 4)
   const floatClass = [s.sFl1, s.sFl2, s.sFl3, s.sFl4]
+  // Albums = named categories; show cover-per-folder when the photographer used them.
+  const portfolioGroups = groupPortfolio(portfolio)
+  const hasAlbums = portfolioGroups.some((g) => g.category !== null)
 
   return (
     <div className={s.silence}>
@@ -145,26 +149,41 @@ export function ThemeSilence({
           </section>
         )}
 
-        {/* catalogue — staggered grid with index captions */}
+        {/* catalogue — albums (folders) when categories exist, else a flat grid */}
         {portfolio.length > 0 && (
           <div className={s.sPad}>
             <span className={s.sMono} style={{ display: 'block', margin: '0 0 18px' }}>
               {labels.portfolio}
             </span>
-            <div id="catalog" className={s.sGrid}>
-              {portfolio.map((item, index) => (
-                <figure key={item.id} className={s.sWork}>
-                  <div className={s.sWorkImg} style={bg(item.previewUrl)} />
-                  <figcaption className={s.sWorkCap}>
-                    <span className={`${s.sMono} ${s.sWorkIdx}`}>
-                      ({String(index + 1).padStart(3, '0')})
-                    </span>
-                    {(item.caption || item.category) && (
-                      <span className={s.sWorkName}>{item.caption || item.category}</span>
-                    )}
-                  </figcaption>
-                </figure>
-              ))}
+            <div id="catalog">
+              {hasAlbums ? (
+                <PortfolioAlbums
+                  groups={portfolioGroups}
+                  covers={content.albumCovers}
+                  labels={{
+                    portfolio: labels.portfolio,
+                    photos: labels.photos,
+                    viewSeries: labels.viewSeries,
+                    close: labels.close,
+                  }}
+                />
+              ) : (
+                <div className={s.sGrid}>
+                  {portfolio.map((item, index) => (
+                    <figure key={item.id} className={s.sWork}>
+                      <div className={s.sWorkImg} style={bg(item.previewUrl)} />
+                      <figcaption className={s.sWorkCap}>
+                        <span className={`${s.sMono} ${s.sWorkIdx}`}>
+                          ({String(index + 1).padStart(3, '0')})
+                        </span>
+                        {(item.caption || item.category) && (
+                          <span className={s.sWorkName}>{item.caption || item.category}</span>
+                        )}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -123,6 +123,13 @@ export function SiteEditor({
   const [heroTitle, setHeroTitle] = useState(content.hero.title)
   const [heroSubtitle, setHeroSubtitle] = useState(content.hero.subtitle)
   const [heroImageId, setHeroImageId] = useState(content.hero.imageId)
+  const [albumCovers, setAlbumCovers] = useState<Record<string, string>>(content.albumCovers)
+
+  function setAlbumCover(category: string | null | undefined, assetId: string) {
+    const cat = category?.trim()
+    if (!cat) return
+    setAlbumCovers((prev) => ({ ...prev, [cat]: assetId }))
+  }
   const [aboutText, setAboutText] = useState(content.about.text)
   const [packs, setPacks] = useState<Pack[]>(
     [0, 1, 2].map((index) => ({
@@ -211,6 +218,7 @@ export function SiteEditor({
   const previewContent: SiteContent = useMemo(
     () => ({
       hero: { title: heroTitle, subtitle: heroSubtitle, imageId: heroImageId },
+      albumCovers,
       about: { text: aboutText },
       pricing: {
         items: packs
@@ -225,7 +233,7 @@ export function SiteEditor({
       translations: content.translations,
       settings: { languages, leadForm },
     }),
-    [heroTitle, heroSubtitle, heroImageId, aboutText, packs, contact, content.translations, languages, leadForm]
+    [heroTitle, heroSubtitle, heroImageId, albumCovers, aboutText, packs, contact, content.translations, languages, leadForm]
   )
 
   function setPack(index: number, patch: Partial<Pack>) {
@@ -353,6 +361,8 @@ export function SiteEditor({
 
           {/* Hero photo picker — choose which portfolio photo fills the hero. */}
           <input type="hidden" name="hero_image_id" value={heroImageId} />
+          {/* Album covers map {category: assetId}, set via ★ on portfolio photos. */}
+          <input type="hidden" name="album_covers" value={JSON.stringify(albumCovers)} />
           <p className="text-xs text-muted">
             {locale === 'uk' ? 'Фото для головного екрана' : 'Hero photo'}
           </p>
@@ -483,6 +493,31 @@ export function SiteEditor({
                             >
                               {hidden ? '🚫' : '👁'}
                             </button>
+                            {item.category?.trim() &&
+                              (() => {
+                                const isCover = albumCovers[item.category.trim()] === item.id
+                                return (
+                                  <button
+                                    type="button"
+                                    aria-label={locale === 'uk' ? 'Зробити обкладинкою' : 'Set as cover'}
+                                    title={
+                                      isCover
+                                        ? locale === 'uk'
+                                          ? 'Обкладинка альбому'
+                                          : 'Album cover'
+                                        : locale === 'uk'
+                                          ? 'Зробити обкладинкою'
+                                          : 'Set as cover'
+                                    }
+                                    onClick={() => setAlbumCover(item.category, item.id)}
+                                    className={`absolute left-1 top-8 h-6 w-6 place-items-center rounded-full bg-white text-xs shadow ${
+                                      isCover ? 'grid' : 'hidden group-hover:grid'
+                                    }`}
+                                  >
+                                    {isCover ? '★' : '☆'}
+                                  </button>
+                                )
+                              })()}
                             <button
                               type="button"
                               aria-label={labels.delete}

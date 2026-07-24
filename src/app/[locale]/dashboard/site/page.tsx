@@ -176,6 +176,9 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
           pricing: dict.publicSite.pricing,
           contacts: dict.publicSite.contacts,
           book: dict.publicSite.book,
+          photos: locale === 'uk' ? 'фото' : 'photos',
+          viewSeries: locale === 'uk' ? 'Дивитись серію' : 'View series',
+          close: locale === 'uk' ? 'Закрити' : 'Close',
         }}
         leadFormLabels={{
           title: dict.publicSite.leadTitle,

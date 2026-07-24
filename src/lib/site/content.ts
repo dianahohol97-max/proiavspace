@@ -29,6 +29,11 @@ export interface SiteContent {
     bookingUrl: string
   }
   /**
+   * Chosen cover per portfolio album, keyed by category name → portfolio asset
+   * id. Absent → the album falls back to its first photo.
+   */
+  albumCovers: Record<string, string>
+  /**
    * Per-language overrides of the text blocks, keyed by locale (e.g. 'en',
    * 'pl', 'de'). The base fields above are the default (Ukrainian); a client
    * on /{locale}/s/... sees the matching translation, falling back per field.
@@ -47,6 +52,7 @@ export const EMPTY_CONTENT: SiteContent = {
   about: { text: '' },
   pricing: { items: [] },
   contact: { email: '', phone: '', instagram: '', bookingUrl: '' },
+  albumCovers: {},
   translations: {},
   settings: { languages: [], leadForm: false },
 }
@@ -118,6 +124,15 @@ export function parseSiteContent(value: unknown): SiteContent {
     : []
   if (languages.length === 0 && settings.bilingual === true) languages = ['en']
 
+  // Album covers: category → asset id (both strings).
+  const rawCovers = (
+    typeof v.albumCovers === 'object' && v.albumCovers !== null ? v.albumCovers : {}
+  ) as Record<string, unknown>
+  const albumCovers: Record<string, string> = {}
+  for (const [cat, id] of Object.entries(rawCovers)) {
+    if (typeof id === 'string' && id) albumCovers[cat] = id
+  }
+
   return {
     hero: {
       title: asString(hero.title),
@@ -146,6 +161,7 @@ export function parseSiteContent(value: unknown): SiteContent {
       instagram: asString(contact.instagram),
       bookingUrl: asString(contact.bookingUrl),
     },
+    albumCovers,
     translations,
     settings: {
       languages,
