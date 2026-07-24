@@ -85,7 +85,7 @@ const uk: LandingCopy = {
     titleAccent: 'після',
     titleAfter: ' зйомки',
     lede:
-      'Галереї для передавання зйомок, персональний сайт за вечір і бронювання з оплатою напряму на вашу картку. Один кабінет — і скрізь лише ваш бренд.',
+      'Галереї, у яких клієнт одразу розуміє, як забрати фото — без Google Drive і питань «як завантажити». Персональний сайт за вечір і бронювання з оплатою напряму на вашу картку. Скрізь лише ваш бренд.',
     cta: 'Почати безкоштовно',
     ctaNote: '3 ГБ назавжди безкоштовно. Без картки при реєстрації.',
     statNumber: '120 000',
@@ -105,7 +105,7 @@ const uk: LandingCopy = {
       {
         no: '01 — Галереї',
         title: 'Передавайте зйомки красиво',
-        text: 'Завантажуєте фотографії — клієнт отримує посилання. Обране, пароль, термін дії, завантаження архівом, статистика переглядів.',
+        text: 'Завантажуєте фотографії — клієнт отримує красиве посилання й качає сам, без Google Drive і питань «як завантажити». Обране, пароль, термін дії, архів, статистика.',
         tagStrong: 'Оригінали без стискання.',
         tagRest: ' Файли — як зняли',
       },
@@ -266,7 +266,7 @@ const en: LandingCopy = {
     titleAccent: 'after',
     titleAfter: ' the shutter clicks',
     lede:
-      'Galleries to deliver shoots, a personal site built in an evening, and bookings paid straight to your card. One dashboard — your brand everywhere.',
+      'Galleries where the client instantly knows how to grab their photos — no Google Drive, no "how do I download this?". A personal site built in an evening, and bookings paid straight to your card. Your brand everywhere.',
     cta: 'Start for free',
     ctaNote: '3 GB free forever. No card at sign-up.',
     statNumber: '120 000',
@@ -286,7 +286,7 @@ const en: LandingCopy = {
       {
         no: '01 — Galleries',
         title: 'Deliver shoots beautifully',
-        text: 'Upload the photos — the client gets a link. Favorites, password, expiry, zip download, view stats.',
+        text: 'Upload the photos — the client gets a beautiful link and downloads on their own, no Google Drive and no "how do I download this?". Favorites, password, expiry, zip, stats.',
         tagStrong: 'Originals uncompressed.',
         tagRest: ' Files exactly as shot',
       },

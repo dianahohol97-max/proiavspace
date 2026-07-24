@@ -22,6 +22,7 @@ export interface GalleryLabels {
   scrollHint: string
   selected: string
   downloadAll: string
+  downloadHint: string
   preparingArchive: string
   archiveError: string
   downloadOriginal: string
@@ -279,6 +280,19 @@ export function GalleryExperience({
               : `${labels.downloadAll} · ${items.length}`}
         </button>
       </div>
+
+      {/* download hint — so clients never have to ask how to save photos */}
+      <p
+        style={{
+          textAlign: 'center',
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: 'var(--g-mut)',
+          margin: '14px 20px 0',
+        }}
+      >
+        {labels.downloadHint}
+      </p>
 
       {/* -------- grid -------- */}
       <main className={s.grid}>
