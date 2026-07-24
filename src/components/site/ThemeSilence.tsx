@@ -144,7 +144,7 @@ export function ThemeSilence({
 
         {/* about — inverted quote band */}
         {content.about.text && (
-          <section className={s.sBand}>
+          <section id="about" className={s.sBand}>
             <blockquote>{content.about.text}</blockquote>
           </section>
         )}
@@ -213,9 +213,9 @@ export function ThemeSilence({
           </div>
         )}
 
-        {/* about — mono labels + contacts */}
+        {/* contact — contacts + booking on the left, lead form on the right */}
         <div className={s.sPad}>
-          <section id="about" className={s.sAbout}>
+          <section id="contact" className={s.sAbout}>
             <div className={s.sAboutLabels}>
               {content.contact.email && (
                 <div>
@@ -247,18 +247,17 @@ export function ThemeSilence({
                   </a>
                 </div>
               )}
-            </div>
-            <div id="contact" className={s.sAboutText}>
-              {content.hero.subtitle && (
-                <p style={{ fontStyle: 'italic' }}>{content.hero.subtitle}</p>
-              )}
               {content.contact.bookingUrl && (
                 <a className={s.sBook} href={content.contact.bookingUrl}>
                   {labels.book}
                 </a>
               )}
-              {leadForm && <LeadForm handle={leadForm.handle} labels={leadForm.labels} />}
             </div>
+            {leadForm && (
+              <div className={s.sAboutForm}>
+                <LeadForm handle={leadForm.handle} labels={leadForm.labels} />
+              </div>
+            )}
           </section>
         </div>
 
