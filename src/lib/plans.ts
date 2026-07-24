@@ -121,6 +121,32 @@ export const BUNDLE_SITE_DISCOUNT = 0.15
 /** Grace period after cancellation before limits drop to free (Pixover-style). */
 export const GRACE_PERIOD_DAYS = 7
 
+/** Free site trial: publish one site for this many days, then upgrade to keep it live. */
+export const SITE_TRIAL_DAYS = 30
+
+/**
+ * True once a photographer still on the free site trial has passed the trial
+ * window (counted from signup). Mirrors the SQL guard in get_site: after this,
+ * the public site is hidden and the daily job flips it back to a draft.
+ * A paid site (site_plan moved off 'site_trial') is never "expired".
+ */
+export function isSiteTrialExpired(sitePlan: string, createdAtIso: string | null): boolean {
+  if (sitePlan !== 'site_trial' || !createdAtIso) return false
+  const created = new Date(createdAtIso).getTime()
+  if (Number.isNaN(created)) return false
+  const ageMs = Date.now() - created
+  return ageMs > SITE_TRIAL_DAYS * 24 * 60 * 60 * 1000
+}
+
+/** Days left in the site trial (0 once expired); null if not on the trial. */
+export function siteTrialDaysLeft(sitePlan: string, createdAtIso: string | null): number | null {
+  if (sitePlan !== 'site_trial' || !createdAtIso) return null
+  const created = new Date(createdAtIso).getTime()
+  if (Number.isNaN(created)) return null
+  const endMs = created + SITE_TRIAL_DAYS * 24 * 60 * 60 * 1000
+  return Math.max(0, Math.ceil((endMs - Date.now()) / (24 * 60 * 60 * 1000)))
+}
+
 export function isGalleryPlanId(value: string): value is GalleryPlanId {
   return value in GALLERY_PLANS
 }

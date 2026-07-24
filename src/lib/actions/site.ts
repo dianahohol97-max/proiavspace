@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { isSiteTrialExpired } from '@/lib/plans'
 import type { PricingItem, SiteContent, SiteTextBlocks } from '@/lib/site/content'
 import { THEME_CATALOG } from '@/lib/site/themes'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -79,13 +80,28 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
     },
   }
 
+  // Publishing is gated by the 30-day site trial: once it lapses (still on
+  // site_trial), the site can only stay a draft until the photographer upgrades.
+  // Saving content is always allowed — only the publish flag is forced off.
+  let isPublished = formData.get('is_published') === 'on'
+  if (isPublished) {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('site_plan, created_at')
+      .eq('user_id', user.id)
+      .single<{ site_plan: string; created_at: string }>()
+    if (prof && isSiteTrialExpired(prof.site_plan, prof.created_at)) {
+      isPublished = false
+    }
+  }
+
   const { error } = await supabase.from('sites').upsert(
     {
       user_id: user.id,
       handle,
       theme: catalogEntry.theme,
       mode: catalogEntry.mode,
-      is_published: formData.get('is_published') === 'on',
+      is_published: isPublished,
       content,
     },
     { onConflict: 'user_id' }
