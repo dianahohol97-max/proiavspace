@@ -1,14 +1,13 @@
 /**
- * Blog content — Ukrainian SEO articles as structured blocks (no MDX, no DB).
+ * Blog content — Ukrainian SEO articles as structured blocks.
  *
- * Two sources, merged:
- *  - CURATED: hand-written articles in this file.
- *  - content/blog/generated/*.json: articles produced by the content engine
- *    (scripts/generate-article.mjs, run on a schedule via GitHub Actions).
- * Read at build time and baked into the static blog pages.
+ * Two sources, merged for the public blog:
+ *  - CURATED: hand-written articles in this file (always published).
+ *  - blog_articles table: AI-generated drafts the content engine writes; they
+ *    go live only after an admin publishes them in the dashboard.
  */
-import fs from 'node:fs'
-import path from 'node:path'
+import { createClient } from '@supabase/supabase-js'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export type Block =
   | { type: 'p'; text: string }
@@ -204,64 +203,108 @@ const CURATED: Article[] = [
   },
 ]
 
-/* ---------- generated articles (content/blog/generated/*.json) ---------- */
+/* ---------- generated articles (blog_articles table) ---------- */
 
-const GENERATED_DIR = path.join(process.cwd(), 'content', 'blog', 'generated')
-
-function isBlock(value: unknown): value is Block {
-  if (typeof value !== 'object' || value === null) return false
-  const b = value as Record<string, unknown>
-  if (b.type === 'p' || b.type === 'h2') return typeof b.text === 'string'
-  if (b.type === 'cta') return typeof b.text === 'string' && typeof b.href === 'string'
-  if (b.type === 'ul')
-    return Array.isArray(b.items) && b.items.every((i) => typeof i === 'string')
-  return false
+/** DB row → Article. Also carries admin-only fields (id, status). */
+export interface AdminArticle extends Article {
+  id: string
+  status: 'draft' | 'published'
+  source: string
 }
 
-function isArticle(value: unknown): value is Article {
-  if (typeof value !== 'object' || value === null) return false
-  const a = value as Record<string, unknown>
-  return (
-    typeof a.slug === 'string' &&
-    typeof a.title === 'string' &&
-    typeof a.description === 'string' &&
-    typeof a.date === 'string' &&
-    typeof a.readingMinutes === 'number' &&
-    Array.isArray(a.tags) &&
-    a.tags.every((t) => typeof t === 'string') &&
-    Array.isArray(a.body) &&
-    a.body.length > 0 &&
-    a.body.every(isBlock)
-  )
+interface Row {
+  id: string
+  slug: string
+  title: string
+  description: string
+  published_date: string
+  reading_minutes: number
+  tags: unknown
+  body: unknown
+  status: string
+  source: string
 }
 
-/** Read + validate the engine's JSON articles. A malformed file is skipped, not fatal. */
-function loadGenerated(): Article[] {
-  try {
-    if (!fs.existsSync(GENERATED_DIR)) return []
-    return fs
-      .readdirSync(GENERATED_DIR)
-      .filter((name) => name.endsWith('.json'))
-      .map((name) => {
-        try {
-          return JSON.parse(fs.readFileSync(path.join(GENERATED_DIR, name), 'utf8')) as unknown
-        } catch {
-          return null
-        }
-      })
-      .filter(isArticle)
-  } catch {
-    return []
+function rowToAdmin(row: Row): AdminArticle {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    date: row.published_date,
+    readingMinutes: row.reading_minutes,
+    tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    body: Array.isArray(row.body) ? (row.body as Block[]) : [],
+    status: row.status === 'published' ? 'published' : 'draft',
+    source: row.source,
   }
 }
 
-/** All articles, newest first. Curated wins over a generated file of the same slug. */
-export function getArticles(): Article[] {
+/** Anon client for public reads (RLS returns only published rows). */
+function anonClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return null
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+}
+
+async function fetchPublished(): Promise<Article[]> {
+  const supabase = anonClient()
+  if (!supabase) return []
+  const { data } = await supabase
+    .from('blog_articles')
+    .select('id, slug, title, description, published_date, reading_minutes, tags, body, status, source')
+    .eq('status', 'published')
+  return ((data as Row[] | null) ?? []).map(rowToAdmin)
+}
+
+/** All PUBLISHED articles (curated + published DB), newest first. */
+export async function getArticles(): Promise<Article[]> {
   const bySlug = new Map<string, Article>()
-  for (const article of [...loadGenerated(), ...CURATED]) bySlug.set(article.slug, article)
+  for (const article of [...(await fetchPublished()), ...CURATED]) bySlug.set(article.slug, article)
   return [...bySlug.values()].sort((a, b) => (a.date < b.date ? 1 : -1))
 }
 
-export function getArticle(slug: string): Article | null {
-  return getArticles().find((a) => a.slug === slug) ?? null
+export async function getArticle(slug: string): Promise<Article | null> {
+  const curated = CURATED.find((a) => a.slug === slug)
+  if (curated) return curated
+  return (await fetchPublished()).find((a) => a.slug === slug) ?? null
+}
+
+/* ---------- admin (service role — bypasses RLS, sees drafts) ---------- */
+
+const ADMIN_COLS =
+  'id, slug, title, description, published_date, reading_minutes, tags, body, status, source'
+
+/** Every DB article (draft + published), newest first. Admin only. */
+export async function getAdminArticles(): Promise<AdminArticle[]> {
+  const admin = createSupabaseAdminClient()
+  if (!admin) return []
+  const { data } = await admin
+    .from('blog_articles')
+    .select(ADMIN_COLS)
+    .order('created_at', { ascending: false })
+  return ((data as Row[] | null) ?? []).map(rowToAdmin)
+}
+
+export async function getAdminArticle(id: string): Promise<AdminArticle | null> {
+  const admin = createSupabaseAdminClient()
+  if (!admin) return null
+  const { data } = await admin.from('blog_articles').select(ADMIN_COLS).eq('id', id).maybeSingle()
+  return data ? rowToAdmin(data as Row) : null
+}
+
+export async function getTopicStats(): Promise<{ todo: number; done: number }> {
+  const admin = createSupabaseAdminClient()
+  if (!admin) return { todo: 0, done: 0 }
+  const [{ count: todo }, { count: done }] = await Promise.all([
+    admin.from('blog_topics').select('*', { count: 'exact', head: true }).eq('status', 'todo'),
+    admin.from('blog_topics').select('*', { count: 'exact', head: true }).eq('status', 'done'),
+  ])
+  return { todo: todo ?? 0, done: done ?? 0 }
+}
+
+/** Curated (built-in) articles — shown read-only in the admin list. */
+export function getCuratedArticles(): Article[] {
+  return [...CURATED].sort((a, b) => (a.date < b.date ? 1 : -1))
 }

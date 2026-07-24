@@ -2,11 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getArticles } from '@/lib/blog/articles'
-import { isLocale, locales } from '@/lib/i18n/config'
+import { isLocale } from '@/lib/i18n/config'
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }))
-}
+export const dynamic = 'force-dynamic'
 
 export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
   const uk = params.locale === 'uk'
@@ -22,11 +20,11 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
   }
 }
 
-export default function BlogHubPage({ params }: { params: { locale: string } }) {
+export default async function BlogHubPage({ params }: { params: { locale: string } }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const uk = locale === 'uk'
-  const articles = getArticles()
+  const articles = await getArticles()
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
