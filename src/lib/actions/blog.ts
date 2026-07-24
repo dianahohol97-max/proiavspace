@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
+import { generateNextArticle, type GenerateResult } from '@/lib/blog/generate'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
@@ -23,6 +24,17 @@ function revalidateBlog(locale: Locale) {
   revalidatePath(`/${locale}/dashboard/blog`)
   revalidatePath('/uk/blog')
   revalidatePath('/uk/blog', 'layout')
+}
+
+/**
+ * Founder-triggered generation: write the next queued topic into a draft, right
+ * from the dashboard. Admin-gated; returns a friendly result to show inline.
+ */
+export async function generateArticleNow(locale: Locale): Promise<GenerateResult> {
+  await requireAdmin()
+  const result = await generateNextArticle()
+  if (result.ok) revalidateBlog(locale)
+  return result
 }
 
 export async function setArticleStatus(
