@@ -10,10 +10,17 @@ import type { Profile } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SettingsPage({ params }: { params: { locale: string } }) {
+export default async function SettingsPage({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  searchParams: { saved?: string }
+}) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const dict = await getDictionary(locale)
+  const justSaved = searchParams.saved === '1'
 
   const supabase = createSupabaseServerClient()
   const {
@@ -64,12 +71,19 @@ export default async function SettingsPage({ params }: { params: { locale: strin
         </label>
         <p className="mt-1 text-xs text-muted">{dict.settings.watermarkHint}</p>
 
-        <button
-          type="submit"
-          className="mt-6 self-start border border-fg px-8 py-3 text-sm uppercase tracking-widest transition-colors hover:bg-fg hover:text-bg"
-        >
-          {dict.settings.save}
-        </button>
+        <div className="mt-6 flex items-center gap-4">
+          <button
+            type="submit"
+            className="self-start border border-fg px-8 py-3 text-sm uppercase tracking-widest transition-colors hover:bg-fg hover:text-bg"
+          >
+            {dict.settings.save}
+          </button>
+          {justSaved && (
+            <span className="text-sm font-medium text-emerald-700">
+              {locale === 'uk' ? '✓ Збережено' : '✓ Saved'}
+            </span>
+          )}
+        </div>
       </form>
 
       <section className="mt-14 border-t border-line pt-10">
