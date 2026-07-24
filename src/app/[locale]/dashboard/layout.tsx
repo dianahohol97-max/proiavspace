@@ -48,6 +48,7 @@ export default async function DashboardLayout({
     { href: `/${locale}/dashboard/site`, label: dict.site.navLink },
     { href: `/${locale}/dashboard/booking`, label: dict.booking.navLink },
     { href: `/${locale}/dashboard/billing`, label: dict.dashboard.billingLink },
+    { href: `/${locale}/dashboard/referrals`, label: dict.referrals.navLink },
     { href: `/${locale}/dashboard/settings`, label: dict.dashboard.settingsLink },
   ]
   // Founder-only links (each page re-checks the allowlist).

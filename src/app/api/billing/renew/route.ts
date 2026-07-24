@@ -118,6 +118,27 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
     if (pendingPayment) continue
 
+    // Referral reward: if the user has a free month banked (from referring or
+    // being referred), burn one instead of charging this cycle — push the next
+    // charge out a period and move on.
+    const { data: freeProfile } = await admin
+      .from('profiles')
+      .select('pending_free_months')
+      .eq('user_id', sub.user_id)
+      .single()
+    const freeMonths = freeProfile?.pending_free_months ?? 0
+    if (freeMonths > 0) {
+      await admin
+        .from('billing_subscriptions')
+        .update({ next_charge_at: nextChargeAt(sub.period), status: 'active' })
+        .eq('id', sub.id)
+      await admin
+        .from('profiles')
+        .update({ pending_free_months: freeMonths - 1 })
+        .eq('user_id', sub.user_id)
+      continue
+    }
+
     // Price is recomputed at charge time, mirroring the checkout route
     // (including the gallery+site bundle discount).
     let amount: number

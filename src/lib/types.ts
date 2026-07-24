@@ -17,6 +17,9 @@ export interface Profile {
   watermark_enabled: boolean
   storage_used_bytes: number
   storage_limit_bytes: number
+  referral_code: string | null
+  referred_by: string | null
+  pending_free_months: number
   created_at: string
   updated_at: string
 }

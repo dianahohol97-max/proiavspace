@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getPayments } from '@/lib/payments'
 import {
   GALLERY_PLANS,
@@ -22,6 +23,17 @@ function paidUntil(period: string, from = new Date()): string {
   else until.setMonth(until.getMonth() + 1)
   until.setDate(until.getDate() + GRACE_PERIOD_DAYS)
   return until.toISOString()
+}
+
+/** Bank one referral free month for a user (applied at their next renewal). */
+async function addFreeMonth(admin: SupabaseClient, userId: string): Promise<void> {
+  const { data } = await admin
+    .from('profiles')
+    .select('pending_free_months')
+    .eq('user_id', userId)
+    .single()
+  const current = (data?.pending_free_months as number | undefined) ?? 0
+  await admin.from('profiles').update({ pending_free_months: current + 1 }).eq('user_id', userId)
 }
 
 /** Next cron charge: one period from now (no extra grace — that's for expiry). */
@@ -140,6 +152,21 @@ export async function POST(request: NextRequest) {
         .from('profiles')
         .update({ site_plan: payment.plan })
         .eq('user_id', payment.user_id)
+    }
+
+    // Referral: this payer's FIRST payment converts their referral (the
+    // conditional update fires once) and banks a free month for both sides,
+    // applied automatically at each one's next renewal.
+    const { data: converted } = await admin
+      .from('referrals')
+      .update({ status: 'converted', converted_at: new Date().toISOString() })
+      .eq('referred_id', payment.user_id)
+      .eq('status', 'pending')
+      .select('referrer_id')
+      .maybeSingle()
+    if (converted?.referrer_id) {
+      await addFreeMonth(admin, converted.referrer_id)
+      await addFreeMonth(admin, payment.user_id)
     }
   } else if (event.status === 'failed' && payment.subscription_id) {
     // A renewal charge bounced: stop the cron retries, start the grace

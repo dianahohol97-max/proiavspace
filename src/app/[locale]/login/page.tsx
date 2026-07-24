@@ -43,10 +43,16 @@ export default function LoginPage() {
     }
 
     if (mode === 'signup') {
+      // Carry a referral code (?ref=) into the signup so the DB trigger can
+      // credit the referrer.
+      const ref = new URLSearchParams(window.location.search).get('ref')?.trim()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: callbackUrl },
+        options: {
+          emailRedirectTo: callbackUrl,
+          data: ref ? { ref } : undefined,
+        },
       })
       if (error) {
         setStatus('error')
