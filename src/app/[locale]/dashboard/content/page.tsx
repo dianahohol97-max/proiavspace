@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
 import { isLocale, type Locale } from '@/lib/i18n/config'
@@ -49,6 +50,12 @@ function PostRow({ post, locale }: { post: SocialPost; locale: Locale }) {
         )}
       </div>
       <div className="flex flex-none flex-col items-end gap-2">
+        <Link
+          href={`/${locale}/dashboard/content/${post.id}`}
+          className="text-xs font-bold text-accent hover:underline"
+        >
+          Переглянути →
+        </Link>
         {canApprove ? (
           <form action={setPostStatus.bind(null, locale, post.id, 'approved')}>
             <button className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-white">
