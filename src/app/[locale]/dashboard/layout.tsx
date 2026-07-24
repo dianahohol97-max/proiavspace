@@ -50,9 +50,10 @@ export default async function DashboardLayout({
     { href: `/${locale}/dashboard/billing`, label: dict.dashboard.billingLink },
     { href: `/${locale}/dashboard/settings`, label: dict.dashboard.settingsLink },
   ]
-  // Founder-only stats link (the page itself re-checks the allowlist).
+  // Founder-only links (each page re-checks the allowlist).
   if (isAdminEmail(user.email)) {
     items.push({ href: `/${locale}/dashboard/stats`, label: dict.dashboard.statsLink })
+    items.push({ href: `/${locale}/dashboard/blog`, label: 'Блог' })
   }
 
   const planName =

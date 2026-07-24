@@ -1,28 +1,26 @@
 #!/usr/bin/env node
 /**
- * Content engine: writes ONE blog article from the next queued topic.
+ * Content engine: writes ONE blog article from the next queued topic straight
+ * into Supabase as a DRAFT. Nothing goes live until you publish it in the
+ * dashboard (Дашборд → Блог).
  *
  *   node scripts/generate-article.mjs
  *
- * Reads content/blog/topics.json, takes the first topic with status "todo",
- * asks Gemini to write the article as JSON (matching the blog's Block schema),
- * validates it, writes content/blog/generated/<slug>.json, and marks the topic
- * done. On a schedule (see .github/workflows/blog-generate.yml) it opens a PR
- * you approve — nothing publishes without your click.
+ * Reads the next blog_topics row with status "todo", asks Gemini to write the
+ * article (validated against the blog's Block schema), inserts it into
+ * blog_articles as status "draft", and marks the topic done.
  *
  * Env:
- *   GEMINI_API_KEY  (required)
- *   GEMINI_MODEL    (optional, default "gemini-2.5-flash")
+ *   GEMINI_API_KEY               (required)
+ *   SUPABASE_URL                 (or NEXT_PUBLIC_SUPABASE_URL)
+ *   SUPABASE_SERVICE_ROLE_KEY    (required)
+ *   GEMINI_MODEL                 (optional, default "gemini-2.5-flash")
  */
-import fs from 'node:fs'
-import path from 'node:path'
-
-const ROOT = process.cwd()
-const TOPICS_FILE = path.join(ROOT, 'content', 'blog', 'topics.json')
-const OUT_DIR = path.join(ROOT, 'content', 'blog', 'generated')
 
 const API_KEY = process.env.GEMINI_API_KEY
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 function fail(message) {
   console.error(`✖ ${message}`)
@@ -30,12 +28,25 @@ function fail(message) {
 }
 
 if (!API_KEY) fail('GEMINI_API_KEY is not set')
+if (!SUPABASE_URL || !SERVICE_KEY) fail('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set')
 
-const topicsDoc = JSON.parse(fs.readFileSync(TOPICS_FILE, 'utf8'))
-const topics = Array.isArray(topicsDoc.topics) ? topicsDoc.topics : []
-const topic = topics.find((t) => t.status !== 'done')
+const sb = (path, init = {}) =>
+  fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+      ...(init.headers || {}),
+    },
+  })
+
+/* ---- 1. next topic ---- */
+const topicRes = await sb('blog_topics?status=eq.todo&order=position.asc&limit=1')
+if (!topicRes.ok) fail(`Fetch topics ${topicRes.status}: ${await topicRes.text()}`)
+const [topic] = await topicRes.json()
 if (!topic) {
-  console.log('No pending topics — nothing to do. Add topics to content/blog/topics.json.')
+  console.log('No pending topics — nothing to do.')
   process.exit(0)
 }
 
@@ -53,15 +64,13 @@ const PROMPT = `Ти — україномовний контент-редакт�
 
 ТЕМА СТАТТІ:
 - Заголовок (title): «${topic.title}»
-- Цільовий пошуковий запит (має природно бути в title і в першому абзаці): «${topic.query}»
+- Цільовий пошуковий запит (природно в title і першому абзаці): «${topic.query}»
 - Кут подачі: ${topic.angle}
-- slug (НЕ змінюй): "${topic.slug}"
 
 ВИМОГИ: 550–850 слів; 3–5 H2-підзаголовків; щонайменше один список; наприкінці РІВНО один заклик до дії (cta) на реєстрацію.
 
-Поверни ЛИШЕ валідний JSON-об'єкт (без markdown, без пояснень) такої форми:
+Поверни ЛИШЕ валідний JSON-об'єкт (без markdown, без пояснень):
 {
-  "slug": "${topic.slug}",
   "title": "${topic.title}",
   "description": "…",            // мета-опис до 155 символів
   "readingMinutes": 5,
@@ -73,36 +82,33 @@ const PROMPT = `Ти — україномовний контент-редакт�
     {"type":"cta","text":"Спробувати проЯв безкоштовно","href":"/uk/login"}
   ]
 }
-Дозволені типи блоків: "p", "h2", "ul" (з items[]), "cta" (з text і href). Перший блок — "p". Останній блок — рівно один "cta".`
+Дозволені типи блоків: "p", "h2", "ul" (items[]), "cta" (text, href). Перший блок — "p". Останній — рівно один "cta".`
 
-const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`
-
-const response = await fetch(url, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    contents: [{ parts: [{ text: PROMPT }] }],
-    generationConfig: { responseMimeType: 'application/json', temperature: 0.7 },
-  }),
-})
-
-if (!response.ok) {
-  fail(`Gemini API ${response.status}: ${(await response.text()).slice(0, 500)}`)
-}
-
-const data = await response.json()
-const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? ''
+/* ---- 2. generate ---- */
+const genRes = await fetch(
+  `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: PROMPT }] }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.7 },
+    }),
+  }
+)
+if (!genRes.ok) fail(`Gemini API ${genRes.status}: ${(await genRes.text()).slice(0, 500)}`)
+const genData = await genRes.json()
+const text = genData?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? ''
 if (!text) fail('Empty response from Gemini')
 
 let article
 try {
-  // Strip an accidental code fence, just in case.
   article = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```$/, '').trim())
 } catch (error) {
-  fail(`Model did not return valid JSON: ${error.message}\n---\n${text.slice(0, 500)}`)
+  fail(`Model did not return valid JSON: ${error.message}\n---\n${text.slice(0, 400)}`)
 }
 
-/* ---- validate against the Block schema ---- */
+/* ---- 3. validate ---- */
 const isBlock = (b) =>
   b &&
   typeof b === 'object' &&
@@ -120,25 +126,33 @@ const valid =
   article.body.length >= 4 &&
   article.body.every(isBlock) &&
   article.body.filter((b) => b.type === 'cta').length === 1
-
 if (!valid) fail('Generated article failed schema validation')
 
-// Force the stable slug + today's date; clamp reading time.
-article.slug = topic.slug
-article.date = today
-article.readingMinutes =
-  typeof article.readingMinutes === 'number' ? article.readingMinutes : 5
-
-fs.mkdirSync(OUT_DIR, { recursive: true })
-const outFile = path.join(OUT_DIR, `${topic.slug}.json`)
-fs.writeFileSync(outFile, JSON.stringify(article, null, 2) + '\n')
-
-// Mark the topic done so the next run picks a fresh one.
-topic.status = 'done'
-fs.writeFileSync(TOPICS_FILE, JSON.stringify(topicsDoc, null, 2) + '\n')
-
-console.log(`✓ Wrote ${path.relative(ROOT, outFile)} (topic: ${topic.query})`)
-// Expose the slug to the GitHub Action (for the PR title/branch).
-if (process.env.GITHUB_OUTPUT) {
-  fs.appendFileSync(process.env.GITHUB_OUTPUT, `slug=${topic.slug}\ntitle=${article.title}\n`)
+/* ---- 4. insert draft ---- */
+const row = {
+  slug: topic.slug,
+  title: article.title,
+  description: String(article.description).slice(0, 300),
+  published_date: today,
+  reading_minutes: typeof article.readingMinutes === 'number' ? article.readingMinutes : 5,
+  tags: Array.isArray(article.tags) ? article.tags : [],
+  body: article.body,
+  status: 'draft',
+  source: 'ai',
 }
+const insRes = await sb('blog_articles?on_conflict=slug', {
+  method: 'POST',
+  headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+  body: JSON.stringify(row),
+})
+if (!insRes.ok) fail(`Insert article ${insRes.status}: ${await insRes.text()}`)
+
+/* ---- 5. mark topic done ---- */
+const patchRes = await sb(`blog_topics?id=eq.${topic.id}`, {
+  method: 'PATCH',
+  headers: { Prefer: 'return=minimal' },
+  body: JSON.stringify({ status: 'done' }),
+})
+if (!patchRes.ok) fail(`Mark topic done ${patchRes.status}: ${await patchRes.text()}`)
+
+console.log(`✓ Draft created: "${article.title}" (topic: ${topic.query})`)

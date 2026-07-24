@@ -1,48 +1,27 @@
 name: Blog — generate article
 
-# Content engine: twice a week (~8/month) writes the next queued topic into an
-# article and opens a PR. Nothing publishes until you review and merge the PR.
-# Requires the repo secret GEMINI_API_KEY, and "Allow GitHub Actions to create
-# and approve pull requests" enabled in Settings → Actions → General.
+# Content engine: twice a week (~8/month) writes the next queued topic into a
+# DRAFT article in the database. Review and publish it in the dashboard
+# (Дашборд → Блог). Nothing goes live automatically.
+#
+# Requires repo secrets: GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 
 on:
   schedule:
     - cron: '0 8 * * 1,4' # Mon & Thu, 08:00 UTC (~10:00–11:00 Kyiv)
   workflow_dispatch: {}
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - id: gen
-        name: Write the next article
+      - name: Write the next article (as a draft)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/generate-article.mjs
-
-      - name: Open a review PR
-        if: steps.gen.outputs.slug != ''
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: blog/${{ steps.gen.outputs.slug }}
-          title: 'Блог: ${{ steps.gen.outputs.title }}'
-          commit-message: 'content(blog): ${{ steps.gen.outputs.slug }}'
-          body: |
-            Автоматично згенерована стаття для блогу.
-
-            • Переглянь текст у `content/blog/generated/${{ steps.gen.outputs.slug }}.json` (можна правити прямо тут).
-            • **Змерджи цей PR — і стаття опублікується** на сайті.
-            • Не мерджити = не публікувати.
-          add-paths: |
-            content/blog/generated/*.json
-            content/blog/topics.json

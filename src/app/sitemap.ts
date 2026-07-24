@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   // Blog articles (Ukrainian; canonical on /uk).
-  for (const article of getArticles()) {
+  for (const article of await getArticles()) {
     entries.push({
       url: `${BASE_URL}/uk/blog/${article.slug}`,
       lastModified: new Date(article.date),

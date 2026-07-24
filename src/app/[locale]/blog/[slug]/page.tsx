@@ -1,25 +1,21 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getArticle, getArticles } from '@/lib/blog/articles'
-import { isLocale, locales } from '@/lib/i18n/config'
+import { getArticle } from '@/lib/blog/articles'
+import { isLocale } from '@/lib/i18n/config'
 import { jsonLdScript } from '@/lib/jsonld'
 import { ArticleBody } from '@/components/blog/ArticleBody'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
-export function generateStaticParams() {
-  return locales.flatMap((locale) =>
-    getArticles().map((article) => ({ locale, slug: article.slug }))
-  )
-}
+export const dynamic = 'force-dynamic'
 
-export function generateMetadata({
+export async function generateMetadata({
   params,
 }: {
   params: { locale: string; slug: string }
-}): Metadata {
-  const article = getArticle(params.slug)
+}): Promise<Metadata> {
+  const article = await getArticle(params.slug)
   if (!article) return { robots: { index: false, follow: false } }
   return {
     title: article.title,
@@ -36,7 +32,7 @@ export function generateMetadata({
   }
 }
 
-export default function ArticlePage({
+export default async function ArticlePage({
   params,
 }: {
   params: { locale: string; slug: string }
@@ -44,7 +40,7 @@ export default function ArticlePage({
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const uk = locale === 'uk'
-  const article = getArticle(params.slug)
+  const article = await getArticle(params.slug)
   if (!article) notFound()
 
   const url = `${BASE_URL}/uk/blog/${article.slug}`
