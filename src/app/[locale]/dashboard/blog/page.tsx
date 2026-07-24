@@ -2,15 +2,16 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getAdminArticles, getCuratedArticles, getTopicStats } from '@/lib/blog/articles'
 import { isAdminEmail } from '@/lib/admin'
-import { isLocale } from '@/lib/i18n/config'
+import { isLocale, type Locale } from '@/lib/i18n/config'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { GenerateButton } from './GenerateButton'
 
 export const dynamic = 'force-dynamic'
 
 /** Founder-only blog CMS: review AI drafts, publish, and see what's live. */
 export default async function BlogAdminPage({ params }: { params: { locale: string } }) {
   if (!isLocale(params.locale)) notFound()
-  const locale = params.locale
+  const locale: Locale = params.locale
 
   const supabase = createSupabaseServerClient()
   const {
@@ -43,12 +44,23 @@ export default async function BlogAdminPage({ params }: { params: { locale: stri
         </span>
       </div>
 
+      {/* --- generate on demand --- */}
+      <section className="mt-8 rounded-2xl border border-line p-5">
+        <h2 className="font-brand text-lg">Написати нову статтю</h2>
+        <p className="mb-4 mt-1 text-sm text-muted">
+          Візьме наступну тему з черги ({topics.todo} у роботі) і збереже її як чернетку — тут, без
+          GitHub. Публікація завжди вручну.
+        </p>
+        <GenerateButton locale={locale} />
+      </section>
+
       {/* --- drafts to review --- */}
       <section className="mt-10">
         <h2 className="mb-4 font-brand text-xl">На перегляд · {drafts.length}</h2>
         {drafts.length === 0 ? (
           <p className="text-sm text-muted">
-            Немає нових чернеток. Двигун додасть їх за розкладом (Пн і Чт) або запусти вручну в GitHub → Actions.
+            Немає нових чернеток. Натисни «Згенерувати статтю» вгорі, або двигун додасть їх сам за
+            розкладом (Пн і Чт).
           </p>
         ) : (
           <div className="flex flex-col divide-y divide-line rounded-2xl border border-line">
