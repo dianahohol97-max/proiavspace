@@ -116,7 +116,9 @@ export function BillingPlans({
             >
               <h3 className="font-brand text-xl">{card.name}</h3>
               {card.storageLine && <p className="mt-1 text-sm text-muted">{card.storageLine}</p>}
-              <p className="mt-5 font-brand text-3xl">
+              <p
+                className={`mt-5 break-words font-brand ${card.isFree ? 'text-2xl' : 'text-3xl'}`}
+              >
                 {card.isFree ? labels.freePrice : `${price} ₴`}
                 {!card.isFree && (
                   <span className="font-body text-xs text-muted">
