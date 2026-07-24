@@ -17,7 +17,9 @@ export interface SiteTextBlocks {
 }
 
 export interface SiteContent {
-  hero: { title: string; subtitle: string }
+  /** imageId = a portfolio asset id chosen as the hero photo (shared across
+   *  languages). Empty → themes fall back to the first portfolio photo. */
+  hero: { title: string; subtitle: string; imageId: string }
   about: { text: string }
   pricing: { items: PricingItem[] }
   contact: {
@@ -41,7 +43,7 @@ export interface SiteContent {
 }
 
 export const EMPTY_CONTENT: SiteContent = {
-  hero: { title: '', subtitle: '' },
+  hero: { title: '', subtitle: '', imageId: '' },
   about: { text: '' },
   pricing: { items: [] },
   contact: { email: '', phone: '', instagram: '', bookingUrl: '' },
@@ -63,6 +65,8 @@ export function localizedSiteContent(content: SiteContent, locale: string): Site
     hero: {
       title: t.hero.title || content.hero.title,
       subtitle: t.hero.subtitle || content.hero.subtitle,
+      // The hero photo is shared across languages — never overridden per locale.
+      imageId: content.hero.imageId,
     },
     about: { text: t.about.text || content.about.text },
   }
@@ -118,6 +122,7 @@ export function parseSiteContent(value: unknown): SiteContent {
     hero: {
       title: asString(hero.title),
       subtitle: asString(hero.subtitle),
+      imageId: asString(hero.imageId),
     },
     about: { text: asString(about.text) },
     pricing: {

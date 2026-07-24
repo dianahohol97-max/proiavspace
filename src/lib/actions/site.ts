@@ -64,7 +64,11 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
   }
 
   const content: SiteContent = {
-    hero: { title: str(formData, 'hero_title'), subtitle: str(formData, 'hero_subtitle') },
+    hero: {
+      title: str(formData, 'hero_title'),
+      subtitle: str(formData, 'hero_subtitle'),
+      imageId: str(formData, 'hero_image_id'),
+    },
     about: { text: str(formData, 'about_text') },
     pricing: { items },
     contact: {

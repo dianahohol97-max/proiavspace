@@ -122,6 +122,7 @@ export function SiteEditor({
   const [themeValue, setThemeValue] = useState(initialCatalogValue)
   const [heroTitle, setHeroTitle] = useState(content.hero.title)
   const [heroSubtitle, setHeroSubtitle] = useState(content.hero.subtitle)
+  const [heroImageId, setHeroImageId] = useState(content.hero.imageId)
   const [aboutText, setAboutText] = useState(content.about.text)
   const [packs, setPacks] = useState<Pack[]>(
     [0, 1, 2].map((index) => ({
@@ -209,7 +210,7 @@ export function SiteEditor({
 
   const previewContent: SiteContent = useMemo(
     () => ({
-      hero: { title: heroTitle, subtitle: heroSubtitle },
+      hero: { title: heroTitle, subtitle: heroSubtitle, imageId: heroImageId },
       about: { text: aboutText },
       pricing: {
         items: packs
@@ -224,7 +225,7 @@ export function SiteEditor({
       translations: content.translations,
       settings: { languages, leadForm },
     }),
-    [heroTitle, heroSubtitle, aboutText, packs, contact, content.translations, languages, leadForm]
+    [heroTitle, heroSubtitle, heroImageId, aboutText, packs, contact, content.translations, languages, leadForm]
   )
 
   function setPack(index: number, patch: Partial<Pack>) {
@@ -349,6 +350,47 @@ export function SiteEditor({
             onChange={(event) => setHeroSubtitle(event.target.value)}
             className={inputClass}
           />
+
+          {/* Hero photo picker — choose which portfolio photo fills the hero. */}
+          <input type="hidden" name="hero_image_id" value={heroImageId} />
+          <p className="text-xs text-muted">
+            {locale === 'uk' ? 'Фото для головного екрана' : 'Hero photo'}
+          </p>
+          {visiblePortfolio.length === 0 ? (
+            <p className="text-xs text-muted">
+              {locale === 'uk'
+                ? 'Спершу завантажте фото в портфоліо нижче.'
+                : 'Upload portfolio photos below first.'}
+            </p>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setHeroImageId('')}
+                className={`flex aspect-[4/5] items-center justify-center rounded border-2 p-1 text-center text-[10px] leading-tight ${
+                  heroImageId === '' ? 'border-accent text-accent' : 'border-line text-muted'
+                }`}
+              >
+                {locale === 'uk' ? 'Авто (перше)' : 'Auto (first)'}
+              </button>
+              {visiblePortfolio.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setHeroImageId(item.id)}
+                  aria-label={locale === 'uk' ? 'Обрати для hero' : 'Use as hero'}
+                  className={`aspect-[4/5] rounded border-2 transition-colors ${
+                    heroImageId === item.id ? 'border-accent' : 'border-transparent hover:border-line'
+                  }`}
+                  style={
+                    item.previewUrl
+                      ? { background: `center / cover no-repeat url("${item.previewUrl}")` }
+                      : { background: 'var(--color-border)' }
+                  }
+                />
+              ))}
+            </div>
+          )}
         </fieldset>
 
         <fieldset className="flex flex-col gap-3 rounded border border-line p-5">

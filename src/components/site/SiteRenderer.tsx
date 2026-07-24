@@ -1,6 +1,7 @@
 import { siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import type { SiteContent } from '@/lib/site/content'
 import { LeadForm, type LeadFormLabels } from './LeadForm'
+import { SiteLangSwitch } from './SiteLangSwitch'
 import { ThemeGallery } from './ThemeGallery'
 import { ThemeSilence } from './ThemeSilence'
 import {
@@ -210,25 +211,7 @@ export function SiteRenderer({
               <a href="#pricing" style={{ color: 'inherit', textDecoration: 'none' }}>{labels.pricing}</a>
             )}
             <a href="#contact" style={{ color: 'inherit', textDecoration: 'none' }}>{labels.contacts}</a>
-            {langSwitch && (
-              <span style={{ display: 'inline-flex', gap: 8 }}>
-                {langSwitch.options.map((o) => (
-                  <a
-                    key={o.locale}
-                    href={o.href}
-                    hrefLang={o.locale}
-                    style={{
-                      color: 'inherit',
-                      textDecoration: o.current ? 'underline' : 'none',
-                      textUnderlineOffset: 3,
-                      opacity: o.current ? 1 : 0.55,
-                    }}
-                  >
-                    {o.label}
-                  </a>
-                ))}
-              </span>
-            )}
+            {langSwitch && <SiteLangSwitch langSwitch={langSwitch} />}
           </nav>
         </header>
 

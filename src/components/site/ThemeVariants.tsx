@@ -1,5 +1,6 @@
 import type { SiteContent } from '@/lib/site/content'
 import { LeadForm, type LeadFormLabels } from './LeadForm'
+import { SiteLangSwitch } from './SiteLangSwitch'
 import { groupPortfolio, type LangSwitch, type PortfolioItem, type SiteLabels } from './SiteRenderer'
 import s from './SiteThemes.module.css'
 
@@ -21,11 +22,7 @@ function Lang({ langSwitch }: { langSwitch?: LangSwitch }) {
   if (!langSwitch) return null
   return (
     <span className={s.tLang}>
-      {langSwitch.options.map((o) => (
-        <a key={o.locale} href={o.href} hrefLang={o.locale} style={{ opacity: o.current ? 1 : 0.5 }}>
-          {o.label}
-        </a>
-      ))}
+      <SiteLangSwitch langSwitch={langSwitch} />
     </span>
   )
 }
