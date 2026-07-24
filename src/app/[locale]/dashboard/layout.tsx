@@ -55,8 +55,6 @@ export default async function DashboardLayout({
   if (isAdminEmail(user.email)) {
     items.push({ href: `/${locale}/dashboard/stats`, label: dict.dashboard.statsLink })
     items.push({ href: `/${locale}/dashboard/blog`, label: 'Блог' })
-    items.push({ href: `/${locale}/dashboard/content`, label: 'Контент' })
-    items.push({ href: `/${locale}/dashboard/threads`, label: 'Threads' })
   }
 
   const planName =
