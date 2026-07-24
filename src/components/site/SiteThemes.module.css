@@ -1028,11 +1028,11 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: -0.01em;
-  font-size: clamp(30px, 6vw, 64px);
+  font-size: clamp(26px, 5.6vw, 58px);
   line-height: 1.02;
   padding-top: 34px;
   margin: 0;
-  max-width: 20ch;
+  max-width: 18ch;
 }
 .prHeroSub {
   font-size: 11px;
@@ -1046,14 +1046,14 @@
 }
 .prRow {
   display: grid;
-  grid-template-columns: 60px 1fr auto;
+  grid-template-columns: 54px 1fr auto;
   gap: 18px;
   align-items: center;
   padding: 12px 0;
   border-bottom: 1px solid var(--site-fg);
 }
 .prRow .tImg {
-  width: 60px;
+  width: 54px;
   aspect-ratio: 4 / 3;
 }
 .prRow .ttl {
