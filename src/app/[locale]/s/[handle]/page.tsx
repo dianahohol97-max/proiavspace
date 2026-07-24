@@ -188,6 +188,9 @@ export default async function PublicSitePage({
           pricing: dict.publicSite.pricing,
           contacts: dict.publicSite.contacts,
           book: dict.publicSite.book,
+          photos: locale === 'uk' ? 'фото' : 'photos',
+          viewSeries: locale === 'uk' ? 'Дивитись серію' : 'View series',
+          close: locale === 'uk' ? 'Закрити' : 'Close',
         }}
         langSwitch={
           rawContent.settings.languages.length > 0

@@ -52,6 +52,11 @@ export interface SiteLabels {
   pricing: string
   contacts: string
   book: string
+  /** Album lightbox: count word (e.g. «фото») and the close action. */
+  photos: string
+  close: string
+  /** «Дивитись серію» — opens an album. */
+  viewSeries: string
 }
 
 /** One selectable language in a site's switcher. */

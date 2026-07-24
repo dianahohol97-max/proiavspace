@@ -63,6 +63,19 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
     if (block.hero.title || block.hero.subtitle || block.about.text) translations[l] = block
   }
 
+  // Album covers arrive as a JSON map {category: assetId}; tolerate bad input.
+  let albumCovers: Record<string, string> = {}
+  try {
+    const parsed = JSON.parse(str(formData, 'album_covers') || '{}')
+    if (parsed && typeof parsed === 'object') {
+      for (const [cat, id] of Object.entries(parsed)) {
+        if (typeof id === 'string' && id) albumCovers[cat] = id
+      }
+    }
+  } catch {
+    albumCovers = {}
+  }
+
   const content: SiteContent = {
     hero: {
       title: str(formData, 'hero_title'),
@@ -77,6 +90,7 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
       instagram: str(formData, 'contact_instagram'),
       bookingUrl: str(formData, 'contact_booking_url'),
     },
+    albumCovers,
     translations,
     settings: {
       languages,
