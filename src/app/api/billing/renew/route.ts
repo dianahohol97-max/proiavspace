@@ -48,10 +48,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const payments = getPayments()
   const admin = createSupabaseAdminClient()
-  if (!payments || !admin) {
-    return NextResponse.json({ error: 'billing_not_configured' }, { status: 503 })
+  if (!admin) {
+    return NextResponse.json({ error: 'service_not_configured' }, { status: 503 })
+  }
+
+  // Site-trial enforcement runs every day regardless of whether an acquiring
+  // provider is connected: trials older than 30 days (still on site_trial) are
+  // turned back into drafts. Best-effort — never blocks the billing sweep.
+  let expiredSites = 0
+  try {
+    const { data } = await admin.rpc('expire_trial_sites')
+    expiredSites = typeof data === 'number' ? data : 0
+  } catch {
+    // ignore — the read-time guard in get_site already hides expired trials
+  }
+
+  const payments = getPayments()
+  if (!payments) {
+    return NextResponse.json({ expiredSites, charges: 'billing_not_configured' })
   }
 
   const nowIso = new Date().toISOString()
@@ -86,7 +101,7 @@ export async function GET(request: NextRequest) {
 
   // 2. Active subscriptions that are due: charge the saved card.
   if (!canChargeTokens(payments)) {
-    return NextResponse.json({ renewed, failed, swept, charges: 'unsupported' })
+    return NextResponse.json({ renewed, failed, swept, expiredSites, charges: 'unsupported' })
   }
 
   const { data: dueSubs } = await admin
@@ -252,5 +267,5 @@ export async function GET(request: NextRequest) {
     // 'pending' — the webhook finishes the job.
   }
 
-  return NextResponse.json({ renewed, failed, swept })
+  return NextResponse.json({ renewed, failed, swept, expiredSites })
 }

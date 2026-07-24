@@ -4,6 +4,7 @@ import { saveSite } from '@/lib/actions/site'
 import { SiteLeads } from '@/components/site-editor/SiteLeads'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
+import { isSiteTrialExpired, siteTrialDaysLeft } from '@/lib/plans'
 import { parseSiteContent } from '@/lib/site/content'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -49,9 +50,14 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         .maybeSingle<SiteRow>(),
       supabase
         .from('profiles')
-        .select('display_name, logo_url')
+        .select('display_name, logo_url, site_plan, created_at')
         .eq('user_id', user.id)
-        .single<{ display_name: string | null; logo_url: string | null }>(),
+        .single<{
+          display_name: string | null
+          logo_url: string | null
+          site_plan: string
+          created_at: string
+        }>(),
       supabase
         .from('portfolio_assets')
         .select('id, r2_key, variants, visible, category, caption')
@@ -92,6 +98,12 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
   const publicUrl =
     site?.is_published && site.handle ? `${appUrl}/${locale}/s/${site.handle}` : null
 
+  // Site trial status (uk-first internal copy; the site product launches UA).
+  const sitePlan = profile?.site_plan ?? 'site_trial'
+  const createdAt = profile?.created_at ?? null
+  const trialExpired = isSiteTrialExpired(sitePlan, createdAt)
+  const trialDaysLeft = siteTrialDaysLeft(sitePlan, createdAt)
+
   const themeNames: Record<string, string> = {
     tysha: dict.site.themeTysha,
     opivnich: dict.site.themeOpivnich,
@@ -114,6 +126,29 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         <p className="mb-6 break-all text-sm text-muted">
           {dict.site.publicLink}: {publicUrl}
         </p>
+      )}
+
+      {trialExpired ? (
+        <div className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 text-sm">
+          <p className="font-semibold text-amber-800">Пробний місяць сайту завершився</p>
+          <p className="mt-1 text-amber-900/80">
+            Сайт знято з публікації й повернуто в чернетки. Оформіть тариф сайту, щоб знову
+            опублікувати його —{' '}
+            <Link href={`/${locale}/dashboard/billing`} className="underline">
+              перейти до тарифів
+            </Link>
+            . Ваш контент і портфоліо збережені.
+          </p>
+        </div>
+      ) : (
+        sitePlan === 'site_trial' &&
+        trialDaysLeft !== null && (
+          <div className="mb-6 rounded-2xl border border-line bg-bg px-5 py-4 text-sm text-muted">
+            Пробний період сайту: залишилось <b className="text-fg">{trialDaysLeft}</b>{' '}
+            {trialDaysLeft === 1 ? 'день' : trialDaysLeft < 5 ? 'дні' : 'днів'}. Після цього сайт
+            стане чернеткою, поки не оформите тариф.
+          </div>
+        )
       )}
 
       <SiteEditor
