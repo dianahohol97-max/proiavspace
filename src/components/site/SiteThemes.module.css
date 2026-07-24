@@ -356,9 +356,11 @@
 }
 /* about — labels + serif text */
 .sAbout {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px 64px;
+  align-items: start;
+  justify-content: space-between;
   border-top: 1px solid var(--site-line);
   padding: clamp(48px, 7vw, 80px) 0 0;
   margin-top: 40px;
@@ -366,7 +368,13 @@
 .sAboutLabels {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
+  flex: 0 0 auto;
+  min-width: 220px;
+}
+.sAboutForm {
+  flex: 1 1 340px;
+  max-width: 520px;
 }
 /* The value is rendered with a plain `className="val"`, so it must be matched
    as a global class — a scoped `.val` would be hashed and never apply, gluing
