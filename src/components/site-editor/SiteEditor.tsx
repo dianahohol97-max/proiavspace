@@ -132,11 +132,13 @@ export function SiteEditor({
   }
   const [aboutText, setAboutText] = useState(content.about.text)
   const [packs, setPacks] = useState<Pack[]>(
-    [0, 1, 2].map((index) => ({
-      name: content.pricing.items[index]?.name ?? '',
-      price: content.pricing.items[index]?.price ?? '',
-      includes: (content.pricing.items[index]?.includes ?? []).join('\n'),
-    }))
+    content.pricing.items.length > 0
+      ? content.pricing.items.map((item) => ({
+          name: item.name,
+          price: item.price,
+          includes: item.includes.join('\n'),
+        }))
+      : [{ name: '', price: '', includes: '' }]
   )
   const [contact, setContact] = useState(content.contact)
   const [languages, setLanguages] = useState<string[]>(content.settings.languages)
@@ -238,6 +240,12 @@ export function SiteEditor({
 
   function setPack(index: number, patch: Partial<Pack>) {
     setPacks((prev) => prev.map((pack, i) => (i === index ? { ...pack, ...patch } : pack)))
+  }
+  function addPack() {
+    setPacks((prev) => [...prev, { name: '', price: '', includes: '' }])
+  }
+  function removePack(index: number) {
+    setPacks((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
   }
 
   async function uploadPortfolio(files: File[]) {
@@ -663,32 +671,61 @@ export function SiteEditor({
 
         <fieldset className="flex flex-col gap-4 rounded border border-line p-5">
           <legend className="px-2 text-sm text-muted">{labels.pricingLegend}</legend>
-          {[0, 1, 2].map((index) => (
-            <div key={index} className="flex flex-col gap-2 rounded border border-line p-3">
+          {/* Unbounded number of packages; posted as JSON. */}
+          <input
+            type="hidden"
+            name="pricing_json"
+            value={JSON.stringify(
+              packs
+                .map((p) => ({
+                  name: p.name.trim(),
+                  price: p.price.trim(),
+                  includes: p.includes.split('\n').map((s) => s.trim()).filter(Boolean),
+                }))
+                .filter((p) => p.name)
+            )}
+          />
+          {packs.map((pack, index) => (
+            <div key={index} className="relative flex flex-col gap-2 rounded border border-line p-3">
+              {packs.length > 1 && (
+                <button
+                  type="button"
+                  aria-label={locale === 'uk' ? 'Видалити пакет' : 'Remove package'}
+                  title={locale === 'uk' ? 'Видалити пакет' : 'Remove package'}
+                  onClick={() => removePack(index)}
+                  className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full border border-line bg-bg text-xs hover:border-fg"
+                >
+                  ✕
+                </button>
+              )}
               <input
-                name={`price_name_${index}`}
-                defaultValue={packs[index].name}
+                value={pack.name}
                 placeholder={labels.priceName}
                 onChange={(event) => setPack(index, { name: event.target.value })}
                 className={inputClass}
               />
               <input
-                name={`price_amount_${index}`}
-                defaultValue={packs[index].price}
+                value={pack.price}
                 placeholder={labels.priceAmount}
                 onChange={(event) => setPack(index, { price: event.target.value })}
                 className={inputClass}
               />
               <textarea
-                name={`price_includes_${index}`}
                 rows={3}
-                defaultValue={packs[index].includes}
+                value={pack.includes}
                 placeholder={labels.priceIncludes}
                 onChange={(event) => setPack(index, { includes: event.target.value })}
                 className={inputClass}
               />
             </div>
           ))}
+          <button
+            type="button"
+            onClick={addPack}
+            className="self-start rounded-full border border-line px-4 py-2 text-sm transition-colors hover:border-fg"
+          >
+            + {locale === 'uk' ? 'Додати пакет' : 'Add package'}
+          </button>
         </fieldset>
 
         <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
