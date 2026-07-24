@@ -73,6 +73,12 @@ export default function ThemesPage({ params }: { params: { locale: string } }) {
             ? 'Оберіть тему, підставте свої фото — і персональний сайт готовий. Тему можна змінити будь-коли без втрати контенту.'
             : 'Pick a theme, add your photos — your personal site is ready. Switch themes anytime without losing content.'}
         </p>
+        <Link
+          href={`/${locale}/gallery-demo`}
+          className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-accent no-underline hover:underline"
+        >
+          {uk ? 'Подивитись демо клієнтської галереї' : 'See the client gallery demo'} →
+        </Link>
       </section>
 
       <div className="mx-auto max-w-5xl px-6 pb-24">
