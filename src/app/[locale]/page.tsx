@@ -90,6 +90,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           <span className={s.navLinks}>
             <a href="#products">{t.nav.features}</a>
             <a href="#pricing">{t.nav.pricing}</a>
+            <Link href={`/${locale}/themes`}>{t.nav.themes}</Link>
             <Link href={`/${locale}/blog`}>{t.nav.blog}</Link>
             <Link href={login}>{t.nav.signIn}</Link>
             <Link href={login} className={s.pillHot}>

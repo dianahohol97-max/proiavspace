@@ -7,7 +7,7 @@ import type { GalleryPlanId, SitePlanId } from '@/lib/plans'
  */
 
 export interface LandingCopy {
-  nav: { features: string; pricing: string; blog: string; signIn: string; ctaShort: string }
+  nav: { features: string; pricing: string; themes: string; blog: string; signIn: string; ctaShort: string }
   hero: {
     chips: string[]
     titleBefore: string
@@ -81,6 +81,7 @@ const uk: LandingCopy = {
   nav: {
     features: 'Можливості',
     pricing: 'Тарифи',
+    themes: 'Теми',
     blog: 'Блог',
     signIn: 'Увійти',
     ctaShort: 'Почати безкоштовно',
@@ -265,7 +266,7 @@ const uk: LandingCopy = {
 }
 
 const en: LandingCopy = {
-  nav: { features: 'Features', pricing: 'Pricing', blog: 'Blog', signIn: 'Sign in', ctaShort: 'Start for free' },
+  nav: { features: 'Features', pricing: 'Pricing', themes: 'Themes', blog: 'Blog', signIn: 'Sign in', ctaShort: 'Start for free' },
   hero: {
     chips: ['Weddings', 'Families', 'Portraits', 'Studios'],
     titleBefore: 'Everything that happens ',
