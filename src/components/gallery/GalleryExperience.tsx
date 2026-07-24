@@ -100,6 +100,7 @@ export function GalleryExperience({
   theme,
   mode,
   labels,
+  demo = false,
 }: {
   locale: string
   slug: string
@@ -115,6 +116,8 @@ export function GalleryExperience({
   theme: ThemeId
   mode: SiteMode
   labels: GalleryLabels
+  /** Public showcase: keep the interactions visual, never hit gallery APIs. */
+  demo?: boolean
 }) {
   const tokens = resolveTokens(theme, mode)
   const accent = mode === 'night' ? '#8fa2ff' : '#2f55ff'
@@ -133,6 +136,7 @@ export function GalleryExperience({
       else next.delete(assetId)
       return next
     })
+    if (demo) return // showcase: keep the heart visual, never persist
     const response = await fetch(`/api/galleries/${slug}/selections`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -149,6 +153,7 @@ export function GalleryExperience({
   }
 
   async function downloadAll() {
+    if (demo) return // showcase: no archive API in demo mode
     setArchive('working')
     setDone(0)
     setTotal(0)
