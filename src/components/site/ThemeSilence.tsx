@@ -1,5 +1,6 @@
 import type { SiteContent } from '@/lib/site/content'
 import { LeadForm, type LeadFormLabels } from './LeadForm'
+import { SiteLangSwitch } from './SiteLangSwitch'
 import type { LangSwitch, PortfolioItem, SiteLabels } from './SiteRenderer'
 import s from './SiteThemes.module.css'
 
@@ -57,7 +58,11 @@ export function ThemeSilence({
   night?: boolean
 }) {
   const brand = displayName ?? ''
-  const heroImg = portfolio[0]?.previewUrl ?? null
+  // The chosen hero photo (content.hero.imageId), falling back to the first.
+  const heroImg =
+    portfolio.find((p) => p.id === content.hero.imageId)?.previewUrl ??
+    portfolio[0]?.previewUrl ??
+    null
   const rowA = portfolio.filter((_, i) => i % 2 === 0)
   const rowB = portfolio.filter((_, i) => i % 2 === 1)
   const floats = portfolio.slice(0, 4)
@@ -86,11 +91,7 @@ export function ThemeSilence({
             <a href="#contact">{labels.contacts}</a>
             {langSwitch && (
               <span className={s.sLang}>
-                {langSwitch.options.map((o) => (
-                  <a key={o.locale} href={o.href} hrefLang={o.locale} style={{ opacity: o.current ? 1 : 0.5 }}>
-                    {o.label}
-                  </a>
-                ))}
+                <SiteLangSwitch langSwitch={langSwitch} />
               </span>
             )}
           </span>

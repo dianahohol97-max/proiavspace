@@ -121,7 +121,16 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         ← {dict.dashboard.title}
       </Link>
       <h1 className="mb-2 mt-5 font-brand text-3xl">{dict.site.title}</h1>
-      <p className="mb-2 max-w-2xl text-sm leading-relaxed text-muted">{dict.site.intro}</p>
+      <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted">{dict.site.intro}</p>
+
+      <a
+        href={`/${locale}/site-preview`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mb-6 inline-flex items-center gap-2 rounded-full border border-fg px-5 py-2 text-sm font-semibold no-underline transition-colors hover:bg-fg hover:text-bg"
+      >
+        {locale === 'uk' ? 'Повне превʼю сайту ↗' : 'Full site preview ↗'}
+      </a>
       {publicUrl && (
         <p className="mb-6 break-all text-sm text-muted">
           {dict.site.publicLink}: {publicUrl}
