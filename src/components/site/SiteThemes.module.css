@@ -368,7 +368,10 @@
   flex-direction: column;
   gap: 18px;
 }
-.sAboutLabels .val {
+/* The value is rendered with a plain `className="val"`, so it must be matched
+   as a global class — a scoped `.val` would be hashed and never apply, gluing
+   the value onto its mono label. */
+.sAboutLabels :global(.val) {
   display: block;
   margin-top: 3px;
   font-size: 13px;
