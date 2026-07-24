@@ -9,12 +9,26 @@ export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const alt = 'Photographer portfolio'
 
-// Brand fonts (static instances) read from disk. next.config.js force-includes
-// this folder in the OG route's Vercel function bundle.
-const fontsDir = join(process.cwd(), 'src/assets/fonts')
-const manropeData = readFileSync(join(fontsDir, 'Manrope-Regular.ttf'))
-const manropeSemiData = readFileSync(join(fontsDir, 'Manrope-SemiBold.ttf'))
-const unboundedData = readFileSync(join(fontsDir, 'Unbounded-SemiBold.ttf'))
+/**
+ * Brand fonts (static instances) read from disk — LAZILY, inside the handler.
+ * Reading at module scope crashed the PAGE, because Next imports this module
+ * while resolving the page's metadata (for `size`/`alt`) and the top-level
+ * readFileSync then ran in the page function, where the fonts aren't bundled.
+ * On any read failure we fall back to next/og's default font so the card (and
+ * the page) never 500s. next.config.js traces this folder into the OG function.
+ */
+function loadBrandFonts() {
+  try {
+    const fontsDir = join(process.cwd(), 'src/assets/fonts')
+    return [
+      { name: 'Manrope', data: readFileSync(join(fontsDir, 'Manrope-Regular.ttf')), weight: 400 as const, style: 'normal' as const },
+      { name: 'ManropeSemi', data: readFileSync(join(fontsDir, 'Manrope-SemiBold.ttf')), weight: 600 as const, style: 'normal' as const },
+      { name: 'Unbounded', data: readFileSync(join(fontsDir, 'Unbounded-SemiBold.ttf')), weight: 600 as const, style: 'normal' as const },
+    ]
+  } catch {
+    return undefined
+  }
+}
 
 interface SiteRow {
   theme: string
@@ -57,6 +71,8 @@ export default async function Image({
   const brand = (site?.display_name ?? '').trim()
   const title = (content?.hero.title || brand || params.handle).slice(0, 90)
   const subtitle = (content?.hero.subtitle ?? '').slice(0, 120)
+
+  const fonts = loadBrandFonts()
 
   return new ImageResponse(
     (
@@ -120,11 +136,7 @@ export default async function Image({
     ),
     {
       ...size,
-      fonts: [
-        { name: 'Manrope', data: manropeData, weight: 400, style: 'normal' },
-        { name: 'ManropeSemi', data: manropeSemiData, weight: 600, style: 'normal' },
-        { name: 'Unbounded', data: unboundedData, weight: 600, style: 'normal' },
-      ],
+      ...(fonts ? { fonts } : {}),
     }
   )
 }
