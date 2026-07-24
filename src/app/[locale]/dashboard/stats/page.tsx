@@ -61,7 +61,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
     )
   }
 
-  const [{ data: profiles }, { data: galleries }, { data: sites }, { data: subs }] =
+  const [{ data: profiles }, { data: galleries }, { data: sites }, { data: subs }, { data: refs }] =
     await Promise.all([
       admin.from('profiles').select('plan, site_plan, storage_used_bytes').returns<ProfileRow[]>(),
       admin.from('galleries').select('is_published').returns<{ is_published: boolean }[]>(),
@@ -70,7 +70,10 @@ export default async function StatsPage({ params }: { params: { locale: string }
         .from('billing_subscriptions')
         .select('product, plan, period, status')
         .returns<SubRow[]>(),
+      admin.from('referrals').select('status').returns<{ status: string }[]>(),
     ])
+  const referralsTotal = refs?.length ?? 0
+  const referralsPaid = (refs ?? []).filter((r) => r.status === 'converted').length
 
   const profileRows = profiles ?? []
   const galleryRows = galleries ?? []
@@ -150,6 +153,8 @@ export default async function StatsPage({ params }: { params: { locale: string }
         {tile(t.galleries, `${publishedGalleries} / ${galleryRows.length}`)}
         {tile(t.sites, publishedSites)}
         {tile(t.storage, formatGb(storageUsed))}
+        {tile(t.referralsTotal, referralsTotal)}
+        {tile(t.referralsPaid, referralsPaid)}
       </div>
 
       {/* --- gallery plan breakdown --- */}
