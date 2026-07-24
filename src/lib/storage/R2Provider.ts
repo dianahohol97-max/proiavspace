@@ -68,6 +68,15 @@ export class S3CompatProvider implements StorageProvider {
   }
 
   async getSignedReadUrl(key: string, options?: SignedReadUrlOptions): Promise<string> {
+    // Inline reads (previews, thumbs, posters, covers, logos) go through the
+    // CDN when configured — cached at the edge, fast even on a weak connection,
+    // and free egress from B2. Forced downloads (originals) stay presigned:
+    // short-lived, private, never cached publicly.
+    const cdn = process.env.MEDIA_CDN_URL
+    if (cdn && !options?.downloadFileName) {
+      return `${cdn.replace(/\/+$/, '')}/${key}`
+    }
+
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
