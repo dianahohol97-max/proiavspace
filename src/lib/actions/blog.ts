@@ -28,10 +28,18 @@ function revalidateBlog(locale: Locale) {
 
 /**
  * Founder-triggered generation: write the next queued topic into a draft, right
- * from the dashboard. Admin-gated; returns a friendly result to show inline.
+ * from the dashboard. Admin-gated, but never throws — a misconfiguration (e.g.
+ * the service-role key missing in the environment) comes back as a readable
+ * message instead of crashing the page.
  */
 export async function generateArticleNow(locale: Locale): Promise<GenerateResult> {
-  await requireAdmin()
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user || !isAdminEmail(user.email)) {
+    return { ok: false, message: 'Немає доступу.' }
+  }
   const result = await generateNextArticle()
   if (result.ok) revalidateBlog(locale)
   return result
