@@ -21,9 +21,12 @@ function formatGb(bytes: number): string {
 }
 
 interface ProfileRow {
+  user_id: string
+  display_name: string | null
   plan: string
   site_plan: string
   storage_used_bytes: number | null
+  created_at: string
 }
 interface SubRow {
   product: string
@@ -63,7 +66,11 @@ export default async function StatsPage({ params }: { params: { locale: string }
 
   const [{ data: profiles }, { data: galleries }, { data: sites }, { data: subs }, { data: refs }] =
     await Promise.all([
-      admin.from('profiles').select('plan, site_plan, storage_used_bytes').returns<ProfileRow[]>(),
+      admin
+        .from('profiles')
+        .select('user_id, display_name, plan, site_plan, storage_used_bytes, created_at')
+        .order('created_at', { ascending: true })
+        .returns<ProfileRow[]>(),
       admin.from('galleries').select('is_published').returns<{ is_published: boolean }[]>(),
       admin.from('sites').select('is_published').returns<{ is_published: boolean }[]>(),
       admin
@@ -74,6 +81,11 @@ export default async function StatsPage({ params }: { params: { locale: string }
     ])
   const referralsTotal = refs?.length ?? 0
   const referralsPaid = (refs ?? []).filter((r) => r.status === 'converted').length
+
+  // Emails live in auth.users, not profiles — fetch them via the admin API and
+  // map by id so the photographer list can show a real contact.
+  const { data: userList } = await admin.auth.admin.listUsers({ perPage: 1000 })
+  const emailById = new Map((userList?.users ?? []).map((u) => [u.id, u.email ?? '']))
 
   const profileRows = profiles ?? []
   const galleryRows = galleries ?? []
@@ -104,6 +116,20 @@ export default async function StatsPage({ params }: { params: { locale: string }
     site_basic: dict.billing.sitePlanBasic,
     site_plus: dict.billing.sitePlanPlus,
   }
+
+  // Per-photographer list (founder view): name, contact, plans, storage, join date.
+  const photographers = profileRows.map((p) => ({
+    name: p.display_name || '—',
+    email: emailById.get(p.user_id) || '—',
+    gallery: galleryPlanName[p.plan as GalleryPlanId] ?? p.plan,
+    site: sitePlanName[p.site_plan as SitePlanId] ?? p.site_plan,
+    storage: formatGb(p.storage_used_bytes ?? 0),
+    joined: new Date(p.created_at).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }),
+  }))
 
   const paidGalleryUsers = galleryPlanIds
     .filter((id) => id !== 'free')
@@ -156,6 +182,39 @@ export default async function StatsPage({ params }: { params: { locale: string }
         {tile(t.referralsTotal, referralsTotal)}
         {tile(t.referralsPaid, referralsPaid)}
       </div>
+
+      {/* --- photographers list --- */}
+      <section className="mt-12">
+        <h2 className="mb-4 font-brand text-xl">
+          {locale === 'uk' ? 'Фотографи' : 'Photographers'} · {photographers.length}
+        </h2>
+        <div className="overflow-x-auto rounded-2xl border border-line">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-line text-[11px] uppercase tracking-widest text-muted">
+                <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'Імʼя' : 'Name'}</th>
+                <th className="px-4 py-3 font-semibold">Email</th>
+                <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'Галереї' : 'Galleries'}</th>
+                <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'Сайт' : 'Site'}</th>
+                <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'Сховище' : 'Storage'}</th>
+                <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'З' : 'Joined'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {photographers.map((p, index) => (
+                <tr key={p.email + index} className={index > 0 ? 'border-t border-line' : ''}>
+                  <td className="px-4 py-3 font-medium text-fg">{p.name}</td>
+                  <td className="px-4 py-3 text-muted">{p.email}</td>
+                  <td className="px-4 py-3">{p.gallery}</td>
+                  <td className="px-4 py-3">{p.site}</td>
+                  <td className="px-4 py-3">{p.storage}</td>
+                  <td className="px-4 py-3 text-muted">{p.joined}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* --- gallery plan breakdown --- */}
       <section className="mt-12">

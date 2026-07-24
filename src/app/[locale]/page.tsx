@@ -9,6 +9,7 @@ import {
   type GalleryPlanId,
   type SitePlanId,
 } from '@/lib/plans'
+import { LangPicker } from '@/components/LangPicker'
 import { Logo } from '@/components/Logo'
 import { Reveal } from '@/components/landing/Reveal'
 import s from './landing.module.css'
@@ -89,10 +90,12 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           <span className={s.navLinks}>
             <a href="#products">{t.nav.features}</a>
             <a href="#pricing">{t.nav.pricing}</a>
+            <Link href={`/${locale}/blog`}>{t.nav.blog}</Link>
             <Link href={login}>{t.nav.signIn}</Link>
             <Link href={login} className={s.pillHot}>
               {t.nav.ctaShort} <span>→</span>
             </Link>
+            <LangPicker current={locale} />
           </span>
         </nav>
 
