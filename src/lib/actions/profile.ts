@@ -29,6 +29,8 @@ export async function updateDisplayName(locale: Locale, formData: FormData): Pro
   if (error) throw new Error(`Failed to update profile: ${error.message}`)
 
   revalidatePath(`/${locale}/dashboard/settings`)
+  // Land back with a confirmation flag so the form can say it saved.
+  redirect(`/${locale}/dashboard/settings?saved=1`)
 }
 
 /** Called by LogoUploader after the direct PUT to R2 succeeded. */
