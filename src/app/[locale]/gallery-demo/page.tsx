@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
+import { THEME_DEMOS } from '@/lib/site/demoContent'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
 
 export const dynamic = 'force-dynamic'
@@ -10,8 +12,8 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
   const uk = params.locale === 'uk'
   const title = uk ? 'Демо клієнтської галереї — проЯв' : 'Client gallery demo — proiav'
   const description = uk
-    ? 'Подивіться, як клієнт отримує фото: галерея з обкладинкою, вибором улюблених кадрів і завантаженням оригіналів.'
-    : 'See how a client receives photos: a branded gallery with favourites and full-resolution downloads.'
+    ? 'Подивіться, як клієнт отримує фото: галерея з обкладинкою, вибором улюблених кадрів і завантаженням оригіналів — у будь-якому стилі.'
+    : 'See how a client receives photos: a branded gallery with favourites and full-resolution downloads — in any style.'
   return { title, description, alternates: { canonical: `/${params.locale}/gallery-demo` } }
 }
 
@@ -22,11 +24,20 @@ function img(n: number): string {
 // A believable wedding gallery from the generated set.
 const PHOTOS = [1, 11, 2, 5, 3, 7, 8, 4, 6, 12, 9, 10]
 
-export default async function GalleryDemoPage({ params }: { params: { locale: string } }) {
+export default async function GalleryDemoPage({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  searchParams: { theme?: string }
+}) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const dict = await getDictionary(locale)
   const uk = locale === 'uk'
+
+  // The gallery inherits its palette/typography from the chosen theme.
+  const active = THEME_DEMOS.find((d) => d.value === searchParams.theme) ?? THEME_DEMOS[0]
 
   const items: GalleryItem[] = PHOTOS.map((n) => ({
     id: String(n),
@@ -39,33 +50,63 @@ export default async function GalleryDemoPage({ params }: { params: { locale: st
   }))
 
   return (
-    <GalleryExperience
-      demo
-      locale={locale}
-      slug="demo"
-      title={uk ? 'Марта і Богдан' : 'Marta & Bohdan'}
-      eventLine={uk ? '14 вересня 2026 · Львів' : '14 September 2026 · Lviv'}
-      brandName="Ольга Вишня"
-      logoUrl={null}
-      coverUrl={img(1)}
-      items={items}
-      initialFavorites={['11', '5']}
-      showBadge
-      tipUrl={null}
-      theme="tysha"
-      mode="light"
-      labels={{
-        scrollHint: dict.publicGallery.scrollHint,
-        selected: dict.publicGallery.selected,
-        downloadAll: dict.publicGallery.downloadAll,
-        downloadHint: dict.publicGallery.downloadHint,
-        preparingArchive: dict.publicGallery.preparingArchive,
-        archiveError: dict.publicGallery.archiveError,
-        downloadOriginal: dict.publicGallery.downloadOriginal,
-        favoriteToggle: dict.publicGallery.favoriteToggle,
-        madeOn: dict.publicGallery.madeOn,
-        tip: dict.publicGallery.tip,
-      }}
-    />
+    <>
+      {/* style switcher */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-line bg-bg px-4 py-3">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-widest text-muted">
+          {uk ? 'Стиль:' : 'Style:'}
+        </span>
+        {THEME_DEMOS.map((d) => {
+          const on = d.value === active.value
+          return (
+            <Link
+              key={d.value}
+              href={`/${locale}/gallery-demo?theme=${d.value}`}
+              className={`rounded-full border px-3 py-1 text-sm no-underline transition-colors ${
+                on ? 'border-fg bg-fg text-bg' : 'border-line text-fg hover:border-fg'
+              }`}
+            >
+              {d.name}
+            </Link>
+          )
+        })}
+        <Link
+          href={`/${locale}/themes`}
+          className="ml-auto text-sm text-accent no-underline hover:underline"
+        >
+          ← {uk ? 'До тем сайтів' : 'Site themes'}
+        </Link>
+      </div>
+
+      <GalleryExperience
+        demo
+        key={active.value}
+        locale={locale}
+        slug="demo"
+        title={uk ? 'Марта і Богдан' : 'Marta & Bohdan'}
+        eventLine={uk ? '14 вересня 2026 · Львів' : '14 September 2026 · Lviv'}
+        brandName="Ольга Вишня"
+        logoUrl={null}
+        coverUrl={img(1)}
+        items={items}
+        initialFavorites={['11', '5']}
+        showBadge
+        tipUrl={null}
+        theme={active.theme}
+        mode={active.mode}
+        labels={{
+          scrollHint: dict.publicGallery.scrollHint,
+          selected: dict.publicGallery.selected,
+          downloadAll: dict.publicGallery.downloadAll,
+          downloadHint: dict.publicGallery.downloadHint,
+          preparingArchive: dict.publicGallery.preparingArchive,
+          archiveError: dict.publicGallery.archiveError,
+          downloadOriginal: dict.publicGallery.downloadOriginal,
+          favoriteToggle: dict.publicGallery.favoriteToggle,
+          madeOn: dict.publicGallery.madeOn,
+          tip: dict.publicGallery.tip,
+        }}
+      />
+    </>
   )
 }
