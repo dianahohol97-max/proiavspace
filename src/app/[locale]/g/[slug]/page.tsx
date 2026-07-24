@@ -222,6 +222,7 @@ export default async function PublicGalleryPage({
         scrollHint: dict.publicGallery.scrollHint,
         selected: dict.publicGallery.selected,
         downloadAll: dict.publicGallery.downloadAll,
+        downloadHint: dict.publicGallery.downloadHint,
         preparingArchive: dict.publicGallery.preparingArchive,
         archiveError: dict.publicGallery.archiveError,
         downloadOriginal: dict.publicGallery.downloadOriginal,
