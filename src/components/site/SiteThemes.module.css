@@ -664,11 +664,11 @@
   font-family: var(--site-font-display);
   font-weight: 400;
   margin: 0;
-  font-size: clamp(38px, 8vw, 84px);
-  line-height: 1.03;
+  font-size: clamp(38px, 8.5vw, 92px);
+  line-height: 1.02;
   letter-spacing: -0.01em;
   text-wrap: balance;
-  padding-top: clamp(20px, 5vw, 56px);
+  padding-top: clamp(28px, 6vw, 72px);
 }
 .airSub {
   margin: 20px 0 0;
@@ -718,7 +718,7 @@
   max-width: 46ch;
   text-align: center;
   font-family: var(--site-font-display);
-  font-size: clamp(18px, 2.6vw, 25px);
+  font-size: clamp(18px, 2.6vw, 24px);
   line-height: 1.5;
   white-space: pre-line;
 }
