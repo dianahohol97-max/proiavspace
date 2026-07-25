@@ -137,6 +137,13 @@ export default async function PublicSitePage({
   // canonical url, offer catalogue from real prices, service area and language.
   const rawContent = parseSiteContent(site.content)
   const content = localizedSiteContent(rawContent, locale)
+
+  // Booking as an integrated site section: when enabled and no external booking
+  // link is set, the site's «Забронювати зйомку» button points at the
+  // photographer's own booking page (open dates + direct payment).
+  if (rawContent.settings.booking && !content.contact.bookingUrl) {
+    content.contact.bookingUrl = `/${locale}/b/${params.handle}`
+  }
   const siteUrl = `${BASE_URL}/${locale}/s/${params.handle}`
   const prices = rawContent.pricing.items
     .map((i) => Number(i.price.replace(/[^\d]/g, '')))

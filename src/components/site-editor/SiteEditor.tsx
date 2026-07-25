@@ -147,6 +147,7 @@ export function SiteEditor({
   const [contact, setContact] = useState(content.contact)
   const [languages, setLanguages] = useState<string[]>(content.settings.languages)
   const [leadForm, setLeadForm] = useState(content.settings.leadForm)
+  const [booking, setBooking] = useState(content.settings.booking)
 
   function toggleLanguage(loc: string, on: boolean) {
     setLanguages((prev) =>
@@ -237,9 +238,9 @@ export function SiteEditor({
       },
       contact,
       translations: content.translations,
-      settings: { languages, leadForm },
+      settings: { languages, leadForm, booking },
     }),
-    [heroTitle, heroSubtitle, heroImageId, albumCovers, aboutText, packs, contact, content.translations, languages, leadForm]
+    [heroTitle, heroSubtitle, heroImageId, albumCovers, aboutText, packs, contact, content.translations, languages, leadForm, booking]
   )
 
   function setPack(index: number, patch: Partial<Pack>) {
@@ -645,6 +646,22 @@ export function SiteEditor({
               {labels.optLeadForm}
             </label>
             <p className="pl-7 text-xs text-muted">{labels.optLeadFormHint}</p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="opt_booking"
+                checked={booking}
+                onChange={(event) => setBooking(event.target.checked)}
+              />
+              {locale === 'uk' ? 'Бронювання на сайті' : 'Booking on the site'}
+            </label>
+            <p className="pl-7 text-xs text-muted">
+              {locale === 'uk'
+                ? 'Показати секцію бронювання, зв’язану з вашою сторінкою бронювання (вільні дати, оплата напряму). Керуйте датами у вкладці «Бронювання».'
+                : 'Show a booking section wired to your own booking page (open dates, direct payment). Manage dates in the “Booking” tab.'}
+            </p>
           </div>
         </fieldset>
 

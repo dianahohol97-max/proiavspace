@@ -33,7 +33,7 @@ function content(
   return {
     albumCovers: {},
     translations: {},
-    settings: { languages: [], leadForm: true },
+    settings: { languages: [], leadForm: true, booking: false },
     ...partial,
   }
 }
