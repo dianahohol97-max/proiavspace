@@ -44,6 +44,8 @@ export interface SiteContent {
     languages: string[]
     /** Render the lead form in the contact block. */
     leadForm: boolean
+    /** Show a booking section wired to the photographer's own booking page. */
+    booking: boolean
   }
 }
 
@@ -54,7 +56,7 @@ export const EMPTY_CONTENT: SiteContent = {
   contact: { email: '', phone: '', instagram: '', bookingUrl: '' },
   albumCovers: {},
   translations: {},
-  settings: { languages: [], leadForm: false },
+  settings: { languages: [], leadForm: false, booking: false },
 }
 
 /**
@@ -166,6 +168,7 @@ export function parseSiteContent(value: unknown): SiteContent {
     settings: {
       languages,
       leadForm: settings.leadForm === true,
+      booking: settings.booking === true,
     },
   }
 }

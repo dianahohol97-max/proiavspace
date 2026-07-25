@@ -120,6 +120,7 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
     settings: {
       languages,
       leadForm: formData.get('opt_lead_form') === 'on',
+      booking: formData.get('opt_booking') === 'on',
     },
   }
 
