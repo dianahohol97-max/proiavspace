@@ -106,12 +106,20 @@ export default function ThemesPage({ params }: { params: { locale: string } }) {
                   </div>
                 </div>
               </div>
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Link
                   href={`/${locale}/login`}
                   className="inline-flex items-center gap-2 rounded-full border border-fg px-6 py-2.5 text-sm font-semibold no-underline transition-colors hover:bg-fg hover:text-bg"
                 >
                   {uk ? `Обрати «${demo.name}»` : `Choose “${demo.name}”`} →
+                </Link>
+                <Link
+                  href={`/${locale}/themes/${demo.value}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-accent no-underline hover:underline"
+                >
+                  {uk ? 'Повне превʼю сайту' : 'Full site preview'} ↗
                 </Link>
               </div>
             </section>
