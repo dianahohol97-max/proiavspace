@@ -13,6 +13,16 @@ import { updateSession } from '@/lib/supabase/middleware'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Canonicalize the platform host: www → apex, so Google indexes one URL
+  // (matches the declared canonical https://proiav.space/…). A permanent 301.
+  if ((request.headers.get('host') ?? '') === 'www.proiav.space') {
+    const url = request.nextUrl.clone()
+    url.host = 'proiav.space'
+    url.protocol = 'https:'
+    url.port = ''
+    return NextResponse.redirect(url, 301)
+  }
+
   const hasLocale = locales.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
   )
