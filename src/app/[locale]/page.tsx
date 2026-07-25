@@ -85,11 +85,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           </Link>
           <span className={s.navLinks}>
             <a href="#galleries">{t.nav.galleries}</a>
-            <a href="#sites">
-              {t.nav.sites} <span className={s.soonTag}>{t.products.soon}</span>
-            </a>
             <a href="#pricing">{t.nav.pricing}</a>
-            <Link href={`/${locale}/themes`}>{t.nav.themes}</Link>
             <Link href={`/${locale}/blog`}>{t.nav.blog}</Link>
             <AuthNav
               locale={locale}
