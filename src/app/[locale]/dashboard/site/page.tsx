@@ -125,6 +125,17 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
       <h1 className="mb-2 mt-5 font-brand text-3xl">{dict.site.title}</h1>
       <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted">{dict.site.intro}</p>
 
+      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 text-sm">
+        <span className="mt-0.5 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+          {locale === 'uk' ? 'В розробці' : 'In progress'}
+        </span>
+        <p className="text-muted">
+          {locale === 'uk'
+            ? 'Конструктор сайтів ще в розробці — можете гратися й готувати контент, але поки не радимо давати адресу сайту клієнтам. Про повноцінний запуск повідомимо. А серце сервісу зараз — клієнтські галереї.'
+            : 'The site builder is still in development — feel free to experiment and prep content, but we don’t recommend sharing the site address with clients yet. We’ll announce the full launch. For now, client galleries are the core of the service.'}
+        </p>
+      </div>
+
       <a
         href={`/${locale}/site-preview`}
         target="_blank"

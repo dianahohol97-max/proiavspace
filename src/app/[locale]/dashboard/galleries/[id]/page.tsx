@@ -118,13 +118,20 @@ export default async function ManageGalleryPage({
   // fetched by the browser straight from R2.
   const storage = getStorage()
   const previews = await Promise.all(
-    (assets ?? []).map(async (asset) => ({
-      asset,
-      url: await storage.getSignedReadUrl(
-        asset.variants.poster ?? asset.variants.thumb ?? asset.variants.preview ?? asset.r2_key,
-        { expiresInSeconds: 60 * 60 }
-      ),
-    }))
+    (assets ?? []).map(async (asset) => {
+      // Signing must never crash the whole page: one unreadable/broken asset
+      // degrades to a missing thumbnail instead of a blank error screen.
+      let url = ''
+      try {
+        url = await storage.getSignedReadUrl(
+          asset.variants.poster ?? asset.variants.thumb ?? asset.variants.preview ?? asset.r2_key,
+          { expiresInSeconds: 60 * 60 }
+        )
+      } catch {
+        url = ''
+      }
+      return { asset, url }
+    })
   )
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
