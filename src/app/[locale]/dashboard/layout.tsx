@@ -12,6 +12,7 @@ import {
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { Logo } from '@/components/Logo'
 import { DashNav, type NavItem } from '@/components/dashboard/DashNav'
+import { MobileMenu } from '@/components/dashboard/MobileMenu'
 import type { Profile } from '@/lib/types'
 
 function formatGb(bytes: number): string {
@@ -118,10 +119,33 @@ export default async function DashboardLayout({
       <div className="min-w-0 flex-1">
         {/* -------- top bar (mobile) -------- */}
         <div className="flex items-center gap-3 border-b border-line bg-white px-4 py-3 lg:hidden">
-          <Link href={`/${locale}`} className="flex-none text-fg no-underline">
+          <Link href={`/${locale}/dashboard`} className="flex-none text-fg no-underline">
             <Logo size={18} textSize={13} />
           </Link>
-          <DashNav items={items} horizontal />
+          <MobileMenu label={dict.dashboard.title}>
+            <DashNav items={items} />
+            <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3">
+              {profile && (
+                <div className="rounded-2xl bg-bg p-4">
+                  <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted">
+                    {dict.dashboard.storageUsed} · {planName}
+                  </p>
+                  <div className="my-2.5 h-1.5 overflow-hidden rounded-full bg-line">
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${usedPct}%` }} />
+                  </div>
+                  <p className="text-xs font-semibold text-muted">
+                    {formatGb(profile.storage_used_bytes)} / {formatGb(effectiveLimit)}
+                  </p>
+                </div>
+              )}
+              <form action={signOutAction} className="px-2 pb-1">
+                <p className="truncate text-xs font-semibold text-muted">{user.email}</p>
+                <button type="submit" className="mt-1 text-sm font-bold text-accent underline">
+                  {dict.common.signOut}
+                </button>
+              </form>
+            </div>
+          </MobileMenu>
         </div>
         {children}
       </div>
