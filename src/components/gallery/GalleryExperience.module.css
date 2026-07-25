@@ -83,6 +83,16 @@
 .dlAll:hover { background: var(--g-fg); color: var(--g-bg); }
 .dlAll:disabled { opacity: 0.6; cursor: default; }
 
+.slideBtn {
+  margin-left: auto; flex: none;
+  border: 1px solid var(--g-line); border-radius: 999px; background: none;
+  padding: 9px 16px; cursor: pointer; color: var(--g-fg);
+  font-family: var(--g-label); font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.13em; text-transform: uppercase;
+  transition: background 0.2s, color 0.2s;
+}
+.slideBtn:hover { background: var(--g-fg); color: var(--g-bg); }
+
 /* ---------- grid ---------- */
 .grid {
   columns: 3; column-gap: 14px;
@@ -168,6 +178,8 @@
 .lbClose { composes: lbBtn; top: 22px; right: 22px; }
 .lbPrev { composes: lbBtn; left: 16px; top: 50%; transform: translateY(-50%); }
 .lbNext { composes: lbBtn; right: 16px; top: 50%; transform: translateY(-50%); }
+.lbTools { position: absolute; top: 22px; right: 22px; z-index: 2; display: flex; gap: 10px; }
+.lbTool { composes: lbBtn; position: static; }
 .lbFoot {
   position: absolute; bottom: 18px; left: 0; right: 0;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
