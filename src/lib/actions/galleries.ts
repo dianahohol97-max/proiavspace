@@ -111,6 +111,8 @@ export async function setGalleryTheme(
     columns: Number(formData.get('columns')) || undefined,
     radius: formData.get('radius') !== null ? Number(formData.get('radius')) : undefined,
     font: String(formData.get('font') ?? '') || undefined,
+    focalX: formData.get('focalX') !== null ? Number(formData.get('focalX')) : undefined,
+    focalY: formData.get('focalY') !== null ? Number(formData.get('focalY')) : undefined,
   })
   const style = Object.keys(parsed).length > 0 ? parsed : null
 

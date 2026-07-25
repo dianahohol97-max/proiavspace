@@ -12,6 +12,9 @@ export interface GalleryStyle {
   radius?: number
   /** Display-font key (see FONT_PRESETS); the cover title font. */
   font?: string
+  /** Cover focal point (0–100%); where the cover crop centres. */
+  focalX?: number
+  focalY?: number
 }
 
 /** Accent swatches offered in the designer (label + hex); '' = theme default. */
@@ -61,5 +64,7 @@ export function parseGalleryStyle(raw: unknown): GalleryStyle {
   if (typeof v.font === 'string' && FONT_PRESETS.some((f) => f.value === v.font && f.value)) {
     style.font = v.font
   }
+  if (typeof v.focalX === 'number' && v.focalX >= 0 && v.focalX <= 100) style.focalX = v.focalX
+  if (typeof v.focalY === 'number' && v.focalY >= 0 && v.focalY <= 100) style.focalY = v.focalY
   return style
 }

@@ -168,7 +168,18 @@ export default async function PublicGalleryPage({
   const coverAsset =
     (gallery.cover_asset_id && (assets ?? []).find((a) => a.id === gallery.cover_asset_id)) ||
     (assets ?? [])[0]
+  const coverIsVideo = coverAsset?.kind === 'video'
+  // Poster: a video's still, else the photo preview.
   const coverUrl = coverAsset
+    ? await storage.getSignedReadUrl(
+        (coverIsVideo ? coverAsset.variants.poster : coverAsset.variants.preview) ??
+          coverAsset.variants.preview ??
+          coverAsset.r2_key,
+        { expiresInSeconds: 60 * 60 }
+      )
+    : null
+  // Looping clip behind the title when the cover is a video.
+  const coverVideoUrl = coverIsVideo
     ? await storage.getSignedReadUrl(coverAsset.variants.preview ?? coverAsset.r2_key, {
         expiresInSeconds: 60 * 60,
       })
@@ -214,6 +225,7 @@ export default async function PublicGalleryPage({
       brandName={branding?.display_name ?? null}
       logoUrl={logoUrl}
       coverUrl={coverUrl}
+      coverVideoUrl={coverVideoUrl}
       items={items}
       initialFavorites={initialFavorites}
       showBadge={!ownerPlan.features.brandingRemoval}
