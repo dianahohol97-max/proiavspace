@@ -1,6 +1,6 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { defaultLocale, isLocale, type Locale } from '@/lib/i18n/config'
@@ -11,6 +11,7 @@ type Status = 'idle' | 'busy' | 'magicSent' | 'confirmSent' | 'error'
 
 export default function LoginPage() {
   const params = useParams<{ locale: string }>()
+  const router = useRouter()
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale
 
   const [dict, setDict] = useState<Dictionary | null>(null)
@@ -22,6 +23,15 @@ export default function LoginPage() {
   useEffect(() => {
     void getDictionary(locale).then(setDict)
   }, [locale])
+
+  // Already signed in? Don't show the form — go straight to the dashboard, so
+  // returning from the marketing page never asks a logged-in user to re-login.
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient()
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace(`/${locale}/dashboard`)
+    })
+  }, [locale, router])
 
   if (!dict) return null
 

@@ -122,7 +122,7 @@ export const BUNDLE_SITE_DISCOUNT = 0.15
 export const GRACE_PERIOD_DAYS = 7
 
 /** Free site trial: publish one site for this many days, then upgrade to keep it live. */
-export const SITE_TRIAL_DAYS = 30
+export const SITE_TRIAL_DAYS = 7
 
 /**
  * True once a photographer still on the free site trial has passed the trial

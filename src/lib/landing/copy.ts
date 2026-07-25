@@ -7,7 +7,7 @@ import type { GalleryPlanId, SitePlanId } from '@/lib/plans'
  */
 
 export interface LandingCopy {
-  nav: { features: string; pricing: string; themes: string; blog: string; signIn: string; ctaShort: string }
+  nav: { features: string; galleries: string; sites: string; pricing: string; themes: string; blog: string; signIn: string; ctaShort: string; dashboard: string }
   hero: {
     chips: string[]
     titleBefore: string
@@ -80,11 +80,14 @@ export interface LandingCopy {
 const uk: LandingCopy = {
   nav: {
     features: 'Можливості',
+    galleries: 'Галереї',
+    sites: 'Сайти',
     pricing: 'Тарифи',
     themes: 'Теми',
     blog: 'Блог',
     signIn: 'Увійти',
     ctaShort: 'Почати безкоштовно',
+    dashboard: 'Кабінет',
   },
   hero: {
     chips: ['Весілля', "Сім'ї", 'Портрети', 'Студії'],
@@ -200,7 +203,7 @@ const uk: LandingCopy = {
       free: {
         name: 'Безкоштовний',
         note: 'Для перших галерей і проби пера',
-        bullets: ['Відбір фото клієнтом', 'Галереї з паролем і терміном дії', 'Сайт-пробник на місяць'],
+        bullets: ['Відбір фото клієнтом', 'Галереї з паролем і терміном дії', 'Сайт-пробник на 7 днів'],
       },
       basic: {
         name: 'Базовий',
@@ -221,11 +224,11 @@ const uk: LandingCopy = {
     planCta: 'Обрати',
     siteTitle: 'Сайти — окремо',
     siteLede:
-      'Персональний сайт з власним доменом, SSL і SEO-налаштуваннями. Пробний місяць — безкоштовно.',
+      'Персональний сайт з власним доменом, SSL і SEO-налаштуваннями. Пробний період — 7 днів безкоштовно.',
     sitePlans: {
-      site_trial: { name: 'Пробний', note: '1 сайт на 1 місяць' },
+      site_trial: { name: 'Пробний', note: '1 сайт на 7 днів' },
       site_basic: { name: 'Базовий', note: '1 сайт · власний домен · SSL · SEO' },
-      site_plus: { name: 'Плюс', note: '2 сайти · все те саме' },
+      site_plus: { name: 'Плюс', note: '2+ сайти · мультимовність · все те саме' },
     },
     bundleNote: 'Бандл «Галерея + Сайт» — мінус 15% на сайт, коли активні обидві підписки.',
   },
@@ -266,7 +269,7 @@ const uk: LandingCopy = {
 }
 
 const en: LandingCopy = {
-  nav: { features: 'Features', pricing: 'Pricing', themes: 'Themes', blog: 'Blog', signIn: 'Sign in', ctaShort: 'Start for free' },
+  nav: { features: 'Features', galleries: 'Galleries', sites: 'Sites', pricing: 'Pricing', themes: 'Themes', blog: 'Blog', signIn: 'Sign in', ctaShort: 'Start for free', dashboard: 'Dashboard' },
   hero: {
     chips: ['Weddings', 'Families', 'Portraits', 'Studios'],
     titleBefore: 'Everything that happens ',
@@ -381,7 +384,7 @@ const en: LandingCopy = {
       free: {
         name: 'Free',
         note: 'For your first galleries',
-        bullets: ['Client photo selection', 'Password & expiry on galleries', 'A trial site for a month'],
+        bullets: ['Client photo selection', 'Password & expiry on galleries', 'A trial site for 7 days'],
       },
       basic: {
         name: 'Basic',
@@ -401,11 +404,11 @@ const en: LandingCopy = {
     },
     planCta: 'Choose',
     siteTitle: 'Sites — separately',
-    siteLede: 'A personal site with a custom domain, SSL and SEO. The first month is free.',
+    siteLede: 'A personal site with a custom domain, SSL and SEO. A 7-day free trial.',
     sitePlans: {
-      site_trial: { name: 'Trial', note: '1 site for 1 month' },
+      site_trial: { name: 'Trial', note: '1 site for 7 days' },
       site_basic: { name: 'Basic', note: '1 site · custom domain · SSL · SEO' },
-      site_plus: { name: 'Plus', note: '2 sites · all the same' },
+      site_plus: { name: 'Plus', note: '2+ sites · multilingual · all the same' },
     },
     bundleNote: 'Gallery + Site bundle — 15% off the site while both subscriptions are active.',
   },
