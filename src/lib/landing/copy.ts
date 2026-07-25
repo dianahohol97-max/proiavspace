@@ -72,6 +72,13 @@ export interface LandingCopy {
     sitePlans: Record<SitePlanId, { name: string; note: string }>
     bundleNote: string
   }
+  referral: {
+    label: string
+    title: string
+    lede: string
+    steps: string[]
+    cta: string
+  }
   faq: { label: string; title: string; items: { q: string; a: string }[] }
   final: { label: string; titleBefore: string; titleAccent: string; cta: string }
   footer: { tagline: string; blog: string; terms: string; privacy: string }
@@ -231,6 +238,17 @@ const uk: LandingCopy = {
       site_plus: { name: 'Плюс', note: '2+ сайти · мультимовність · все те саме' },
     },
     bundleNote: 'Бандл «Галерея + Сайт» — мінус 15% на сайт, коли активні обидві підписки.',
+  },
+  referral: {
+    label: 'Реферальна програма',
+    title: 'Запрошуйте колег — і отримуйте 10% з кожної їхньої оплати',
+    lede: 'Поділіться посиланням із фотографом. Коли він оформить платний тариф, вам нараховується 10% кредитом із кожної його оплати — і далі щомісяця. Кредит автоматично зменшує ваш наступний рахунок.',
+    steps: [
+      'Берете своє посилання в кабінеті.',
+      'Колега реєструється за ним і оформлює платний тариф.',
+      'Вам щомісяця капає 10% кредитом — автоматично.',
+    ],
+    cta: 'Отримати посилання',
   },
   faq: {
     label: 'Питання, які ставлять найчастіше',
@@ -411,6 +429,17 @@ const en: LandingCopy = {
       site_plus: { name: 'Plus', note: '2+ sites · multilingual · all the same' },
     },
     bundleNote: 'Gallery + Site bundle — 15% off the site while both subscriptions are active.',
+  },
+  referral: {
+    label: 'Referral program',
+    title: 'Invite colleagues — earn 10% of every payment they make',
+    lede: 'Share your link with a photographer. When they take a paid plan, you earn 10% credit from each of their payments — every month. The credit automatically reduces your next invoice.',
+    steps: [
+      'Grab your link in the dashboard.',
+      'A colleague signs up with it and takes a paid plan.',
+      'You earn 10% credit every month — automatically.',
+    ],
+    cta: 'Get your link',
   },
   faq: {
     label: 'Frequently asked',
