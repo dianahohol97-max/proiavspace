@@ -4,12 +4,14 @@ import {
   addBookingSlot,
   checkManualPayments,
   deleteBookingSlot,
+  disconnectGoogleCalendar,
   markSlotPaid,
   reopenSlot,
   saveBookingSettings,
 } from '@/lib/actions/booking'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
+import { isGoogleConfigured } from '@/lib/booking/googleCalendar'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatSlot, type BookingSettings, type BookingSlot } from '@/lib/booking/types'
 
@@ -17,7 +19,13 @@ export const dynamic = 'force-dynamic'
 
 const inputClass = 'border border-line bg-transparent px-3 py-2 outline-none focus:border-fg'
 
-export default async function BookingDashboardPage({ params }: { params: { locale: string } }) {
+export default async function BookingDashboardPage({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  searchParams: { google?: string }
+}) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const dict = await getDictionary(locale)
@@ -220,6 +228,46 @@ export default async function BookingDashboardPage({ params }: { params: { local
           {dict.booking.save}
         </button>
       </form>
+
+      {/* -------- Google Calendar sync -------- */}
+      <section className="mt-10 border border-line p-6">
+        <h2 className="font-display text-2xl">{dict.booking.googleTitle}</h2>
+        <p className="mt-2 max-w-xl text-xs leading-relaxed text-muted">
+          {dict.booking.googleHint}
+        </p>
+
+        {searchParams.google === 'connected' && (
+          <p className="mt-4 border border-fg px-4 py-2 text-sm">{dict.booking.googleStatusOk}</p>
+        )}
+        {searchParams.google === 'error' && (
+          <p className="mt-4 border border-accent px-4 py-2 text-sm text-accent">
+            {dict.booking.googleStatusError}
+          </p>
+        )}
+
+        {!isGoogleConfigured() ? (
+          <p className="mt-5 text-sm text-muted">{dict.booking.googleUnconfigured}</p>
+        ) : settings?.google_refresh_token ? (
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <span className="text-sm">
+              {dict.booking.googleConnected}
+              {settings.google_email ? ` · ${settings.google_email}` : ''}
+            </span>
+            <form action={disconnectGoogleCalendar.bind(null, locale)}>
+              <button type="submit" className="text-sm text-muted underline hover:text-accent">
+                {dict.booking.googleDisconnect}
+              </button>
+            </form>
+          </div>
+        ) : (
+          <a
+            href={`/api/booking/google/connect?locale=${locale}`}
+            className="mt-5 inline-block border border-fg px-6 py-3 text-sm uppercase tracking-widest transition-colors hover:bg-fg hover:text-bg"
+          >
+            {dict.booking.googleConnect}
+          </a>
+        )}
+      </section>
 
       {/* -------- slots -------- */}
       <section className="mt-14">

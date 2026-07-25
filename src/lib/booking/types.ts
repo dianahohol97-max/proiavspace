@@ -20,6 +20,10 @@ export interface BookingSettings {
   mono_personal_token: string | null
   mono_personal_account: string
   last_statement_check: string | null
+  /** Google Calendar sync — null refresh token = not connected. */
+  google_refresh_token: string | null
+  google_calendar_id: string
+  google_email: string | null
   created_at: string
   updated_at: string
 }
@@ -39,6 +43,7 @@ export interface BookingSlot {
   invoice_id: string | null
   booked_at: string | null
   paid_at: string | null
+  google_event_id: string | null
   created_at: string
 }
 

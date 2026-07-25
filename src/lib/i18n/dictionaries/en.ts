@@ -195,6 +195,16 @@ export const en: Dictionary = {
     personalTokenLabel: 'Monobank personal token',
     personalAccountLabel: 'Account to check (0 — default card, or a jar id)',
     checkPayments: 'Check incoming payments now',
+    googleTitle: 'Google Calendar',
+    googleHint:
+      'Connect your Google Calendar — every booking is added to it instantly as an event with the client’s name and contacts. Freeing a slot removes the event.',
+    googleConnect: 'Connect Google Calendar',
+    googleConnected: 'Connected',
+    googleDisconnect: 'Disconnect',
+    googleStatusOk: 'Google Calendar connected.',
+    googleStatusError: 'Could not connect Google Calendar. Please try again.',
+    googleUnconfigured:
+      'Google Calendar sync is not set up on the server yet (Google OAuth keys required).',
   },
   publicBooking: {
     chooseSlot: 'Pick a time that works',
@@ -297,6 +307,8 @@ export const en: Dictionary = {
     contacts: 'Contacts',
     openGallery: 'View',
     book: 'Book a session',
+    bookingNav: 'Booking',
+    bookingTitle: 'Book a session',
     leadTitle: 'Leave a request',
     leadName: 'Your name',
     leadContact: 'Phone or email',

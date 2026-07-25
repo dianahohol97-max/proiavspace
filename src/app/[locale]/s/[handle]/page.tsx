@@ -7,7 +7,8 @@ import { localizedSiteContent, parseSiteContent } from '@/lib/site/content'
 import { isThemeId } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { SiteRenderer, type PortfolioItem } from '@/components/site/SiteRenderer'
+import { SiteRenderer, type PortfolioItem, type SiteBooking } from '@/components/site/SiteRenderer'
+import type { PublicSlot } from '@/components/BookingWidget'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,16 @@ interface PortfolioRow {
   preview_key: string | null
   category: string | null
   caption: string | null
+}
+
+/** Shape of get_booking_profile — payment flags gate which methods show. */
+interface BookingProfileRow {
+  display_name: string | null
+  logo_key: string | null
+  has_mono: boolean
+  has_wfp: boolean
+  manual_link: string | null
+  card_details: string | null
 }
 
 /**
@@ -138,11 +149,56 @@ export default async function PublicSitePage({
   const rawContent = parseSiteContent(site.content)
   const content = localizedSiteContent(rawContent, locale)
 
-  // Booking as an integrated site section: when enabled and no external booking
-  // link is set, the site's «Забронювати зйомку» button points at the
-  // photographer's own booking page (open dates + direct payment).
+  // Booking as an integrated site section: when enabled, pull the
+  // photographer's open dates + payment methods so the booking widget renders
+  // inline on the site (same page, reachable from the same nav) instead of
+  // sending the visitor off to a separate /b page.
+  let booking: SiteBooking | undefined
+  if (rawContent.settings.booking) {
+    const [{ data: profileData }, { data: slotsData }] = await Promise.all([
+      supabase.rpc('get_booking_profile', { p_handle: params.handle }),
+      supabase.rpc('get_free_slots', { p_handle: params.handle }),
+    ])
+    const profile = (profileData as BookingProfileRow[] | null)?.[0] ?? null
+    if (profile) {
+      booking = {
+        handle: params.handle,
+        locale,
+        slots: (slotsData as PublicSlot[] | null) ?? [],
+        methods: {
+          mono: profile.has_mono,
+          wfp: profile.has_wfp,
+          manualLink: profile.manual_link,
+          cardDetails: profile.card_details,
+        },
+        navLabel: dict.publicSite.bookingNav,
+        sectionTitle: dict.publicSite.bookingTitle,
+        widgetLabels: {
+          noSlots: dict.publicBooking.noSlots,
+          minutes: dict.publicBooking.minutes,
+          free: dict.publicBooking.free,
+          nameLabel: dict.publicBooking.nameLabel,
+          phoneLabel: dict.publicBooking.phoneLabel,
+          emailLabel: dict.publicBooking.emailLabel,
+          bookButton: dict.publicBooking.bookButton,
+          booking: dict.publicBooking.booking,
+          slotTaken: dict.publicBooking.slotTaken,
+          bookedTitle: dict.publicBooking.bookedTitle,
+          bookedText: dict.publicBooking.bookedText,
+          payMono: dict.publicBooking.payMono,
+          payWfp: dict.publicBooking.payWfp,
+          payManual: dict.publicBooking.payManual,
+          payCard: dict.publicBooking.payCard,
+          payRedirect: dict.publicBooking.payRedirect,
+          payError: dict.publicBooking.payError,
+        },
+      }
+    }
+  }
+  // The site's «Забронювати зйомку» button scrolls to the inline section when it
+  // renders; otherwise it falls back to the standalone booking page.
   if (rawContent.settings.booking && !content.contact.bookingUrl) {
-    content.contact.bookingUrl = `/${locale}/b/${params.handle}`
+    content.contact.bookingUrl = booking ? '#booking' : `/${locale}/b/${params.handle}`
   }
   const siteUrl = `${BASE_URL}/${locale}/s/${params.handle}`
   const prices = rawContent.pricing.items
@@ -189,6 +245,7 @@ export default async function PublicSitePage({
         displayName={site.display_name}
         logoUrl={logoUrl}
         portfolio={portfolio}
+        booking={booking}
         footer={{
           brand: site.display_name ?? (content.hero.title || params.handle),
           year: new Date().getFullYear(),

@@ -1,5 +1,8 @@
+import type { CSSProperties } from 'react'
 import { siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import type { SiteContent } from '@/lib/site/content'
+import type { Locale } from '@/lib/i18n/config'
+import { BookingWidget, type PublicSlot } from '@/components/BookingWidget'
 import { LeadForm, type LeadFormLabels } from './LeadForm'
 import { SiteLangSwitch } from './SiteLangSwitch'
 import { ThemeGallery } from './ThemeGallery'
@@ -12,6 +15,31 @@ import {
   ThemeProduction,
   type ThemeProps,
 } from './ThemeVariants'
+
+/**
+ * Booking as a first-class site section: the photographer's own open dates and
+ * payment methods, rendered inline on the site (not a separate tab) and linked
+ * from every theme's nav. The widget is the same one the standalone /b page
+ * uses; a token bridge (see bookingSection) re-skins its app-level Tailwind
+ * classes to the current site theme so it looks native in all 8 designs.
+ */
+export interface SiteBooking {
+  handle: string
+  locale: Locale
+  slots: PublicSlot[]
+  methods: { mono: boolean; wfp: boolean; manualLink: string | null; cardDetails: string | null }
+  /** Nav wording, e.g. «Бронювання». */
+  navLabel: string
+  /** Section heading, e.g. «Забронювати зйомку». */
+  sectionTitle: string
+  widgetLabels: React.ComponentProps<typeof BookingWidget>['labels']
+}
+
+/** Small nav entry a theme renders when booking is on: a link to `#booking`. */
+export interface BookingNav {
+  href: string
+  label: string
+}
 
 export interface PortfolioItem {
   id: string
@@ -88,6 +116,7 @@ export function SiteRenderer({
   labels,
   langSwitch,
   leadForm,
+  booking,
   footer,
 }: {
   theme: ThemeId
@@ -101,10 +130,73 @@ export function SiteRenderer({
   langSwitch?: LangSwitch
   /** Present only when the lead form option is on; handle null in preview. */
   leadForm?: { handle: string | null; labels: LeadFormLabels }
+  /** Present only when the booking section is enabled and has open dates. */
+  booking?: SiteBooking
   /** Brand footer with client-facing legal links; only on published sites. */
   footer?: { brand: string; year: number; links: { href: string; label: string }[] }
 }) {
   const vars = siteCssVars(theme, mode)
+  const bookingNav: BookingNav | undefined = booking
+    ? { href: '#booking', label: booking.navLabel }
+    : undefined
+
+  // Inline booking section, rendered after every theme's own content. The
+  // custom-property overrides bridge the app's Tailwind tokens (--color-*,
+  // --font-display) to the site theme, so the shared BookingWidget adopts the
+  // photographer's palette instead of the dashboard's.
+  const bookingSectionEl = booking ? (
+    <section
+      id="booking"
+      style={
+        {
+          background: 'var(--site-bg)',
+          color: 'var(--site-fg)',
+          borderTop: '1px solid var(--site-line)',
+          fontFamily: 'var(--site-font-body)',
+          '--color-bg': 'var(--site-bg)',
+          '--color-fg': 'var(--site-fg)',
+          '--color-muted': 'var(--site-muted)',
+          '--color-accent': 'var(--site-accent)',
+          '--color-border': 'var(--site-line)',
+          '--font-display': 'var(--site-font-display)',
+        } as CSSProperties
+      }
+    >
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(48px, 8vw, 96px) 24px' }}>
+        <p
+          style={{
+            fontFamily: 'var(--site-font-label)',
+            fontSize: 11,
+            letterSpacing: '.18em',
+            textTransform: 'uppercase',
+            color: 'var(--site-muted)',
+            textAlign: 'center',
+            marginBottom: 12,
+          }}
+        >
+          {booking.navLabel}
+        </p>
+        <h2
+          style={{
+            fontFamily: 'var(--site-font-display)',
+            fontSize: 'clamp(26px, 4vw, 40px)',
+            textAlign: 'center',
+            margin: '0 0 32px',
+            textWrap: 'balance' as never,
+          }}
+        >
+          {booking.sectionTitle}
+        </h2>
+        <BookingWidget
+          handle={booking.handle}
+          locale={booking.locale}
+          slots={booking.slots}
+          methods={booking.methods}
+          labels={booking.widgetLabels}
+        />
+      </div>
+    </section>
+  ) : null
 
   const footerEl = footer ? (
     <footer
@@ -147,8 +239,10 @@ export function SiteRenderer({
           labels={labels}
           langSwitch={langSwitch}
           leadForm={leadForm}
+          bookingNav={bookingNav}
           night={mode === 'night'}
         />
+        {bookingSectionEl}
         {footerEl}
       </div>
     )
@@ -164,7 +258,9 @@ export function SiteRenderer({
           labels={labels}
           langSwitch={langSwitch}
           leadForm={leadForm}
+          bookingNav={bookingNav}
         />
+        {bookingSectionEl}
         {footerEl}
       </div>
     )
@@ -188,7 +284,9 @@ export function SiteRenderer({
           labels={labels}
           langSwitch={langSwitch}
           leadForm={leadForm}
+          bookingNav={bookingNav}
         />
+        {bookingSectionEl}
         {footerEl}
       </div>
     )
@@ -250,6 +348,9 @@ export function SiteRenderer({
               <a href="#pricing" style={{ color: 'inherit', textDecoration: 'none' }}>{labels.pricing}</a>
             )}
             <a href="#contact" style={{ color: 'inherit', textDecoration: 'none' }}>{labels.contacts}</a>
+            {bookingNav && (
+              <a href={bookingNav.href} style={{ color: 'inherit', textDecoration: 'none' }}>{bookingNav.label}</a>
+            )}
             {langSwitch && <SiteLangSwitch langSwitch={langSwitch} />}
           </nav>
         </header>
@@ -439,6 +540,7 @@ export function SiteRenderer({
           {leadForm && <LeadForm handle={leadForm.handle} labels={leadForm.labels} />}
         </section>
       </div>
+      {bookingSectionEl}
       {footerEl}
     </div>
   )

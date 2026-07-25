@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { monoStatement } from '@/lib/booking/monoPersonal'
+import { deleteCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCalendar'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
 
@@ -188,7 +189,35 @@ export async function checkManualPayments(locale: Locale): Promise<void> {
 
 /** Cancels a booking and reopens the time for other clients. */
 export async function reopenSlot(locale: Locale, slotId: string): Promise<void> {
-  const { supabase } = await requireUser()
+  const { supabase, user } = await requireUser()
+
+  // Best-effort: remove the event we pushed to Google Calendar so a reopened
+  // (freed) slot doesn't leave a ghost booking in the photographer's calendar.
+  const { data: slot } = await supabase
+    .from('booking_slots')
+    .select('google_event_id')
+    .eq('id', slotId)
+    .maybeSingle()
+  if (slot?.google_event_id) {
+    const { data: settings } = await supabase
+      .from('booking_settings')
+      .select('google_refresh_token, google_calendar_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (settings?.google_refresh_token) {
+      try {
+        const accessToken = await refreshAccessToken(settings.google_refresh_token)
+        await deleteCalendarEvent(
+          accessToken,
+          settings.google_calendar_id || 'primary',
+          slot.google_event_id
+        )
+      } catch {
+        // calendar cleanup is optional; the slot is still reopened below
+      }
+    }
+  }
+
   const { error } = await supabase
     .from('booking_slots')
     .update({
@@ -201,9 +230,21 @@ export async function reopenSlot(locale: Locale, slotId: string): Promise<void> 
       invoice_id: null,
       booked_at: null,
       paid_at: null,
+      google_event_id: null,
     })
     .eq('id', slotId)
     .in('status', ['booked', 'paid'])
   if (error) throw new Error(`Failed to reopen slot: ${error.message}`)
+  revalidatePath(`/${locale}/dashboard/booking`)
+}
+
+/** Disconnects Google Calendar — clears the stored refresh token and email. */
+export async function disconnectGoogleCalendar(locale: Locale): Promise<void> {
+  const { supabase, user } = await requireUser()
+  const { error } = await supabase
+    .from('booking_settings')
+    .update({ google_refresh_token: null, google_email: null })
+    .eq('user_id', user.id)
+  if (error) throw new Error(`Failed to disconnect Google Calendar: ${error.message}`)
   revalidatePath(`/${locale}/dashboard/booking`)
 }
