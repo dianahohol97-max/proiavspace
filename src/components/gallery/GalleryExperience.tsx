@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Zip, ZipPassThrough } from 'fflate'
 import { resolveTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import { fontFamily, type GalleryStyle } from '@/lib/gallery/style'
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { LangPicker } from '@/components/LangPicker'
 import s from './GalleryExperience.module.css'
@@ -245,6 +246,19 @@ export function GalleryExperience({
     const timer = setTimeout(() => show(lightbox + 1), 4500)
     return () => clearTimeout(timer)
   }, [playing, lightbox, items, show])
+
+  // Per-photo view tracking: record the opened/navigated-to photo once per
+  // session (deduped) so the photographer sees which frames drew attention.
+  const viewedRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (demo || lightbox === null) return
+    const id = items[lightbox]?.id
+    if (!id || viewedRef.current.has(id)) return
+    viewedRef.current.add(id)
+    void createSupabaseBrowserClient()
+      .rpc('record_photo_view', { p_slug: slug, p_asset: id })
+      .then(() => undefined, () => undefined)
+  }, [lightbox, items, slug, demo])
 
   // Go fullscreen when a slideshow starts; stay there while paused; release it
   // only when the viewer closes.
