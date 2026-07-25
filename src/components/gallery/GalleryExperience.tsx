@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Zip, ZipPassThrough } from 'fflate'
 import { resolveTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import { isLocale, type Locale } from '@/lib/i18n/config'
@@ -124,9 +124,12 @@ export function GalleryExperience({
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites))
   const [lightbox, setLightbox] = useState<number | null>(null)
+  const [playing, setPlaying] = useState(false)
   const [archive, setArchive] = useState<'idle' | 'working' | 'error'>('idle')
   const [done, setDone] = useState(0)
   const [total, setTotal] = useState(0)
+  const lbRef = useRef<HTMLDivElement | null>(null)
+  const uk = locale === 'uk'
 
   async function toggleFavorite(assetId: string) {
     const selected = !favorites.has(assetId)
@@ -201,16 +204,52 @@ export function GalleryExperience({
     [items.length]
   )
 
+  const closeViewer = useCallback(() => {
+    setLightbox(null)
+    setPlaying(false)
+  }, [])
+
+  const startSlideshow = useCallback(() => {
+    if (items.length === 0) return
+    setLightbox(0)
+    setPlaying(true)
+  }, [items.length])
+
   useEffect(() => {
     if (lightbox === null) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setLightbox(null)
+      if (event.key === 'Escape') closeViewer()
       if (event.key === 'ArrowLeft') show(lightbox - 1)
       if (event.key === 'ArrowRight') show(lightbox + 1)
+      if (event.key === ' ') {
+        event.preventDefault()
+        setPlaying((p) => !p)
+      }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [lightbox, show])
+  }, [lightbox, show, closeViewer])
+
+  // Autoplay: advance photos on a timer; pause on a video so it can play out.
+  useEffect(() => {
+    if (!playing || lightbox === null) return
+    if (items[lightbox]?.kind === 'video') return
+    const timer = setTimeout(() => show(lightbox + 1), 4500)
+    return () => clearTimeout(timer)
+  }, [playing, lightbox, items, show])
+
+  // Go fullscreen when a slideshow starts; stay there while paused; release it
+  // only when the viewer closes.
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (lightbox === null) {
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+      return
+    }
+    if (playing && lbRef.current && !document.fullscreenElement) {
+      lbRef.current.requestFullscreen?.().catch(() => {})
+    }
+  }, [playing, lightbox])
 
   const vars = {
     '--g-bg': tokens.bg,
@@ -272,6 +311,11 @@ export function GalleryExperience({
         <span className={favorites.size > 0 ? s.selChipOn : s.selChip}>
           ♥ {favorites.size} {labels.selected}
         </span>
+        {items.length > 0 && (
+          <button type="button" className={s.slideBtn} onClick={startSlideshow}>
+            ▶ {uk ? 'Слайд-шоу' : 'Slideshow'}
+          </button>
+        )}
         <button
           type="button"
           className={s.dlAll}
@@ -369,17 +413,28 @@ export function GalleryExperience({
         )}
       </footer>
 
-      {/* -------- lightbox -------- */}
+      {/* -------- lightbox / slideshow -------- */}
       {current && (
         <div
+          ref={lbRef}
           className={s.lb}
           onClick={(event) => {
-            if (event.target === event.currentTarget) setLightbox(null)
+            if (event.target === event.currentTarget) closeViewer()
           }}
         >
-          <button type="button" className={s.lbClose} onClick={() => setLightbox(null)}>
-            ✕
-          </button>
+          <div className={s.lbTools}>
+            <button
+              type="button"
+              className={s.lbTool}
+              aria-label={playing ? 'Pause' : 'Play'}
+              onClick={() => setPlaying((p) => !p)}
+            >
+              {playing ? '⏸' : '▶'}
+            </button>
+            <button type="button" className={s.lbTool} aria-label="Close" onClick={closeViewer}>
+              ✕
+            </button>
+          </div>
           <button type="button" className={s.lbPrev} onClick={() => show((lightbox ?? 0) - 1)}>
             ←
           </button>
