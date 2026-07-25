@@ -428,6 +428,28 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           </p>
         </section>
 
+        {/* ---------- referral ---------- */}
+        <section className={s.referral}>
+          <Reveal>
+            <div className={s.secHead}>
+              <span className={s.lbl}>{t.referral.label}</span>
+              <h2 className={s.h2}>{t.referral.title}</h2>
+              <p>{t.referral.lede}</p>
+            </div>
+          </Reveal>
+          <ol className={s.refSteps}>
+            {t.referral.steps.map((step, index) => (
+              <li key={index}>
+                <span className={s.refNo}>{index + 1}</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+          <Link href={login} className={s.pillHot}>
+            {t.referral.cta} <span>→</span>
+          </Link>
+        </section>
+
         {/* ---------- faq ---------- */}
         <section className={s.faq}>
           <Reveal>
