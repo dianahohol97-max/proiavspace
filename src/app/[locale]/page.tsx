@@ -11,6 +11,7 @@ import {
 } from '@/lib/plans'
 import { LangPicker } from '@/components/LangPicker'
 import { Logo } from '@/components/Logo'
+import { AuthNav } from '@/components/landing/AuthNav'
 import { Reveal } from '@/components/landing/Reveal'
 import s from './landing.module.css'
 
@@ -88,14 +89,15 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
             <Logo />
           </Link>
           <span className={s.navLinks}>
-            <a href="#products">{t.nav.features}</a>
+            <a href="#galleries">{t.nav.galleries}</a>
+            <a href="#sites">{t.nav.sites}</a>
             <a href="#pricing">{t.nav.pricing}</a>
             <Link href={`/${locale}/themes`}>{t.nav.themes}</Link>
             <Link href={`/${locale}/blog`}>{t.nav.blog}</Link>
-            <Link href={login}>{t.nav.signIn}</Link>
-            <Link href={login} className={s.pillHot}>
-              {t.nav.ctaShort} <span>→</span>
-            </Link>
+            <AuthNav
+              locale={locale}
+              labels={{ signIn: t.nav.signIn, ctaShort: t.nav.ctaShort, dashboard: t.nav.dashboard }}
+            />
             <LangPicker current={locale} />
           </span>
         </nav>
@@ -356,7 +358,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <p>{t.pricing.lede}</p>
             </div>
           </Reveal>
-          <div className={s.plans}>
+          <div id="galleries" className={`${s.plans} ${s.plansFour}`} style={{ scrollMarginTop: 90 }}>
             {(Object.keys(GALLERY_PLANS) as GalleryPlanId[]).map((id) => {
               const plan = GALLERY_PLANS[id]
               const copy = t.pricing.plans[id]
@@ -392,7 +394,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           </div>
 
           <Reveal>
-            <div className={s.secHead} style={{ marginTop: 64 }}>
+            <div id="sites" className={s.secHead} style={{ marginTop: 64, scrollMarginTop: 90 }}>
               <h2 className={s.h2}>{t.pricing.siteTitle}</h2>
               <p>{t.pricing.siteLede}</p>
             </div>

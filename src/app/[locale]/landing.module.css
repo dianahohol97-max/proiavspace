@@ -229,6 +229,8 @@
 /* pricing */
 .pricing { padding: clamp(64px, 10vw, 110px) 0; }
 .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+.plansFour { grid-template-columns: repeat(4, 1fr); }
+@media (min-width: 881px) and (max-width: 1200px) { .plansFour { grid-template-columns: repeat(2, 1fr); } }
 .plan {
   border-radius: 22px; padding: 30px 28px; display: flex; flex-direction: column;
   background: #fff; box-shadow: 0 1px 0 rgba(13,12,10,.03);
