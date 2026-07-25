@@ -786,7 +786,7 @@
   position: absolute;
   width: 74%;
   background: #fff;
-  padding: 10px 10px 30px;
+  padding: 10px 10px 34px;
   box-shadow: 0 14px 30px -18px rgba(35, 42, 32, 0.45);
 }
 .filmShot > div {
@@ -803,7 +803,7 @@
   transform: rotate(2deg);
 }
 .filmShotCap {
-  margin-top: 8px;
+  margin-top: 9px;
   color: #6f7565 !important;
 }
 .filmStrip {
@@ -824,10 +824,20 @@
 }
 .filmRow figcaption {
   margin-top: 7px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.filmRow figcaption span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .filmRow figcaption em {
   font-style: normal;
   color: var(--site-accent);
+  flex: none;
 }
 
 /* ================= «Журнал» (journal) ================= */

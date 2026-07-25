@@ -204,6 +204,16 @@ export const uk = {
     personalTokenLabel: 'Персональний токен Monobank',
     personalAccountLabel: 'Рахунок для звірки (0 — картка за замовчуванням, або id банки)',
     checkPayments: 'Звірити надходження зараз',
+    googleTitle: 'Google Календар',
+    googleHint:
+      'Підключіть свій Google Календар — кожне бронювання одразу додаватиметься подією до нього, з іменем і контактами клієнта. Звільнення слота прибирає подію.',
+    googleConnect: 'Підключити Google Календар',
+    googleConnected: 'Підключено',
+    googleDisconnect: 'Відключити',
+    googleStatusOk: 'Google Календар підключено.',
+    googleStatusError: 'Не вдалося підключити Google Календар. Спробуйте ще раз.',
+    googleUnconfigured:
+      'Синхронізацію з Google Календарем ще не налаштовано на сервері (потрібні ключі Google OAuth).',
   },
   publicBooking: {
     chooseSlot: 'Оберіть зручний час',
@@ -311,6 +321,8 @@ export const uk = {
     contacts: 'Контакти',
     openGallery: 'Дивитись',
     book: 'Забронювати зйомку',
+    bookingNav: 'Бронювання',
+    bookingTitle: 'Забронювати зйомку',
     leadTitle: 'Залишити заявку',
     leadName: "Ваше ім'я",
     leadContact: 'Телефон або email',

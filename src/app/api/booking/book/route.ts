@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { sendEmail } from '@/lib/email'
 import { formatSlot } from '@/lib/booking/types'
+import { insertCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCalendar'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     if (slot) {
       const { data: settings } = await admin
         .from('booking_settings')
-        .select('notify_email')
+        .select('notify_email, google_refresh_token, google_calendar_id')
         .eq('user_id', slot.owner_id)
         .single()
       if (settings?.notify_email) {
@@ -80,6 +81,41 @@ export async function POST(request: NextRequest) {
             'Статус оплати дивіться в кабінеті.',
           ].join('\n'),
         })
+      }
+
+      // Google Calendar sync (best-effort): push the booking into the
+      // photographer's calendar. A calendar failure must never fail the
+      // booking, so everything here is wrapped and swallowed.
+      if (settings?.google_refresh_token) {
+        try {
+          const accessToken = await refreshAccessToken(settings.google_refresh_token)
+          const eventId = await insertCalendarEvent(
+            accessToken,
+            settings.google_calendar_id || 'primary',
+            {
+              startsAt: slot.starts_at,
+              durationMinutes: slot.duration_minutes,
+              summary: `Зйомка · ${body.name.trim()}`,
+              description: [
+                `Клієнт: ${body.name.trim()}`,
+                `Телефон: ${body.phone.trim()}`,
+                `Пошта: ${body.email.trim()}`,
+                Number(slot.price_uah) > 0 ? `Вартість: ${slot.price_uah} грн` : null,
+                'Бронювання через проЯв.',
+              ]
+                .filter(Boolean)
+                .join('\n'),
+            }
+          )
+          if (eventId) {
+            await admin
+              .from('booking_slots')
+              .update({ google_event_id: eventId })
+              .eq('id', body.slotId)
+          }
+        } catch {
+          // calendar is optional; ignore and keep the booking
+        }
       }
     }
   }

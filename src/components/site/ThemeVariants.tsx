@@ -1,7 +1,13 @@
 import type { SiteContent } from '@/lib/site/content'
 import { LeadForm, type LeadFormLabels } from './LeadForm'
 import { SiteLangSwitch } from './SiteLangSwitch'
-import { groupPortfolio, type LangSwitch, type PortfolioItem, type SiteLabels } from './SiteRenderer'
+import {
+  groupPortfolio,
+  type BookingNav,
+  type LangSwitch,
+  type PortfolioItem,
+  type SiteLabels,
+} from './SiteRenderer'
 import s from './SiteThemes.module.css'
 
 export interface ThemeProps {
@@ -12,6 +18,8 @@ export interface ThemeProps {
   labels: SiteLabels
   langSwitch?: LangSwitch
   leadForm?: { handle: string | null; labels: LeadFormLabels }
+  /** Present only when the booking section is on: a nav link to `#booking`. */
+  bookingNav?: BookingNav
 }
 
 function bg(url: string | null | undefined): React.CSSProperties | undefined {
@@ -140,7 +148,7 @@ function Tail({ content, labels, leadForm }: ThemeProps) {
 
 /* ===================== «Повітря» ===================== */
 export function ThemeAir(props: ThemeProps) {
-  const { content, displayName, portfolio, labels, langSwitch } = props
+  const { content, displayName, portfolio, labels, langSwitch, bookingNav } = props
   const brand = displayName ?? ''
   const groups = groupPortfolio(portfolio)
   const hasCategories = groups.some((g) => g.category !== null)
@@ -156,6 +164,7 @@ export function ThemeAir(props: ThemeProps) {
             {content.about.text && <a href="#about">{labels.about}</a>}
             {content.pricing.items.length > 0 && <a href="#pricing">{labels.pricing}</a>}
             <a href="#contact">{labels.contacts}</a>
+            {bookingNav && <a href={bookingNav.href}>{bookingNav.label}</a>}
             <Lang langSwitch={langSwitch} />
           </span>
         </nav>
@@ -219,7 +228,7 @@ export function ThemeAir(props: ThemeProps) {
 
 /* ===================== «Плівка» ===================== */
 export function ThemeFilm(props: ThemeProps) {
-  const { content, displayName, portfolio, labels, langSwitch } = props
+  const { content, displayName, portfolio, labels, langSwitch, bookingNav } = props
   const brand = displayName ?? ''
   const groups = groupPortfolio(portfolio)
   const hasCategories = groups.some((g) => g.category !== null)
@@ -233,6 +242,7 @@ export function ThemeFilm(props: ThemeProps) {
           <span className={s.filmMono}>{brand}</span>
           <span className={s.filmMono}>
             {content.hero.subtitle}
+            {bookingNav && <> · <a href={bookingNav.href}>{bookingNav.label}</a></>}
             {langSwitch && <> · <Lang langSwitch={langSwitch} /></>}
           </span>
         </nav>
@@ -253,7 +263,7 @@ export function ThemeFilm(props: ThemeProps) {
                 <figure key={p.id} className={s.filmShot}>
                   <div className={s.tImg} style={bg(p.previewUrl)} />
                   <figcaption className={`${s.filmMono} ${s.filmShotCap}`}>
-                    {String(i + 1).padStart(2, '0')}
+                    {p.caption?.trim() || `кадр ${String(i + 1).padStart(2, '0')}`}
                   </figcaption>
                 </figure>
               ))}
@@ -270,9 +280,13 @@ export function ThemeFilm(props: ThemeProps) {
                 <section key={group.category ?? '_'} style={{ marginBottom: 20 }}>
                   <span className={s.filmMono}>{group.category ?? labels.portfolio}</span>
                   <div className={s.filmRow}>
-                    {items.map((item) => (
+                    {items.map((item, i) => (
                       <figure key={item.id}>
                         <div className={s.tImg} style={bg(item.previewUrl)} />
+                        <figcaption className={s.filmMono}>
+                          <span>{item.caption?.trim() || (group.category ?? labels.portfolio)}</span>
+                          <em>{String(i + 1).padStart(2, '0')}</em>
+                        </figcaption>
                       </figure>
                     ))}
                   </div>
@@ -290,7 +304,7 @@ export function ThemeFilm(props: ThemeProps) {
 
 /* ===================== «Журнал» ===================== */
 export function ThemeJournal(props: ThemeProps) {
-  const { content, displayName, portfolio, labels, langSwitch } = props
+  const { content, displayName, portfolio, labels, langSwitch, bookingNav } = props
   const brand = displayName ?? ''
   const groups = groupPortfolio(portfolio)
 
@@ -301,6 +315,7 @@ export function ThemeJournal(props: ThemeProps) {
           <span className={s.jrBrand}>{brand}</span>
           <span className="meta">
             {labels.portfolio} · {labels.contacts}
+            {bookingNav && <> · <a href={bookingNav.href}>{bookingNav.label}</a></>}
             {langSwitch && <> · <Lang langSwitch={langSwitch} /></>}
           </span>
         </nav>
@@ -362,7 +377,7 @@ export function ThemeJournal(props: ThemeProps) {
 
 /* ===================== «Архів» ===================== */
 export function ThemeArchive(props: ThemeProps) {
-  const { content, displayName, portfolio, labels, langSwitch } = props
+  const { content, displayName, portfolio, labels, langSwitch, bookingNav } = props
   const brand = displayName ?? ''
   const groups = groupPortfolio(portfolio)
   const hasCategories = groups.some((g) => g.category !== null)
@@ -389,6 +404,11 @@ export function ThemeArchive(props: ThemeProps) {
                 </li>
               )}
               {content.contact.instagram && <li>@{content.contact.instagram.replace(/^@/, '')}</li>}
+              {bookingNav && (
+                <li>
+                  <a href={bookingNav.href}>{bookingNav.label}</a>
+                </li>
+              )}
               {langSwitch && (
                 <li>
                   <Lang langSwitch={langSwitch} />
@@ -429,7 +449,7 @@ export function ThemeArchive(props: ThemeProps) {
 
 /* ===================== «Продакшн» ===================== */
 export function ThemeProduction(props: ThemeProps) {
-  const { content, displayName, portfolio, labels, langSwitch } = props
+  const { content, displayName, portfolio, labels, langSwitch, bookingNav } = props
   const brand = displayName ?? ''
   const groups = groupPortfolio(portfolio)
   const categories = groups.map((g) => g.category).filter((c): c is string => !!c)
@@ -443,6 +463,7 @@ export function ThemeProduction(props: ThemeProps) {
             <a href="#portfolio">{labels.portfolio}</a>
             {'  '}
             <a href="#contact">{labels.contacts}</a>
+            {bookingNav && <>{'  '}<a href={bookingNav.href}>{bookingNav.label}</a></>}
             {langSwitch && <> <Lang langSwitch={langSwitch} /></>}
           </span>
         </nav>

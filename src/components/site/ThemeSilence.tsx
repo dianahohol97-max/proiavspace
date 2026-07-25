@@ -2,7 +2,13 @@ import type { SiteContent } from '@/lib/site/content'
 import { LeadForm, type LeadFormLabels } from './LeadForm'
 import { PortfolioAlbums } from './PortfolioAlbums'
 import { SiteLangSwitch } from './SiteLangSwitch'
-import { groupPortfolio, type LangSwitch, type PortfolioItem, type SiteLabels } from './SiteRenderer'
+import {
+  groupPortfolio,
+  type BookingNav,
+  type LangSwitch,
+  type PortfolioItem,
+  type SiteLabels,
+} from './SiteRenderer'
 import s from './SiteThemes.module.css'
 
 const RATIOS = [s.r34, s.r43, s.r11]
@@ -46,6 +52,7 @@ export function ThemeSilence({
   labels,
   langSwitch,
   leadForm,
+  bookingNav,
   night = false,
 }: {
   content: SiteContent
@@ -55,6 +62,7 @@ export function ThemeSilence({
   labels: SiteLabels
   langSwitch?: LangSwitch
   leadForm?: { handle: string | null; labels: LeadFormLabels }
+  bookingNav?: BookingNav
   /** «Опівніч»: night hero — the giant name over drifting photos. */
   night?: boolean
 }) {
@@ -93,6 +101,7 @@ export function ThemeSilence({
           <span className={`${s.sMono} ${s.sNavRight}`}>
             {content.pricing.items.length > 0 && <a href="#pricing">{labels.pricing}</a>}
             <a href="#contact">{labels.contacts}</a>
+            {bookingNav && <a href={bookingNav.href}>{bookingNav.label}</a>}
             {langSwitch && (
               <span className={s.sLang}>
                 <SiteLangSwitch langSwitch={langSwitch} />
