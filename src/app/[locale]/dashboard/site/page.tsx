@@ -19,6 +19,8 @@ interface SiteRow {
   mode: string
   is_published: boolean
   content: unknown
+  custom_domain: string | null
+  custom_domain_status: string | null
 }
 
 interface PortfolioRow {
@@ -45,7 +47,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     await Promise.all([
       supabase
         .from('sites')
-        .select('handle, theme, mode, is_published, content')
+        .select('handle, theme, mode, is_published, content, custom_domain, custom_domain_status')
         .eq('user_id', user.id)
         .maybeSingle<SiteRow>(),
       supabase
@@ -166,6 +168,8 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         initialHandle={site?.handle ?? ''}
         initialCatalogValue={currentCatalogValue}
         initialPublished={site?.is_published ?? false}
+        initialDomain={site?.custom_domain ?? ''}
+        initialDomainStatus={site?.custom_domain_status ?? 'pending'}
         content={content}
         displayName={profile?.display_name ?? null}
         logoUrl={logoUrl}

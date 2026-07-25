@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
@@ -59,7 +58,7 @@ export default async function GalleryDemoPage({
         {THEME_DEMOS.map((d) => {
           const on = d.value === active.value
           return (
-            <Link
+            <a
               key={d.value}
               href={`/${locale}/gallery-demo?theme=${d.value}`}
               className={`rounded-full border px-3 py-1 text-sm no-underline transition-colors ${
@@ -67,15 +66,15 @@ export default async function GalleryDemoPage({
               }`}
             >
               {d.name}
-            </Link>
+            </a>
           )
         })}
-        <Link
+        <a
           href={`/${locale}/themes`}
           className="ml-auto text-sm text-accent no-underline hover:underline"
         >
           ← {uk ? 'До тем сайтів' : 'Site themes'}
-        </Link>
+        </a>
       </div>
 
       <GalleryExperience

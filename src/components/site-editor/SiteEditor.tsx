@@ -95,6 +95,8 @@ export function SiteEditor({
   initialHandle,
   initialCatalogValue,
   initialPublished,
+  initialDomain,
+  initialDomainStatus,
   content,
   displayName,
   logoUrl,
@@ -108,6 +110,8 @@ export function SiteEditor({
   initialHandle: string
   initialCatalogValue: string
   initialPublished: boolean
+  initialDomain: string
+  initialDomainStatus: string
   content: SiteContent
   displayName: string | null
   logoUrl: string | null
@@ -331,6 +335,50 @@ export function SiteEditor({
             <label className="text-sm text-muted" htmlFor="se-handle">{labels.handleLabel}</label>
             <input id="se-handle" name="handle" defaultValue={initialHandle} className={inputClass} />
             <p className="text-xs text-muted">{labels.handleHint}</p>
+          </div>
+
+          {/* ---------- custom domain ---------- */}
+          <div className="flex flex-col gap-2 rounded-lg border border-line bg-bg/60 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-semibold" htmlFor="se-domain">
+                {locale === 'uk' ? 'Власний домен' : 'Custom domain'}
+              </label>
+              {initialDomain &&
+                (initialDomainStatus === 'active' ? (
+                  <span className="rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                    {locale === 'uk' ? '● Підключено' : '● Connected'}
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                    {locale === 'uk' ? '● Очікує підключення' : '● Pending'}
+                  </span>
+                ))}
+            </div>
+            <input
+              id="se-domain"
+              name="custom_domain"
+              defaultValue={initialDomain}
+              placeholder="studio.com"
+              className={inputClass}
+            />
+            <p className="text-xs leading-relaxed text-muted">
+              {locale === 'uk'
+                ? 'Щоб сайт відкривався на вашому домені, додайте в панелі свого реєстратора домену такі DNS-записи:'
+                : 'To serve your site on your own domain, add these DNS records in your registrar:'}
+            </p>
+            <div className="rounded-md bg-fg/[0.04] p-3 font-mono text-xs leading-relaxed">
+              <div>
+                <span className="text-muted">CNAME</span>{'  '}www{'  →  '}cname.vercel-dns.com
+              </div>
+              <div>
+                <span className="text-muted">A</span>{'      '}@{'    →  '}76.76.21.21
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-muted">
+              {locale === 'uk'
+                ? 'Далі впишіть домен вище й збережіть. Ми підключимо його до 24 годин — SSL-сертифікат випуститься автоматично. Статус зміниться на «Підключено».'
+                : 'Then enter the domain above and save. We connect it within 24 hours — the SSL certificate is issued automatically. The status flips to “Connected”.'}
+            </p>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-sm text-muted" htmlFor="se-theme">{labels.themeLabel}</label>
