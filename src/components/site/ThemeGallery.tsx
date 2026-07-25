@@ -79,8 +79,15 @@ export function ThemeGallery({
                         }
                       />
                       <figcaption>
-                        <span>{group.category ?? labels.portfolio}</span>
-                        <span>{String(index + 1).padStart(3, '0')}</span>
+                        <span>
+                          {item.caption?.trim() ||
+                            `${group.category ?? labels.portfolio} — ${String(index + 1).padStart(3, '0')}`}
+                        </span>
+                        {item.previewUrl && (
+                          <a href={item.previewUrl} target="_blank" rel="noopener noreferrer">
+                            {labels.viewSeries}
+                          </a>
+                        )}
                       </figcaption>
                     </figure>
                   ))}

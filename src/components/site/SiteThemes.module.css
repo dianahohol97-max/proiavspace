@@ -529,6 +529,11 @@
   color: var(--site-muted);
   font-variant-numeric: tabular-nums;
 }
+.galWorks figcaption a {
+  color: var(--site-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
 .galAbout {
   margin-top: 48px;
   border-top: 1px solid var(--site-fg);
