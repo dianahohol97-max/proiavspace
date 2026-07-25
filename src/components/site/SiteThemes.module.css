@@ -127,7 +127,7 @@
   font-family: var(--site-font-display);
   font-weight: 400;
   margin: 0;
-  font-size: clamp(40px, 9vw, 104px);
+  font-size: clamp(38px, 9vw, 96px);
   line-height: 1.05;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -144,6 +144,7 @@
   background-size: cover;
   background-position: center;
   background-color: var(--site-line);
+  filter: grayscale(1);
   animation: mid-drift 13s ease-in-out infinite alternate;
 }
 .sFl1 {
