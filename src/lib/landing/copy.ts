@@ -28,6 +28,8 @@ export interface LandingCopy {
     titleBefore: string
     titleAccent: string
     lede: string
+    /** Small badge word marking a not-yet-launched product (e.g. «Скоро»). */
+    soon: string
     items: { no: string; title: string; text: string; tagStrong: string; tagRest: string }[]
   }
   bento: {
@@ -71,6 +73,9 @@ export interface LandingCopy {
     siteLede: string
     sitePlans: Record<SitePlanId, { name: string; note: string }>
     bundleNote: string
+    /** Sites are not launched yet — shown as a coming-soon panel. */
+    soonBadge: string
+    siteComingSoon: string
   }
   referral: {
     label: string
@@ -117,7 +122,8 @@ const uk: LandingCopy = {
     titleBefore: 'Кожен етап роботи з клієнтом — ',
     titleAccent: 'під вашим брендом',
     lede:
-      'Починається все з галерей — саме там фотограф щотижня зустрічається з клієнтом. Сайт і бронювання підключаються, коли будете готові.',
+      'Починається все з галерей — саме там фотограф щотижня зустрічається з клієнтом. Бронювання вже працює, а конструктор сайтів для фотографів — на підході.',
+    soon: 'Скоро',
     items: [
       {
         no: '01 — Галереї',
@@ -229,7 +235,7 @@ const uk: LandingCopy = {
       },
     },
     planCta: 'Обрати',
-    siteTitle: 'Сайти — окремо',
+    siteTitle: 'Сайти для фотографів',
     siteLede:
       'Персональний сайт з власним доменом, SSL і SEO-налаштуваннями. Пробний період — 7 днів безкоштовно.',
     sitePlans: {
@@ -238,6 +244,9 @@ const uk: LandingCopy = {
       site_plus: { name: 'Плюс', note: '2+ сайти · мультимовність · все те саме' },
     },
     bundleNote: 'Бандл «Галерея + Сайт» — мінус 15% на сайт, коли активні обидві підписки.',
+    soonBadge: 'Скоро',
+    siteComingSoon:
+      'Конструктор сайтів для фотографів зараз у розробці — запустимо найближчим часом. А поки що вся увага на галереях: саме з них починається робота з клієнтом. Хочете дізнатися першими про запуск — залишіть свою пошту, натиснувши «Почати безкоштовно».',
   },
   referral: {
     label: 'Реферальна програма',
@@ -309,7 +318,8 @@ const en: LandingCopy = {
     titleBefore: 'Every step of client work — ',
     titleAccent: 'under your brand',
     lede:
-      'It all starts with galleries — that is where a photographer meets clients every week. The site and booking join in when you are ready.',
+      'It all starts with galleries — that is where a photographer meets clients every week. Booking already works, and the photographer site builder is on the way.',
+    soon: 'Soon',
     items: [
       {
         no: '01 — Galleries',
@@ -421,7 +431,7 @@ const en: LandingCopy = {
       },
     },
     planCta: 'Choose',
-    siteTitle: 'Sites — separately',
+    siteTitle: 'Photographer sites',
     siteLede: 'A personal site with a custom domain, SSL and SEO. A 7-day free trial.',
     sitePlans: {
       site_trial: { name: 'Trial', note: '1 site for 7 days' },
@@ -429,6 +439,9 @@ const en: LandingCopy = {
       site_plus: { name: 'Plus', note: '2+ sites · multilingual · all the same' },
     },
     bundleNote: 'Gallery + Site bundle — 15% off the site while both subscriptions are active.',
+    soonBadge: 'Soon',
+    siteComingSoon:
+      'The photographer site builder is under active development — launching soon. For now the focus is on galleries: that’s where client work begins. Want to hear about the launch first? Leave your email via “Start for free”.',
   },
   referral: {
     label: 'Referral program',

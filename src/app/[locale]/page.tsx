@@ -3,12 +3,7 @@ import { notFound } from 'next/navigation'
 import { isLocale } from '@/lib/i18n/config'
 import { jsonLdScript } from '@/lib/jsonld'
 import { getLandingCopy } from '@/lib/landing/copy'
-import {
-  GALLERY_PLANS,
-  SITE_PLANS,
-  type GalleryPlanId,
-  type SitePlanId,
-} from '@/lib/plans'
+import { GALLERY_PLANS, type GalleryPlanId } from '@/lib/plans'
 import { LangPicker } from '@/components/LangPicker'
 import { Logo } from '@/components/Logo'
 import { AuthNav } from '@/components/landing/AuthNav'
@@ -90,7 +85,9 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           </Link>
           <span className={s.navLinks}>
             <a href="#galleries">{t.nav.galleries}</a>
-            <a href="#sites">{t.nav.sites}</a>
+            <a href="#sites">
+              {t.nav.sites} <span className={s.soonTag}>{t.products.soon}</span>
+            </a>
             <a href="#pricing">{t.nav.pricing}</a>
             <Link href={`/${locale}/themes`}>{t.nav.themes}</Link>
             <Link href={`/${locale}/blog`}>{t.nav.blog}</Link>
@@ -206,8 +203,9 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               </div>
             </Reveal>
             <Reveal>
-              <div className={s.prod}>
+              <div className={`${s.prod} ${s.prodSoon}`}>
                 <span className={s.prodNo}>{t.products.items[1].no}</span>
+                <span className={s.soonBadge}>{t.products.soon}</span>
                 <div className={s.pSite}>
                   <div className={s.wm}>{t.hero.mockName}</div>
                   <div className={s.hl}>{t.hero.mockTitle}</div>
@@ -395,37 +393,20 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
 
           <Reveal>
             <div id="sites" className={s.secHead} style={{ marginTop: 64, scrollMarginTop: 90 }}>
-              <h2 className={s.h2}>{t.pricing.siteTitle}</h2>
-              <p>{t.pricing.siteLede}</p>
+              <h2 className={s.h2}>
+                {t.pricing.siteTitle} <span className={s.soonBadge}>{t.pricing.soonBadge}</span>
+              </h2>
             </div>
           </Reveal>
-          <div className={s.plans}>
-            {(Object.keys(SITE_PLANS) as SitePlanId[]).map((id) => {
-              const plan = SITE_PLANS[id]
-              const copy = t.pricing.sitePlans[id]
-              return (
-                <div key={id} className={s.plan}>
-                  <h3>{copy.name}</h3>
-                  <p className={s.gb}>{copy.note}</p>
-                  <p className={s.price}>
-                    {plan.priceUahMonth} ₴
-                    <small> {plan.priceUahMonth === 0 ? t.pricing.freeLabel : t.pricing.perMonth}</small>
-                  </p>
-                  {plan.priceUahMonth > 0 && (
-                    <p className={s.yr}>{t.pricing.yearHint(String(plan.priceUahYear))}</p>
-                  )}
-                  <div style={{ marginTop: 18 }}>
-                    <Link href={login} className={`${s.pillGhost} ${s.planCta}`}>
-                      {t.pricing.planCta} {copy.name}
-                    </Link>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <p className={s.fineprint}>
-            {t.pricing.bundleNote} {t.pricing.fineprint}
-          </p>
+          <Reveal>
+            <div className={s.comingSoon}>
+              <p>{t.pricing.siteComingSoon}</p>
+              <Link href={login} className={s.pillGhost}>
+                {t.hero.cta}
+              </Link>
+            </div>
+          </Reveal>
+          <p className={s.fineprint}>{t.pricing.fineprint}</p>
         </section>
 
         {/* ---------- referral ---------- */}

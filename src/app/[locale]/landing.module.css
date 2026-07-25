@@ -325,3 +325,43 @@
   .card, .marquee { animation: none; }
   .b:hover, .prod:hover, .pill:hover { transform: none; }
 }
+
+/* ---------- "coming soon" treatment for photographer sites ---------- */
+.soonBadge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-family: var(--font-brand);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.soonTag {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  vertical-align: super;
+}
+.prodSoon { opacity: 0.82; }
+.prodSoon .prodNo { display: inline-block; }
+.comingSoon {
+  margin-top: 22px;
+  border: 1px dashed var(--color-border);
+  border-radius: 18px;
+  padding: clamp(28px, 5vw, 44px);
+  text-align: center;
+  background: #fff;
+}
+.comingSoon p {
+  margin: 0 auto 20px;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-muted);
+}
