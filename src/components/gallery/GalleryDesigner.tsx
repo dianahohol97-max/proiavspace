@@ -34,12 +34,15 @@ export function GalleryDesigner({
   themeOptions,
   initialTheme,
   initialStyle,
+  coverUrl,
   labels,
 }: {
   action: (formData: FormData) => Promise<void>
   themeOptions: { value: string; label: string }[]
   initialTheme: string
   initialStyle: GalleryStyle
+  /** Real gallery cover, so the preview + focal pad show the actual photo. */
+  coverUrl?: string | null
   labels: DesignerLabels
 }) {
   const [pending, startTransition] = useTransition()
@@ -175,7 +178,11 @@ export function GalleryDesigner({
               dirty()
             }}
             className="relative h-16 w-28 overflow-hidden rounded border border-line"
-            style={{ background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }}
+            style={
+              coverUrl
+                ? { background: `center / cover no-repeat url("${coverUrl}")` }
+                : { background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }
+            }
           >
             <span
               className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-fg"
@@ -206,7 +213,9 @@ export function GalleryDesigner({
           <div
             style={{
               height: 92,
-              background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})`,
+              ...(coverUrl
+                ? { backgroundImage: `url("${coverUrl}")`, backgroundSize: 'cover', backgroundPosition: `${focalX}% ${focalY}%` }
+                : { background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }),
               display: 'flex',
               alignItems: 'flex-end',
               padding: 12,
