@@ -182,6 +182,20 @@ export default async function PublicSitePage({
         displayName={site.display_name}
         logoUrl={logoUrl}
         portfolio={portfolio}
+        footer={{
+          brand: site.display_name ?? (content.hero.title || params.handle),
+          year: new Date().getFullYear(),
+          links: [
+            {
+              href: `/${locale}/s/${params.handle}/legal/privacy`,
+              label: locale === 'uk' ? 'Конфіденційність' : 'Privacy',
+            },
+            {
+              href: `/${locale}/s/${params.handle}/legal/refund`,
+              label: locale === 'uk' ? 'Оплата та повернення' : 'Payment & refunds',
+            },
+          ],
+        }}
         labels={{
           portfolio: dict.publicSite.portfolio,
           about: dict.publicSite.about,
