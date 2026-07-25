@@ -88,6 +88,7 @@ export function SiteRenderer({
   labels,
   langSwitch,
   leadForm,
+  footer,
 }: {
   theme: ThemeId
   mode: SiteMode
@@ -100,8 +101,38 @@ export function SiteRenderer({
   langSwitch?: LangSwitch
   /** Present only when the lead form option is on; handle null in preview. */
   leadForm?: { handle: string | null; labels: LeadFormLabels }
+  /** Brand footer with client-facing legal links; only on published sites. */
+  footer?: { brand: string; year: number; links: { href: string; label: string }[] }
 }) {
   const vars = siteCssVars(theme, mode)
+
+  const footerEl = footer ? (
+    <footer
+      style={{
+        borderTop: '1px solid var(--site-line)',
+        padding: '28px 24px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '10px 22px',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        fontFamily: 'var(--site-font-label)',
+        fontSize: 11,
+        letterSpacing: '.12em',
+        textTransform: 'uppercase',
+        color: 'var(--site-muted)',
+      }}
+    >
+      <span>© {footer.year} {footer.brand}</span>
+      <span style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 18px' }}>
+        {footer.links.map((l) => (
+          <a key={l.href} href={l.href} style={{ color: 'inherit', textDecoration: 'none' }}>
+            {l.label}
+          </a>
+        ))}
+      </span>
+    </footer>
+  ) : null
 
   // Themes with their own distinct layout dispatch here; the rest still use
   // the shared block layout below until each gets its own design.
@@ -118,6 +149,7 @@ export function SiteRenderer({
           leadForm={leadForm}
           night={mode === 'night'}
         />
+        {footerEl}
       </div>
     )
   }
@@ -133,6 +165,7 @@ export function SiteRenderer({
           langSwitch={langSwitch}
           leadForm={leadForm}
         />
+        {footerEl}
       </div>
     )
   }
@@ -156,6 +189,7 @@ export function SiteRenderer({
           langSwitch={langSwitch}
           leadForm={leadForm}
         />
+        {footerEl}
       </div>
     )
   }
@@ -405,6 +439,7 @@ export function SiteRenderer({
           {leadForm && <LeadForm handle={leadForm.handle} labels={leadForm.labels} />}
         </section>
       </div>
+      {footerEl}
     </div>
   )
 }
