@@ -25,15 +25,44 @@ function paidUntil(period: string, from = new Date()): string {
   return until.toISOString()
 }
 
-/** Bank one referral free month for a user (applied at their next renewal). */
-async function addFreeMonth(admin: SupabaseClient, userId: string): Promise<void> {
-  const { data } = await admin
+/** Referral share: 10% of this UAH amount, in kopecks. */
+const REFERRAL_RATE = 0.1
+function referralRewardKop(amountUah: number): number {
+  return Math.round(amountUah * 100 * REFERRAL_RATE)
+}
+
+/**
+ * Credits the referrer 10% of a referred photographer's payment — as проЯв
+ * credit for a regular referrer, or as cash for an ambassador — and logs it.
+ */
+async function accrueReferralReward(
+  admin: SupabaseClient,
+  referrerId: string,
+  referredId: string,
+  paymentId: string,
+  rewardKop: number
+): Promise<void> {
+  const { data: ref } = await admin
     .from('profiles')
-    .select('pending_free_months')
-    .eq('user_id', userId)
+    .select('is_ambassador, credit_balance_kop, cash_balance_kop')
+    .eq('user_id', referrerId)
     .single()
-  const current = (data?.pending_free_months as number | undefined) ?? 0
-  await admin.from('profiles').update({ pending_free_months: current + 1 }).eq('user_id', userId)
+  if (!ref) return
+  const isAmbassador = ref.is_ambassador === true
+  const column = isAmbassador ? 'cash_balance_kop' : 'credit_balance_kop'
+  const current =
+    ((isAmbassador ? ref.cash_balance_kop : ref.credit_balance_kop) as number | undefined) ?? 0
+  await admin
+    .from('profiles')
+    .update({ [column]: current + rewardKop })
+    .eq('user_id', referrerId)
+  await admin.from('referral_earnings').insert({
+    referrer_id: referrerId,
+    referred_id: referredId,
+    payment_id: paymentId,
+    amount_kop: rewardKop,
+    kind: isAmbassador ? 'cash' : 'credit',
+  })
 }
 
 /** Next cron charge: one period from now (no extra grace — that's for expiry). */
@@ -84,7 +113,7 @@ export async function POST(request: NextRequest) {
 
   const { data: payment } = await admin
     .from('payments')
-    .select('id, user_id, plan, period, status, subscription_id')
+    .select('id, user_id, plan, period, status, subscription_id, amount, credit_applied_kop')
     .eq('order_id', event.orderId)
     .single()
   if (!payment) {
@@ -154,19 +183,48 @@ export async function POST(request: NextRequest) {
         .eq('user_id', payment.user_id)
     }
 
-    // Referral: this payer's FIRST payment converts their referral (the
-    // conditional update fires once) and banks a free month for both sides,
-    // applied automatically at each one's next renewal.
-    const { data: converted } = await admin
-      .from('referrals')
-      .update({ status: 'converted', converted_at: new Date().toISOString() })
-      .eq('referred_id', payment.user_id)
-      .eq('status', 'pending')
-      .select('referrer_id')
-      .maybeSingle()
-    if (converted?.referrer_id) {
-      await addFreeMonth(admin, converted.referrer_id)
-      await addFreeMonth(admin, payment.user_id)
+    // Deduct any проЯв credit redeemed against this checkout — once (a
+    // re-delivered 'paid' webhook returns early above, so this never repeats).
+    const creditUsed = (payment.credit_applied_kop as number | undefined) ?? 0
+    if (creditUsed > 0) {
+      const { data: bal } = await admin
+        .from('profiles')
+        .select('credit_balance_kop')
+        .eq('user_id', payment.user_id)
+        .single()
+      const current = (bal?.credit_balance_kop as number | undefined) ?? 0
+      await admin
+        .from('profiles')
+        .update({ credit_balance_kop: Math.max(0, current - creditUsed) })
+        .eq('user_id', payment.user_id)
+    }
+
+    // Referral reward: 10% of EVERY payment a referred photographer makes goes
+    // to their referrer — credit for regular referrers, cash for ambassadors.
+    // Re-delivered webhooks can't double-accrue: an already-'paid' payment
+    // returns early above, and each renewal is its own payment row.
+    const { data: payerProfile } = await admin
+      .from('profiles')
+      .select('referred_by')
+      .eq('user_id', payment.user_id)
+      .single()
+    if (payerProfile?.referred_by) {
+      const rewardKop = referralRewardKop((payment.amount as number | undefined) ?? 0)
+      if (rewardKop > 0) {
+        await accrueReferralReward(
+          admin,
+          payerProfile.referred_by as string,
+          payment.user_id,
+          payment.id,
+          rewardKop
+        )
+      }
+      // First payment also flips the referral to 'converted' (fires once).
+      await admin
+        .from('referrals')
+        .update({ status: 'converted', converted_at: new Date().toISOString() })
+        .eq('referred_id', payment.user_id)
+        .eq('status', 'pending')
     }
   } else if (event.status === 'failed' && payment.subscription_id) {
     // A renewal charge bounced: stop the cron retries, start the grace
