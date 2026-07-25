@@ -7,6 +7,7 @@ import { effectiveGalleryPlan } from '@/lib/plans'
 import { resolveGalleryTheme } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { parseGalleryStyle } from '@/lib/gallery/style'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
 import { LangPicker } from '@/components/LangPicker'
 import type { Asset } from '@/lib/types'
@@ -42,7 +43,7 @@ export default async function PublicGalleryPage({
   const { data: gallery } = await supabase
     .from('galleries')
     .select(
-      'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme'
+      'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style'
     )
     .eq('slug', params.slug)
     .single<{
@@ -55,6 +56,7 @@ export default async function PublicGalleryPage({
       is_published: boolean
       cover_asset_id: string | null
       theme: string | null
+      style: unknown
     }>()
 
   if (!gallery) {
@@ -218,6 +220,7 @@ export default async function PublicGalleryPage({
       tipUrl={ownerPlan.features.tips ? (branding?.tip_link ?? null) : null}
       theme={theme}
       mode={mode}
+      style={parseGalleryStyle(gallery.style)}
       labels={{
         scrollHint: dict.publicGallery.scrollHint,
         selected: dict.publicGallery.selected,

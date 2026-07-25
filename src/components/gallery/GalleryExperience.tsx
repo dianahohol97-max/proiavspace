@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Zip, ZipPassThrough } from 'fflate'
 import { resolveTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
+import { fontFamily, type GalleryStyle } from '@/lib/gallery/style'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { LangPicker } from '@/components/LangPicker'
 import s from './GalleryExperience.module.css'
@@ -100,6 +101,7 @@ export function GalleryExperience({
   theme,
   mode,
   labels,
+  style,
   demo = false,
 }: {
   locale: string
@@ -116,11 +118,13 @@ export function GalleryExperience({
   theme: ThemeId
   mode: SiteMode
   labels: GalleryLabels
+  /** Fine-grained per-gallery overrides on top of the theme tokens. */
+  style?: GalleryStyle
   /** Public showcase: keep the interactions visual, never hit gallery APIs. */
   demo?: boolean
 }) {
   const tokens = resolveTokens(theme, mode)
-  const accent = mode === 'night' ? '#8fa2ff' : '#2f55ff'
+  const accent = style?.accent ?? (mode === 'night' ? '#8fa2ff' : '#2f55ff')
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites))
   const [lightbox, setLightbox] = useState<number | null>(null)
@@ -257,12 +261,14 @@ export function GalleryExperience({
     '--g-mut': tokens.muted,
     '--g-line': tokens.line,
     '--g-accent': accent,
-    '--g-display': tokens.fontDisplay,
+    '--g-display': fontFamily(style?.font) ?? tokens.fontDisplay,
     '--g-body': tokens.fontBody,
     '--g-label': tokens.fontLabel,
     '--g-display-transform': tokens.displayTransform,
     '--g-display-weight': String(tokens.displayWeight),
     '--g-display-tracking': tokens.displayTracking,
+    '--g-cols': String(style?.columns ?? 3),
+    '--g-radius': `${style?.radius ?? 10}px`,
   } as React.CSSProperties
 
   const current = lightbox !== null ? items[lightbox] : null

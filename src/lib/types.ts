@@ -40,6 +40,8 @@ export interface Gallery {
   view_count: number
   /** Style override (theme-catalog value); null = inherit from the site. */
   theme: string | null
+  /** Fine-grained design overrides (accent/columns/radius/font) as jsonb. */
+  style: unknown | null
   created_at: string
   updated_at: string
 }
