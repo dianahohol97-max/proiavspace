@@ -32,6 +32,19 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
     throw new Error('Handle must be 3-32 chars: latin letters, digits, dashes')
   }
 
+  // Optional custom domain. Normalise: strip scheme/path/leading www, lowercase.
+  // Changing it (re)sets status to pending so the domain gets re-verified.
+  let customDomain = str(formData, 'custom_domain')
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/^www\./, '')
+    .trim()
+  if (customDomain && !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(customDomain)) {
+    throw new Error('Enter a valid domain, e.g. studio.com')
+  }
+  const customDomainValue = customDomain || null
+
   // The editor exposes the 8-entry catalog; «Опівніч» maps to tysha+night.
   const catalogEntry =
     THEME_CATALOG.find((entry) => entry.value === str(formData, 'theme')) ?? THEME_CATALOG[0]
@@ -125,6 +138,18 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
     }
   }
 
+  // Preserve an 'active' status only while the domain is unchanged; any edit
+  // (or a newly entered domain) drops back to 'pending' for re-verification.
+  const { data: existingSite } = await supabase
+    .from('sites')
+    .select('custom_domain, custom_domain_status')
+    .eq('user_id', user.id)
+    .maybeSingle<{ custom_domain: string | null; custom_domain_status: string }>()
+  const domainStatus =
+    customDomainValue && existingSite?.custom_domain === customDomainValue
+      ? existingSite.custom_domain_status
+      : 'pending'
+
   const { error } = await supabase.from('sites').upsert(
     {
       user_id: user.id,
@@ -133,6 +158,8 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
       mode: catalogEntry.mode,
       is_published: isPublished,
       content,
+      custom_domain: customDomainValue,
+      custom_domain_status: domainStatus,
     },
     { onConflict: 'user_id' }
   )
