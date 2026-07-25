@@ -13,15 +13,9 @@ import { updateSession } from '@/lib/supabase/middleware'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Canonicalize the platform host: www → apex, so Google indexes one URL
-  // (matches the declared canonical https://proiav.space/…). A permanent 301.
-  if ((request.headers.get('host') ?? '') === 'www.proiav.space') {
-    const url = request.nextUrl.clone()
-    url.host = 'proiav.space'
-    url.protocol = 'https:'
-    url.port = ''
-    return NextResponse.redirect(url, 301)
-  }
+  // NB: host canonicalization (www ↔ apex) is handled at the Vercel/DNS domain
+  // level, NOT here — doing it in middleware collided with Vercel's own apex↔www
+  // redirect and produced an infinite redirect loop.
 
   const hasLocale = locales.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
