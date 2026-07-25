@@ -81,6 +81,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'plan_needs_no_checkout' }, { status: 400 })
   }
 
+  // Redeem проЯв credit earned from referrals: it discounts the charge (leaving
+  // at least 1 ₴ so there is no zero-amount checkout). The exact applied amount
+  // is recorded so the webhook deducts it from the balance once, on success.
+  let creditAppliedKop = 0
+  {
+    const { data: creditProfile } = await supabase
+      .from('profiles')
+      .select('credit_balance_kop')
+      .eq('user_id', user.id)
+      .single()
+    const creditKop = (creditProfile?.credit_balance_kop as number | undefined) ?? 0
+    const maxDiscountUah = Math.max(0, amount - 1)
+    const discountUah = Math.min(Math.floor(creditKop / 100), maxDiscountUah)
+    if (discountUah > 0) {
+      creditAppliedKop = discountUah * 100
+      amount -= discountUah
+      description += ` (credit -${discountUah} ₴)`
+    }
+  }
+
   const payments = getPayments()
   const admin = createSupabaseAdminClient()
   if (!payments || !admin) {
@@ -104,6 +124,7 @@ export async function POST(request: NextRequest) {
     amount,
     currency: 'UAH',
     status: 'pending',
+    credit_applied_kop: creditAppliedKop,
   })
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

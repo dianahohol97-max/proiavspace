@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
+import { setAmbassador, processWithdrawal } from '@/lib/actions/referrals'
 import { getDictionary } from '@/lib/i18n'
-import { isLocale } from '@/lib/i18n/config'
+import { isLocale, type Locale } from '@/lib/i18n/config'
 import {
   GALLERY_PLANS,
   SITE_PLANS,
@@ -26,6 +27,14 @@ interface ProfileRow {
   plan: string
   site_plan: string
   storage_used_bytes: number | null
+  created_at: string
+  is_ambassador: boolean | null
+}
+interface WithdrawalRow {
+  id: string
+  user_id: string
+  amount_kop: number
+  details: string
   created_at: string
 }
 interface SubRow {
@@ -68,7 +77,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
     await Promise.all([
       admin
         .from('profiles')
-        .select('user_id, display_name, plan, site_plan, storage_used_bytes, created_at')
+        .select('user_id, display_name, plan, site_plan, storage_used_bytes, created_at, is_ambassador')
         .order('created_at', { ascending: true })
         .returns<ProfileRow[]>(),
       admin.from('galleries').select('is_published').returns<{ is_published: boolean }[]>(),
@@ -81,6 +90,14 @@ export default async function StatsPage({ params }: { params: { locale: string }
     ])
   const referralsTotal = refs?.length ?? 0
   const referralsPaid = (refs ?? []).filter((r) => r.status === 'converted').length
+
+  // Pending ambassador cash-out requests (admin resolves them manually).
+  const { data: pendingWithdrawals } = await admin
+    .from('withdrawals')
+    .select('id, user_id, amount_kop, details, created_at')
+    .eq('status', 'requested')
+    .order('created_at', { ascending: true })
+    .returns<WithdrawalRow[]>()
 
   // Emails live in auth.users, not profiles — fetch them via the admin API and
   // map by id so the photographer list can show a real contact.
@@ -119,6 +136,8 @@ export default async function StatsPage({ params }: { params: { locale: string }
 
   // Per-photographer list (founder view): name, contact, plans, storage, join date.
   const photographers = profileRows.map((p) => ({
+    userId: p.user_id,
+    isAmbassador: p.is_ambassador === true,
     name: p.display_name || '—',
     email: emailById.get(p.user_id) || '—',
     gallery: galleryPlanName[p.plan as GalleryPlanId] ?? p.plan,
@@ -129,6 +148,13 @@ export default async function StatsPage({ params }: { params: { locale: string }
       month: '2-digit',
       year: 'numeric',
     }),
+  }))
+  const withdrawalRequests = (pendingWithdrawals ?? []).map((w) => ({
+    id: w.id,
+    name: profileRows.find((p) => p.user_id === w.user_id)?.display_name || emailById.get(w.user_id) || '—',
+    email: emailById.get(w.user_id) || '—',
+    amount: `${(w.amount_kop / 100).toFixed(0)} ₴`,
+    details: w.details,
   }))
 
   const paidGalleryUsers = galleryPlanIds
@@ -183,6 +209,48 @@ export default async function StatsPage({ params }: { params: { locale: string }
         {tile(t.referralsPaid, referralsPaid)}
       </div>
 
+      {/* --- ambassador cash-out requests --- */}
+      {withdrawalRequests.length > 0 && (
+        <section className="mt-12">
+          <h2 className="mb-4 font-brand text-xl">
+            {locale === 'uk' ? 'Заявки на виведення' : 'Withdrawal requests'} · {withdrawalRequests.length}
+          </h2>
+          <div className="flex flex-col gap-3">
+            {withdrawalRequests.map((w) => (
+              <div
+                key={w.id}
+                className="flex flex-wrap items-center gap-3 rounded-2xl border border-line p-4"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-fg">
+                    {w.name} · <span className="font-brand">{w.amount}</span>
+                  </p>
+                  <p className="break-all text-sm text-muted">
+                    {w.email} — {w.details}
+                  </p>
+                </div>
+                <form action={processWithdrawal.bind(null, locale as Locale, w.id, 'paid')}>
+                  <button
+                    type="submit"
+                    className="rounded-full bg-fg px-4 py-1.5 text-xs font-semibold text-bg"
+                  >
+                    {locale === 'uk' ? 'Виплачено' : 'Paid'}
+                  </button>
+                </form>
+                <form action={processWithdrawal.bind(null, locale as Locale, w.id, 'rejected')}>
+                  <button
+                    type="submit"
+                    className="rounded-full border border-line px-4 py-1.5 text-xs font-semibold text-muted hover:border-fg hover:text-fg"
+                  >
+                    {locale === 'uk' ? 'Відхилити' : 'Reject'}
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* --- photographers list --- */}
       <section className="mt-12">
         <h2 className="mb-4 font-brand text-xl">
@@ -198,6 +266,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
                 <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'Сайт' : 'Site'}</th>
                 <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'Сховище' : 'Storage'}</th>
                 <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'З' : 'Joined'}</th>
+                <th className="px-4 py-3 font-semibold">{locale === 'uk' ? 'Амбасадор' : 'Ambassador'}</th>
               </tr>
             </thead>
             <tbody>
@@ -209,6 +278,26 @@ export default async function StatsPage({ params }: { params: { locale: string }
                   <td className="px-4 py-3">{p.site}</td>
                   <td className="px-4 py-3">{p.storage}</td>
                   <td className="px-4 py-3 text-muted">{p.joined}</td>
+                  <td className="px-4 py-3">
+                    <form action={setAmbassador.bind(null, locale as Locale, p.userId, !p.isAmbassador)}>
+                      <button
+                        type="submit"
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                          p.isAmbassador
+                            ? 'border-accent bg-accent text-white'
+                            : 'border-line text-muted hover:border-fg hover:text-fg'
+                        }`}
+                      >
+                        {p.isAmbassador
+                          ? locale === 'uk'
+                            ? '★ Амбасадор'
+                            : '★ Ambassador'
+                          : locale === 'uk'
+                            ? 'Зробити'
+                            : 'Make'}
+                      </button>
+                    </form>
+                  </td>
                 </tr>
               ))}
             </tbody>
