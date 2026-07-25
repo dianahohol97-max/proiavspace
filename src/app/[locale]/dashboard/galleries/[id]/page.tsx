@@ -95,6 +95,22 @@ export default async function ManageGalleryPage({
   }
   const totalFavorites = [...favoriteCounts.values()].reduce((sum, n) => sum + n, 0)
 
+  // Per-photo download counts (a «Плюс»+ stat): download events carry the
+  // asset id in meta, so we can show engagement on each individual photo.
+  const downloadCounts = new Map<string, number>()
+  if (ownerPlan.features.stats) {
+    const { data: dlEvents } = await supabase
+      .from('gallery_events')
+      .select('meta')
+      .eq('gallery_id', gallery.id)
+      .eq('type', 'download')
+      .returns<{ meta: { asset_id?: string } }[]>()
+    for (const event of dlEvents ?? []) {
+      const id = event.meta?.asset_id
+      if (id) downloadCounts.set(id, (downloadCounts.get(id) ?? 0) + 1)
+    }
+  }
+
   // Short-lived previews for the owner's thumbnails — signed server-side,
   // fetched by the browser straight from R2.
   const storage = getStorage()
@@ -282,9 +298,16 @@ export default async function ManageGalleryPage({
                   ) : (
                     <video src={url} className="h-full w-full object-cover" muted preload="metadata" />
                   )}
-                  {favoritedBy > 0 && (
-                    <span className="absolute right-2 top-2 bg-bg/90 px-2 py-0.5 text-xs text-accent">
-                      ♥ {favoritedBy}
+                  {(favoritedBy > 0 || (downloadCounts.get(asset.id) ?? 0) > 0) && (
+                    <span className="absolute right-2 top-2 flex flex-col items-end gap-1">
+                      {favoritedBy > 0 && (
+                        <span className="bg-bg/90 px-2 py-0.5 text-xs text-accent">♥ {favoritedBy}</span>
+                      )}
+                      {(downloadCounts.get(asset.id) ?? 0) > 0 && (
+                        <span className="bg-bg/90 px-2 py-0.5 text-xs text-muted">
+                          ↓ {downloadCounts.get(asset.id)}
+                        </span>
+                      )}
                     </span>
                   )}
                   {isCover ? (
