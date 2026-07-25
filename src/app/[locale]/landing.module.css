@@ -317,7 +317,9 @@
   .bWide { grid-column: span 2; }
   .b { min-height: 150px; }
   .prGrid { grid-template-columns: 1fr 1fr; }
-  .navLinks a:not(.pill):not(.pillHot) { display: none; }
+  /* Hide only the nav's own top-level links on mobile — NOT the links inside
+     the language dropdown (which live in a nested <details>). */
+  .navLinks > a:not(.pill):not(.pillHot) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .card, .marquee { animation: none; }
