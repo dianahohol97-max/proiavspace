@@ -53,6 +53,17 @@ export default function ThemesPage({ params }: { params: { locale: string } }) {
         <Link href={`/${locale}`} className="text-fg no-underline">
           <Logo />
         </Link>
+        <nav className="hidden items-center gap-7 text-sm text-muted sm:flex">
+          <Link href={`/${locale}#galleries`} className="no-underline hover:text-fg">
+            {uk ? 'Галереї' : 'Galleries'}
+          </Link>
+          <Link href={`/${locale}#pricing`} className="no-underline hover:text-fg">
+            {uk ? 'Тарифи' : 'Pricing'}
+          </Link>
+          <Link href={`/${locale}/blog`} className="no-underline hover:text-fg">
+            {uk ? 'Блог' : 'Blog'}
+          </Link>
+        </nav>
         <Link
           href={`/${locale}/login`}
           className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white no-underline transition-colors hover:bg-accent-deep"
