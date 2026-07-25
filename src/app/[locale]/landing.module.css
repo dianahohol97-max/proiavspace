@@ -61,6 +61,7 @@
   background: var(--color-fg); color: #fff; border-radius: 999px;
   padding: 13px 26px; font-weight: 700; font-size: 13px;
   text-decoration: none; border: none; cursor: pointer;
+  white-space: nowrap;
   transition: background .2s, transform .2s;
 }
 .pill:hover { background: #000; transform: translateY(-1px); }
@@ -320,6 +321,14 @@
   /* Hide only the nav's own top-level links on mobile — NOT the links inside
      the language dropdown (which live in a nested <details>). */
   .navLinks > a:not(.pill):not(.pillHot) { display: none; }
+  /* Keep the header on one row on phones: the logo never shrinks, and the CTA
+     pill goes compact so it can't overlap the wordmark. */
+  .nav { gap: 12px; }
+  .nav > a:first-child { flex: none; }
+  .navLinks { gap: 12px; min-width: 0; }
+  .navLinks .pill, .navLinks .pillHot {
+    padding: 10px 16px; font-size: 12.5px; gap: 6px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .card, .marquee { animation: none; }
