@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { getPayments } from '@/lib/payments'
 import {
   GALLERY_PLANS,
@@ -29,40 +28,6 @@ function paidUntil(period: string, from = new Date()): string {
 const REFERRAL_RATE = 0.1
 function referralRewardKop(amountUah: number): number {
   return Math.round(amountUah * 100 * REFERRAL_RATE)
-}
-
-/**
- * Credits the referrer 10% of a referred photographer's payment — as проЯв
- * credit for a regular referrer, or as cash for an ambassador — and logs it.
- */
-async function accrueReferralReward(
-  admin: SupabaseClient,
-  referrerId: string,
-  referredId: string,
-  paymentId: string,
-  rewardKop: number
-): Promise<void> {
-  const { data: ref } = await admin
-    .from('profiles')
-    .select('is_ambassador, credit_balance_kop, cash_balance_kop')
-    .eq('user_id', referrerId)
-    .single()
-  if (!ref) return
-  const isAmbassador = ref.is_ambassador === true
-  const column = isAmbassador ? 'cash_balance_kop' : 'credit_balance_kop'
-  const current =
-    ((isAmbassador ? ref.cash_balance_kop : ref.credit_balance_kop) as number | undefined) ?? 0
-  await admin
-    .from('profiles')
-    .update({ [column]: current + rewardKop })
-    .eq('user_id', referrerId)
-  await admin.from('referral_earnings').insert({
-    referrer_id: referrerId,
-    referred_id: referredId,
-    payment_id: paymentId,
-    amount_kop: rewardKop,
-    kind: isAmbassador ? 'cash' : 'credit',
-  })
 }
 
 /** Next cron charge: one period from now (no extra grace — that's for expiry). */
@@ -185,24 +150,17 @@ export async function POST(request: NextRequest) {
 
     // Deduct any проЯв credit redeemed against this checkout — once (a
     // re-delivered 'paid' webhook returns early above, so this never repeats).
+    // Atomic in the DB so it can't race another concurrent charge.
     const creditUsed = (payment.credit_applied_kop as number | undefined) ?? 0
     if (creditUsed > 0) {
-      const { data: bal } = await admin
-        .from('profiles')
-        .select('credit_balance_kop')
-        .eq('user_id', payment.user_id)
-        .single()
-      const current = (bal?.credit_balance_kop as number | undefined) ?? 0
-      await admin
-        .from('profiles')
-        .update({ credit_balance_kop: Math.max(0, current - creditUsed) })
-        .eq('user_id', payment.user_id)
+      await admin.rpc('consume_credit', { p_user: payment.user_id, p_amount: creditUsed })
     }
 
     // Referral reward: 10% of EVERY payment a referred photographer makes goes
     // to their referrer — credit for regular referrers, cash for ambassadors.
     // Re-delivered webhooks can't double-accrue: an already-'paid' payment
-    // returns early above, and each renewal is its own payment row.
+    // returns early above, and each renewal is its own payment row. The accrual
+    // (balance + earnings log) is a single atomic DB call.
     const { data: payerProfile } = await admin
       .from('profiles')
       .select('referred_by')
@@ -211,13 +169,12 @@ export async function POST(request: NextRequest) {
     if (payerProfile?.referred_by) {
       const rewardKop = referralRewardKop((payment.amount as number | undefined) ?? 0)
       if (rewardKop > 0) {
-        await accrueReferralReward(
-          admin,
-          payerProfile.referred_by as string,
-          payment.user_id,
-          payment.id,
-          rewardKop
-        )
+        await admin.rpc('accrue_referral_reward', {
+          p_referrer: payerProfile.referred_by as string,
+          p_referred: payment.user_id,
+          p_payment: payment.id,
+          p_amount: rewardKop,
+        })
       }
       // First payment also flips the referral to 'converted' (fires once).
       await admin
