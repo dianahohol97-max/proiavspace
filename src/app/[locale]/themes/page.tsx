@@ -62,8 +62,11 @@ export default function ThemesPage({ params }: { params: { locale: string } }) {
       </header>
 
       <section className="mx-auto max-w-5xl px-6 pb-6 pt-10 sm:pt-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-accent">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-accent">
           {uk ? 'Конструктор сайтів' : 'Site builder'}
+          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] tracking-[0.14em] text-white">
+            {uk ? 'Скоро' : 'Soon'}
+          </span>
         </p>
         <h1 className="mt-4 max-w-3xl font-brand text-4xl leading-[1.05] tracking-tight sm:text-6xl">
           {uk ? 'Вісім тем — під ваш почерк' : 'Eight themes — for your style'}
@@ -72,6 +75,11 @@ export default function ThemesPage({ params }: { params: { locale: string } }) {
           {uk
             ? 'Оберіть тему, підставте свої фото — і персональний сайт готовий. Тему можна змінити будь-коли без втрати контенту.'
             : 'Pick a theme, add your photos — your personal site is ready. Switch themes anytime without losing content.'}
+        </p>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+          {uk
+            ? 'Конструктор сайтів зараз у розробці — це прев’ю тем. А поки що серце сервісу — клієнтські галереї: саме з них почніть.'
+            : 'The site builder is under development — this is a preview of the themes. For now the heart of the service is client galleries: start there.'}
         </p>
         <Link
           href={`/${locale}/gallery-demo`}
