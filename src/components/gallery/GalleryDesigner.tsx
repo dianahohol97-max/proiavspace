@@ -21,6 +21,7 @@ interface DesignerLabels {
   radius: string
   font: string
   preview: string
+  focal: string
 }
 
 /**
@@ -48,6 +49,8 @@ export function GalleryDesigner({
   const [columns, setColumns] = useState(initialStyle.columns ?? 3)
   const [radius, setRadius] = useState(initialStyle.radius ?? 10)
   const [font, setFont] = useState(initialStyle.font ?? '')
+  const [focalX, setFocalX] = useState(initialStyle.focalX ?? 50)
+  const [focalY, setFocalY] = useState(initialStyle.focalY ?? 50)
 
   // Tokens of the chosen theme drive the preview surface (bg/fg/accent/font).
   const tokens = useMemo(() => {
@@ -73,6 +76,8 @@ export function GalleryDesigner({
         fd.set('columns', String(columns))
         fd.set('radius', String(radius))
         fd.set('font', font)
+        fd.set('focalX', String(focalX))
+        fd.set('focalY', String(focalY))
         setSaved(false)
         startTransition(async () => {
           await action(fd)
@@ -155,6 +160,28 @@ export function GalleryDesigner({
               {f.label}
             </button>
           ))}
+        </div>
+
+        {/* cover focal point — click to set where the cover crops */}
+        <div className="flex items-center gap-3">
+          <span className="w-24 text-sm text-muted">{labels.focal}</span>
+          <button
+            type="button"
+            aria-label={labels.focal}
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect()
+              setFocalX(Math.round(((e.clientX - r.left) / r.width) * 100))
+              setFocalY(Math.round(((e.clientY - r.top) / r.height) * 100))
+              dirty()
+            }}
+            className="relative h-16 w-28 overflow-hidden rounded border border-line"
+            style={{ background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }}
+          >
+            <span
+              className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-fg"
+              style={{ left: `${focalX}%`, top: `${focalY}%` }}
+            />
+          </button>
         </div>
 
         <div className="flex items-center gap-3">

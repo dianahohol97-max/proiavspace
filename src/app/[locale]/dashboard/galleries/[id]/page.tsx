@@ -209,6 +209,7 @@ export default async function ManageGalleryPage({
             radius: locale === 'uk' ? 'Кути' : 'Corners',
             font: locale === 'uk' ? 'Шрифт' : 'Font',
             preview: locale === 'uk' ? 'Превʼю' : 'Preview',
+            focal: locale === 'uk' ? 'Фокус обкладинки' : 'Cover focus',
           }}
         />
       </header>

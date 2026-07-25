@@ -94,6 +94,7 @@ export function GalleryExperience({
   brandName,
   logoUrl,
   coverUrl,
+  coverVideoUrl = null,
   items,
   initialFavorites,
   showBadge,
@@ -111,6 +112,8 @@ export function GalleryExperience({
   brandName: string | null
   logoUrl: string | null
   coverUrl: string | null
+  /** When the cover asset is a video: a looping muted clip behind the title. */
+  coverVideoUrl?: string | null
   items: GalleryItem[]
   initialFavorites: string[]
   showBadge: boolean
@@ -125,6 +128,7 @@ export function GalleryExperience({
 }) {
   const tokens = resolveTokens(theme, mode)
   const accent = style?.accent ?? (mode === 'night' ? '#8fa2ff' : '#2f55ff')
+  const focal = `${style?.focalX ?? 50}% ${style?.focalY ?? 50}%`
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites))
   const [lightbox, setLightbox] = useState<number | null>(null)
@@ -277,8 +281,22 @@ export function GalleryExperience({
     <div className={s.root} style={vars}>
       {/* -------- cover -------- */}
       <header className={s.cover}>
-        {coverUrl ? (
-          <div className={s.coverImg} style={{ backgroundImage: `url("${coverUrl}")` }} />
+        {coverVideoUrl ? (
+          <video
+            className={s.coverImg}
+            style={{ objectFit: 'cover', objectPosition: focal }}
+            src={coverVideoUrl}
+            poster={coverUrl ?? undefined}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : coverUrl ? (
+          <div
+            className={s.coverImg}
+            style={{ backgroundImage: `url("${coverUrl}")`, backgroundPosition: focal }}
+          />
         ) : (
           <div className={s.coverImg} style={{ background: tokens.line }} />
         )}
