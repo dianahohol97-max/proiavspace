@@ -200,6 +200,11 @@ export default async function ManageGalleryPage({
           themeOptions={themeOptions}
           initialTheme={gallery.theme ?? ''}
           initialStyle={parseGalleryStyle(gallery.style)}
+          coverUrl={
+            previews.find((p) => p.asset.id === gallery.cover_asset_id)?.url ??
+            previews[0]?.url ??
+            null
+          }
           labels={{
             styleLabel: dict.galleryManage.styleLabel,
             styleSave: dict.galleryManage.styleSave,

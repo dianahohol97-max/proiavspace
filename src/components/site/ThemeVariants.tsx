@@ -317,10 +317,14 @@ export function ThemeJournal(props: ThemeProps) {
             <p className={s.jrEyebrow}>{content.hero.subtitle || labels.portfolio}</p>
             <h1 className={s.jrH1}>{content.hero.title || brand}</h1>
             {content.about.text && <p className={s.jrIntro}>{content.about.text}</p>}
-            {groups.map((group) => {
+            {groups.map((group, gi) => {
               const credits = group.items.filter((it) => it.caption?.trim())
+              const prev = groups[gi - 1]
+              const next = groups[gi + 1]
+              const showPager = groups.length > 1 && (group.category !== null || gi > 0)
+              const name = (g: (typeof groups)[number]) => g.category ?? labels.portfolio
               return (
-                <section key={group.category ?? '_'} style={{ marginBottom: 28 }}>
+                <section id={`jr-${gi}`} key={group.category ?? '_'} style={{ marginBottom: 28, scrollMarginTop: 24 }}>
                   {group.category && <p className={s.jrEyebrow}>{group.category}</p>}
                   {credits.length > 0 && (
                     <p className={s.jrCredits}>
@@ -339,6 +343,12 @@ export function ThemeJournal(props: ThemeProps) {
                       </figure>
                     ))}
                   </div>
+                  {showPager && (
+                    <div className={s.jrPager}>
+                      {prev ? <a href={`#jr-${gi - 1}`}>← {name(prev)}</a> : <span />}
+                      {next ? <a href={`#jr-${gi + 1}`}>{name(next)} →</a> : <span />}
+                    </div>
+                  )}
                 </section>
               )
             })}
