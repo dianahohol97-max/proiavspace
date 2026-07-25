@@ -306,7 +306,16 @@
   .hero { grid-template-columns: 1fr; }
   .stage { max-width: 480px; margin: 0 auto; width: 100%; }
   .prodGrid, .plans { grid-template-columns: 1fr; }
-  .bentoGrid { grid-template-columns: 1fr 1fr; }
+  /* Bento: on a narrow screen text wraps to more lines than a fixed 132px row
+     fits, so let cards grow to their content instead of clipping. */
+  .bentoGrid {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: auto;
+    grid-auto-flow: row;
+  }
+  .bTall { grid-row: auto; }
+  .bWide { grid-column: span 2; }
+  .b { min-height: 150px; }
   .prGrid { grid-template-columns: 1fr 1fr; }
   .navLinks a:not(.pill):not(.pillHot) { display: none; }
 }
