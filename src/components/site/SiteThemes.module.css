@@ -890,9 +890,19 @@
   max-width: 54ch;
   font-size: 13.5px;
   line-height: 1.65;
+  color: color-mix(in srgb, var(--site-fg) 72%, var(--site-muted));
+  margin: 0 0 10px;
+  white-space: pre-line;
+}
+.jrCredits {
+  max-width: 56ch;
+  font-size: 12px;
+  line-height: 1.7;
   color: var(--site-muted);
   margin: 0 0 26px;
-  white-space: pre-line;
+}
+.jrCredits u {
+  text-underline-offset: 3px;
 }
 .jrCollage {
   display: grid;

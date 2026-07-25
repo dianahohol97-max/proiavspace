@@ -317,18 +317,31 @@ export function ThemeJournal(props: ThemeProps) {
             <p className={s.jrEyebrow}>{content.hero.subtitle || labels.portfolio}</p>
             <h1 className={s.jrH1}>{content.hero.title || brand}</h1>
             {content.about.text && <p className={s.jrIntro}>{content.about.text}</p>}
-            {groups.map((group) => (
-              <section key={group.category ?? '_'} style={{ marginBottom: 28 }}>
-                {group.category && <p className={s.jrEyebrow}>{group.category}</p>}
-                <div className={s.jrCollage}>
-                  {group.items.map((item) => (
-                    <figure key={item.id}>
-                      <div className={s.tImg} style={bg(item.previewUrl)} />
-                    </figure>
-                  ))}
-                </div>
-              </section>
-            ))}
+            {groups.map((group) => {
+              const credits = group.items.filter((it) => it.caption?.trim())
+              return (
+                <section key={group.category ?? '_'} style={{ marginBottom: 28 }}>
+                  {group.category && <p className={s.jrEyebrow}>{group.category}</p>}
+                  {credits.length > 0 && (
+                    <p className={s.jrCredits}>
+                      {credits.map((it, i) => (
+                        <span key={it.id}>
+                          {i > 0 && ' / '}
+                          <u>{it.caption!.trim()}</u>
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                  <div className={s.jrCollage}>
+                    {group.items.map((item) => (
+                      <figure key={item.id}>
+                        <div className={s.tImg} style={bg(item.previewUrl)} />
+                      </figure>
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
           </div>
         </div>
         <Tail {...props} />
