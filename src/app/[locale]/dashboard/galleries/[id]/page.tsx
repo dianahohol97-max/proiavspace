@@ -14,7 +14,8 @@ import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
-import { GalleryStyleForm } from '@/components/gallery/GalleryStyleForm'
+import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
+import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
 import type { Asset, Gallery } from '@/lib/types'
 
@@ -43,7 +44,7 @@ export default async function ManageGalleryPage({
   const { data: gallery } = await supabase
     .from('galleries')
     .select(
-      'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, is_published, view_count, created_at, updated_at, theme'
+      'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, is_published, view_count, created_at, updated_at, theme, style'
     )
     .eq('id', params.id)
     .eq('owner_id', user.id)
@@ -178,14 +179,20 @@ export default async function ManageGalleryPage({
           </p>
         )}
 
-        <GalleryStyleForm
+        <GalleryDesigner
           action={themeAction}
-          options={themeOptions}
-          defaultValue={gallery.theme ?? ''}
+          themeOptions={themeOptions}
+          initialTheme={gallery.theme ?? ''}
+          initialStyle={parseGalleryStyle(gallery.style)}
           labels={{
             styleLabel: dict.galleryManage.styleLabel,
             styleSave: dict.galleryManage.styleSave,
             styleSaved: dict.galleryManage.styleSaved,
+            accent: locale === 'uk' ? 'Акцент' : 'Accent',
+            columns: locale === 'uk' ? 'Колонки' : 'Columns',
+            radius: locale === 'uk' ? 'Кути' : 'Corners',
+            font: locale === 'uk' ? 'Шрифт' : 'Font',
+            preview: locale === 'uk' ? 'Превʼю' : 'Preview',
           }}
         />
       </header>

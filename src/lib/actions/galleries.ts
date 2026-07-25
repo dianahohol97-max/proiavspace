@@ -103,11 +103,22 @@ export async function setGalleryTheme(
     throw new Error('Unknown gallery theme')
   }
 
+  // Fine-grained design overrides (accent / columns / radius / font). Validated
+  // by parseGalleryStyle; an empty object is stored as null (pure theme).
+  const { parseGalleryStyle } = await import('@/lib/gallery/style')
+  const parsed = parseGalleryStyle({
+    accent: String(formData.get('accent') ?? '') || undefined,
+    columns: Number(formData.get('columns')) || undefined,
+    radius: formData.get('radius') !== null ? Number(formData.get('radius')) : undefined,
+    font: String(formData.get('font') ?? '') || undefined,
+  })
+  const style = Object.keys(parsed).length > 0 ? parsed : null
+
   const { error } = await supabase
     .from('galleries')
-    .update({ theme: value || null })
+    .update({ theme: value || null, style })
     .eq('id', galleryId)
-  if (error) throw new Error(`Failed to set gallery theme: ${error.message}`)
+  if (error) throw new Error(`Failed to set gallery style: ${error.message}`)
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
 }
 
