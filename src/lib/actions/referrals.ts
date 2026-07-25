@@ -76,28 +76,20 @@ export async function processWithdrawal(
   action: 'paid' | 'rejected'
 ): Promise<void> {
   const admin = await requireAdminClient()
-  const { data: w } = await admin
-    .from('withdrawals')
-    .select('user_id, amount_kop, status')
-    .eq('id', withdrawalId)
-    .single<{ user_id: string; amount_kop: number; status: string }>()
-  if (!w || w.status !== 'requested') return
-
-  if (action === 'rejected') {
-    const { data: prof } = await admin
-      .from('profiles')
-      .select('cash_balance_kop')
-      .eq('user_id', w.user_id)
-      .single<{ cash_balance_kop: number | null }>()
-    const current = prof?.cash_balance_kop ?? 0
-    await admin
-      .from('profiles')
-      .update({ cash_balance_kop: current + w.amount_kop })
-      .eq('user_id', w.user_id)
-  }
-  await admin
+  // Flip the status only if it is still 'requested'; the conditional update
+  // fires at most once, so a double-click can't refund or pay twice.
+  const { data: updated } = await admin
     .from('withdrawals')
     .update({ status: action, processed_at: new Date().toISOString() })
     .eq('id', withdrawalId)
+    .eq('status', 'requested')
+    .select('user_id, amount_kop')
+    .maybeSingle<{ user_id: string; amount_kop: number }>()
+  if (!updated) return // already processed by a prior click
+
+  if (action === 'rejected') {
+    // Atomic refund so it can't clobber a concurrent balance change.
+    await admin.rpc('refund_cash', { p_user: updated.user_id, p_amount: updated.amount_kop })
+  }
   revalidatePath(`/${locale}/dashboard/stats`)
 }
