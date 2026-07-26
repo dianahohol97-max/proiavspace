@@ -86,7 +86,11 @@ export default async function DashboardLayout({
   const signOutAction = signOut.bind(null, locale)
 
   return (
-    <div className="flex min-h-screen">
+    // translate="no" + notranslate: браузерні авто-перекладачі (Chrome,
+    // Safari) обгортають текстові вузли своїми тегами всередині DOM, яким
+    // керує React, і наступний ре-рендер падає з removeChild-помилкою.
+    // Кабінет — україномовний робочий інструмент, тож переклад тут вимкнено.
+    <div className="notranslate flex min-h-screen" translate="no">
       {/* -------- sidebar (desktop) -------- */}
       <aside className="sticky top-0 hidden h-screen w-60 flex-none flex-col gap-1 border-r border-line bg-white p-4 lg:flex">
         <Link href={`/${locale}`} className="mb-5 block px-3 pt-1 text-fg no-underline">
