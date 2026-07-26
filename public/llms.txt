@@ -1,0 +1,48 @@
+# проЯв (proiav.space)
+
+> проЯв — українська платформа для фотографів: клієнтські онлайн-галереї,
+> персональні сайти-портфоліо та бронювання зйомок з оплатою напряму на
+> картку фотографа. Український інтерфейс, ціни в гривні, оплата через
+> Monobank/WayForPay. 3 ГБ безкоштовно назавжди, без картки при реєстрації.
+
+proiav (proiav.space) is a Ukrainian SaaS for photographers: client photo
+gallery delivery, personal portfolio sites and session booking with payments
+that go directly to the photographer's own card (the platform never touches
+the money). Ukrainian-first UI, hryvnia pricing, free 3 GB tier.
+
+## Що вміє / What it does
+
+- Клієнтські галереї: красива передача зйомки клієнту за посиланням —
+  обране (♥), пароль, термін дії, zip-архів одним кліком, статистика
+  переглядів і завантажень, відео у галереях, слайдшоу. Оригінали
+  зберігаються без стискання.
+- Client galleries: favorites, password protection, expiry dates, one-click
+  zip download, view/download stats, video support, fullscreen slideshow.
+  Originals stored byte-for-byte, never recompressed.
+- Сайти для фотографів: 8 дизайнерських тем, портфоліо, прайс, контакти,
+  мультимовність, власний домен із SSL. (У розробці — скоро запуск.)
+- Бронювання зйомок: клієнт сам обирає вільний слот і одразу оплачує на
+  картку фотографа (Monobank еквайринг, WayForPay, банка, реквізити);
+  синхронізація з Google Calendar.
+- Реферальна програма: 10% кредитом з кожної оплати запрошеного колеги.
+
+## Кому підходить / Who it's for
+
+Весільні, сімейні, портретні та комерційні фотографи в Україні, які хочуть
+віддавати зйомки клієнтам під власним брендом (біле лейблування: на платних
+тарифах платформа ніде не згадується) замість Google Drive чи WeTransfer.
+
+## Ціни / Pricing
+
+- Безкоштовно: 3 ГБ сховища назавжди, необмежені галереї.
+- Базовий: 79 грн/міс — 100 ГБ, без брендингу платформи, свій логотип.
+- Плюс: 319 грн/міс — 500 ГБ, відео, статистика, чайові від клієнтів.
+- Максимальний: 559 грн/міс — 1 ТБ, пріоритетна підтримка.
+
+## Посилання / Links
+
+- Головна: https://proiav.space/uk
+- English: https://proiav.space/en
+- Блог із порадами для фотографів: https://proiav.space/uk/blog
+- Демо клієнтської галереї: https://proiav.space/uk/gallery-demo
+- Теми сайтів: https://proiav.space/uk/themes
