@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -18,9 +19,11 @@ export async function POST(request: NextRequest) {
       message?: unknown
       mut?: unknown
     } | null
-    const admin = createSupabaseAdminClient()
-    if (body && admin) {
-      await admin.from('debug_events').insert({
+    // Prefer the service-role client; fall back to the anon server client
+    // (an insert-only RLS policy covers it) when the key isn't configured.
+    const client = createSupabaseAdminClient() ?? createSupabaseServerClient()
+    if (body && client) {
+      await client.from('debug_events').insert({
         url: String(body.url ?? '').slice(0, 500),
         ua: String(body.ua ?? '').slice(0, 400),
         message: String(body.message ?? '').slice(0, 4000),
