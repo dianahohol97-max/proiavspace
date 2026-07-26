@@ -236,11 +236,20 @@ export default async function ManageGalleryPage({
             <label className="text-sm text-muted" htmlFor="g-password">
               {dict.galleryManage.settingsPasswordLabel}
             </label>
+            {/* Password-manager opt-outs: extensions (1Password/LastPass/
+                Bitwarden/Dashlane) inject icons INTO password fields, mutating
+                React-managed DOM and crashing hydration on this page. This is
+                a gallery-access password, not a login — nothing to manage. */}
             <input
               id="g-password"
               name="password"
               type="password"
               autoComplete="new-password"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-bwignore="true"
+              data-protonpass-ignore="true"
+              data-form-type="other"
               placeholder={
                 hasPassword
                   ? dict.galleryManage.settingsPasswordSet

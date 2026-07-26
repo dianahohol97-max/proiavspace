@@ -20,6 +20,20 @@ export default function DashboardError({
   useEffect(() => {
     // Surface it in the browser console too (visible in DevTools).
     console.error('dashboard error boundary:', error)
+    // DOM-mutation crashes (extension/translator rewrote React's nodes) are
+    // transient: self-heal with ONE automatic reload per episode.
+    if (/removeChild|insertBefore|appendChild|not a child/i.test(error.message || '')) {
+      try {
+        if (!sessionStorage.getItem('__domfix')) {
+          sessionStorage.setItem('__domfix', '1')
+          window.location.reload()
+          return
+        }
+        sessionStorage.removeItem('__domfix')
+      } catch {
+        /* sessionStorage unavailable — just show the screen */
+      }
+    }
   }, [error])
 
   return (
