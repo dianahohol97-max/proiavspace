@@ -5,6 +5,7 @@ import { isLocale, type Locale } from '@/lib/i18n/config'
 import { setPostStatus } from '@/lib/actions/social'
 import { getAdminPost } from '@/lib/social/posts'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { ReelUpload } from './ReelUpload'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,6 +87,16 @@ export default async function ContentPreviewPage({
               ))}
             </ol>
           )}
+
+          {/* uploaded video preview + uploader */}
+          {post.media?.video && (
+            <video
+              src={post.media.video}
+              controls
+              className="w-full max-w-xs rounded-xl border border-line"
+            />
+          )}
+          <ReelUpload postId={post.id} />
         </div>
       )}
 
