@@ -60,7 +60,7 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 ---
 
 ## E. Пізніше
-- **TikTok**: Business + заявка на Content Posting API → окрема гілка в Make.
+- **TikTok**: через Buffer (див. розділ F) — без заявки на TikTok API.
 - **Pinterest**: пропущено.
 - **Telegram-сповіщення**: бот @BotFather → токен + chat id → додам гілку сповіщень.
 
