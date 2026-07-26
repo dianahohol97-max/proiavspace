@@ -102,12 +102,13 @@ export default function LocaleLayout({
         {children}
         {/* TEMP diagnostic: surface any uncaught client error / hydration /
             chunk-load failure on-screen so it can be read without DevTools.
-            Installed before hydration so it catches those too. Remove once the
-            gallery crash is diagnosed. */}
+            The banner re-appends itself on an interval because a root-level
+            React teardown rewrites <body> and would otherwise wipe it.
+            Remove once the gallery crash is diagnosed. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){function s(m){try{var e=document.getElementById('__diag');if(!e){e=document.createElement('div');e.id='__diag';e.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#b00020;color:#fff;font:12px/1.45 ui-monospace,monospace;padding:10px 14px;white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow:auto';document.body.appendChild(e);}e.textContent='\\u26A0 '+m;}catch(_){}}window.addEventListener('error',function(ev){var t=ev&&ev.error;s((t&&t.message?t.message:(ev&&ev.message?ev.message:'error'))+(t&&t.stack?'\\n'+t.stack:''));});window.addEventListener('unhandledrejection',function(ev){var r=ev&&ev.reason;s('promise: '+(r&&r.stack?r.stack:(r&&r.message?r.message:String(r))));});})();",
+              "(function(){var msg=null,timer=null;function render(){if(!msg)return;try{var e=document.getElementById('__diag');if(!e){e=document.createElement('div');e.id='__diag';e.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#b00020;color:#fff;font:12px/1.45 ui-monospace,monospace;padding:10px 14px;white-space:pre-wrap;word-break:break-word;max-height:55vh;overflow:auto';(document.body||document.documentElement).appendChild(e);}if(e.textContent!=='\\u26A0 '+msg){e.textContent='\\u26A0 '+msg;}}catch(_){}}function s(m){msg=String(m).slice(0,4000);render();if(!timer){timer=setInterval(render,400);setTimeout(function(){clearInterval(timer);timer=null;},30000);}}window.addEventListener('error',function(ev){var t=ev&&ev.error;s((t&&t.message?t.message:(ev&&ev.message?ev.message:'error'))+(t&&t.stack?'\\n'+t.stack:''));});window.addEventListener('unhandledrejection',function(ev){var r=ev&&ev.reason;s('promise: '+(r&&(r.stack||r.message)?(r.stack||r.message):String(r)));});})();",
           }}
         />
       </body>
