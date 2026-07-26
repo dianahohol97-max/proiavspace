@@ -100,19 +100,6 @@ export default function LocaleLayout({
     <html lang={params.locale}>
       <body className="min-h-screen bg-bg text-fg antialiased">
         {children}
-        {/* Guard against extensions/translators (Chrome auto-translate,
-            Grammarly, …) that rewrap text nodes inside React-managed DOM.
-            Without this, React's reconciliation throws "Failed to execute
-            'removeChild' on 'Node'" and the whole app white-screens — the
-            exact crash observed on the gallery page. The guards turn those
-            into safe no-ops (the standard React workaround). Runs before
-            hydration. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{if(typeof Node!=='function'||!Node.prototype)return;var rc=Node.prototype.removeChild;Node.prototype.removeChild=function(c){if(c&&c.parentNode!==this){return c;}return rc.apply(this,arguments);};var ib=Node.prototype.insertBefore;Node.prototype.insertBefore=function(n,r){if(r&&r.parentNode!==this){return n;}return ib.apply(this,arguments);};}catch(_){}})();",
-          }}
-        />
         {/* TEMP diagnostic: surface any uncaught client error / hydration /
             chunk-load failure on-screen so it can be read without DevTools.
             The banner re-appends itself on an interval because a root-level

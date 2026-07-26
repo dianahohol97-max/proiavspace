@@ -16,6 +16,21 @@ export default function LocaleError({
 }) {
   useEffect(() => {
     console.error('locale error boundary:', error)
+    // DOM-mutation crashes (extension/translator rewrote React's nodes) are
+    // transient: a fresh full load renders fine. Self-heal with ONE automatic
+    // reload per episode; if it crashes again, show this screen and stop.
+    if (/removeChild|insertBefore|appendChild|not a child/i.test(error.message || '')) {
+      try {
+        if (!sessionStorage.getItem('__domfix')) {
+          sessionStorage.setItem('__domfix', '1')
+          window.location.reload()
+          return
+        }
+        sessionStorage.removeItem('__domfix')
+      } catch {
+        /* sessionStorage unavailable — just show the screen */
+      }
+    }
   }, [error])
 
   return (

@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+
 /**
  * Root error boundary: the last net, catching errors thrown in the locale
  * layout itself (below the root layout). Must render its own <html>/<body>.
@@ -13,6 +15,23 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    // DOM-mutation crashes (extension/translator rewrote React's nodes) are
+    // transient: self-heal with ONE automatic reload per episode.
+    if (/removeChild|insertBefore|appendChild|not a child/i.test(error.message || '')) {
+      try {
+        if (!sessionStorage.getItem('__domfix')) {
+          sessionStorage.setItem('__domfix', '1')
+          window.location.reload()
+          return
+        }
+        sessionStorage.removeItem('__domfix')
+      } catch {
+        /* sessionStorage unavailable — just show the screen */
+      }
+    }
+  }, [error])
+
   return (
     <html lang="uk">
       <body
