@@ -2,12 +2,13 @@ import { notFound, redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { setReplyStatus, updateReplyDraft } from '@/lib/actions/threads'
-import { getThreadsReplies, type ThreadsReply } from '@/lib/social/threads'
+import { ageLabel, getThreadsReplies, isFresh, type ThreadsReply } from '@/lib/social/threads'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
 function ReplyCard({ reply, locale }: { reply: ThreadsReply; locale: Locale }) {
+  const age = ageLabel(reply.source_created_at)
   return (
     <div className="rounded-2xl border border-line p-5">
       <div className="flex items-center gap-2 text-xs text-muted">
@@ -15,6 +16,7 @@ function ReplyCard({ reply, locale }: { reply: ThreadsReply; locale: Locale }) {
         {reply.keyword && (
           <span className="rounded-full bg-bg px-2 py-0.5">#{reply.keyword}</span>
         )}
+        {age && <span className="text-muted">· {age}</span>}
         <a
           href={reply.source_url}
           target="_blank"
@@ -46,7 +48,7 @@ function ReplyCard({ reply, locale }: { reply: ThreadsReply; locale: Locale }) {
       <div className="mt-3 flex items-center gap-2">
         <form action={setReplyStatus.bind(null, locale, reply.id, 'approved')}>
           <button className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-white">
-            ✅ Опублікувати
+            ✅ Затвердити
           </button>
         </form>
         <form action={setReplyStatus.bind(null, locale, reply.id, 'skipped')}>
@@ -72,7 +74,10 @@ export default async function ThreadsAdminPage({ params }: { params: { locale: s
   if (!isAdminEmail(user.email)) notFound()
 
   const replies = await getThreadsReplies()
-  const drafts = replies.filter((r) => r.status === 'draft')
+  // Reply only to fresh posts: drafts whose source is older than 24h are hidden.
+  const allDrafts = replies.filter((r) => r.status === 'draft')
+  const drafts = allDrafts.filter((r) => isFresh(r.source_created_at))
+  const staleHidden = allDrafts.length - drafts.length
   const approved = replies.filter((r) => r.status === 'approved')
   const posted = replies.filter((r) => r.status === 'posted')
 
@@ -80,14 +85,19 @@ export default async function ThreadsAdminPage({ params }: { params: { locale: s
     <main className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="font-brand text-3xl">Threads</h1>
       <p className="mt-2 text-sm text-muted">
-        Система знаходить релевантні пости й накидає корисні відповіді від проЯв. Переглянь, за
-        потреби виправ і тисни «Опублікувати» — далі публікує Make.
+        Система знаходить релевантні пости за останні 24 години й накидає корисні відповіді від
+        проЯв. Переглянь, за потреби виправ і затвердь — далі публікує Make.
       </p>
 
       <section className="mt-8">
-        <h2 className="mb-4 font-brand text-xl">На затвердження · {drafts.length}</h2>
+        <h2 className="mb-2 font-brand text-xl">На затвердження · {drafts.length}</h2>
+        {staleHidden > 0 && (
+          <p className="mb-4 text-xs text-muted">
+            Приховано {staleHidden} старших за 24 год — на них не відповідаємо.
+          </p>
+        )}
         {drafts.length === 0 ? (
-          <p className="text-sm text-muted">Немає нових драфтів. Система додасть їх за розкладом.</p>
+          <p className="text-sm text-muted">Немає свіжих драфтів. Система додасть їх за розкладом.</p>
         ) : (
           <div className="flex flex-col gap-4">
             {drafts.map((r) => (
