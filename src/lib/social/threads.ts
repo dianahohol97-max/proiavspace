@@ -14,12 +14,29 @@ export interface ThreadsReply {
   draft_reply: string
   keyword: string | null
   status: ReplyStatus
+  source_created_at: string | null
   posted_at: string | null
   created_at: string
 }
 
 const COLS =
-  'id,source_url,source_author,source_text,draft_reply,keyword,status,posted_at,created_at'
+  'id,source_url,source_author,source_text,draft_reply,keyword,status,source_created_at,posted_at,created_at'
+
+/** Reply to fresh posts only: the source must be from the last 24 hours. */
+export const FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
+
+export function isFresh(sourceCreatedAt: string | null): boolean {
+  if (!sourceCreatedAt) return false
+  return Date.now() - new Date(sourceCreatedAt).getTime() <= FRESH_WINDOW_MS
+}
+
+export function ageLabel(sourceCreatedAt: string | null): string {
+  if (!sourceCreatedAt) return ''
+  const mins = Math.max(0, Math.round((Date.now() - new Date(sourceCreatedAt).getTime()) / 60000))
+  if (mins < 60) return `${mins} хв тому`
+  const hours = Math.round(mins / 60)
+  return `${hours} год тому`
+}
 
 export async function getThreadsReplies(): Promise<ThreadsReply[]> {
   const admin = createSupabaseAdminClient()
