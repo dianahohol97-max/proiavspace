@@ -80,6 +80,9 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
     verification: process.env.GOOGLE_SITE_VERIFICATION
       ? { google: process.env.GOOGLE_SITE_VERIFICATION }
       : undefined,
+    // Belt-and-suspenders with <html translate="no">: page-level opt-out from
+    // machine translation, which corrupts React-managed DOM (see layout note).
+    other: { google: 'notranslate' },
   }
 }
 
@@ -97,7 +100,13 @@ export default function LocaleLayout({
   if (!isLocale(params.locale)) notFound()
 
   return (
-    <html lang={params.locale}>
+    // translate="no" + notranslate app-wide: browser machine translation
+    // (Chrome auto-translate, Safari translate) rewrites the SSR DOM before
+    // React hydrates → hydration mismatch (#418/#423) → root re-render races
+    // the still-active translator → fatal removeChild/appendChild and a white
+    // screen (reproduced 1:1 in a headless simulation). The app ships its own
+    // localization (uk/en + per-site languages), so MT adds nothing here.
+    <html lang={params.locale} translate="no" className="notranslate">
       <body className="min-h-screen bg-bg text-fg antialiased">
         {children}
         {/* TEMP diagnostic: surface any uncaught client error / hydration /
