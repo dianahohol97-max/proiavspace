@@ -16,9 +16,27 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
+    // React-caught errors never reach window.onerror, so the boundary itself
+    // ships the forensics (message+stack+DOM mutation log) to debug_events.
+    try {
+      fetch('/api/debug-log', {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: window.location.href,
+          ua: navigator.userAgent,
+          message: `[global boundary] ${error.message}\n${error.stack ?? ''}`,
+          mut: (window as unknown as { __mut?: string[] }).__mut ?? [],
+        }),
+      }).catch(() => {})
+    } catch {
+      /* reporting must never throw */
+    }
     // DOM-mutation crashes (extension/translator rewrote React's nodes) are
     // transient: self-heal with ONE automatic reload per episode.
-    if (/removeChild|insertBefore|appendChild|not a child/i.test(error.message || '')) {
+    // (Safari phrases these as NotFoundError: "The object can not be found".)
+    if (/removeChild|insertBefore|appendChild|not a child|can ?not be found|NotFoundError|parallelRoutes/i.test(error.message || '')) {
       try {
         if (!sessionStorage.getItem('__domfix')) {
           sessionStorage.setItem('__domfix', '1')
