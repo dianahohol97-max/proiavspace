@@ -1,6 +1,25 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+
+/** Names whatever foreign code touched the DOM — shows up in screenshots. */
+function domMarkers(): string {
+  try {
+    const found: string[] = []
+    const cls = document.documentElement.className
+    if (/translated-/.test(cls)) found.push('google-translate')
+    if (document.querySelector('font[style*="vertical-align"]')) found.push('translated-text')
+    if (document.querySelector('grammarly-extension,[data-gr-ext-installed]')) found.push('grammarly')
+    if (document.querySelector('[data-lastpass-icon-root],[data-lastpass-root]')) found.push('lastpass')
+    if (document.querySelector('com-1password-button,[data-com-onepassword-filled]')) found.push('1password')
+    if (document.querySelector('[data-dashlane-rid],[data-dashlane-created]')) found.push('dashlane')
+    if (document.querySelector('[data-bwautofill],[data-bitwarden-watching]')) found.push('bitwarden')
+    if (document.querySelector('[data-np-autofill-field-id],[data-np-uid]')) found.push('nordpass')
+    return found.join(' · ')
+  } catch {
+    return ''
+  }
+}
 
 /**
  * Locale-level error boundary: catches errors thrown by segment layouts below
@@ -14,8 +33,11 @@ export default function LocaleError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const [markers, setMarkers] = useState('')
+
   useEffect(() => {
     console.error('locale error boundary:', error)
+    setMarkers(domMarkers())
     // DOM-mutation crashes (extension/translator rewrote React's nodes) are
     // transient: a fresh full load renders fine. Self-heal with ONE automatic
     // reload per episode; if it crashes again, show this screen and stop.
@@ -89,6 +111,7 @@ export default function LocaleError({
       <p style={{ maxWidth: 480, fontSize: 11, color: '#999', wordBreak: 'break-word' }}>
         {error.message}
         {error.digest ? ` · ${error.digest}` : ''}
+        {markers ? ` · виявлено: ${markers}` : ''}
       </p>
     </main>
   )
