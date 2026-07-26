@@ -15,6 +15,16 @@ import { DashNav, type NavItem } from '@/components/dashboard/DashNav'
 import { MobileMenu } from '@/components/dashboard/MobileMenu'
 import type { Profile } from '@/lib/types'
 
+/**
+ * Page-level "do not translate" for the whole dashboard: browser translators
+ * rewrap React-managed text nodes and corrupt the app (observed removeChild
+ * crash / silently blank pages). The element-level translate="no" below is
+ * not enough once Chrome has already decided to translate the tab.
+ */
+export const metadata = {
+  other: { google: 'notranslate' },
+}
+
 function formatGb(bytes: number): string {
   const gb = bytes / (1024 * 1024 * 1024)
   return gb >= 1 ? `${gb.toFixed(1)} ГБ` : `${Math.max(Math.round(bytes / (1024 * 1024)), 0)} МБ`
