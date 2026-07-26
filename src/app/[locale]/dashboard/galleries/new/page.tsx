@@ -26,6 +26,11 @@ export default async function NewGalleryPage({ params }: { params: { locale: str
   return (
     <main className="mx-auto max-w-xl px-6 py-16">
       <h1 className="font-display text-4xl">{dict.galleryForm.createTitle}</h1>
+      <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
+        {locale === 'uk'
+          ? 'Це лише перший крок. Після створення відкриється конструктор галереї — там ви завантажите фото й налаштуєте дизайн: тему, акцент, колонки, шрифт і обкладинку.'
+          : 'This is just the first step. After creating, the gallery builder opens — upload photos and tune the design: theme, accent, columns, font and cover.'}
+      </p>
 
       <form action={createWithLocale} className="mt-10 flex flex-col">
         <label className={labelClass} htmlFor="title">
