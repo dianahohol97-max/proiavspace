@@ -60,6 +60,21 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 ---
 
 ## E. Пізніше
-- **TikTok**: Business + заявка на Content Posting API → окрема гілка в Make.
+- **TikTok**: через Buffer (див. розділ F) — без заявки на TikTok API.
 - **Pinterest**: пропущено.
 - **Telegram-сповіщення**: бот @BotFather → токен + chat id → додам гілку сповіщень.
+
+---
+
+## F. TikTok через Buffer
+TikTok постимо через Buffer (без заявки на TikTok API).
+
+1. **Buffer** → Settings → Channels → **Connect a channel → TikTok** → акаунт проЯв (OAuth-клік).
+2. Make-сценарій **«проЯв — TikTok через Buffer»**:
+   - **HTTP GET** `https://proiav.space/api/social/queue?format=reel` (Header `Authorization: Bearer 0f7716d8…`, Parse: Yes)
+   - **Filter**: `{{1.data.post.id}}` Exists
+   - **Buffer → Create Update**: профіль = **TikTok проЯв**; media = `{{1.data.post.video}}` (для рілса) або `{{1.data.post.slides}}` (для каруселі); text = `{{1.data.post.caption}}`
+   - **HTTP POST** `https://proiav.space/api/social/posted` — body `{ "id": "{{1.data.post.id}}" }`
+   - Розклад: за твоїм ритмом. Увімкнути.
+
+> **Бонус:** Buffer уміє також IG / Threads / Pinterest. За бажання можна вести кілька каналів **одним** Buffer-модулем (кілька profile_ids) замість окремих нативних сценаріїв.
