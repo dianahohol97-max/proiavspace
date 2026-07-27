@@ -56,29 +56,47 @@ export async function publishPostNow(locale: Locale, id: string): Promise<void> 
 
   const { data: row } = await admin
     .from('social_posts')
-    .select('kind')
+    .select('kind, status')
     .eq('id', id)
     .maybeSingle()
+  const current = (row as { kind?: string; status?: string } | null) ?? null
 
-  const { error } = await admin.from('social_posts').update({ status: 'approved' }).eq('id', id)
-  if (error) throw error
+  // Idempotency: a post that already went out must never be re-sent — the
+  // founder triple-clicked a silent button once and got three IG posts.
+  if (current?.status === 'posted' || current?.status === 'archived') {
+    redirect(`/${locale}/dashboard/content/${id}?pub=already`)
+  }
 
   const hook = process.env.MAKE_PUBLISH_HOOK_URL
+  let outcome: 'sent' | 'queued' | 'hookfail' = 'queued'
   if (hook) {
-    const kind = (row as { kind?: string } | null)?.kind ?? 'single'
     try {
-      await fetch(hook, {
+      const response = await fetch(hook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, format: KIND_FORMAT[kind] ?? kind }),
+        body: JSON.stringify({ id, format: KIND_FORMAT[current?.kind ?? 'single'] ?? current?.kind }),
       })
+      outcome = response.ok ? 'sent' : 'hookfail'
     } catch {
-      /* webhook down → post stays approved, scheduled run still publishes it */
+      outcome = 'hookfail' /* webhook down → stays approved, scheduled run picks it up */
     }
   }
 
+  // Successful hand-off to Make counts as posted (so the button disappears);
+  // otherwise the post stays approved for the scheduled run.
+  const { error } = await admin
+    .from('social_posts')
+    .update(
+      outcome === 'sent'
+        ? { status: 'posted', posted_at: new Date().toISOString() }
+        : { status: 'approved' }
+    )
+    .eq('id', id)
+  if (error) throw error
+
   revalidatePath(`/${locale}/dashboard/content`)
   revalidatePath(`/${locale}/dashboard/content/${id}`)
+  redirect(`/${locale}/dashboard/content/${id}?pub=${outcome}`)
 }
 
 export async function deletePost(locale: Locale, id: string): Promise<void> {

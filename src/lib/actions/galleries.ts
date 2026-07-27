@@ -121,6 +121,7 @@ export async function setGalleryTheme(
     columns: Number(formData.get('columns')) || undefined,
     radius: formData.get('radius') !== null ? Number(formData.get('radius')) : undefined,
     font: String(formData.get('font') ?? '') || undefined,
+    bodyFont: String(formData.get('bodyFont') ?? '') || undefined,
     layout: String(formData.get('layout') ?? '') || undefined,
     gap: formData.get('gap') !== null ? Number(formData.get('gap')) : undefined,
     cover: String(formData.get('cover') ?? '') || undefined,

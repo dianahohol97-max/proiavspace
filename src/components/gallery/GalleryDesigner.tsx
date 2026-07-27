@@ -64,6 +64,7 @@ export function GalleryDesigner({
   const [columns, setColumns] = useState(initialStyle.columns ?? 3)
   const [radius, setRadius] = useState(initialStyle.radius ?? 10)
   const [font, setFont] = useState(initialStyle.font ?? '')
+  const [bodyFont, setBodyFont] = useState(initialStyle.bodyFont ?? '')
   const [layout, setLayout] = useState<
     'masonry' | 'square' | 'portrait' | 'collage' | 'editorial'
   >(initialStyle.layout ?? 'masonry')
@@ -87,6 +88,8 @@ export function GalleryDesigner({
   }, [theme])
   const previewAccent = accent || (tokens.bg === '#1b1a18' ? '#8fa2ff' : '#2f55ff')
   const previewFont = fontFamily(font) ?? tokens.fontDisplay
+  const previewBodyFont = fontFamily(bodyFont) ?? tokens.fontBody
+  const previewLabelFont = fontFamily(bodyFont) ?? tokens.fontLabel
 
   const dirty = () => setSaved(false)
 
@@ -162,6 +165,7 @@ export function GalleryDesigner({
         fd.set('columns', String(columns))
         fd.set('radius', String(radius))
         fd.set('font', font)
+        fd.set('bodyFont', bodyFont)
         fd.set('layout', layout)
         fd.set('gap', String(gap))
         fd.set('cover', cover)
@@ -381,7 +385,7 @@ export function GalleryDesigner({
           {/* typography */}
           <section>
             <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-              {labels.font}
+              {uk ? 'Шрифт заголовків' : 'Heading font'}
             </p>
             <div className="flex flex-col gap-1.5">
               {FONT_PRESETS.map((f) => {
@@ -408,6 +412,26 @@ export function GalleryDesigner({
                   </button>
                 )
               })}
+            </div>
+            {/* the «system» font: hints, buttons, caps labels */}
+            <p className="mb-2 mt-5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {uk ? 'Основний текст' : 'Body text'}
+            </p>
+            <div className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full border border-line p-1">
+              {FONT_PRESETS.map((f) => (
+                <button
+                  key={f.value || 'theme'}
+                  type="button"
+                  className={seg(bodyFont === f.value)}
+                  style={{ fontFamily: f.family ?? undefined }}
+                  onClick={() => {
+                    setBodyFont(f.value)
+                    dirty()
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
           </section>
 
@@ -508,7 +532,7 @@ export function GalleryDesigner({
                   ? 'w-[300px] rounded-[30px] border-[6px] border-[#1a1917]'
                   : 'w-full max-w-[620px] rounded-2xl border border-line'
               }`}
-              style={{ background: tokens.bg, color: tokens.fg, fontFamily: tokens.fontBody }}
+              style={{ background: tokens.bg, color: tokens.fg, fontFamily: previewBodyFont }}
             >
               {/* cover — mirrors the chosen treatment */}
               <div
@@ -560,7 +584,7 @@ export function GalleryDesigner({
               {/* action bar — mirrors the client gallery */}
               <div
                 className="flex items-center gap-2 px-4 py-2.5 text-[11px]"
-                style={{ borderBottom: `1px solid ${tokens.line}`, fontFamily: tokens.fontLabel }}
+                style={{ borderBottom: `1px solid ${tokens.line}`, fontFamily: previewLabelFont }}
               >
                 <span style={{ color: previewAccent }}>♥ 3 {uk ? 'обрано' : 'picked'}</span>
                 <span
