@@ -144,8 +144,9 @@ export default async function ManageGalleryPage({
   const hasPassword = gallery.has_password
   const expiryDefault = gallery.expires_at ? gallery.expires_at.slice(0, 10) : ''
 
+  // «Як на сайті» (value '') is hidden while photographer sites are still
+  // «в розробці» — an inherit card only confuses; Тиша is the effective default.
   const themeOptions: { value: string; label: string }[] = [
-    { value: '', label: dict.galleryManage.styleInherit },
     { value: 'tysha', label: dict.site.themeTysha },
     { value: 'opivnich', label: dict.site.themeOpivnich },
     { value: 'povitria', label: dict.site.themePovitria },
@@ -157,7 +158,7 @@ export default async function ManageGalleryPage({
   ]
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
       <Link href={`/${locale}/dashboard`} className="text-sm text-muted hover:text-fg">
         ← {dict.dashboard.title}
       </Link>
@@ -208,7 +209,7 @@ export default async function ManageGalleryPage({
         <GalleryDesigner
           action={themeAction}
           themeOptions={themeOptions}
-          initialTheme={gallery.theme ?? ''}
+          initialTheme={gallery.theme ?? 'tysha'}
           initialStyle={parseGalleryStyle(gallery.style)}
           coverUrl={
             previews.find((p) => p.asset.id === gallery.cover_asset_id)?.url ??
