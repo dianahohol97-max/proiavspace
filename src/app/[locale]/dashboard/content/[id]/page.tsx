@@ -37,9 +37,12 @@ export default async function ContentPreviewPage({
   const post = await getAdminPost(params.id)
   if (!post) notFound()
 
+  // «Затвердити (у чергу)» is the pre-approval step; «Опублікувати зараз» works
+  // for anything not yet posted/archived (incl. already-approved queue items).
   const canApprove = post.status === 'draft' || post.status === 'ready'
+  const publishable = ['draft', 'ready', 'approved', 'scheduled'].includes(post.status)
   // A reel needs its video uploaded before it can go out; everything else is ready.
-  const canPublish = canApprove && (post.kind !== 'reel' || !!post.media?.video)
+  const canPublish = publishable && (post.kind !== 'reel' || !!post.media?.video)
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
@@ -135,8 +138,8 @@ export default async function ContentPreviewPage({
       </div>
       {canPublish && (
         <p className="mt-2 text-xs text-muted">
-          «Опублікувати зараз» одразу запускає постинг через Make. «Затвердити» ставить у чергу —
-          Make опублікує за розкладом.
+          «Опублікувати зараз» одразу запускає постинг через Make.
+          {canApprove && ' «Затвердити» ставить у чергу — Make опублікує за розкладом.'}
         </p>
       )}
     </main>
