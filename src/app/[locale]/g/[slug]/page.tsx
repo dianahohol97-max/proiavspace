@@ -122,15 +122,22 @@ export default async function PublicGalleryPage({
       brandingData as
         | {
             display_name: string | null
+            display_name_en: string | null
             logo_key: string | null
             plan: string | null
             grace_until: string | null
             site_theme: string | null
             site_mode: string | null
             tip_link: string | null
+            contact_url: string | null
           }[]
         | null
     )?.[0] ?? null
+
+  // English-locale galleries show the Latin-script name when the photographer
+  // set one — «Діана Гоголь» reads wrong under an English UI.
+  const brandName =
+    (locale === 'en' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
   // Honour the grace window: once a canceled plan's grace expires, the public
   // gallery must fall back to free (badge returns, custom logo drops) instead of
   // keeping paid perks forever. grace_until comes from get_gallery_branding
@@ -224,7 +231,8 @@ export default async function PublicGalleryPage({
       slug={gallery.slug}
       title={gallery.title}
       eventLine={eventLine || null}
-      brandName={branding?.display_name ?? null}
+      brandName={brandName}
+      contactUrl={branding?.contact_url ?? null}
       logoUrl={logoUrl}
       coverUrl={coverUrl}
       coverVideoUrl={coverVideoUrl}

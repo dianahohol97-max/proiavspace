@@ -61,6 +61,38 @@ export default async function SettingsPage({
         />
         <p className="mt-2 text-xs text-muted">{dict.settings.displayNameHint}</p>
 
+        <label className="mt-6 text-sm text-muted" htmlFor="display_name_en">
+          {locale === 'uk' ? 'Імʼя латиницею' : 'Name in Latin script'}
+        </label>
+        <input
+          id="display_name_en"
+          name="display_name_en"
+          defaultValue={profile.display_name_en ?? ''}
+          placeholder="Diana Hohol"
+          className="mt-2 border border-line bg-transparent px-4 py-3 outline-none focus:border-fg"
+        />
+        <p className="mt-2 text-xs text-muted">
+          {locale === 'uk'
+            ? 'Показується замість основного імені, коли клієнт відкриває галерею англійською.'
+            : 'Shown instead of the main name when a client views the gallery in English.'}
+        </p>
+
+        <label className="mt-6 text-sm text-muted" htmlFor="contact_url">
+          {locale === 'uk' ? 'Контакт для клієнтів' : 'Client contact link'}
+        </label>
+        <input
+          id="contact_url"
+          name="contact_url"
+          defaultValue={profile.contact_url ?? ''}
+          placeholder="instagram.com/proyav.space"
+          className="mt-2 border border-line bg-transparent px-4 py-3 outline-none focus:border-fg"
+        />
+        <p className="mt-2 text-xs text-muted">
+          {locale === 'uk'
+            ? 'Одне посилання — Instagram, сайт, mailto: чи tel:. У галереї зʼявиться кнопка «Звʼязатися з фотографом».'
+            : 'One link — Instagram, site, mailto: or tel:. The gallery gets a “Contact the photographer” button.'}
+        </p>
+
         <label className="mt-6 flex items-center gap-3 text-sm">
           <input
             type="checkbox"
