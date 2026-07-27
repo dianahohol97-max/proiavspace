@@ -80,8 +80,8 @@ export default async function HubPage({ params }: { params: { locale: string } }
     <main className="mx-auto max-w-4xl px-6 py-16">
       <h1 className="font-brand text-3xl">Контент-хаб</h1>
       <p className="mt-2 text-sm text-muted">
-        Уся контент-машина в одному місці: черги проЯв, Pinterest VistelaCo, інструменти й
-        тижнева рутина. Якщо щось треба зробити — воно тут.
+        Контент-машина проЯв в одному місці: черги, інструменти й тижнева рутина. Якщо щось
+        треба зробити — воно тут.
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -96,36 +96,6 @@ export default async function HubPage({ params }: { params: { locale: string } }
         />
 
         <ToolCard
-          title="VistelaCo · Pinterest"
-          items={[
-            {
-              label: 'Черга пінів (Google Sheets)',
-              href: 'https://docs.google.com/spreadsheets/d/1Nd8iF0eJI3fJne_9Y37tJjFOazvzRRJTzSaQtNUthMc',
-              external: true,
-              note: 'постер бере звідси 1 пін/день о 23:55',
-            },
-            {
-              label: 'Pin Generator (робить графіку + тексти)',
-              href: 'https://github.com/dianahohol97-max/Vistela-Pin-Generator',
-              external: true,
-              note: 'npm run dev → наповнюй чергу',
-            },
-            {
-              label: 'Make · Daily Pinterest Poster',
-              href: 'https://eu2.make.com/2099159/scenarios/9075841/edit',
-              external: true,
-              note: 'борди+alt автоматично',
-            },
-            {
-              label: 'Pinterest Analytics',
-              href: 'https://analytics.pinterest.com/',
-              external: true,
-              note: 'дивись saves і outbound clicks',
-            },
-          ]}
-        />
-
-        <ToolCard
           title="Автоматизації Make"
           items={[
             { label: 'Публікація зараз (кнопка в Контенті)', href: 'https://eu2.make.com/2099159/scenarios/9579491/edit', external: true },
@@ -135,10 +105,9 @@ export default async function HubPage({ params }: { params: { locale: string } }
         />
 
         <ToolCard
-          title="Фабрики контенту (репо)"
+          title="Фабрика контенту"
           items={[
             { label: 'proyav-content-factory', href: 'https://github.com/dianahohol97-max/proyav-content-factory', external: true, note: 'каруселі + сторіс проЯв' },
-            { label: 'Vistela-Pin-Generator', href: 'https://github.com/dianahohol97-max/Vistela-Pin-Generator', external: true, note: '24 шаблони пінів' },
           ]}
         />
       </div>
@@ -150,10 +119,6 @@ export default async function HubPage({ params }: { params: { locale: string } }
           <li>
             <b>Пн–Пт (5 хв):</b> зайти в «Контент» і «Threads» — затвердити/опублікувати те, що
             назбиралось (бейджі вище підкажуть, чи є що).
-          </li>
-          <li>
-            <b>1× на тиждень (30–40 хв):</b> Pin Generator — згенерувати 7–10 нових пінів у чергу
-            VistelaCo (різні лістинги! той самий URL — не частіше ніж раз на 3 дні).
           </li>
           <li>
             <b>1× на тиждень (10 хв):</b> Threads — закинути 3–5 скрінів трендових постів, отримати
@@ -171,11 +136,7 @@ export default async function HubPage({ params }: { params: { locale: string } }
         <h2 className="font-brand text-xl">Разові задачі (закрий і забудь)</h2>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-fg">
           <li>Vercel: додати <code className="rounded bg-bg px-1">MAKE_PUBLISH_HOOK_URL</code> → кнопка «Опублікувати зараз» стане миттєвою</li>
-          <li>Pinterest: знайти старий профіль dianahoholsmm → перейменувати або видалити</li>
-          <li>Pinterest: Claim Etsy + bio з ключовими словами на @vistelaco</li>
-          <li>Pinterest: перенести 41+3 піни у «Wedding Website Templates» (борд → вибрати всі → Move) і видалити порожні борди</li>
-          <li>Pinterest: підключити Instagram (Claimed accounts) для авто-публікації</li>
-          <li>Buffer: під&apos;єднати в Make → скажи мені, додам TikTok-гілку в «Публікація зараз»</li>
+          <li>Buffer: під&apos;єднати в Make → TikTok-гілка в «Публікація зараз»</li>
           <li>Ротувати Gemini-ключі та Threads app secret (світились у чаті)</li>
         </ul>
       </section>
