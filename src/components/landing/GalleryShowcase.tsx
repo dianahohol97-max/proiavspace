@@ -42,7 +42,16 @@ const MASONRY_RATIOS = ['3 / 4', '1 / 1', '4 / 5', '4 / 3', '3 / 4', '4 / 3', '4
 type LayoutKey = (typeof LAYOUTS)[number]['key']
 type ThemeKey = keyof typeof THEMES
 
-export function GalleryShowcase({ locale }: { locale: string }) {
+export function GalleryShowcase({
+  locale,
+  ctaPrimary,
+  ctaGhost,
+}: {
+  locale: string
+  /** Landing pill classes so the CTAs match the site's own buttons/fonts. */
+  ctaPrimary?: string
+  ctaGhost?: string
+}) {
   const uk = locale === 'uk'
   const i18n = uk ? 0 : 1
   const [layout, setLayout] = useState<LayoutKey>('collage')
@@ -74,21 +83,7 @@ export function GalleryShowcase({ locale }: { locale: string }) {
     }`
 
   return (
-    <section id="galleries" className="mx-auto max-w-6xl px-6 py-20" style={{ scrollMarginTop: 90 }}>
-      <div className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent">
-          {uk ? 'Дизайн-студія' : 'Design studio'}
-        </span>
-        <h2 className="mt-3 font-display text-3xl sm:text-4xl">
-          {uk ? 'Галерея, яку хочеться переслати друзям' : 'A gallery clients love to share'}
-        </h2>
-        <p className="mt-4 text-muted">
-          {uk
-            ? 'Розкладка, тема, шрифти, відступи й обкладинка — усе налаштовується, і зміни видно одразу. Спробуй просто тут:'
-            : 'Layout, theme, fonts, spacing and cover — all adjustable with a live preview. Try it right here:'}
-        </p>
-      </div>
-
+    <div className="mx-auto max-w-4xl px-6">
       {/* controls */}
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <div className="flex flex-wrap items-center gap-1 rounded-full border border-line p-1">
@@ -197,21 +192,27 @@ export function GalleryShowcase({ locale }: { locale: string }) {
         </p>
       </div>
 
-      {/* CTAs */}
+      {/* CTAs — landing pill styles so fonts/shape match the site */}
       <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
         <Link
           href={`/${locale}/gallery-demo`}
-          className="rounded-full border border-fg px-6 py-2.5 text-sm font-bold no-underline transition-colors hover:bg-fg hover:text-bg"
+          className={
+            ctaGhost ??
+            'rounded-full border border-fg px-6 py-2.5 text-sm font-bold no-underline transition-colors hover:bg-fg hover:text-bg'
+          }
         >
           {uk ? 'Відкрити живу демо-галерею' : 'Open the live demo gallery'}
         </Link>
         <Link
           href={`/${locale}/login`}
-          className="rounded-full bg-fg px-6 py-2.5 text-sm font-bold text-bg no-underline transition-opacity hover:opacity-85"
+          className={
+            ctaPrimary ??
+            'rounded-full bg-fg px-6 py-2.5 text-sm font-bold text-bg no-underline transition-opacity hover:opacity-85'
+          }
         >
           {uk ? 'Створити свою — безкоштовно' : 'Create yours — free'}
         </Link>
       </div>
-    </section>
+    </div>
   )
 }
