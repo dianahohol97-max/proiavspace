@@ -1,0 +1,13 @@
+-- Root cause of the "gallery crash" saga (applied to prod as a hotfix on
+-- 2026-07-27): migration 0020 switched public.galleries to a COLUMN-LIST
+-- select grant so password_hash can never be read by client roles. Postgres
+-- does NOT extend column-list grants when new columns are added, so 0029's
+-- galleries.style column was unreadable by anon AND authenticated — every
+-- SELECT touching style failed with "permission denied", the pages resolved
+-- to "gallery not found", and Next's router crashed on that path in the
+-- dashboard. This grants the missing column.
+--
+-- RULE for future migrations: any new column on public.galleries must be
+-- added to the column-list select grant explicitly (everything except
+-- password_hash).
+grant select (style) on public.galleries to anon, authenticated;
