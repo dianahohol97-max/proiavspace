@@ -60,6 +60,9 @@ export interface Asset {
   size_bytes: number
   variants: Record<string, string>
   position: number
+  /** Focal point (0–100%) for cropped layouts; null = center. */
+  focal_x: number | null
+  focal_y: number | null
   created_at: string
 }
 

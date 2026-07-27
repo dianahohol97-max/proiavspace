@@ -281,7 +281,9 @@ export function SiteEditor({
         if (!put.ok) throw new Error('put failed')
 
         const variants: Record<string, string> = {}
-        for (const rendition of await generateImageVariants(file)) {
+        // One decode yields renditions AND the pixel size.
+        const rendered = await generateImageVariants(file)
+        for (const rendition of rendered.variants) {
           const target = await presign(rendition.name, rendition.blob)
           const putVariant = await fetch(target.uploadUrl, {
             method: 'PUT',
@@ -291,16 +293,7 @@ export function SiteEditor({
           if (putVariant.ok) variants[rendition.name] = target.key
         }
 
-        let width: number | undefined
-        let height: number | undefined
-        try {
-          const bitmap = await createImageBitmap(file)
-          width = bitmap.width
-          height = bitmap.height
-          bitmap.close()
-        } catch {
-          /* dimensions optional */
-        }
+        const { width, height } = rendered
 
         await fetch('/api/portfolio/complete', {
           method: 'POST',

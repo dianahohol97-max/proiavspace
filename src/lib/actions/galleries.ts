@@ -28,11 +28,21 @@ export async function createGallery(locale: Locale, formData: FormData): Promise
   const password = String(formData.get('password') ?? '')
   const expiresAt = String(formData.get('expires_at') ?? '').trim() || null
 
+  // Public URL carries the photographer's brand ahead of the gallery name:
+  // proiav.space/uk/g/diana-hohol-vesillia-marty-… (suffix keeps links
+  // unguessable). Existing galleries keep their old slugs — links live on.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('user_id', user.id)
+    .single()
+  const brand = (profile?.display_name ?? '').trim()
+
   const { data, error } = await supabase
     .from('galleries')
     .insert({
       owner_id: user.id,
-      slug: slugify(title),
+      slug: slugify([brand, title].filter(Boolean).join(' ')),
       title,
       description,
       event_date: eventDate,
@@ -169,6 +179,26 @@ export async function deleteGallery(locale: Locale, galleryId: string): Promise<
 
   revalidatePath(`/${locale}/dashboard`)
   redirect(`/${locale}/dashboard`)
+}
+
+/**
+ * Per-photo focal point (0–100%) — where cropped layouts (squares/portrait/
+ * collage/editorial) aim the frame. Set by clicking the photo in the manage
+ * grid. RLS restricts the update to the owner.
+ */
+export async function setAssetFocal(
+  locale: Locale,
+  assetId: string,
+  x: number,
+  y: number
+): Promise<void> {
+  const { supabase } = await requireUser()
+  const clamp = (value: number) => Math.min(100, Math.max(0, Math.round(value)))
+  const { error } = await supabase
+    .from('assets')
+    .update({ focal_x: clamp(x), focal_y: clamp(y) })
+    .eq('id', assetId)
+  if (error) throw new Error(`Failed to set photo focus: ${error.message}`)
 }
 
 export async function deleteAsset(locale: Locale, assetId: string): Promise<void> {

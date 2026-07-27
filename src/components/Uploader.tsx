@@ -18,7 +18,7 @@ import { generateVideoPoster } from '@/lib/images/videoPoster'
  * or network-idle waiting for canvas encodes.
  */
 
-const CONCURRENCY = 4
+const CONCURRENCY = 5
 
 // Files above the threshold (large videos) go through S3 multipart: parts
 // upload in parallel with per-part retries, so one dropped packet no longer
@@ -35,18 +35,6 @@ interface UploadItem {
   file: File
   status: FileStatus
   progress: number // 0..100
-}
-
-async function readImageSize(file: File): Promise<{ width?: number; height?: number }> {
-  if (!file.type.startsWith('image/')) return {}
-  try {
-    const bitmap = await createImageBitmap(file)
-    const size = { width: bitmap.width, height: bitmap.height }
-    bitmap.close()
-    return size
-  } catch {
-    return {}
-  }
 }
 
 function putWithProgress(
@@ -271,12 +259,11 @@ export function Uploader({
           return
         }
 
-        // Kick off the CPU work (canvas renditions + dimension read) right
-        // away — it runs while the original is uploading, not after it.
+        // Kick off the CPU work right away — a SINGLE decode yields both the
+        // renditions and the pixel size, and runs while the original uploads.
         const renditionsPromise = isVideo
-          ? Promise.resolve([])
+          ? Promise.resolve({ variants: [] } as Awaited<ReturnType<typeof generateImageVariants>>)
           : generateImageVariants(item.file, watermarkText)
-        const dimensionsPromise = isVideo ? Promise.resolve(videoDims) : readImageSize(item.file)
 
         const { uploadUrl, key } = await presign(item.file.name, contentType, item.file.size)
 
@@ -288,8 +275,9 @@ export function Uploader({
 
         // Renditions are independent of each other: presign + PUT them all
         // concurrently instead of one-by-one round-trips.
+        const rendered = await renditionsPromise
         await Promise.all(
-          (await renditionsPromise).map(async (rendition) => {
+          rendered.variants.map(async (rendition) => {
             const target = await presign(
               `${rendition.name}.jpg`,
               'image/jpeg',
@@ -307,7 +295,9 @@ export function Uploader({
         )
         updateItem(item.id, { progress: 95 })
 
-        const dimensions = await dimensionsPromise
+        const dimensions = isVideo
+          ? videoDims
+          : { width: rendered.width, height: rendered.height }
         const completeResponse = await fetch('/api/uploads/complete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
