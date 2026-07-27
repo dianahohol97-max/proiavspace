@@ -117,6 +117,19 @@
    1:1 tiles a 2-col span is exactly two rows tall, so dense flow stays even. */
 .gridCollage { grid-auto-flow: dense; }
 .gridCollage .shot:nth-child(6n + 1) { grid-column: span 2; grid-row: span 2; }
+/* Editorial: fixed 3-col rows of [wide+square] / [square+wide] — the wide tile
+   alternates sides every row. Wides stretch to the row height set by their
+   square neighbour (aspect auto), so rows stay perfectly level. */
+.gridEditorial { grid-template-columns: repeat(3, 1fr); }
+.gridEditorial .shot:nth-child(4n + 1),
+.gridEditorial .shot:nth-child(4n) { grid-column: span 2; aspect-ratio: auto; }
+/* a wide tile that starts the final row has no square neighbour to size it */
+.gridEditorial .shot:nth-child(4n + 1):last-child { aspect-ratio: 2 / 1; }
+@media (max-width: 900px) {
+  /* 2-col phones/tablets: wides become full-width 3:2, squares pair below */
+  .gridEditorial .shot:nth-child(4n + 1),
+  .gridEditorial .shot:nth-child(4n) { aspect-ratio: 3 / 2; }
+}
 .playBadge {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   width: 54px; height: 54px; border-radius: 50%;

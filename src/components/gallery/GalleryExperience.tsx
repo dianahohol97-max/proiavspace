@@ -290,13 +290,15 @@ export function GalleryExperience({
     '--g-tile': style?.layout === 'portrait' ? '3 / 4' : '1 / 1',
   } as React.CSSProperties
 
-  // square / portrait / collage crop to a uniform wall; masonry (default)
-  // keeps real ratios. Collage adds big 2×2 accent tiles on top of squares.
-  const uniform =
-    style?.layout === 'square' || style?.layout === 'portrait' || style?.layout === 'collage'
-  const gridClass = uniform
-    ? `${s.grid} ${s.gridUniform}${style?.layout === 'collage' ? ` ${s.gridCollage}` : ''}`
-    : s.grid
+  // Everything except masonry crops to a uniform wall: collage adds 2×2
+  // accents on squares, editorial alternates wide hero rows with squares.
+  const layout = style?.layout ?? 'masonry'
+  const gridClass =
+    layout === 'masonry'
+      ? s.grid
+      : `${s.grid} ${s.gridUniform}${
+          layout === 'collage' ? ` ${s.gridCollage}` : layout === 'editorial' ? ` ${s.gridEditorial}` : ''
+        }`
 
   const current = lightbox !== null ? items[lightbox] : null
 
