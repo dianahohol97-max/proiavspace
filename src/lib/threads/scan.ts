@@ -10,23 +10,30 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
  *      GEMINI_API_KEY (drafting). Missing either → the run no-ops cleanly.
  */
 
+// Threads keyword_search matches literally, so niche multi-word phrases return
+// nothing. We search BROAD terms real Ukrainian photographers post (these
+// reliably return recent posts) plus a few high-precision niche ones, then a
+// Gemini relevance gate (see draftReply) keeps only posts where проЯв fits.
 const KEYWORDS = [
-  'гугл диск фото',
-  'google drive фотограф',
-  'як віддати фото клієнту',
+  // broad — high volume, filtered by the relevance gate
+  'фотограф',
+  'фотосесія',
+  'весільний фотограф',
+  'сімейний фотограф',
+  'фотографія клієнту',
+  // niche — rarer but high precision when they hit
+  'віддати фото клієнту',
   'галерея для фотографа',
-  'передати фотографії клієнту',
   'pixieset',
-  'pixover',
-  'gallera',
-  'файлообмінник для фото',
-  'wetransfer фото',
 ]
 
 const GRAPH = 'https://graph.threads.net/v1.0'
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
 const FRESH_MS = 24 * 60 * 60 * 1000
-const MAX_NEW_PER_RUN = 10
+const MAX_NEW_PER_RUN = 8
+// Cap Gemini calls per run: we evaluate at most this many fresh candidates
+// (relevance + draft in one call) to find up to MAX_NEW_PER_RUN good replies.
+const MAX_EVAL_PER_RUN = 30
 
 interface FoundPost {
   id: string
@@ -88,15 +95,25 @@ async function searchKeyword(token: string, q: string): Promise<SearchOutcome> {
   }
 }
 
+/**
+ * One Gemini call does double duty: relevance gate + draft. If the post is not
+ * a natural place for проЯв to add value, the model returns exactly SKIP and we
+ * queue nothing — this keeps volume sane on broad keywords and avoids spammy,
+ * off-topic replies. Otherwise it returns a short, warm Ukrainian reply.
+ */
 async function draftReply(apiKey: string, post: Candidate): Promise<string | null> {
   const prompt =
     `Ти — голос українського бренду проЯв: онлайн-галерея для фотографів, де клієнт ` +
     `отримує красиву галерею замість архіву в Google Drive (100 ГБ за 79 грн, безкоштовний ` +
-    `старт, проЯв.space).\n` +
-    `Напиши КОРОТКУ (1–2 речення), теплу, корисну відповідь українською на цей пост у Threads. ` +
+    `старт, проЯв.space).\n\n` +
+    `Ось пост у Threads від @${post.username ?? 'автор'}:\n"${post.text ?? ''}"\n\n` +
+    `КРОК 1 — доречність. Відповідай лише якщо це природне місце, де проЯв додає цінність: ` +
+    `фотограф/автор говорить про віддачу чи передачу фото клієнтам, клієнтські галереї, ` +
+    `біль із Google Drive / файлообмінниками / архівами, вибір сервісу галерей, або суміжну тему. ` +
+    `Якщо пост не про це (випадкове фото, особисте, не по темі) — відповідай РІВНО одним словом: SKIP.\n\n` +
+    `КРОК 2 — якщо доречно, напиши КОРОТКУ (1–2 речення) теплу, корисну відповідь українською. ` +
     `Спершу цінність, без спаму й прямої реклами; проЯв згадай ненав'язливо лише якщо доречно. ` +
-    `Без хештегів, без лапок навколо відповіді.\n` +
-    `Пост від @${post.username ?? 'автор'}: "${post.text ?? ''}"\nВідповідь:`
+    `Без хештегів, без лапок навколо відповіді.`
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
@@ -114,7 +131,11 @@ async function draftReply(apiKey: string, post: Candidate): Promise<string | nul
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
     }
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text
-    return typeof text === 'string' && text.trim() ? text.trim() : null
+    if (typeof text !== 'string' || !text.trim()) return null
+    const clean = text.trim()
+    // Relevance gate: the model returns SKIP for off-topic posts.
+    if (/^skip\b/i.test(clean) || clean.toUpperCase() === 'SKIP') return null
+    return clean
   } catch {
     return null
   }
@@ -162,6 +183,8 @@ export async function scanThreads(): Promise<ScanResult> {
 
   const found = fresh.size
   let inserted = 0
+  let evaluated = 0
+  let skipped = 0
   if (found > 0) {
     const urls = [...fresh.keys()]
     const { data: existing } = await admin
@@ -172,9 +195,14 @@ export async function scanThreads(): Promise<ScanResult> {
 
     for (const [url, p] of fresh) {
       if (inserted >= MAX_NEW_PER_RUN) break
+      if (evaluated >= MAX_EVAL_PER_RUN) break
       if (have.has(url)) continue
-      const draft = await draftReply(apiKey, p)
-      if (!draft) continue
+      evaluated++
+      const draft = await draftReply(apiKey, p) // null = irrelevant (SKIP) or error
+      if (!draft) {
+        skipped++
+        continue
+      }
       const { error } = await admin.from('threads_replies').insert({
         source_url: url,
         source_author: p.username ? `@${p.username}` : null,
@@ -188,6 +216,14 @@ export async function scanThreads(): Promise<ScanResult> {
     }
   }
 
-  await log({ tokenPresent: true, geminiPresent: true, found, inserted, keywords: diag })
+  await log({
+    tokenPresent: true,
+    geminiPresent: true,
+    found,
+    evaluated,
+    skipped,
+    inserted,
+    keywords: diag,
+  })
   return { found, inserted }
 }
