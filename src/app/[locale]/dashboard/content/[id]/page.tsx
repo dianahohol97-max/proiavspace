@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
 import { isLocale, type Locale } from '@/lib/i18n/config'
-import { setPostStatus } from '@/lib/actions/social'
+import { publishPostNow, setPostStatus } from '@/lib/actions/social'
 import { getAdminPost } from '@/lib/social/posts'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { ReelUpload } from './ReelUpload'
@@ -38,6 +38,8 @@ export default async function ContentPreviewPage({
   if (!post) notFound()
 
   const canApprove = post.status === 'draft' || post.status === 'ready'
+  // A reel needs its video uploaded before it can go out; everything else is ready.
+  const canPublish = canApprove && (post.kind !== 'reel' || !!post.media?.video)
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
@@ -110,11 +112,18 @@ export default async function ContentPreviewPage({
       </div>
 
       {/* --- actions --- */}
-      <div className="mt-6 flex items-center gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        {canPublish && (
+          <form action={publishPostNow.bind(null, locale, post.id)}>
+            <button className="rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-white">
+              Опублікувати зараз
+            </button>
+          </form>
+        )}
         {canApprove && (
           <form action={setPostStatus.bind(null, locale, post.id, 'approved')}>
-            <button className="rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-white">
-              Затвердити
+            <button className="rounded-full border border-line px-5 py-2.5 text-sm font-bold text-fg hover:bg-bg">
+              Затвердити (у чергу)
             </button>
           </form>
         )}
@@ -124,6 +133,12 @@ export default async function ContentPreviewPage({
           </button>
         </form>
       </div>
+      {canPublish && (
+        <p className="mt-2 text-xs text-muted">
+          «Опублікувати зараз» одразу запускає постинг через Make. «Затвердити» ставить у чергу —
+          Make опублікує за розкладом.
+        </p>
+      )}
     </main>
   )
 }
