@@ -17,6 +17,13 @@ export interface GeneratedVariant {
   blob: Blob
 }
 
+/** Renditions + the (orientation-corrected) pixel size from the same decode. */
+export interface GeneratedRenditions {
+  variants: GeneratedVariant[]
+  width?: number
+  height?: number
+}
+
 const TARGETS: { name: 'preview' | 'thumb'; maxDim: number; quality: number }[] = [
   { name: 'preview', maxDim: 2048, quality: 0.85 },
   { name: 'thumb', maxDim: 512, quality: 0.8 },
@@ -50,17 +57,19 @@ function stampWatermark(
 export async function generateImageVariants(
   file: File,
   watermarkText?: string
-): Promise<GeneratedVariant[]> {
-  if (!file.type.startsWith('image/')) return []
+): Promise<GeneratedRenditions> {
+  if (!file.type.startsWith('image/')) return { variants: [] }
 
   let bitmap: ImageBitmap
   try {
     // 'from-image' bakes EXIF orientation in, so variants are always upright.
     bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
   } catch {
-    return [] // Unsupported format (e.g. some HEICs) — viewer falls back to the original.
+    // Unsupported format (e.g. some HEICs) — viewer falls back to the original.
+    return { variants: [] }
   }
 
+  const size = { width: bitmap.width, height: bitmap.height }
   const variants: GeneratedVariant[] = []
   try {
     for (const target of TARGETS) {
@@ -87,5 +96,5 @@ export async function generateImageVariants(
   } finally {
     bitmap.close()
   }
-  return variants
+  return { variants, ...size }
 }

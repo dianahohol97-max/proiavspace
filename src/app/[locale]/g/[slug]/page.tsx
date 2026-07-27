@@ -154,6 +154,8 @@ export default async function PublicGalleryPage({
       kind: asset.kind,
       width: asset.width,
       height: asset.height,
+      focalX: asset.focal_x ?? null,
+      focalY: asset.focal_y ?? null,
       previewUrl: await storage.getSignedReadUrl(asset.variants.preview ?? asset.r2_key, {
         expiresInSeconds: 60 * 60,
       }),

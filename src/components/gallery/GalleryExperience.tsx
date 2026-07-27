@@ -17,6 +17,9 @@ export interface GalleryItem {
   previewUrl: string
   /** Video still frame for the grid tile; null for photos or older videos. */
   posterUrl?: string | null
+  /** Crop focus (0–100%) for uniform layouts; null = center. */
+  focalX?: number | null
+  focalY?: number | null
   downloadHref: string
 }
 
@@ -298,6 +301,11 @@ export function GalleryExperience({
   // Everything except masonry crops to a uniform wall: collage adds 2×2
   // accents on squares, editorial alternates wide hero rows with squares.
   const layout = style?.layout ?? 'masonry'
+  // Per-photo crop focus only matters where tiles crop (uniform layouts).
+  const tileFocus = (item: GalleryItem): React.CSSProperties | undefined =>
+    layout !== 'masonry' && item.focalX != null
+      ? { objectPosition: `${item.focalX}% ${item.focalY ?? 50}%` }
+      : undefined
   const gridClass =
     layout === 'masonry'
       ? s.grid
@@ -417,17 +425,31 @@ export function GalleryExperience({
                 width={item.width ?? undefined}
                 height={item.height ?? undefined}
                 className={s.shotMedia}
+                style={tileFocus(item)}
               />
             ) : item.posterUrl ? (
               // Video with a poster: show the still (never streams the original)
               // with a play badge; the real video opens in the lightbox.
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.posterUrl} alt="" loading="lazy" className={s.shotMedia} />
+                <img
+                  src={item.posterUrl}
+                  alt=""
+                  loading="lazy"
+                  className={s.shotMedia}
+                  style={tileFocus(item)}
+                />
                 <span className={s.playBadge}>▶</span>
               </>
             ) : (
-              <video src={item.previewUrl} className={s.shotMedia} muted playsInline preload="metadata" />
+              <video
+                src={item.previewUrl}
+                className={s.shotMedia}
+                style={tileFocus(item)}
+                muted
+                playsInline
+                preload="metadata"
+              />
             )}
             <a
               href={item.downloadHref}

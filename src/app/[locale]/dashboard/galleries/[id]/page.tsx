@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import {
   deleteGallery,
+  setAssetFocal,
   setGalleryCover,
   setGalleryPublished,
   setGalleryTheme,
@@ -14,6 +15,7 @@ import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
+import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
@@ -186,11 +188,20 @@ export default async function ManageGalleryPage({
           </form>
 
           {gallery.is_published && (
-            <CopyLinkButton
-              url={publicUrl}
-              label={dict.galleryManage.copyLink}
-              copiedLabel={dict.galleryManage.copied}
-            />
+            <>
+              {/* The link's locale decides the client's default language;
+                  guests can still switch it inside the gallery. */}
+              <CopyLinkButton
+                url={`${appUrl}/uk/g/${gallery.slug}`}
+                label={`${dict.galleryManage.copyLink} · UA`}
+                copiedLabel={dict.galleryManage.copied}
+              />
+              <CopyLinkButton
+                url={`${appUrl}/en/g/${gallery.slug}`}
+                label={`${dict.galleryManage.copyLink} · EN`}
+                copiedLabel={dict.galleryManage.copied}
+              />
+            </>
           )}
 
           <span className="text-sm text-muted">
@@ -309,6 +320,13 @@ export default async function ManageGalleryPage({
       </section>
 
       <section className="mt-12">
+        {previews.length > 0 && (
+          <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
+            {locale === 'uk'
+              ? 'Клацни по фото, щоб задати фокус кадру — яку частину показувати в розкладках з кадруванням (Квадрати / Портрет / Колаж / Едіторіал). Кнопка «Обкладинка» робить фото головним.'
+              : 'Click a photo to set its crop focus — which part stays in frame in cropped layouts (Squares / Portrait / Collage / Editorial). The “Cover” button makes a photo the album cover.'}
+          </p>
+        )}
         {previews.length === 0 ? (
           <p className="max-w-xl leading-relaxed text-muted">{dict.galleryManage.noAssets}</p>
         ) : (
@@ -321,18 +339,16 @@ export default async function ManageGalleryPage({
                   key={asset.id}
                   className="group relative aspect-square overflow-hidden bg-line"
                 >
-                  {asset.kind === 'photo' || asset.variants.poster ? (
-                    // Photo, or a video's poster still — never streams the original.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={url}
-                      alt=""
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <video src={url} className="h-full w-full object-cover" muted preload="metadata" />
-                  )}
+                  <AssetFocusTile
+                    url={url}
+                    isVideo={!(asset.kind === 'photo' || asset.variants.poster)}
+                    initialX={asset.focal_x ?? null}
+                    initialY={asset.focal_y ?? null}
+                    action={setAssetFocal.bind(null, locale, asset.id)}
+                    title={
+                      locale === 'uk' ? 'Клацни, щоб задати фокус кадру' : 'Click to set crop focus'
+                    }
+                  />
                   {(favoritedBy > 0 ||
                     (downloadCounts.get(asset.id) ?? 0) > 0 ||
                     (viewCounts.get(asset.id) ?? 0) > 0) && (
@@ -359,7 +375,9 @@ export default async function ManageGalleryPage({
                   ) : (
                     <form
                       action={setGalleryCover.bind(null, locale, gallery.id, asset.id)}
-                      className="absolute bottom-2 left-2 hidden group-hover:block"
+                      // Always visible on touch devices — hover-only made the
+                      // cover picker undiscoverable on phones.
+                      className="absolute bottom-2 left-2 lg:hidden lg:group-hover:block"
                     >
                       <button
                         type="submit"

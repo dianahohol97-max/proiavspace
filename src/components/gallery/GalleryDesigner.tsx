@@ -564,6 +564,12 @@ export function GalleryDesigner({
               >
                 <span style={{ color: previewAccent }}>♥ 3 {uk ? 'обрано' : 'picked'}</span>
                 <span
+                  className="text-[10px] uppercase tracking-wider"
+                  style={{ color: tokens.muted }}
+                >
+                  ▶ {uk ? 'Слайд-шоу' : 'Slideshow'}
+                </span>
+                <span
                   className="ml-auto rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
                   style={{ background: tokens.fg, color: tokens.bg }}
                 >
@@ -571,14 +577,24 @@ export function GalleryDesigner({
                 </span>
               </div>
 
-              {/* photo grid — REAL photos */}
+              {/* photo grid — REAL photos. Masonry renders with CSS columns
+                  (like the client gallery) — a grid with mixed aspect ratios
+                  leaves holes under the shorter tiles. */}
               <div
-                className="grid p-3"
-                style={{
-                  gap: Math.max(2, Math.round(gap / 2)),
-                  gridTemplateColumns: `repeat(${previewCols}, 1fr)`,
-                  gridAutoFlow: layout === 'collage' ? 'dense' : undefined,
-                }}
+                className="p-3"
+                style={
+                  layout === 'masonry'
+                    ? {
+                        columns: previewCols,
+                        columnGap: Math.max(2, Math.round(gap / 2)),
+                      }
+                    : {
+                        display: 'grid',
+                        gap: Math.max(2, Math.round(gap / 2)),
+                        gridTemplateColumns: `repeat(${previewCols}, 1fr)`,
+                        gridAutoFlow: layout === 'collage' ? 'dense' : undefined,
+                      }
+                }
               >
                 {tiles.map((url, i) => (
                   <div
@@ -588,7 +604,12 @@ export function GalleryDesigner({
                       aspectRatio: tileAspect(i),
                       borderRadius: radius,
                       background: `center / cover no-repeat url("${url}")`,
-                      ...tileSpan(i),
+                      ...(layout === 'masonry'
+                        ? {
+                            breakInside: 'avoid' as const,
+                            marginBottom: Math.max(2, Math.round(gap / 2)),
+                          }
+                        : tileSpan(i)),
                     }}
                   >
                     {i === 1 && (
@@ -609,16 +630,21 @@ export function GalleryDesigner({
                       borderRadius: radius,
                       background: `linear-gradient(160deg, ${tokens.line}, ${tokens.muted})`,
                       opacity: 0.6,
-                      ...tileSpan(tiles.length + i),
+                      ...(layout === 'masonry'
+                        ? {
+                            breakInside: 'avoid' as const,
+                            marginBottom: Math.max(2, Math.round(gap / 2)),
+                          }
+                        : tileSpan(tiles.length + i)),
                     }}
                   />
                 ))}
               </div>
 
-              {/* footer signature */}
+              {/* footer signature — display font, like the real gallery */}
               <p
-                className="pb-4 text-center text-[10px] uppercase tracking-[0.3em]"
-                style={{ color: tokens.muted, fontFamily: tokens.fontLabel }}
+                className="pb-4 text-center text-[13px]"
+                style={{ color: tokens.muted, fontFamily: previewFont }}
               >
                 {uk ? 'ваш бренд · фотографія' : 'your brand · photography'}
               </p>
