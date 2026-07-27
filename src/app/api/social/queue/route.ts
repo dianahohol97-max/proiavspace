@@ -63,6 +63,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const fullCaption = hashtags ? `${caption}\n\n${hashtags}`.trim() : caption
+  // IG carousel module wants an array of {media_type, image_url} — shape it here
+  // so Make can map `files` straight to `{{...post.ig_files}}` with no transform.
+  const igFiles = slides.map((u) => ({ media_type: 'IMAGE', image_url: u }))
+
   return NextResponse.json({
     post: {
       id: post.id,
@@ -71,8 +76,10 @@ export async function GET(req: NextRequest) {
       hook: post.hook,
       caption,
       hashtags,
+      full_caption: fullCaption,
       cover: media.cover ?? slides[0] ?? null,
       slides,
+      ig_files: igFiles,
       video: media.video ?? null,
       external_id: post.external_id,
     },
