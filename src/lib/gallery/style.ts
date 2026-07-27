@@ -12,6 +12,11 @@ export interface GalleryStyle {
   radius?: number
   /** Display-font key (see FONT_PRESETS); the cover title font. */
   font?: string
+  /**
+   * Grid layout: masonry keeps every photo's real aspect ratio (default);
+   * square / portrait crop tiles to a uniform 1:1 / 3:4 wall.
+   */
+  layout?: 'masonry' | 'square' | 'portrait'
   /** Cover focal point (0–100%); where the cover crop centres. */
   focalX?: number
   focalY?: number
@@ -40,6 +45,14 @@ export const FONT_PRESETS: { value: string; label: string; family: string | null
   { value: 'mono', label: 'Моно', family: 'ui-monospace, "SF Mono", Menlo, monospace' },
 ]
 
+/** Grid layouts: real proportions vs uniform crops. '' is not valid here —
+ *  masonry IS the default, stored explicitly only when the user picked it. */
+export const LAYOUT_CHOICES: { value: 'masonry' | 'square' | 'portrait'; label: string }[] = [
+  { value: 'masonry', label: 'Мозаїка' },
+  { value: 'square', label: 'Квадрати' },
+  { value: 'portrait', label: 'Портрет 3:4' },
+]
+
 export const COLUMN_CHOICES = [2, 3, 4]
 export const RADIUS_CHOICES: { value: number; label: string }[] = [
   { value: 0, label: 'Гострі' },
@@ -63,6 +76,12 @@ export function parseGalleryStyle(raw: unknown): GalleryStyle {
   }
   if (typeof v.font === 'string' && FONT_PRESETS.some((f) => f.value === v.font && f.value)) {
     style.font = v.font
+  }
+  if (
+    typeof v.layout === 'string' &&
+    LAYOUT_CHOICES.some((l) => l.value === v.layout)
+  ) {
+    style.layout = v.layout as GalleryStyle['layout']
   }
   if (typeof v.focalX === 'number' && v.focalX >= 0 && v.focalX <= 100) style.focalX = v.focalX
   if (typeof v.focalY === 'number' && v.focalY >= 0 && v.focalY <= 100) style.focalY = v.focalY

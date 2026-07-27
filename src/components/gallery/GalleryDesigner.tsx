@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { resolveTokens, THEME_CATALOG } from '@/lib/site/themes'
 import {
   ACCENT_PRESETS,
   COLUMN_CHOICES,
   FONT_PRESETS,
+  LAYOUT_CHOICES,
   RADIUS_CHOICES,
   fontFamily,
   type GalleryStyle,
@@ -62,9 +63,17 @@ export function GalleryDesigner({
   const [columns, setColumns] = useState(initialStyle.columns ?? 3)
   const [radius, setRadius] = useState(initialStyle.radius ?? 10)
   const [font, setFont] = useState(initialStyle.font ?? '')
+  const [layout, setLayout] = useState<'masonry' | 'square' | 'portrait'>(
+    initialStyle.layout ?? 'masonry'
+  )
   const [focalX, setFocalX] = useState(initialStyle.focalX ?? 50)
   const [focalY, setFocalY] = useState(initialStyle.focalY ?? 50)
   const [device, setDevice] = useState<'desktop' | 'phone'>('desktop')
+
+  // On a phone the desktop mock is cramped — default the preview to «phone».
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) setDevice('phone')
+  }, [])
 
   const tokens = useMemo(() => {
     const entry = THEME_CATALOG.find((e) => e.value === theme)
@@ -78,6 +87,14 @@ export function GalleryDesigner({
   // Live preview photos: real shots, falling back to soft gradients pre-upload.
   const tiles = photos.length > 0 ? photos.slice(0, Math.max(columns * 2, 4)) : []
   const placeholderCount = Math.max(columns * 2 - tiles.length, tiles.length === 0 ? columns * 2 : 0)
+
+  // Tile shape mirrors the client gallery: masonry varies, square/portrait crop.
+  const tileAspect = (i: number) =>
+    layout === 'square' ? '1 / 1' : layout === 'portrait' ? '3 / 4' : i % 3 === 0 ? '3 / 4' : '1 / 1'
+  const layoutLabel = (v: 'masonry' | 'square' | 'portrait') =>
+    uk
+      ? LAYOUT_CHOICES.find((l) => l.value === v)?.label ?? v
+      : { masonry: 'Masonry', square: 'Squares', portrait: 'Portrait 3:4' }[v]
 
   const seg = (on: boolean) =>
     `rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
@@ -94,6 +111,7 @@ export function GalleryDesigner({
         fd.set('columns', String(columns))
         fd.set('radius', String(radius))
         fd.set('font', font)
+        fd.set('layout', layout)
         fd.set('focalX', String(focalX))
         fd.set('focalY', String(focalY))
         setSaved(false)
@@ -105,7 +123,7 @@ export function GalleryDesigner({
       className="mt-8 overflow-hidden rounded-3xl border border-line bg-white shadow-[0_1px_0_rgba(13,12,10,.03)]"
     >
       {/* ---------- studio header ---------- */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-4 sm:px-6">
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
             {uk ? 'Дизайн-студія' : 'Design studio'}
@@ -128,9 +146,11 @@ export function GalleryDesigner({
         </div>
       </div>
 
+      {/* On phones the LIVE preview goes first (order classes) so every tweak is
+          visible without scrolling past the whole control rail. */}
       <div className="grid lg:grid-cols-[340px_1fr]">
         {/* ---------- control rail ---------- */}
-        <aside className="flex flex-col gap-7 border-b border-line p-6 lg:max-h-[720px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <aside className="order-2 flex flex-col gap-7 p-4 sm:p-6 lg:order-1 lg:max-h-[720px] lg:overflow-y-auto lg:border-r lg:border-line">
           {/* theme cards */}
           <section>
             <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
@@ -229,6 +249,33 @@ export function GalleryDesigner({
             </div>
           </section>
 
+          {/* layout: real proportions vs uniform crops */}
+          <section>
+            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {uk ? 'Розкладка' : 'Layout'}
+            </p>
+            <p className="mb-3 text-xs leading-relaxed text-muted">
+              {uk
+                ? 'Мозаїка зберігає реальні пропорції фото; квадрати та портрет кадрують у рівні плитки.'
+                : 'Masonry keeps real photo proportions; squares and portrait crop into even tiles.'}
+            </p>
+            <div className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full border border-line p-1">
+              {LAYOUT_CHOICES.map((l) => (
+                <button
+                  key={l.value}
+                  type="button"
+                  className={seg(layout === l.value)}
+                  onClick={() => {
+                    setLayout(l.value)
+                    dirty()
+                  }}
+                >
+                  {layoutLabel(l.value)}
+                </button>
+              ))}
+            </div>
+          </section>
+
           {/* grid: columns + corners */}
           <section>
             <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
@@ -320,7 +367,7 @@ export function GalleryDesigner({
         </aside>
 
         {/* ---------- live preview ---------- */}
-        <div className="flex flex-col bg-[#f3f2ee] p-5 sm:p-7">
+        <div className="order-1 flex flex-col border-b border-line bg-[#f3f2ee] p-4 sm:p-7 lg:order-2 lg:border-b-0">
           <div className="mb-5 flex items-center justify-between">
             <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
               {labels.preview}
@@ -406,7 +453,7 @@ export function GalleryDesigner({
                     key={url + i}
                     className="relative overflow-hidden"
                     style={{
-                      aspectRatio: i % 3 === 0 ? '3 / 4' : '1 / 1',
+                      aspectRatio: tileAspect(i),
                       borderRadius: radius,
                       background: `center / cover no-repeat url("${url}")`,
                     }}
@@ -425,7 +472,7 @@ export function GalleryDesigner({
                   <div
                     key={`ph-${i}`}
                     style={{
-                      aspectRatio: (tiles.length + i) % 3 === 0 ? '3 / 4' : '1 / 1',
+                      aspectRatio: tileAspect(tiles.length + i),
                       borderRadius: radius,
                       background: `linear-gradient(160deg, ${tokens.line}, ${tokens.muted})`,
                       opacity: 0.6,

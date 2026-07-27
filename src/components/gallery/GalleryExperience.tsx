@@ -287,7 +287,11 @@ export function GalleryExperience({
     '--g-display-tracking': tokens.displayTracking,
     '--g-cols': String(style?.columns ?? 3),
     '--g-radius': `${style?.radius ?? 10}px`,
+    '--g-tile': style?.layout === 'portrait' ? '3 / 4' : '1 / 1',
   } as React.CSSProperties
+
+  // square / portrait crop to a uniform wall; masonry (default) keeps real ratios
+  const uniform = style?.layout === 'square' || style?.layout === 'portrait'
 
   const current = lightbox !== null ? items[lightbox] : null
 
@@ -382,7 +386,7 @@ export function GalleryExperience({
       </p>
 
       {/* -------- grid -------- */}
-      <main className={s.grid}>
+      <main className={uniform ? `${s.grid} ${s.gridUniform}` : s.grid}>
         {items.map((item, index) => (
           <figure
             key={item.id}
