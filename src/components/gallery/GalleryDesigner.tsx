@@ -5,6 +5,7 @@ import { resolveTokens, THEME_CATALOG } from '@/lib/site/themes'
 import {
   ACCENT_PRESETS,
   COLUMN_CHOICES,
+  COVER_CHOICES,
   FONT_PRESETS,
   LAYOUT_CHOICES,
   RADIUS_CHOICES,
@@ -66,6 +67,11 @@ export function GalleryDesigner({
   const [layout, setLayout] = useState<
     'masonry' | 'square' | 'portrait' | 'collage' | 'editorial'
   >(initialStyle.layout ?? 'masonry')
+  const [gap, setGap] = useState(initialStyle.gap ?? 14)
+  const [cover, setCover] = useState<'classic' | 'left' | 'minimal'>(
+    initialStyle.cover ?? 'classic'
+  )
+  const [titleScale, setTitleScale] = useState(initialStyle.titleScale ?? 100)
   const [focalX, setFocalX] = useState(initialStyle.focalX ?? 50)
   const [focalY, setFocalY] = useState(initialStyle.focalY ?? 50)
   const [device, setDevice] = useState<'desktop' | 'phone'>('desktop')
@@ -147,6 +153,9 @@ export function GalleryDesigner({
         fd.set('radius', String(radius))
         fd.set('font', font)
         fd.set('layout', layout)
+        fd.set('gap', String(gap))
+        fd.set('cover', cover)
+        fd.set('titleScale', String(titleScale))
         fd.set('focalX', String(focalX))
         fd.set('focalY', String(focalY))
         setSaved(false)
@@ -186,12 +195,12 @@ export function GalleryDesigner({
       <div className="grid lg:grid-cols-[340px_1fr]">
         {/* ---------- control rail ---------- */}
         <aside className="order-2 flex flex-col gap-7 p-4 sm:p-6 lg:order-1 lg:max-h-[720px] lg:overflow-y-auto lg:border-r lg:border-line">
-          {/* theme cards */}
+          {/* theme moods: three clearly distinct looks */}
           <section>
             <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-              {labels.styleLabel}
+              {uk ? 'Тема' : 'Theme'}
             </p>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-3 gap-2.5">
               {themeOptions.map((option) => {
                 const entry = THEME_CATALOG.find((e) => e.value === option.value)
                 const t = entry ? resolveTokens(entry.theme, entry.mode) : null
@@ -336,6 +345,26 @@ export function GalleryDesigner({
                   </button>
                 ))}
               </div>
+              {/* breathing room between photos, Gallera-style */}
+              <div>
+                <div className="flex items-center justify-between text-xs font-semibold text-muted">
+                  <span>{uk ? 'Відступ між фото' : 'Photo spacing'}</span>
+                  <span>{gap}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={30}
+                  step={2}
+                  value={gap}
+                  onChange={(e) => {
+                    setGap(Number(e.target.value))
+                    dirty()
+                  }}
+                  className="w-full"
+                  style={{ accentColor: '#26242a' }}
+                />
+              </div>
             </div>
           </section>
 
@@ -372,37 +401,77 @@ export function GalleryDesigner({
             </div>
           </section>
 
-          {/* cover focal point */}
+          {/* cover: treatment, title size, focal point */}
           <section>
-            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-              {labels.focal}
+            <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {uk ? 'Обкладинка' : 'Cover'}
             </p>
-            <p className="mb-3 text-xs leading-relaxed text-muted">
-              {uk
-                ? 'Клацни по фото — куди цілитись кадруванню обкладинки.'
-                : 'Click the photo to aim the cover crop.'}
-            </p>
-            <button
-              type="button"
-              aria-label={labels.focal}
-              onClick={(e) => {
-                const r = e.currentTarget.getBoundingClientRect()
-                setFocalX(Math.round(((e.clientX - r.left) / r.width) * 100))
-                setFocalY(Math.round(((e.clientY - r.top) / r.height) * 100))
-                dirty()
-              }}
-              className="relative h-24 w-full overflow-hidden rounded-xl border border-line"
-              style={
-                coverUrl
-                  ? { background: `center / cover no-repeat url("${coverUrl}")` }
-                  : { background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }
-              }
-            >
-              <span
-                className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_2px_rgba(0,0,0,.35)]"
-                style={{ left: `${focalX}%`, top: `${focalY}%`, background: previewAccent }}
+            <div className="mb-3 flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full border border-line p-1">
+              {COVER_CHOICES.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  className={seg(cover === c.value)}
+                  onClick={() => {
+                    setCover(c.value)
+                    dirty()
+                  }}
+                >
+                  {uk
+                    ? c.label
+                    : { classic: 'Classic', left: 'Left', minimal: 'Minimal' }[c.value]}
+                </button>
+              ))}
+            </div>
+            <div className="mb-4">
+              <div className="flex items-center justify-between text-xs font-semibold text-muted">
+                <span>{uk ? 'Розмір заголовку' : 'Title size'}</span>
+                <span>{titleScale}%</span>
+              </div>
+              <input
+                type="range"
+                min={60}
+                max={140}
+                step={5}
+                value={titleScale}
+                onChange={(e) => {
+                  setTitleScale(Number(e.target.value))
+                  dirty()
+                }}
+                className="w-full"
+                style={{ accentColor: '#26242a' }}
               />
-            </button>
+            </div>
+            {cover !== 'minimal' && (
+              <>
+                <p className="mb-3 text-xs leading-relaxed text-muted">
+                  {uk
+                    ? 'Клацни по фото — куди цілитись кадруванню обкладинки.'
+                    : 'Click the photo to aim the cover crop.'}
+                </p>
+                <button
+                  type="button"
+                  aria-label={labels.focal}
+                  onClick={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect()
+                    setFocalX(Math.round(((e.clientX - r.left) / r.width) * 100))
+                    setFocalY(Math.round(((e.clientY - r.top) / r.height) * 100))
+                    dirty()
+                  }}
+                  className="relative h-24 w-full overflow-hidden rounded-xl border border-line"
+                  style={
+                    coverUrl
+                      ? { background: `center / cover no-repeat url("${coverUrl}")` }
+                      : { background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }
+                  }
+                >
+                  <span
+                    className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_2px_rgba(0,0,0,.35)]"
+                    style={{ left: `${focalX}%`, top: `${focalY}%`, background: previewAccent }}
+                  />
+                </button>
+              </>
+            )}
           </section>
         </aside>
 
@@ -431,37 +500,46 @@ export function GalleryDesigner({
               }`}
               style={{ background: tokens.bg, color: tokens.fg, fontFamily: tokens.fontBody }}
             >
-              {/* cover */}
+              {/* cover — mirrors the chosen treatment */}
               <div
-                className="relative flex items-end"
+                className={`relative flex ${cover === 'left' ? 'items-end' : 'items-center'}`}
                 style={{
-                  height: device === 'phone' ? 180 : 200,
-                  ...(coverUrl
-                    ? {
-                        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.42)), url("${coverUrl}")`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: `${focalX}% ${focalY}%`,
-                      }
-                    : { background: `linear-gradient(160deg, ${tokens.muted}, ${tokens.fg})` }),
+                  height: cover === 'minimal' ? undefined : device === 'phone' ? 180 : 200,
+                  ...(cover === 'minimal'
+                    ? { background: tokens.bg }
+                    : coverUrl
+                      ? {
+                          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.42)), url("${coverUrl}")`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: `${focalX}% ${focalY}%`,
+                        }
+                      : { background: `linear-gradient(160deg, ${tokens.muted}, ${tokens.fg})` }),
                 }}
               >
-                <div className="w-full p-4">
+                <div
+                  className={`w-full p-4 ${cover === 'left' ? 'text-left' : 'text-center'} ${
+                    cover === 'minimal' ? 'pb-2 pt-10' : ''
+                  }`}
+                >
                   <p
-                    className="text-[10px] uppercase tracking-[0.25em] text-white/80"
-                    style={{ fontFamily: tokens.fontLabel }}
+                    className="text-[10px] uppercase tracking-[0.25em]"
+                    style={{
+                      fontFamily: tokens.fontLabel,
+                      color: cover === 'minimal' ? tokens.muted : 'rgba(255,255,255,.8)',
+                    }}
                   >
                     {new Date().getFullYear()}
                   </p>
                   <p
-                    className="text-white"
                     style={{
+                      color: cover === 'minimal' ? tokens.fg : '#fff',
                       fontFamily: previewFont,
                       fontWeight: tokens.displayWeight,
                       textTransform: tokens.displayTransform as React.CSSProperties['textTransform'],
                       letterSpacing: tokens.displayTracking,
-                      fontSize: device === 'phone' ? 22 : 28,
+                      fontSize: Math.round(((device === 'phone' ? 22 : 28) * titleScale) / 100),
                       lineHeight: 1.1,
-                      textShadow: '0 1px 12px rgba(0,0,0,.35)',
+                      textShadow: cover === 'minimal' ? undefined : '0 1px 12px rgba(0,0,0,.35)',
                     }}
                   >
                     {galleryTitle?.trim() || (uk ? 'Марта і Богдан' : 'Marta & Bohdan')}
@@ -485,8 +563,9 @@ export function GalleryDesigner({
 
               {/* photo grid — REAL photos */}
               <div
-                className="grid gap-2 p-3"
+                className="grid p-3"
                 style={{
+                  gap: Math.max(2, Math.round(gap / 2)),
                   gridTemplateColumns: `repeat(${previewCols}, 1fr)`,
                   gridAutoFlow: layout === 'collage' ? 'dense' : undefined,
                 }}
