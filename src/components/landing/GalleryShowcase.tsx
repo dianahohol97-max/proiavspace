@@ -16,13 +16,15 @@ import Link from 'next/link'
  * the bouquet, evening sparklers, and the sunset hero that is also the cover.
  * Everything else in /themes is a different shoot and must not mix in here.
  */
-const PHOTOS = [
-  '/themes/13.jpg',
-  '/themes/11.jpg',
-  '/themes/14.jpg',
-  '/themes/02.jpg',
-  '/themes/03.jpg',
-  '/themes/01.jpg',
+/** Per-photo crop focus (object-position): faces sit in the upper third of
+ *  these frames, so a centered crop beheads them in wide/short tiles. */
+const PHOTOS: { src: string; pos: string }[] = [
+  { src: '/themes/13.jpg', pos: '50% 20%' },
+  { src: '/themes/11.jpg', pos: '50% 28%' },
+  { src: '/themes/14.jpg', pos: '50% 45%' },
+  { src: '/themes/02.jpg', pos: '50% 50%' },
+  { src: '/themes/03.jpg', pos: '50% 30%' },
+  { src: '/themes/01.jpg', pos: '50% 24%' },
 ]
 
 const THEMES = {
@@ -131,7 +133,8 @@ export function GalleryShowcase({
             backgroundImage:
               'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/01.jpg")',
             backgroundSize: 'cover',
-            backgroundPosition: '50% 35%',
+            // faces live in the upper third of the hero shot
+            backgroundPosition: '50% 24%',
           }}
         >
           <div className="w-full p-5 text-center text-white">
@@ -170,16 +173,17 @@ export function GalleryShowcase({
                 }
           }
         >
-          {PHOTOS.map((url, i) => (
+          {PHOTOS.map((photo, i) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              key={url}
-              src={url}
+              key={photo.src}
+              src={photo.src}
               alt=""
               loading="lazy"
               className="w-full object-cover"
               style={{
                 aspectRatio: aspect(i),
+                objectPosition: photo.pos,
                 borderRadius: 10,
                 ...(layout === 'masonry'
                   ? { breakInside: 'avoid' as const, marginBottom: 12 }
