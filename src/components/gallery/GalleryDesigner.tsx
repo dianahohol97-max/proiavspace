@@ -90,6 +90,16 @@ export function GalleryDesigner({
 
   const dirty = () => setSaved(false)
 
+  // Sample text for font rows and the preview title: the real gallery name
+  // when it reads like one, otherwise a realistic couple-style placeholder
+  // (a 2-3 letter test title makes the font list useless).
+  const sampleTitle =
+    galleryTitle && galleryTitle.trim().length >= 5
+      ? galleryTitle.trim()
+      : uk
+        ? 'Марта і Богдан'
+        : 'Marta & Bohdan'
+
   // Live preview photos: real shots, falling back to soft gradients pre-upload.
   const tiles = photos.length > 0 ? photos.slice(0, Math.max(columns * 2, 4)) : []
   const placeholderCount = Math.max(columns * 2 - tiles.length, tiles.length === 0 ? columns * 2 : 0)
@@ -392,7 +402,7 @@ export function GalleryDesigner({
                       className="text-[17px]"
                       style={{ fontFamily: f.family ?? tokens.fontDisplay }}
                     >
-                      {galleryTitle?.trim() || (uk ? 'Марта і Богдан' : 'Marta & Bohdan')}
+                      {sampleTitle}
                     </span>
                     <span className="text-xs text-muted">{f.label}</span>
                   </button>
@@ -542,7 +552,7 @@ export function GalleryDesigner({
                       textShadow: cover === 'minimal' ? undefined : '0 1px 12px rgba(0,0,0,.35)',
                     }}
                   >
-                    {galleryTitle?.trim() || (uk ? 'Марта і Богдан' : 'Marta & Bohdan')}
+                    {sampleTitle}
                   </p>
                 </div>
               </div>
