@@ -96,22 +96,31 @@ async function searchKeyword(token: string, q: string): Promise<SearchOutcome> {
 }
 
 /**
- * One Gemini call does double duty: relevance gate + draft. If the post is not
- * a natural place for проЯв to add value, the model returns exactly SKIP and we
- * queue nothing — this keeps volume sane on broad keywords and avoids spammy,
- * off-topic replies. Otherwise it returns a short, warm Ukrainian reply.
+ * Compose a проЯв reply to a Threads post via Gemini. With `gate: true` the
+ * model may return exactly SKIP for off-topic posts (used by the auto-scan on
+ * broad keywords); with `gate: false` it always drafts (used when the founder
+ * hand-picks a post to reply to). Returns null on SKIP or any error.
  */
-async function draftReply(apiKey: string, post: Candidate): Promise<string | null> {
-  const prompt =
+export async function composeReply(
+  apiKey: string,
+  text: string,
+  author?: string | null,
+  gate = true
+): Promise<string | null> {
+  const brand =
     `Ти — голос українського бренду проЯв: онлайн-галерея для фотографів, де клієнт ` +
     `отримує красиву галерею замість архіву в Google Drive (100 ГБ за 79 грн, безкоштовний ` +
     `старт, проЯв.space).\n\n` +
-    `Ось пост у Threads від @${post.username ?? 'автор'}:\n"${post.text ?? ''}"\n\n` +
+    `Ось пост у Threads від @${author ?? 'автор'}:\n"${text ?? ''}"\n\n`
+  const gated =
     `КРОК 1 — доречність. Відповідай лише якщо це природне місце, де проЯв додає цінність: ` +
     `фотограф/автор говорить про віддачу чи передачу фото клієнтам, клієнтські галереї, ` +
     `біль із Google Drive / файлообмінниками / архівами, вибір сервісу галерей, або суміжну тему. ` +
     `Якщо пост не про це (випадкове фото, особисте, не по темі) — відповідай РІВНО одним словом: SKIP.\n\n` +
-    `КРОК 2 — якщо доречно, напиши КОРОТКУ (1–2 речення) теплу, корисну відповідь українською. ` +
+    `КРОК 2 — якщо доречно, напиши `
+  const ask =
+    (gate ? gated : 'Напиши ') +
+    `КОРОТКУ (1–2 речення) теплу, корисну відповідь українською. ` +
     `Спершу цінність, без спаму й прямої реклами; проЯв згадай ненав'язливо лише якщо доречно. ` +
     `Без хештегів, без лапок навколо відповіді.`
   try {
@@ -121,7 +130,7 @@ async function draftReply(apiKey: string, post: Candidate): Promise<string | nul
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts: [{ text: brand + ask }] }],
           generationConfig: { temperature: 0.8 },
         }),
       }
@@ -130,15 +139,19 @@ async function draftReply(apiKey: string, post: Candidate): Promise<string | nul
     const json = (await res.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
     }
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text
-    if (typeof text !== 'string' || !text.trim()) return null
-    const clean = text.trim()
-    // Relevance gate: the model returns SKIP for off-topic posts.
-    if (/^skip\b/i.test(clean) || clean.toUpperCase() === 'SKIP') return null
+    const out = json.candidates?.[0]?.content?.parts?.[0]?.text
+    if (typeof out !== 'string' || !out.trim()) return null
+    const clean = out.trim()
+    if (gate && (/^skip\b/i.test(clean) || clean.toUpperCase() === 'SKIP')) return null
     return clean
   } catch {
     return null
   }
+}
+
+/** Auto-scan drafting: relevance-gated compose over a found candidate. */
+async function draftReply(apiKey: string, post: Candidate): Promise<string | null> {
+  return composeReply(apiKey, post.text ?? '', post.username, true)
 }
 
 export interface ScanResult {
