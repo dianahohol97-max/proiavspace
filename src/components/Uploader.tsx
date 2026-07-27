@@ -12,11 +12,13 @@ import { generateVideoPoster } from '@/lib/images/videoPoster'
  *   3. Generate preview/thumb renditions in-browser and PUT them the same way
  *   4. POST /api/uploads/complete → asset row (with variants map) under RLS
  *
- * Runs up to CONCURRENCY uploads in parallel. Resumable multipart uploads for
- * very large videos are a follow-up (S3 multipart via the same StorageProvider).
+ * Runs up to CONCURRENCY uploads in parallel. Per file the pipeline overlaps:
+ * renditions are generated WHILE the original is in flight, then all rendition
+ * PUTs go out together — the browser never sits CPU-idle waiting for network
+ * or network-idle waiting for canvas encodes.
  */
 
-const CONCURRENCY = 3
+const CONCURRENCY = 4
 
 // Files above the threshold (large videos) go through S3 multipart: parts
 // upload in parallel with per-part retries, so one dropped packet no longer
@@ -269,6 +271,13 @@ export function Uploader({
           return
         }
 
+        // Kick off the CPU work (canvas renditions + dimension read) right
+        // away — it runs while the original is uploading, not after it.
+        const renditionsPromise = isVideo
+          ? Promise.resolve([])
+          : generateImageVariants(item.file, watermarkText)
+        const dimensionsPromise = isVideo ? Promise.resolve(videoDims) : readImageSize(item.file)
+
         const { uploadUrl, key } = await presign(item.file.name, contentType, item.file.size)
 
         // The original dominates the transfer — its PUT drives the bar to 90%,
@@ -277,24 +286,28 @@ export function Uploader({
           updateItem(item.id, { progress: Math.round(progress * 0.9) })
         )
 
-        for (const rendition of await generateImageVariants(item.file, watermarkText)) {
-          const target = await presign(
-            `${rendition.name}.jpg`,
-            'image/jpeg',
-            rendition.blob.size,
-            rendition.name
-          )
-          const put = await fetch(target.uploadUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'image/jpeg' },
-            body: rendition.blob,
+        // Renditions are independent of each other: presign + PUT them all
+        // concurrently instead of one-by-one round-trips.
+        await Promise.all(
+          (await renditionsPromise).map(async (rendition) => {
+            const target = await presign(
+              `${rendition.name}.jpg`,
+              'image/jpeg',
+              rendition.blob.size,
+              rendition.name
+            )
+            const put = await fetch(target.uploadUrl, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'image/jpeg' },
+              body: rendition.blob,
+            })
+            if (!put.ok) throw new Error(`variant put ${put.status}`)
+            variants[rendition.name] = target.key
           })
-          if (!put.ok) throw new Error(`variant put ${put.status}`)
-          variants[rendition.name] = target.key
-        }
+        )
         updateItem(item.id, { progress: 95 })
 
-        const dimensions = isVideo ? videoDims : await readImageSize(item.file)
+        const dimensions = await dimensionsPromise
         const completeResponse = await fetch('/api/uploads/complete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
