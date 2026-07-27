@@ -37,17 +37,25 @@ interface FoundPost {
 }
 type Candidate = FoundPost & { keyword: string }
 
-async function searchKeyword(token: string, q: string): Promise<FoundPost[]> {
+interface SearchOutcome {
+  posts: FoundPost[]
+  status: number
+  error?: string
+}
+
+async function searchKeyword(token: string, q: string): Promise<SearchOutcome> {
   const url =
     `${GRAPH}/keyword_search?q=${encodeURIComponent(q)}&search_type=RECENT` +
     `&fields=id,text,username,timestamp,permalink&access_token=${token}`
   try {
     const res = await fetch(url)
-    if (!res.ok) return []
-    const json = (await res.json()) as { data?: FoundPost[] }
-    return json.data ?? []
-  } catch {
-    return []
+    const json = (await res.json().catch(() => null)) as { data?: FoundPost[]; error?: unknown } | null
+    if (!res.ok) {
+      return { posts: [], status: res.status, error: JSON.stringify(json?.error ?? json ?? {}).slice(0, 300) }
+    }
+    return { posts: json?.data ?? [], status: res.status }
+  } catch (e) {
+    return { posts: [], status: 0, error: String(e).slice(0, 200) }
   }
 }
 
@@ -90,18 +98,32 @@ export interface ScanResult {
 }
 
 export async function scanThreads(): Promise<ScanResult> {
-  const token = process.env.THREADS_SEARCH_TOKEN
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!token) return { skipped: 'THREADS_SEARCH_TOKEN not set', found: 0, inserted: 0 }
-  if (!apiKey) return { skipped: 'GEMINI_API_KEY not set', found: 0, inserted: 0 }
   const admin = createSupabaseAdminClient()
   if (!admin) return { skipped: 'service role not configured', found: 0, inserted: 0 }
+  const token = process.env.THREADS_SEARCH_TOKEN
+  const apiKey = process.env.GEMINI_API_KEY
+
+  const log = async (payload: Record<string, unknown>) => {
+    try {
+      await admin.from('scan_log').insert({ source: 'threads', payload })
+    } catch {
+      /* diagnostics only */
+    }
+  }
+
+  if (!token || !apiKey) {
+    const skipped = !token ? 'THREADS_SEARCH_TOKEN not set' : 'GEMINI_API_KEY not set'
+    await log({ tokenPresent: !!token, geminiPresent: !!apiKey, skipped })
+    return { skipped, found: 0, inserted: 0 }
+  }
 
   const now = Date.now()
   const fresh = new Map<string, Candidate>()
+  const diag: Array<{ kw: string; status: number; total: number; error?: string }> = []
   for (const keyword of KEYWORDS) {
-    const posts = await searchKeyword(token, keyword)
-    for (const p of posts) {
+    const r = await searchKeyword(token, keyword)
+    diag.push({ kw: keyword, status: r.status, total: r.posts.length, ...(r.error ? { error: r.error } : {}) })
+    for (const p of r.posts) {
       if (!p.permalink || !p.text) continue
       const ts = p.timestamp ? new Date(p.timestamp).getTime() : 0
       if (!ts || now - ts > FRESH_MS) continue // fresh only (<24h)
@@ -110,32 +132,33 @@ export async function scanThreads(): Promise<ScanResult> {
   }
 
   const found = fresh.size
-  if (found === 0) return { found: 0, inserted: 0 }
-
-  const urls = [...fresh.keys()]
-  const { data: existing } = await admin
-    .from('threads_replies')
-    .select('source_url')
-    .in('source_url', urls)
-  const have = new Set((existing ?? []).map((r) => (r as { source_url: string }).source_url))
-
   let inserted = 0
-  for (const [url, p] of fresh) {
-    if (inserted >= MAX_NEW_PER_RUN) break
-    if (have.has(url)) continue
-    const draft = await draftReply(apiKey, p)
-    if (!draft) continue
-    const { error } = await admin.from('threads_replies').insert({
-      source_url: url,
-      source_author: p.username ? `@${p.username}` : null,
-      source_text: p.text ?? '',
-      draft_reply: draft,
-      keyword: p.keyword,
-      source_created_at: p.timestamp ? new Date(p.timestamp).toISOString() : new Date().toISOString(),
-      status: 'draft',
-    })
-    if (!error) inserted++
+  if (found > 0) {
+    const urls = [...fresh.keys()]
+    const { data: existing } = await admin
+      .from('threads_replies')
+      .select('source_url')
+      .in('source_url', urls)
+    const have = new Set((existing ?? []).map((r) => (r as { source_url: string }).source_url))
+
+    for (const [url, p] of fresh) {
+      if (inserted >= MAX_NEW_PER_RUN) break
+      if (have.has(url)) continue
+      const draft = await draftReply(apiKey, p)
+      if (!draft) continue
+      const { error } = await admin.from('threads_replies').insert({
+        source_url: url,
+        source_author: p.username ? `@${p.username}` : null,
+        source_text: p.text ?? '',
+        draft_reply: draft,
+        keyword: p.keyword,
+        source_created_at: p.timestamp ? new Date(p.timestamp).toISOString() : new Date().toISOString(),
+        status: 'draft',
+      })
+      if (!error) inserted++
+    }
   }
 
+  await log({ tokenPresent: true, geminiPresent: true, found, inserted, keywords: diag })
   return { found, inserted }
 }
