@@ -13,6 +13,7 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 |---|---|---|
 | `MAKE_SECRET` | `0f7716d8…` (той самий) | Make ↔ наші роути |
 | `THREADS_SEARCH_TOKEN` | Threads-токен **будь-якого** акаунта з пошуком | движок Threads |
+| `MAKE_PUBLISH_HOOK_URL` | `https://hook.eu2.make.com/o5wdohs634b065nkcd21ns5ogsbpbbkc` | кнопка «Опублікувати зараз» |
 
 `GEMINI_API_KEY` і `CRON_SECRET` уже додані.
 
@@ -43,6 +44,18 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 > Цей сценарій постить ОДНЕ фото (тизер «coming soon»). Для каруселей — окремий сценарій із модулем IG-каруселі (`format=carousel`), заведемо наступним.
 
 ---
+
+## B2. Кнопка «Опублікувати зараз» (миттєвий постинг)
+У прев'ю поста в адмінці тепер дві кнопки:
+- **Опублікувати зараз** — одразу пінгує Make-вебхук і постить без очікування розкладу.
+- **Затвердити (у чергу)** — лишає для планового сценарію (розділ B).
+
+Що зробити, щоб «зараз» працювало:
+1. Додати `MAKE_PUBLISH_HOOK_URL` у Vercel (крок A) — вебхук уже створений.
+2. Сценарій **«проЯв — Публікація зараз»** (id 9579491) уже зібраний: **Custom webhook → HTTP GET черги → HTTP «позначити опублікованим»**. Лишилось вставити **між** цими двома HTTP-модулями свій модуль постингу:
+   - **Instagram → Create a Photo Post** (Photo URL `{{2.data.post.cover}}`, Caption `{{2.data.post.caption}}`), або
+   - **Buffer → Create Update** (кілька каналів: IG + TikTok) з `{{2.data.post.cover}}` / `{{2.data.post.slides}}` / `{{2.data.post.video}}`.
+3. **Активувати** сценарій. Тоді натискання «Опублікувати зараз» → пост іде миттєво.
 
 ## C. Перший тест (пілот)
 1. Адмінка → **Контент** → «Незабаром — проЯв» → **Переглянути** → **Затвердити**.
