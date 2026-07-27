@@ -53,3 +53,24 @@ export async function getThreadsReplies(): Promise<ThreadsReply[]> {
     .order('created_at', { ascending: false })
   return (data as ThreadsReply[] | null) ?? []
 }
+
+// --- own feed posts ---------------------------------------------------------
+
+export interface ThreadsPost {
+  id: string
+  idea: string
+  draft_text: string
+  status: 'draft' | 'posted' | 'archived'
+  posted_at: string | null
+  created_at: string
+}
+
+export async function getThreadsPosts(): Promise<ThreadsPost[]> {
+  const admin = createSupabaseAdminClient()
+  if (!admin) return []
+  const { data } = await admin
+    .from('threads_posts')
+    .select('id,idea,draft_text,status,posted_at,created_at')
+    .order('created_at', { ascending: false })
+  return (data as ThreadsPost[] | null) ?? []
+}
