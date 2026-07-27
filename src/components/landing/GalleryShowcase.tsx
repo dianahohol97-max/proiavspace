@@ -10,15 +10,19 @@ import Link from 'next/link'
  * visitors feel the constructor before signing up.
  */
 
+/**
+ * One coherent golden-hour wedding story (hand-picked from the demo set):
+ * couple in the wheat field, the walk, the bouquet by the window, rings on
+ * the bouquet, evening sparklers, and the sunset hero that is also the cover.
+ * Everything else in /themes is a different shoot and must not mix in here.
+ */
 const PHOTOS = [
+  '/themes/13.jpg',
+  '/themes/11.jpg',
+  '/themes/14.jpg',
   '/themes/02.jpg',
-  '/themes/05.jpg',
   '/themes/03.jpg',
-  '/themes/07.jpg',
-  '/themes/08.jpg',
-  '/themes/04.jpg',
-  '/themes/06.jpg',
-  '/themes/09.jpg',
+  '/themes/01.jpg',
 ]
 
 const THEMES = {

@@ -20,8 +20,10 @@ function img(n: number): string {
   return `/themes/${String(n).padStart(2, '0')}.jpg`
 }
 
-// A believable wedding gallery from the generated set.
-const PHOTOS = [1, 11, 2, 5, 3, 7, 8, 4, 6, 12, 9, 10]
+// One coherent golden-hour wedding story — only the shots that read as a
+// single shoot (field couple, walk, bouquets, sparklers). The rest of the
+// /themes set is other genres and must not mix into this demo.
+const PHOTOS = [13, 11, 14, 2, 3, 1]
 
 export default async function GalleryDemoPage({
   params,
