@@ -63,7 +63,7 @@ export function GalleryDesigner({
   const [columns, setColumns] = useState(initialStyle.columns ?? 3)
   const [radius, setRadius] = useState(initialStyle.radius ?? 10)
   const [font, setFont] = useState(initialStyle.font ?? '')
-  const [layout, setLayout] = useState<'masonry' | 'square' | 'portrait'>(
+  const [layout, setLayout] = useState<'masonry' | 'square' | 'portrait' | 'collage'>(
     initialStyle.layout ?? 'masonry'
   )
   const [focalX, setFocalX] = useState(initialStyle.focalX ?? 50)
@@ -88,13 +88,22 @@ export function GalleryDesigner({
   const tiles = photos.length > 0 ? photos.slice(0, Math.max(columns * 2, 4)) : []
   const placeholderCount = Math.max(columns * 2 - tiles.length, tiles.length === 0 ? columns * 2 : 0)
 
-  // Tile shape mirrors the client gallery: masonry varies, square/portrait crop.
+  // Tile shape mirrors the client gallery: masonry varies, the rest crop.
   const tileAspect = (i: number) =>
-    layout === 'square' ? '1 / 1' : layout === 'portrait' ? '3 / 4' : i % 3 === 0 ? '3 / 4' : '1 / 1'
-  const layoutLabel = (v: 'masonry' | 'square' | 'portrait') =>
+    layout === 'portrait'
+      ? '3 / 4'
+      : layout === 'masonry'
+        ? i % 3 === 0
+          ? '3 / 4'
+          : '1 / 1'
+        : '1 / 1'
+  // Collage promotes every 6th tile to a 2×2 accent — same rule as the gallery.
+  const tileSpan = (i: number): React.CSSProperties =>
+    layout === 'collage' && i % 6 === 0 ? { gridColumn: 'span 2', gridRow: 'span 2' } : {}
+  const layoutLabel = (v: 'masonry' | 'square' | 'portrait' | 'collage') =>
     uk
       ? LAYOUT_CHOICES.find((l) => l.value === v)?.label ?? v
-      : { masonry: 'Masonry', square: 'Squares', portrait: 'Portrait 3:4' }[v]
+      : { masonry: 'Masonry', square: 'Squares', portrait: 'Portrait 3:4', collage: 'Collage' }[v]
 
   const seg = (on: boolean) =>
     `rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
@@ -256,8 +265,8 @@ export function GalleryDesigner({
             </p>
             <p className="mb-3 text-xs leading-relaxed text-muted">
               {uk
-                ? 'Мозаїка зберігає реальні пропорції фото; квадрати та портрет кадрують у рівні плитки.'
-                : 'Masonry keeps real photo proportions; squares and portrait crop into even tiles.'}
+                ? 'Мозаїка зберігає реальні пропорції фото; квадрати та портрет кадрують у рівні плитки; колаж додає великі акцентні фото.'
+                : 'Masonry keeps real proportions; squares and portrait crop into even tiles; collage adds big accent photos.'}
             </p>
             <div className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full border border-line p-1">
               {LAYOUT_CHOICES.map((l) => (
@@ -446,7 +455,10 @@ export function GalleryDesigner({
               {/* photo grid — REAL photos */}
               <div
                 className="grid gap-2 p-3"
-                style={{ gridTemplateColumns: `repeat(${device === 'phone' ? Math.min(columns, 2) : columns}, 1fr)` }}
+                style={{
+                  gridTemplateColumns: `repeat(${device === 'phone' ? Math.min(columns, 2) : columns}, 1fr)`,
+                  gridAutoFlow: layout === 'collage' ? 'dense' : undefined,
+                }}
               >
                 {tiles.map((url, i) => (
                   <div
@@ -456,6 +468,7 @@ export function GalleryDesigner({
                       aspectRatio: tileAspect(i),
                       borderRadius: radius,
                       background: `center / cover no-repeat url("${url}")`,
+                      ...tileSpan(i),
                     }}
                   >
                     {i === 1 && (
@@ -476,6 +489,7 @@ export function GalleryDesigner({
                       borderRadius: radius,
                       background: `linear-gradient(160deg, ${tokens.line}, ${tokens.muted})`,
                       opacity: 0.6,
+                      ...tileSpan(tiles.length + i),
                     }}
                   />
                 ))}
