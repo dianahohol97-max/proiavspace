@@ -287,8 +287,13 @@ export function GalleryExperience({
     '--g-display-tracking': tokens.displayTracking,
     '--g-cols': String(style?.columns ?? 3),
     '--g-radius': `${style?.radius ?? 10}px`,
+    '--g-gap': `${style?.gap ?? 14}px`,
     '--g-tile': style?.layout === 'portrait' ? '3 / 4' : '1 / 1',
   } as React.CSSProperties
+
+  // Cover treatment + title size come straight from the designer.
+  const cover = style?.cover ?? 'classic'
+  const titleSize = `calc(clamp(34px, 6vw, 68px) * ${(style?.titleScale ?? 100) / 100})`
 
   // Everything except masonry crops to a uniform wall: collage adds 2×2
   // accents on squares, editorial alternates wide hero rows with squares.
@@ -305,27 +310,28 @@ export function GalleryExperience({
   return (
     <div className={s.root} style={vars}>
       {/* -------- cover -------- */}
-      <header className={s.cover}>
-        {coverVideoUrl ? (
-          <video
-            className={s.coverImg}
-            style={{ objectFit: 'cover', objectPosition: focal }}
-            src={coverVideoUrl}
-            poster={coverUrl ?? undefined}
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-        ) : coverUrl ? (
-          <div
-            className={s.coverImg}
-            style={{ backgroundImage: `url("${coverUrl}")`, backgroundPosition: focal }}
-          />
-        ) : (
-          <div className={s.coverImg} style={{ background: tokens.line }} />
-        )}
-        <div className={s.coverShade} />
+      <header className={`${s.cover}${cover === 'left' ? ` ${s.coverLeft}` : ''}${cover === 'minimal' ? ` ${s.coverMinimal}` : ''}`}>
+        {cover !== 'minimal' &&
+          (coverVideoUrl ? (
+            <video
+              className={s.coverImg}
+              style={{ objectFit: 'cover', objectPosition: focal }}
+              src={coverVideoUrl}
+              poster={coverUrl ?? undefined}
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : coverUrl ? (
+            <div
+              className={s.coverImg}
+              style={{ backgroundImage: `url("${coverUrl}")`, backgroundPosition: focal }}
+            />
+          ) : (
+            <div className={s.coverImg} style={{ background: tokens.line }} />
+          ))}
+        {cover !== 'minimal' && <div className={s.coverShade} />}
         <div className={s.coverInner}>
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -333,10 +339,12 @@ export function GalleryExperience({
           ) : (
             brandName && <span className={s.caps}>{brandName}</span>
           )}
-          <h1 className={s.coverTitle}>{title}</h1>
+          <h1 className={s.coverTitle} style={{ fontSize: titleSize }}>{title}</h1>
           {eventLine && <span className={s.caps}>{eventLine}</span>}
         </div>
-        <span className={`${s.caps} ${s.scrollHint}`}>{labels.scrollHint}</span>
+        {cover !== 'minimal' && (
+          <span className={`${s.caps} ${s.scrollHint}`}>{labels.scrollHint}</span>
+        )}
         {/* Language switcher: client galleries serve international guests too. */}
         <div
           className={s.caps}
@@ -347,7 +355,7 @@ export function GalleryExperience({
             zIndex: 2,
             maxWidth: 220,
             textAlign: 'right',
-            color: 'rgba(247, 244, 238, 0.9)',
+            color: cover === 'minimal' ? 'var(--g-mut)' : 'rgba(247, 244, 238, 0.9)',
           }}
         >
           <LangPicker current={isLocale(locale) ? locale : ('uk' as Locale)} />

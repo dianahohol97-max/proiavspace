@@ -112,6 +112,10 @@ export async function setGalleryTheme(
     radius: formData.get('radius') !== null ? Number(formData.get('radius')) : undefined,
     font: String(formData.get('font') ?? '') || undefined,
     layout: String(formData.get('layout') ?? '') || undefined,
+    gap: formData.get('gap') !== null ? Number(formData.get('gap')) : undefined,
+    cover: String(formData.get('cover') ?? '') || undefined,
+    titleScale:
+      formData.get('titleScale') !== null ? Number(formData.get('titleScale')) : undefined,
     focalX: formData.get('focalX') !== null ? Number(formData.get('focalX')) : undefined,
     focalY: formData.get('focalY') !== null ? Number(formData.get('focalY')) : undefined,
   })

@@ -144,18 +144,24 @@ export default async function ManageGalleryPage({
   const hasPassword = gallery.has_password
   const expiryDefault = gallery.expires_at ? gallery.expires_at.slice(0, 10) : ''
 
-  // «Як на сайті» (value '') is hidden while photographer sites are still
-  // «в розробці» — an inherit card only confuses; Тиша is the effective default.
+  // The 8 site-theme cards read as near-identical swatches in the gallery
+  // studio, so the picker is reduced to three clearly distinct moods. Legacy
+  // stored themes stay valid and are normalized to the nearest mood below.
   const themeOptions: { value: string; label: string }[] = [
-    { value: 'tysha', label: dict.site.themeTysha },
-    { value: 'opivnich', label: dict.site.themeOpivnich },
-    { value: 'povitria', label: dict.site.themePovitria },
-    { value: 'plivka', label: dict.site.themePlivka },
-    { value: 'zhurnal', label: dict.site.themeZhurnal },
-    { value: 'galereia', label: dict.site.themeGalereia },
-    { value: 'arkhiv', label: dict.site.themeArkhiv },
-    { value: 'prodakshn', label: dict.site.themeProdakshn },
+    { value: 'tysha', label: locale === 'uk' ? 'Світла' : 'Light' },
+    { value: 'opivnich', label: locale === 'uk' ? 'Темна' : 'Dark' },
+    { value: 'plivka', label: locale === 'uk' ? 'Крем' : 'Cream' },
   ]
+  const themeMood: Record<string, string> = {
+    tysha: 'tysha',
+    povitria: 'tysha',
+    galereia: 'tysha',
+    opivnich: 'opivnich',
+    prodakshn: 'opivnich',
+    plivka: 'plivka',
+    zhurnal: 'plivka',
+    arkhiv: 'plivka',
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
@@ -209,7 +215,7 @@ export default async function ManageGalleryPage({
         <GalleryDesigner
           action={themeAction}
           themeOptions={themeOptions}
-          initialTheme={gallery.theme ?? 'tysha'}
+          initialTheme={themeMood[gallery.theme ?? ''] ?? 'tysha'}
           initialStyle={parseGalleryStyle(gallery.style)}
           coverUrl={
             previews.find((p) => p.asset.id === gallery.cover_asset_id)?.url ??

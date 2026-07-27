@@ -19,10 +19,24 @@ export interface GalleryStyle {
    * editorial alternates a wide hero tile with squares, row by row.
    */
   layout?: 'masonry' | 'square' | 'portrait' | 'collage' | 'editorial'
+  /** Gap between photos in px (0–30); breathing room of the grid. */
+  gap?: number
+  /** Cover treatment: classic centred hero, bottom-left title, or a plain
+   *  text header with no photo at all. */
+  cover?: 'classic' | 'left' | 'minimal'
+  /** Cover title size, % of the default clamp (60–140). */
+  titleScale?: number
   /** Cover focal point (0–100%); where the cover crop centres. */
   focalX?: number
   focalY?: number
 }
+
+/** Cover treatments offered in the designer. */
+export const COVER_CHOICES: { value: 'classic' | 'left' | 'minimal'; label: string }[] = [
+  { value: 'classic', label: 'Класична' },
+  { value: 'left', label: 'Ліворуч' },
+  { value: 'minimal', label: 'Мінімал' },
+]
 
 /** Accent swatches offered in the designer (label + hex); '' = theme default. */
 export const ACCENT_PRESETS: { value: string; label: string }[] = [
@@ -35,14 +49,35 @@ export const ACCENT_PRESETS: { value: string; label: string }[] = [
   { value: '#26242a', label: 'Графіт' },
 ]
 
-/** Display-font choices; '' = the theme's own display font. */
+/** Display-font choices; '' = the theme's own display font. System stacks
+ *  only — the public gallery must not pay for webfont downloads. */
 export const FONT_PRESETS: { value: string; label: string; family: string | null }[] = [
   { value: '', label: 'Тема', family: null },
   { value: 'serif', label: 'Серіф', family: 'Georgia, "Times New Roman", serif' },
   {
+    value: 'didone',
+    label: 'Дідо',
+    family: 'Didot, "Bodoni MT", "Playfair Display", "Times New Roman", serif',
+  },
+  {
+    value: 'palatino',
+    label: 'Палатіно',
+    family: '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif',
+  },
+  {
     value: 'sans',
     label: 'Ґротеск',
     family: '-apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
+    value: 'condensed',
+    label: 'Вузький',
+    family: '"Avenir Next Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
+    value: 'rounded',
+    label: 'Округлий',
+    family: '"Arial Rounded MT Bold", "Avenir Next Rounded", "Trebuchet MS", sans-serif',
   },
   { value: 'mono', label: 'Моно', family: 'ui-monospace, "SF Mono", Menlo, monospace' },
 ]
@@ -89,6 +124,13 @@ export function parseGalleryStyle(raw: unknown): GalleryStyle {
     LAYOUT_CHOICES.some((l) => l.value === v.layout)
   ) {
     style.layout = v.layout as GalleryStyle['layout']
+  }
+  if (typeof v.gap === 'number' && v.gap >= 0 && v.gap <= 30) style.gap = Math.round(v.gap)
+  if (typeof v.cover === 'string' && COVER_CHOICES.some((c) => c.value === v.cover)) {
+    style.cover = v.cover as GalleryStyle['cover']
+  }
+  if (typeof v.titleScale === 'number' && v.titleScale >= 60 && v.titleScale <= 140) {
+    style.titleScale = Math.round(v.titleScale)
   }
   if (typeof v.focalX === 'number' && v.focalX >= 0 && v.focalX <= 100) style.focalX = v.focalX
   if (typeof v.focalY === 'number' && v.focalY >= 0 && v.focalY <= 100) style.focalY = v.focalY

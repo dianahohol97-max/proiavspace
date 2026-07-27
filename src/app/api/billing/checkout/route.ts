@@ -50,16 +50,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
+  // The destination line is shown to the payer on the monobank/LiqPay page —
+  // Ukrainian, branded «проЯв» (the big merchant name above it comes from the
+  // acquiring profile and cannot be set via the API).
+  const periodUk = body.period === 'year' ? 'оплата за рік' : 'оплата за місяць'
+  const planNameUk: Record<string, string> = {
+    basic: 'Базовий',
+    plus: 'Плюс',
+    pro: 'Про',
+    site_basic: 'Сайт Базовий',
+    site_plus: 'Сайт Плюс',
+  }
+
   let amount: number
   let description: string
   if (isGalleryPlanId(body.plan) && body.plan !== 'free') {
     const plan = GALLERY_PLANS[body.plan]
     amount = galleryPlanPriceUah(plan, body.period)
-    description = `Gallery plan "${plan.id}" (${plan.storageGb} GB), billed per ${body.period}`
+    description = `проЯв · тариф «${planNameUk[plan.id] ?? plan.id}» (${plan.storageGb} ГБ), ${periodUk}`
   } else if (isSitePlanId(body.plan) && body.plan !== 'site_trial') {
     const plan = SITE_PLANS[body.plan]
     amount = sitePlanPriceUah(plan, body.period)
-    description = `Site plan "${plan.id}" (${plan.sites} site(s)), billed per ${body.period}`
+    description = `проЯв · тариф «${planNameUk[plan.id] ?? plan.id}», ${periodUk}`
 
     // Бандл «Галерея + Сайт»: −15% на сайт при активній платній підписці
     // на галереї (applied automatically, no promo codes).
@@ -75,7 +87,7 @@ export async function POST(request: NextRequest) {
       (!profile.grace_until || new Date(profile.grace_until).getTime() > Date.now())
     if (paidGallery) {
       amount = Math.round(amount * (1 - BUNDLE_SITE_DISCOUNT))
-      description += ' (bundle -15%)'
+      description += ' (бандл −15%)'
     }
   } else {
     return NextResponse.json({ error: 'plan_needs_no_checkout' }, { status: 400 })
@@ -97,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (discountUah > 0) {
       creditAppliedKop = discountUah * 100
       amount -= discountUah
-      description += ` (credit -${discountUah} ₴)`
+      description += ` (кредит −${discountUah} ₴)`
     }
   }
 
