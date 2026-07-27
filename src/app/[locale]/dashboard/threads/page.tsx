@@ -74,7 +74,7 @@ export default async function ThreadsAdminPage({ params }: { params: { locale: s
   if (!isAdminEmail(user.email)) notFound()
 
   const replies = await getThreadsReplies()
-  // Reply only to fresh posts: drafts whose source is older than 24h are hidden.
+  // Reply only to fresh posts: drafts whose source is older than the window are hidden.
   const allDrafts = replies.filter((r) => r.status === 'draft')
   const drafts = allDrafts.filter((r) => isFresh(r.source_created_at))
   const staleHidden = allDrafts.length - drafts.length
@@ -85,15 +85,15 @@ export default async function ThreadsAdminPage({ params }: { params: { locale: s
     <main className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="font-brand text-3xl">Threads</h1>
       <p className="mt-2 text-sm text-muted">
-        Система знаходить релевантні пости за останні 24 години й накидає корисні відповіді від
-        проЯв. Переглянь, за потреби виправ і затвердь — далі публікує Make.
+        Система знаходить релевантні пости за останні 3 дні й накидає корисні відповіді від
+        проЯв. Переглянь, за потреби виправ і затвердь.
       </p>
 
       <section className="mt-8">
         <h2 className="mb-2 font-brand text-xl">На затвердження · {drafts.length}</h2>
         {staleHidden > 0 && (
           <p className="mb-4 text-xs text-muted">
-            Приховано {staleHidden} старших за 24 год — на них не відповідаємо.
+            Приховано {staleHidden} старших за 3 дні — на них не відповідаємо.
           </p>
         )}
         {drafts.length === 0 ? (

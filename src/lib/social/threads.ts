@@ -22,8 +22,12 @@ export interface ThreadsReply {
 const COLS =
   'id,source_url,source_author,source_text,draft_reply,keyword,status,source_created_at,posted_at,created_at'
 
-/** Reply to fresh posts only: the source must be from the last 24 hours. */
-export const FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
+/**
+ * Reply to fresh posts only. On the Ukrainian photographer niche the volume is
+ * low, so a 24h window almost never has enough posts — 72h still catches an
+ * active conversation while keeping the queue useful.
+ */
+export const FRESH_WINDOW_MS = 72 * 60 * 60 * 1000
 
 export function isFresh(sourceCreatedAt: string | null): boolean {
   if (!sourceCreatedAt) return false
@@ -35,7 +39,9 @@ export function ageLabel(sourceCreatedAt: string | null): string {
   const mins = Math.max(0, Math.round((Date.now() - new Date(sourceCreatedAt).getTime()) / 60000))
   if (mins < 60) return `${mins} хв тому`
   const hours = Math.round(mins / 60)
-  return `${hours} год тому`
+  if (hours < 24) return `${hours} год тому`
+  const days = Math.round(hours / 24)
+  return `${days} дн тому`
 }
 
 export async function getThreadsReplies(): Promise<ThreadsReply[]> {
