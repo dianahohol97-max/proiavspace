@@ -23,7 +23,16 @@ function img(n: number): string {
 // One coherent golden-hour wedding story — only the shots that read as a
 // single shoot (field couple, walk, bouquets, sparklers). The rest of the
 // /themes set is other genres and must not mix into this demo.
-const PHOTOS = [13, 11, 14, 2, 3, 1]
+// The focal pair keeps faces in frame when a cropped layout is chosen
+// (same mechanism as real galleries' assets.focal_x/focal_y).
+const PHOTOS: { n: number; focalY: number }[] = [
+  { n: 13, focalY: 20 },
+  { n: 11, focalY: 28 },
+  { n: 14, focalY: 45 },
+  { n: 2, focalY: 50 },
+  { n: 3, focalY: 30 },
+  { n: 1, focalY: 24 },
+]
 
 export default async function GalleryDemoPage({
   params,
@@ -40,13 +49,15 @@ export default async function GalleryDemoPage({
   // The gallery inherits its palette/typography from the chosen theme.
   const active = THEME_DEMOS.find((d) => d.value === searchParams.theme) ?? THEME_DEMOS[0]
 
-  const items: GalleryItem[] = PHOTOS.map((n) => ({
+  const items: GalleryItem[] = PHOTOS.map(({ n, focalY }) => ({
     id: String(n),
     kind: 'photo',
     width: 1100,
-    height: 1375,
+    height: 1100,
     previewUrl: img(n),
     posterUrl: null,
+    focalX: 50,
+    focalY,
     downloadHref: img(n),
   }))
 
@@ -95,6 +106,8 @@ export default async function GalleryDemoPage({
         tipUrl={null}
         theme={active.theme}
         mode={active.mode}
+        // Cover focal: the hero couple's faces sit in the upper third.
+        style={{ focalX: 50, focalY: 28 }}
         labels={{
           scrollHint: dict.publicGallery.scrollHint,
           selected: dict.publicGallery.selected,
