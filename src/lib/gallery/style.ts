@@ -12,6 +12,8 @@ export interface GalleryStyle {
   radius?: number
   /** Display-font key (see FONT_PRESETS); the cover title font. */
   font?: string
+  /** Body-font key (same presets); hints, buttons, labels — the «system» text. */
+  bodyFont?: string
   /**
    * Grid layout: masonry keeps every photo's real aspect ratio (default);
    * square / portrait crop tiles to a uniform 1:1 / 3:4 wall; collage is a
@@ -118,6 +120,12 @@ export function parseGalleryStyle(raw: unknown): GalleryStyle {
   }
   if (typeof v.font === 'string' && FONT_PRESETS.some((f) => f.value === v.font && f.value)) {
     style.font = v.font
+  }
+  if (
+    typeof v.bodyFont === 'string' &&
+    FONT_PRESETS.some((f) => f.value === v.bodyFont && f.value)
+  ) {
+    style.bodyFont = v.bodyFont
   }
   if (
     typeof v.layout === 'string' &&

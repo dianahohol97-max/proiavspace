@@ -283,8 +283,9 @@ export function GalleryExperience({
     '--g-line': tokens.line,
     '--g-accent': accent,
     '--g-display': fontFamily(style?.font) ?? tokens.fontDisplay,
-    '--g-body': tokens.fontBody,
-    '--g-label': tokens.fontLabel,
+    // The «system» font override covers body copy AND the caps labels.
+    '--g-body': fontFamily(style?.bodyFont) ?? tokens.fontBody,
+    '--g-label': fontFamily(style?.bodyFont) ?? tokens.fontLabel,
     '--g-display-transform': tokens.displayTransform,
     '--g-display-weight': String(tokens.displayWeight),
     '--g-display-tracking': tokens.displayTracking,

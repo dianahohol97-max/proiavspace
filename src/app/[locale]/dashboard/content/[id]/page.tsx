@@ -5,6 +5,7 @@ import { isLocale, type Locale } from '@/lib/i18n/config'
 import { publishPostNow, setPostStatus } from '@/lib/actions/social'
 import { getAdminPost } from '@/lib/social/posts'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { PublishNowButton } from '@/components/social/PublishNowButton'
 import { ReelUpload } from './ReelUpload'
 
 export const dynamic = 'force-dynamic'
@@ -21,8 +22,10 @@ const CHANNELS: Record<string, string> = {
 /** Full preview of a post before approving — every slide / the reel script. */
 export default async function ContentPreviewPage({
   params,
+  searchParams,
 }: {
   params: { locale: string; id: string }
+  searchParams?: { pub?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale: Locale = params.locale
@@ -114,13 +117,24 @@ export default async function ContentPreviewPage({
         )}
       </div>
 
+      {/* --- publish feedback --- */}
+      {searchParams?.pub && (
+        <div className="mt-6 rounded-2xl border border-line bg-bg p-4 text-sm">
+          {searchParams.pub === 'sent' &&
+            '✅ Відправлено в Make — пост публікується. Кнопка зникла, щоб не продублювати.'}
+          {searchParams.pub === 'queued' &&
+            '☑️ Затверджено і поставлено в чергу — Make опублікує за розкладом (миттєвий вебхук не налаштовано).'}
+          {searchParams.pub === 'hookfail' &&
+            '⚠️ Make-вебхук не відповів. Пост у черзі — опублікується плановим запуском, або спробуй ще раз.'}
+          {searchParams.pub === 'already' && 'ℹ️ Цей пост уже опубліковано — повторно не відправляю.'}
+        </div>
+      )}
+
       {/* --- actions --- */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {canPublish && (
           <form action={publishPostNow.bind(null, locale, post.id)}>
-            <button className="rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-white">
-              Опублікувати зараз
-            </button>
+            <PublishNowButton />
           </form>
         )}
         {canApprove && (
