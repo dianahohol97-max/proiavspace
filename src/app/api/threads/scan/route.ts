@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { scanThreads } from '@/lib/threads/scan'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { probeKeyword, scanThreads } from '@/lib/threads/scan'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -17,6 +18,18 @@ export async function GET(request: NextRequest) {
   const make = process.env.MAKE_SECRET
   const ok = (cron && auth === `Bearer ${cron}`) || (make && auth === `Bearer ${make}`)
   if (!ok) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  // Diagnostic: ?probe=<term> runs a single search and records the raw Threads
+  // API response to scan_log, so we can see whether keyword_search returns
+  // public posts at all (dev-mode/permission scoping vs genuinely empty).
+  const probe = request.nextUrl.searchParams.get('probe')
+  if (probe) {
+    const out = await probeKeyword(probe)
+    const admin = createSupabaseAdminClient()
+    if (admin) await admin.from('scan_log').insert({ source: 'threads-probe', payload: { probe, ...out } })
+    return NextResponse.json({ probe, ...out })
+  }
+
   const result = await scanThreads()
   return NextResponse.json(result)
 }

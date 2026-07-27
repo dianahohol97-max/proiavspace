@@ -43,6 +43,35 @@ interface SearchOutcome {
   error?: string
 }
 
+/**
+ * One-off diagnostic: run a single keyword search and return the raw HTTP
+ * status plus a snippet of the raw response body, so we can tell apart an
+ * empty-but-authorized search from a dev-mode / permission-scoped one.
+ */
+export async function probeKeyword(
+  q: string
+): Promise<{ tokenPresent: boolean; status: number; count: number | null; raw: string }> {
+  const token = process.env.THREADS_SEARCH_TOKEN
+  if (!token) return { tokenPresent: false, status: 0, count: null, raw: 'no token' }
+  const url =
+    `${GRAPH}/keyword_search?q=${encodeURIComponent(q)}&search_type=RECENT` +
+    `&fields=id,text,username,timestamp,permalink&access_token=${token}`
+  try {
+    const res = await fetch(url)
+    const body = await res.text()
+    let count: number | null = null
+    try {
+      const j = JSON.parse(body) as { data?: unknown[] }
+      count = Array.isArray(j.data) ? j.data.length : null
+    } catch {
+      /* non-JSON body */
+    }
+    return { tokenPresent: true, status: res.status, count, raw: body.slice(0, 600) }
+  } catch (e) {
+    return { tokenPresent: true, status: 0, count: null, raw: String(e).slice(0, 300) }
+  }
+}
+
 async function searchKeyword(token: string, q: string): Promise<SearchOutcome> {
   const url =
     `${GRAPH}/keyword_search?q=${encodeURIComponent(q)}&search_type=RECENT` +
