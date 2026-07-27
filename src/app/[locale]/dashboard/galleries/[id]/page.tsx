@@ -12,7 +12,6 @@ import { isLocale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { ClientOnly } from '@/components/ClientOnly'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
@@ -159,14 +158,6 @@ export default async function ManageGalleryPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
-      {/* ClientOnly: this page kept dying in extension-heavy browsers —
-          translators/password managers rewrote the SSR DOM before hydration
-          and React's reconciliation crashed (removeChild). Mounting the whole
-          page client-side sidesteps hydration entirely: extensions have no
-          server HTML to corrupt, React owns every node it manages. */}
-      <ClientOnly
-        fallback={<p className="text-sm text-muted">{gallery.title}…</p>}
-      >
       <Link href={`/${locale}/dashboard`} className="text-sm text-muted hover:text-fg">
         ← {dict.dashboard.title}
       </Link>
@@ -421,7 +412,6 @@ export default async function ManageGalleryPage({
           <p className="mt-2 max-w-md text-xs text-muted">{dict.galleryManage.deleteConfirm}</p>
         </form>
       </section>
-      </ClientOnly>
     </main>
   )
 }
