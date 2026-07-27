@@ -113,6 +113,10 @@
 }
 .gridUniform .shot { margin: 0; aspect-ratio: var(--g-tile, 1 / 1); }
 .gridUniform .shotMedia { width: 100%; height: 100%; object-fit: cover; }
+/* Collage: squares with every 6th photo promoted to a 2×2 accent tile. With
+   1:1 tiles a 2-col span is exactly two rows tall, so dense flow stays even. */
+.gridCollage { grid-auto-flow: dense; }
+.gridCollage .shot:nth-child(6n + 1) { grid-column: span 2; grid-row: span 2; }
 .playBadge {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   width: 54px; height: 54px; border-radius: 50%;

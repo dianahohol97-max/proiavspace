@@ -14,9 +14,10 @@ export interface GalleryStyle {
   font?: string
   /**
    * Grid layout: masonry keeps every photo's real aspect ratio (default);
-   * square / portrait crop tiles to a uniform 1:1 / 3:4 wall.
+   * square / portrait crop tiles to a uniform 1:1 / 3:4 wall; collage is a
+   * square wall where every 6th photo becomes a big 2×2 accent tile.
    */
-  layout?: 'masonry' | 'square' | 'portrait'
+  layout?: 'masonry' | 'square' | 'portrait' | 'collage'
   /** Cover focal point (0–100%); where the cover crop centres. */
   focalX?: number
   focalY?: number
@@ -47,10 +48,14 @@ export const FONT_PRESETS: { value: string; label: string; family: string | null
 
 /** Grid layouts: real proportions vs uniform crops. '' is not valid here —
  *  masonry IS the default, stored explicitly only when the user picked it. */
-export const LAYOUT_CHOICES: { value: 'masonry' | 'square' | 'portrait'; label: string }[] = [
+export const LAYOUT_CHOICES: {
+  value: 'masonry' | 'square' | 'portrait' | 'collage'
+  label: string
+}[] = [
   { value: 'masonry', label: 'Мозаїка' },
   { value: 'square', label: 'Квадрати' },
   { value: 'portrait', label: 'Портрет 3:4' },
+  { value: 'collage', label: 'Колаж' },
 ]
 
 export const COLUMN_CHOICES = [2, 3, 4]

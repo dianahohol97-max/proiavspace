@@ -290,8 +290,13 @@ export function GalleryExperience({
     '--g-tile': style?.layout === 'portrait' ? '3 / 4' : '1 / 1',
   } as React.CSSProperties
 
-  // square / portrait crop to a uniform wall; masonry (default) keeps real ratios
-  const uniform = style?.layout === 'square' || style?.layout === 'portrait'
+  // square / portrait / collage crop to a uniform wall; masonry (default)
+  // keeps real ratios. Collage adds big 2×2 accent tiles on top of squares.
+  const uniform =
+    style?.layout === 'square' || style?.layout === 'portrait' || style?.layout === 'collage'
+  const gridClass = uniform
+    ? `${s.grid} ${s.gridUniform}${style?.layout === 'collage' ? ` ${s.gridCollage}` : ''}`
+    : s.grid
 
   const current = lightbox !== null ? items[lightbox] : null
 
@@ -386,7 +391,7 @@ export function GalleryExperience({
       </p>
 
       {/* -------- grid -------- */}
-      <main className={uniform ? `${s.grid} ${s.gridUniform}` : s.grid}>
+      <main className={gridClass}>
         {items.map((item, index) => (
           <figure
             key={item.id}
