@@ -215,6 +215,9 @@ export default async function ManageGalleryPage({
             previews[0]?.url ??
             null
           }
+          photos={previews.slice(0, 8).map((p) => p.url).filter(Boolean)}
+          galleryTitle={gallery.title}
+          locale={locale}
           labels={{
             styleLabel: dict.galleryManage.styleLabel,
             styleSave: dict.galleryManage.styleSave,

@@ -1,8 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { resolveTokens } from '@/lib/site/themes'
-import { THEME_CATALOG } from '@/lib/site/themes'
+import { resolveTokens, THEME_CATALOG } from '@/lib/site/themes'
 import {
   ACCENT_PRESETS,
   COLUMN_CHOICES,
@@ -25,9 +24,12 @@ interface DesignerLabels {
 }
 
 /**
- * Live per-gallery design customizer: theme preset + accent / columns / corner
- * radius / display font, with an instant preview that mirrors the real client
- * gallery tokens. Saves through the gallery-theme server action.
+ * Gallery design studio: the editor competitors hide in side panels, opened
+ * up — a control rail on the left and a LIVE preview built from the gallery's
+ * REAL photos on the right, with a desktop/phone toggle. Visual theme cards
+ * (mini palettes) replace the old dropdown; accent has a free color picker on
+ * top of the presets. Saves through the same server action contract
+ * (theme + accent/columns/radius/font/focalX/focalY).
  */
 export function GalleryDesigner({
   action,
@@ -35,6 +37,9 @@ export function GalleryDesigner({
   initialTheme,
   initialStyle,
   coverUrl,
+  photos = [],
+  galleryTitle,
+  locale = 'uk',
   labels,
 }: {
   action: (formData: FormData) => Promise<void>
@@ -43,8 +48,13 @@ export function GalleryDesigner({
   initialStyle: GalleryStyle
   /** Real gallery cover, so the preview + focal pad show the actual photo. */
   coverUrl?: string | null
+  /** Real photo preview URLs — the live preview renders the actual shoot. */
+  photos?: string[]
+  galleryTitle?: string
+  locale?: string
   labels: DesignerLabels
 }) {
+  const uk = locale === 'uk'
   const [pending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [theme, setTheme] = useState(initialTheme)
@@ -54,8 +64,8 @@ export function GalleryDesigner({
   const [font, setFont] = useState(initialStyle.font ?? '')
   const [focalX, setFocalX] = useState(initialStyle.focalX ?? 50)
   const [focalY, setFocalY] = useState(initialStyle.focalY ?? 50)
+  const [device, setDevice] = useState<'desktop' | 'phone'>('desktop')
 
-  // Tokens of the chosen theme drive the preview surface (bg/fg/accent/font).
   const tokens = useMemo(() => {
     const entry = THEME_CATALOG.find((e) => e.value === theme)
     return resolveTokens(entry?.theme ?? 'tysha', entry?.mode ?? 'light')
@@ -64,9 +74,14 @@ export function GalleryDesigner({
   const previewFont = fontFamily(font) ?? tokens.fontDisplay
 
   const dirty = () => setSaved(false)
-  const pill = (on: boolean) =>
-    `rounded-full border px-3 py-1 text-sm transition-colors ${
-      on ? 'border-fg bg-fg text-bg' : 'border-line text-fg hover:border-fg'
+
+  // Live preview photos: real shots, falling back to soft gradients pre-upload.
+  const tiles = photos.length > 0 ? photos.slice(0, Math.max(columns * 2, 4)) : []
+  const placeholderCount = Math.max(columns * 2 - tiles.length, tiles.length === 0 ? columns * 2 : 0)
+
+  const seg = (on: boolean) =>
+    `rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+      on ? 'bg-fg text-bg' : 'text-muted hover:text-fg'
     }`
 
   return (
@@ -87,178 +102,346 @@ export function GalleryDesigner({
           setSaved(true)
         })
       }}
-      className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]"
+      className="mt-8 overflow-hidden rounded-3xl border border-line bg-white shadow-[0_1px_0_rgba(13,12,10,.03)]"
     >
-      <div className="flex flex-col gap-5">
-        {/* theme */}
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="w-24 text-sm text-muted" htmlFor="gallery-theme">
-            {labels.styleLabel}
-          </label>
-          <select
-            id="gallery-theme"
-            value={theme}
-            onChange={(e) => {
-              setTheme(e.target.value)
-              dirty()
-            }}
-            className="border border-line bg-transparent px-3 py-2 text-sm outline-none focus:border-fg"
-          >
-            {themeOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+      {/* ---------- studio header ---------- */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
+        <div>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+            {uk ? 'Дизайн-студія' : 'Design studio'}
+          </p>
+          <p className="text-sm text-muted">
+            {uk
+              ? 'Зміни видно одразу — збережи, коли сподобається.'
+              : 'Changes preview instantly — save when it feels right.'}
+          </p>
         </div>
-
-        {/* accent */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-24 text-sm text-muted">{labels.accent}</span>
-          {ACCENT_PRESETS.map((a) => {
-            const on = accent === a.value
-            return (
-              <button
-                key={a.value || 'theme'}
-                type="button"
-                title={a.label}
-                onClick={() => {
-                  setAccent(a.value)
-                  dirty()
-                }}
-                className={`h-7 w-7 rounded-full border-2 ${on ? 'border-fg' : 'border-line'}`}
-                style={{
-                  background: a.value || `repeating-conic-gradient(${tokens.muted} 0% 25%, transparent 0% 50%) 50% / 8px 8px`,
-                }}
-              />
-            )
-          })}
-        </div>
-
-        {/* columns */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-24 text-sm text-muted">{labels.columns}</span>
-          {COLUMN_CHOICES.map((c) => (
-            <button key={c} type="button" className={pill(columns === c)} onClick={() => { setColumns(c); dirty() }}>
-              {c}
-            </button>
-          ))}
-        </div>
-
-        {/* radius */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-24 text-sm text-muted">{labels.radius}</span>
-          {RADIUS_CHOICES.map((r) => (
-            <button key={r.value} type="button" className={pill(radius === r.value)} onClick={() => { setRadius(r.value); dirty() }}>
-              {r.label}
-            </button>
-          ))}
-        </div>
-
-        {/* font */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-24 text-sm text-muted">{labels.font}</span>
-          {FONT_PRESETS.map((f) => (
-            <button key={f.value || 'theme'} type="button" className={pill(font === f.value)} onClick={() => { setFont(f.value); dirty() }}>
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        {/* cover focal point — click to set where the cover crops */}
         <div className="flex items-center gap-3">
-          <span className="w-24 text-sm text-muted">{labels.focal}</span>
-          <button
-            type="button"
-            aria-label={labels.focal}
-            onClick={(e) => {
-              const r = e.currentTarget.getBoundingClientRect()
-              setFocalX(Math.round(((e.clientX - r.left) / r.width) * 100))
-              setFocalY(Math.round(((e.clientY - r.top) / r.height) * 100))
-              dirty()
-            }}
-            className="relative h-16 w-28 overflow-hidden rounded border border-line"
-            style={
-              coverUrl
-                ? { background: `center / cover no-repeat url("${coverUrl}")` }
-                : { background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }
-            }
-          >
-            <span
-              className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-fg"
-              style={{ left: `${focalX}%`, top: `${focalY}%` }}
-            />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3">
+          {saved && <span className="text-sm font-semibold text-accent">✓ {labels.styleSaved}</span>}
           <button
             type="submit"
             disabled={pending}
-            className="rounded border border-fg px-5 py-2 text-sm transition-colors hover:bg-fg hover:text-bg disabled:opacity-50"
+            className="rounded-full bg-fg px-6 py-2.5 text-sm font-bold text-bg transition-opacity hover:opacity-85 disabled:opacity-50"
           >
-            {labels.styleSave}
+            {pending ? '…' : labels.styleSave}
           </button>
-          {saved && <span className="text-sm text-accent">✓ {labels.styleSaved}</span>}
         </div>
       </div>
 
-      {/* live preview */}
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">{labels.preview}</p>
-        <div
-          className="overflow-hidden rounded-xl border border-line"
-          style={{ background: tokens.bg, color: tokens.fg }}
-        >
-          <div
-            style={{
-              height: 92,
-              ...(coverUrl
-                ? { backgroundImage: `url("${coverUrl}")`, backgroundSize: 'cover', backgroundPosition: `${focalX}% ${focalY}%` }
-                : { background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }),
-              display: 'flex',
-              alignItems: 'flex-end',
-              padding: 12,
-            }}
-          >
-            <span
-              style={{
-                fontFamily: previewFont,
-                fontWeight: tokens.displayWeight as unknown as number,
-                textTransform: tokens.displayTransform as React.CSSProperties['textTransform'],
-                fontSize: 20,
-                color: '#fff',
-                textShadow: '0 1px 8px rgba(0,0,0,.4)',
-              }}
-            >
-              Марта і Богдан
-            </span>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${columns}, 1fr)`,
-              gap: 8,
-              padding: 12,
-            }}
-          >
-            {Array.from({ length: columns * 2 }).map((_, i) => (
-              <div
-                key={i}
+      <div className="grid lg:grid-cols-[340px_1fr]">
+        {/* ---------- control rail ---------- */}
+        <aside className="flex flex-col gap-7 border-b border-line p-6 lg:max-h-[720px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+          {/* theme cards */}
+          <section>
+            <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {labels.styleLabel}
+            </p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {themeOptions.map((option) => {
+                const entry = THEME_CATALOG.find((e) => e.value === option.value)
+                const t = entry ? resolveTokens(entry.theme, entry.mode) : null
+                const on = theme === option.value
+                return (
+                  <button
+                    key={option.value || '_inherit'}
+                    type="button"
+                    onClick={() => {
+                      setTheme(option.value)
+                      dirty()
+                    }}
+                    className={`rounded-2xl border p-2.5 text-left transition-all ${
+                      on ? 'border-fg ring-1 ring-fg' : 'border-line hover:border-muted'
+                    }`}
+                  >
+                    <span
+                      className="mb-2 flex h-9 items-center gap-1.5 rounded-lg px-2"
+                      style={{ background: t?.bg ?? 'linear-gradient(135deg,#eee,#ddd)' }}
+                    >
+                      <i
+                        className="block h-3.5 w-3.5 rounded-full"
+                        style={{ background: t?.fg ?? '#888' }}
+                      />
+                      <i
+                        className="block h-2.5 w-2.5 rounded-full"
+                        style={{ background: t?.accent ?? '#bbb' }}
+                      />
+                      <i
+                        className="ml-auto block h-1.5 w-6 rounded-full"
+                        style={{ background: t?.line ?? '#ccc' }}
+                      />
+                    </span>
+                    <span className={`text-[13px] font-semibold ${on ? 'text-fg' : 'text-muted'}`}>
+                      {option.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* accent */}
+          <section>
+            <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {labels.accent}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {ACCENT_PRESETS.map((a) => {
+                const on = accent === a.value
+                return (
+                  <button
+                    key={a.value || 'theme'}
+                    type="button"
+                    title={a.label}
+                    onClick={() => {
+                      setAccent(a.value)
+                      dirty()
+                    }}
+                    className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                      on ? 'border-fg' : 'border-line'
+                    }`}
+                    style={{
+                      background:
+                        a.value ||
+                        `repeating-conic-gradient(${tokens.muted} 0% 25%, transparent 0% 50%) 50% / 8px 8px`,
+                    }}
+                  />
+                )
+              })}
+              {/* free color: anything the presets don't cover */}
+              <label
+                className="relative h-8 w-8 cursor-pointer overflow-hidden rounded-full border-2 border-line transition-transform hover:scale-110"
+                title={uk ? 'Свій колір' : 'Custom color'}
                 style={{
-                  position: 'relative',
-                  aspectRatio: i % 3 === 0 ? '3 / 4' : '1 / 1',
-                  borderRadius: radius,
-                  background: `linear-gradient(160deg, ${tokens.line}, ${tokens.muted})`,
+                  background:
+                    'conic-gradient(#f44,#fa0,#ff4,#4f4,#4ff,#44f,#f4f,#f44)',
                 }}
               >
-                {i === 1 && (
-                  <span style={{ position: 'absolute', top: 4, right: 6, color: previewAccent, fontSize: 13 }}>
-                    ♥
-                  </span>
-                )}
+                <input
+                  type="color"
+                  value={/^#[0-9a-fA-F]{6}$/.test(accent) ? accent : '#2f55ff'}
+                  onChange={(e) => {
+                    setAccent(e.target.value)
+                    dirty()
+                  }}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+              </label>
+            </div>
+          </section>
+
+          {/* grid: columns + corners */}
+          <section>
+            <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {labels.columns} · {labels.radius}
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex w-fit items-center gap-1 rounded-full border border-line p-1">
+                {COLUMN_CHOICES.map((c) => (
+                  <button key={c} type="button" className={seg(columns === c)} onClick={() => { setColumns(c); dirty() }}>
+                    {c} {uk ? 'кол.' : 'col'}
+                  </button>
+                ))}
               </div>
-            ))}
+              <div className="flex w-fit items-center gap-1 rounded-full border border-line p-1">
+                {RADIUS_CHOICES.map((r) => (
+                  <button key={r.value} type="button" className={seg(radius === r.value)} onClick={() => { setRadius(r.value); dirty() }}>
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* typography */}
+          <section>
+            <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {labels.font}
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {FONT_PRESETS.map((f) => {
+                const on = font === f.value
+                return (
+                  <button
+                    key={f.value || 'theme'}
+                    type="button"
+                    onClick={() => {
+                      setFont(f.value)
+                      dirty()
+                    }}
+                    className={`flex items-baseline justify-between rounded-xl border px-3.5 py-2.5 text-left transition-colors ${
+                      on ? 'border-fg bg-fg/[0.04]' : 'border-line hover:border-muted'
+                    }`}
+                  >
+                    <span
+                      className="text-[17px]"
+                      style={{ fontFamily: f.family ?? tokens.fontDisplay }}
+                    >
+                      {galleryTitle?.trim() || (uk ? 'Марта і Богдан' : 'Marta & Bohdan')}
+                    </span>
+                    <span className="text-xs text-muted">{f.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* cover focal point */}
+          <section>
+            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {labels.focal}
+            </p>
+            <p className="mb-3 text-xs leading-relaxed text-muted">
+              {uk
+                ? 'Клацни по фото — куди цілитись кадруванню обкладинки.'
+                : 'Click the photo to aim the cover crop.'}
+            </p>
+            <button
+              type="button"
+              aria-label={labels.focal}
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect()
+                setFocalX(Math.round(((e.clientX - r.left) / r.width) * 100))
+                setFocalY(Math.round(((e.clientY - r.top) / r.height) * 100))
+                dirty()
+              }}
+              className="relative h-24 w-full overflow-hidden rounded-xl border border-line"
+              style={
+                coverUrl
+                  ? { background: `center / cover no-repeat url("${coverUrl}")` }
+                  : { background: `linear-gradient(135deg, ${tokens.muted}, ${tokens.line})` }
+              }
+            >
+              <span
+                className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_2px_rgba(0,0,0,.35)]"
+                style={{ left: `${focalX}%`, top: `${focalY}%`, background: previewAccent }}
+              />
+            </button>
+          </section>
+        </aside>
+
+        {/* ---------- live preview ---------- */}
+        <div className="flex flex-col bg-[#f3f2ee] p-5 sm:p-7">
+          <div className="mb-5 flex items-center justify-between">
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
+              {labels.preview}
+            </p>
+            <div className="flex items-center gap-1 rounded-full border border-line bg-white p-1">
+              <button type="button" className={seg(device === 'desktop')} onClick={() => setDevice('desktop')}>
+                {uk ? 'Комп’ютер' : 'Desktop'}
+              </button>
+              <button type="button" className={seg(device === 'phone')} onClick={() => setDevice('phone')}>
+                {uk ? 'Телефон' : 'Phone'}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-1 items-start justify-center">
+            <div
+              className={`overflow-hidden shadow-[0_24px_60px_-32px_rgba(13,12,10,.45)] transition-all ${
+                device === 'phone'
+                  ? 'w-[300px] rounded-[30px] border-[6px] border-[#1a1917]'
+                  : 'w-full max-w-[620px] rounded-2xl border border-line'
+              }`}
+              style={{ background: tokens.bg, color: tokens.fg, fontFamily: tokens.fontBody }}
+            >
+              {/* cover */}
+              <div
+                className="relative flex items-end"
+                style={{
+                  height: device === 'phone' ? 180 : 200,
+                  ...(coverUrl
+                    ? {
+                        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.42)), url("${coverUrl}")`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: `${focalX}% ${focalY}%`,
+                      }
+                    : { background: `linear-gradient(160deg, ${tokens.muted}, ${tokens.fg})` }),
+                }}
+              >
+                <div className="w-full p-4">
+                  <p
+                    className="text-[10px] uppercase tracking-[0.25em] text-white/80"
+                    style={{ fontFamily: tokens.fontLabel }}
+                  >
+                    {new Date().getFullYear()}
+                  </p>
+                  <p
+                    className="text-white"
+                    style={{
+                      fontFamily: previewFont,
+                      fontWeight: tokens.displayWeight,
+                      textTransform: tokens.displayTransform as React.CSSProperties['textTransform'],
+                      letterSpacing: tokens.displayTracking,
+                      fontSize: device === 'phone' ? 22 : 28,
+                      lineHeight: 1.1,
+                      textShadow: '0 1px 12px rgba(0,0,0,.35)',
+                    }}
+                  >
+                    {galleryTitle?.trim() || (uk ? 'Марта і Богдан' : 'Marta & Bohdan')}
+                  </p>
+                </div>
+              </div>
+
+              {/* action bar — mirrors the client gallery */}
+              <div
+                className="flex items-center gap-2 px-4 py-2.5 text-[11px]"
+                style={{ borderBottom: `1px solid ${tokens.line}`, fontFamily: tokens.fontLabel }}
+              >
+                <span style={{ color: previewAccent }}>♥ 3 {uk ? 'обрано' : 'picked'}</span>
+                <span
+                  className="ml-auto rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+                  style={{ background: tokens.fg, color: tokens.bg }}
+                >
+                  {uk ? 'Завантажити все' : 'Download all'}
+                </span>
+              </div>
+
+              {/* photo grid — REAL photos */}
+              <div
+                className="grid gap-2 p-3"
+                style={{ gridTemplateColumns: `repeat(${device === 'phone' ? Math.min(columns, 2) : columns}, 1fr)` }}
+              >
+                {tiles.map((url, i) => (
+                  <div
+                    key={url + i}
+                    className="relative overflow-hidden"
+                    style={{
+                      aspectRatio: i % 3 === 0 ? '3 / 4' : '1 / 1',
+                      borderRadius: radius,
+                      background: `center / cover no-repeat url("${url}")`,
+                    }}
+                  >
+                    {i === 1 && (
+                      <span
+                        className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-[11px]"
+                        style={{ color: previewAccent }}
+                      >
+                        ♥
+                      </span>
+                    )}
+                  </div>
+                ))}
+                {Array.from({ length: placeholderCount }).map((_, i) => (
+                  <div
+                    key={`ph-${i}`}
+                    style={{
+                      aspectRatio: (tiles.length + i) % 3 === 0 ? '3 / 4' : '1 / 1',
+                      borderRadius: radius,
+                      background: `linear-gradient(160deg, ${tokens.line}, ${tokens.muted})`,
+                      opacity: 0.6,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* footer signature */}
+              <p
+                className="pb-4 text-center text-[10px] uppercase tracking-[0.3em]"
+                style={{ color: tokens.muted, fontFamily: tokens.fontLabel }}
+              >
+                {uk ? 'ваш бренд · фотографія' : 'your brand · photography'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
