@@ -9,6 +9,10 @@ export type Locale = 'uk' | 'en'
 export interface Profile {
   user_id: string
   display_name: string | null
+  /** Latin-script name, shown on English-locale galleries. */
+  display_name_en: string | null
+  /** One client-facing contact link (Instagram / site / mailto: / tel:). */
+  contact_url: string | null
   logo_url: string | null
   locale: Locale
   plan: string

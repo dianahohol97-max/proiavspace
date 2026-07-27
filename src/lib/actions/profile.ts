@@ -18,11 +18,21 @@ async function requireUser() {
 export async function updateDisplayName(locale: Locale, formData: FormData): Promise<void> {
   const { supabase, user } = await requireUser()
   const displayName = String(formData.get('display_name') ?? '').trim()
+  const displayNameEn = String(formData.get('display_name_en') ?? '').trim()
+
+  // One client-facing contact link; a bare handle/domain gets https:// so the
+  // gallery button always opens something.
+  let contactUrl = String(formData.get('contact_url') ?? '').trim()
+  if (contactUrl && !/^(https?:|mailto:|tel:)/i.test(contactUrl)) {
+    contactUrl = `https://${contactUrl.replace(/^@/, 'instagram.com/')}`
+  }
 
   const { error } = await supabase
     .from('profiles')
     .update({
       display_name: displayName || null,
+      display_name_en: displayNameEn || null,
+      contact_url: contactUrl || null,
       watermark_enabled: formData.get('watermark_enabled') === 'on',
     })
     .eq('user_id', user.id)

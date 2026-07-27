@@ -103,6 +103,7 @@ export function GalleryExperience({
   initialFavorites,
   showBadge,
   tipUrl,
+  contactUrl = null,
   theme,
   mode,
   labels,
@@ -122,6 +123,8 @@ export function GalleryExperience({
   initialFavorites: string[]
   showBadge: boolean
   tipUrl: string | null
+  /** «Звʼязатися з фотографом» footer link (Instagram / site / mailto / tel). */
+  contactUrl?: string | null
   theme: ThemeId
   mode: SiteMode
   labels: GalleryLabels
@@ -479,11 +482,31 @@ export function GalleryExperience({
       {/* -------- footer -------- */}
       <footer className={s.foot}>
         {brandName && <div className={s.sig}>{brandName}</div>}
-        {tipUrl && (
-          <div style={{ marginTop: 18 }}>
-            <a className={s.tipBtn} href={tipUrl} target="_blank" rel="noopener noreferrer">
-              ♥ {labels.tip}
-            </a>
+        {(tipUrl || contactUrl) && (
+          <div
+            style={{
+              marginTop: 18,
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 10,
+            }}
+          >
+            {contactUrl && (
+              <a
+                className={s.tipBtn}
+                href={contactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {uk ? 'Звʼязатися з фотографом' : 'Contact the photographer'}
+              </a>
+            )}
+            {tipUrl && (
+              <a className={s.tipBtn} href={tipUrl} target="_blank" rel="noopener noreferrer">
+                ♥ {labels.tip}
+              </a>
+            )}
           </div>
         )}
         {showBadge && (
