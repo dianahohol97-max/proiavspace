@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
 import { isLocale, type Locale } from '@/lib/i18n/config'
-import { setReplyStatus, updateReplyDraft } from '@/lib/actions/threads'
+import { draftReplyFromInput, setReplyStatus, updateReplyDraft } from '@/lib/actions/threads'
 import { ageLabel, getThreadsReplies, isFresh, type ThreadsReply } from '@/lib/social/threads'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -88,6 +88,39 @@ export default async function ThreadsAdminPage({ params }: { params: { locale: s
         Система знаходить релевантні пости за останні 3 дні й накидає корисні відповіді від
         проЯв. Переглянь, за потреби виправ і затвердь.
       </p>
+
+      {/* Manual seed: paste a post you found → проЯв drafts a reply */}
+      <form
+        action={draftReplyFromInput.bind(null, locale)}
+        className="mt-6 rounded-2xl border border-line p-5"
+      >
+        <p className="text-sm font-bold text-fg">Створити драфт на свій пост</p>
+        <p className="mb-3 text-xs text-muted">
+          Знайшла пост сама? Встав текст (і за бажанням лінк та автора) — проЯв напише відповідь.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            name="source_url"
+            placeholder="Лінк на пост (необов'язково)"
+            className="w-full rounded-xl border border-line bg-white p-2.5 text-sm text-fg sm:w-2/3"
+          />
+          <input
+            name="source_author"
+            placeholder="@автор (необов'язково)"
+            className="w-full rounded-xl border border-line bg-white p-2.5 text-sm text-fg sm:w-1/3"
+          />
+        </div>
+        <textarea
+          name="source_text"
+          required
+          rows={3}
+          placeholder="Текст поста, на який відповідаємо…"
+          className="mt-2 w-full rounded-xl border border-line bg-white p-3 text-sm text-fg"
+        />
+        <button className="mt-2 rounded-full bg-accent px-5 py-2 text-sm font-bold text-white">
+          Створити драфт
+        </button>
+      </form>
 
       <section className="mt-8">
         <h2 className="mb-2 font-brand text-xl">На затвердження · {drafts.length}</h2>
