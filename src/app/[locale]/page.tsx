@@ -7,6 +7,7 @@ import { GALLERY_PLANS, type GalleryPlanId } from '@/lib/plans'
 import { LangPicker } from '@/components/LangPicker'
 import { Logo } from '@/components/Logo'
 import { AuthNav } from '@/components/landing/AuthNav'
+import { GalleryShowcase } from '@/components/landing/GalleryShowcase'
 import { Reveal } from '@/components/landing/Reveal'
 import s from './landing.module.css'
 
@@ -244,6 +245,9 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           </div>
         </section>
 
+        {/* ---------- gallery design studio showcase ---------- */}
+        <GalleryShowcase locale={locale} />
+
         {/* ---------- bento ---------- */}
         <section className={s.bento}>
           <Reveal>
@@ -352,7 +356,8 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <p>{t.pricing.lede}</p>
             </div>
           </Reveal>
-          <div id="galleries" className={`${s.plans} ${s.plansFour}`} style={{ scrollMarginTop: 90 }}>
+          {/* #galleries now points at the design-studio showcase above */}
+          <div className={`${s.plans} ${s.plansFour}`}>
             {(Object.keys(GALLERY_PLANS) as GalleryPlanId[]).map((id) => {
               const plan = GALLERY_PLANS[id]
               const copy = t.pricing.plans[id]
