@@ -30,9 +30,14 @@ const THEMES = {
 const LAYOUTS = [
   { key: 'masonry', name: ['Мозаїка', 'Masonry'] },
   { key: 'square', name: ['Квадрати', 'Squares'] },
+  { key: 'portrait', name: ['Портрет 3:4', 'Portrait 3:4'] },
   { key: 'collage', name: ['Колаж', 'Collage'] },
   { key: 'editorial', name: ['Едіторіал', 'Editorial'] },
 ] as const
+
+/** The demo files are square, so masonry re-crops them to a believable mix of
+ *  verticals/horizontals via object-fit — visually identical to real ratios. */
+const MASONRY_RATIOS = ['3 / 4', '1 / 1', '4 / 5', '4 / 3', '3 / 4', '4 / 3', '4 / 5', '1 / 1']
 
 type LayoutKey = (typeof LAYOUTS)[number]['key']
 type ThemeKey = keyof typeof THEMES
@@ -44,15 +49,18 @@ export function GalleryShowcase({ locale }: { locale: string }) {
   const [themeKey, setThemeKey] = useState<ThemeKey>('light')
   const th = THEMES[themeKey]
 
+  // Same tile math as the client gallery (GalleryExperience):
+  // portrait crops 3:4, collage promotes every 6th to 2×2, editorial
+  // alternates a wide hero with squares; masonry keeps varied proportions.
   const wide = (i: number) => i % 4 === 0 || i % 4 === 3
   const aspect = (i: number) =>
     layout === 'masonry'
-      ? i % 3 === 0
+      ? MASONRY_RATIOS[i % MASONRY_RATIOS.length]
+      : layout === 'portrait'
         ? '3 / 4'
-        : '1 / 1'
-      : layout === 'editorial' && wide(i)
-        ? '2 / 1'
-        : '1 / 1'
+        : layout === 'editorial' && wide(i)
+          ? '2 / 1'
+          : '1 / 1'
   const span = (i: number): React.CSSProperties =>
     layout === 'collage' && i % 6 === 0
       ? { gridColumn: 'span 2', gridRow: 'span 2' }
@@ -154,10 +162,10 @@ export function GalleryShowcase({ locale }: { locale: string }) {
           className="p-4"
           style={
             layout === 'masonry'
-              ? { columns: 3, columnGap: 10 }
+              ? { columns: 3, columnGap: 12 }
               : {
                   display: 'grid',
-                  gap: 10,
+                  gap: 12,
                   gridTemplateColumns: 'repeat(3, 1fr)',
                   gridAutoFlow: layout === 'collage' ? 'dense' : undefined,
                 }
@@ -170,11 +178,12 @@ export function GalleryShowcase({ locale }: { locale: string }) {
               src={url}
               alt=""
               loading="lazy"
-              className="w-full rounded-lg object-cover"
+              className="w-full object-cover"
               style={{
                 aspectRatio: aspect(i),
+                borderRadius: 10,
                 ...(layout === 'masonry'
-                  ? { breakInside: 'avoid' as const, marginBottom: 10 }
+                  ? { breakInside: 'avoid' as const, marginBottom: 12 }
                   : span(i)),
               }}
             />
