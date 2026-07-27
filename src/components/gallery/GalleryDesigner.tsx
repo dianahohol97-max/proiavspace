@@ -63,9 +63,9 @@ export function GalleryDesigner({
   const [columns, setColumns] = useState(initialStyle.columns ?? 3)
   const [radius, setRadius] = useState(initialStyle.radius ?? 10)
   const [font, setFont] = useState(initialStyle.font ?? '')
-  const [layout, setLayout] = useState<'masonry' | 'square' | 'portrait' | 'collage'>(
-    initialStyle.layout ?? 'masonry'
-  )
+  const [layout, setLayout] = useState<
+    'masonry' | 'square' | 'portrait' | 'collage' | 'editorial'
+  >(initialStyle.layout ?? 'masonry')
   const [focalX, setFocalX] = useState(initialStyle.focalX ?? 50)
   const [focalY, setFocalY] = useState(initialStyle.focalY ?? 50)
   const [device, setDevice] = useState<'desktop' | 'phone'>('desktop')
@@ -89,6 +89,7 @@ export function GalleryDesigner({
   const placeholderCount = Math.max(columns * 2 - tiles.length, tiles.length === 0 ? columns * 2 : 0)
 
   // Tile shape mirrors the client gallery: masonry varies, the rest crop.
+  const editorialWide = (i: number) => i % 4 === 0 || i % 4 === 3
   const tileAspect = (i: number) =>
     layout === 'portrait'
       ? '3 / 4'
@@ -96,14 +97,39 @@ export function GalleryDesigner({
         ? i % 3 === 0
           ? '3 / 4'
           : '1 / 1'
-        : '1 / 1'
-  // Collage promotes every 6th tile to a 2×2 accent — same rule as the gallery.
+        : layout === 'editorial' && editorialWide(i)
+          ? device === 'phone'
+            ? '3 / 2'
+            : '2 / 1'
+          : '1 / 1'
+  // Collage promotes every 6th tile to a 2×2 accent; editorial alternates a
+  // wide hero with squares — same rules as the client gallery.
   const tileSpan = (i: number): React.CSSProperties =>
-    layout === 'collage' && i % 6 === 0 ? { gridColumn: 'span 2', gridRow: 'span 2' } : {}
-  const layoutLabel = (v: 'masonry' | 'square' | 'portrait' | 'collage') =>
+    layout === 'collage' && i % 6 === 0
+      ? { gridColumn: 'span 2', gridRow: 'span 2' }
+      : layout === 'editorial' && editorialWide(i)
+        ? { gridColumn: 'span 2' }
+        : {}
+  const layoutLabel = (v: (typeof LAYOUT_CHOICES)[number]['value']) =>
     uk
       ? LAYOUT_CHOICES.find((l) => l.value === v)?.label ?? v
-      : { masonry: 'Masonry', square: 'Squares', portrait: 'Portrait 3:4', collage: 'Collage' }[v]
+      : {
+          masonry: 'Masonry',
+          square: 'Squares',
+          portrait: 'Portrait 3:4',
+          collage: 'Collage',
+          editorial: 'Editorial',
+        }[v]
+  // Editorial is a fixed 3-column pattern — the columns pick doesn't apply.
+  const columnsLocked = layout === 'editorial'
+  const previewCols =
+    layout === 'editorial'
+      ? device === 'phone'
+        ? 2
+        : 3
+      : device === 'phone'
+        ? Math.min(columns, 2)
+        : columns
 
   const seg = (on: boolean) =>
     `rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
@@ -265,8 +291,8 @@ export function GalleryDesigner({
             </p>
             <p className="mb-3 text-xs leading-relaxed text-muted">
               {uk
-                ? 'Мозаїка зберігає реальні пропорції фото; квадрати та портрет кадрують у рівні плитки; колаж додає великі акцентні фото.'
-                : 'Masonry keeps real proportions; squares and portrait crop into even tiles; collage adds big accent photos.'}
+                ? 'Мозаїка зберігає реальні пропорції фото; квадрати та портрет кадрують у рівні плитки; колаж додає великі акцентні фото; едіторіал чергує широке фото з квадратами.'
+                : 'Masonry keeps real proportions; squares and portrait crop into even tiles; collage adds big accent photos; editorial alternates a wide hero with squares.'}
             </p>
             <div className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full border border-line p-1">
               {LAYOUT_CHOICES.map((l) => (
@@ -291,9 +317,14 @@ export function GalleryDesigner({
               {labels.columns} · {labels.radius}
             </p>
             <div className="flex flex-col gap-2.5">
-              <div className="flex w-fit items-center gap-1 rounded-full border border-line p-1">
+              <div
+                className={`flex w-fit items-center gap-1 rounded-full border border-line p-1 ${
+                  columnsLocked ? 'pointer-events-none opacity-40' : ''
+                }`}
+                title={columnsLocked ? (uk ? 'Едіторіал завжди 3 колонки' : 'Editorial is always 3 columns') : undefined}
+              >
                 {COLUMN_CHOICES.map((c) => (
-                  <button key={c} type="button" className={seg(columns === c)} onClick={() => { setColumns(c); dirty() }}>
+                  <button key={c} type="button" disabled={columnsLocked} className={seg(columns === c)} onClick={() => { setColumns(c); dirty() }}>
                     {c} {uk ? 'кол.' : 'col'}
                   </button>
                 ))}
@@ -456,7 +487,7 @@ export function GalleryDesigner({
               <div
                 className="grid gap-2 p-3"
                 style={{
-                  gridTemplateColumns: `repeat(${device === 'phone' ? Math.min(columns, 2) : columns}, 1fr)`,
+                  gridTemplateColumns: `repeat(${previewCols}, 1fr)`,
                   gridAutoFlow: layout === 'collage' ? 'dense' : undefined,
                 }}
               >
