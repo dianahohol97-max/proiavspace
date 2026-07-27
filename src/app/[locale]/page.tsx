@@ -246,7 +246,28 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
         </section>
 
         {/* ---------- gallery design studio showcase ---------- */}
-        <GalleryShowcase locale={locale} />
+        {/* Header uses the landing's own secHead/h2 styles so typography
+            matches the rest of the page; the interactive mock keeps the
+            gallery's serif INSIDE the phone-style preview only. */}
+        <section id="galleries" className={s.products} style={{ scrollMarginTop: 90 }}>
+          <Reveal>
+            <div className={s.secHead}>
+              <span className={s.lbl}>{locale === 'uk' ? 'Дизайн-студія' : 'Design studio'}</span>
+              <h2 className={s.h2}>
+                {locale === 'uk' ? 'Галерея, яку хочеться ' : 'A gallery clients love '}
+                <span className={s.accentWord}>
+                  {locale === 'uk' ? 'переслати друзям' : 'to share'}
+                </span>
+              </h2>
+              <p>
+                {locale === 'uk'
+                  ? 'Розкладка, тема, шрифти, відступи й обкладинка — усе налаштовується, і зміни видно одразу. Спробуй просто тут:'
+                  : 'Layout, theme, fonts, spacing and cover — all adjustable with a live preview. Try it right here:'}
+              </p>
+            </div>
+          </Reveal>
+          <GalleryShowcase locale={locale} ctaPrimary={s.pillHot} ctaGhost={s.pillGhost} />
+        </section>
 
         {/* ---------- bento ---------- */}
         <section className={s.bento}>
