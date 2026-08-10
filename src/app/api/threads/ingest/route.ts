@@ -114,5 +114,39 @@ export async function POST(req: NextRequest) {
     rawItems: items.length,
     usable: posts.length,
   })
+  await recordRun(items.length, posts.length, result.found, result.inserted)
   return NextResponse.json({ rawItems: items.length, usable: posts.length, ...result })
+}
+
+/**
+ * Heartbeat for the command center. An empty queue is ambiguous on its own —
+ * quiet week or dead monitor — so every sweep records its funnel there even
+ * when it inserted nothing. Best-effort: never fail the ingest over it.
+ */
+async function recordRun(rawItems: number, usable: number, fresh: number, inserted: number) {
+  const url = process.env.CC_SUPABASE_URL
+  const key = process.env.CC_SUPABASE_SERVICE_KEY
+  const projectId = process.env.CC_PROYAV_PROJECT_ID
+  if (!url || !key || !projectId) return
+  try {
+    await fetch(`${url}/rest/v1/cc_scan_runs`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        project_id: projectId,
+        origin: 'apify',
+        raw_items: rawItems,
+        usable,
+        fresh,
+        inserted,
+      }),
+    })
+  } catch {
+    /* heartbeat only */
+  }
 }
