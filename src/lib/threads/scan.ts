@@ -29,7 +29,9 @@ const KEYWORDS = [
 
 const GRAPH = 'https://graph.threads.net/v1.0'
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
-const FRESH_MS = 72 * 60 * 60 * 1000 // 3 days — niche is low-volume; 24h rarely fills the queue
+// Scans run twice a day, so a 24h window leaves no gap. Wider than that just
+// means replying under three-day-old threads, where nobody is still reading.
+const FRESH_MS = 24 * 60 * 60 * 1000
 const MAX_NEW_PER_RUN = 8
 // Cap Gemini calls per run: we evaluate at most this many fresh candidates
 // (relevance + draft in one call) to find up to MAX_NEW_PER_RUN good replies.
@@ -160,38 +162,46 @@ export interface ScanResult {
   inserted: number
 }
 
-export async function scanThreads(): Promise<ScanResult> {
+export type IncomingPost = FoundPost & { keyword?: string }
+
+/**
+ * Freshness gate → dedupe against the queue → relevance-gated draft → insert.
+ * Shared by the native keyword_search sweep and the Apify ingest route, so both
+ * sources land in threads_replies through exactly the same filters.
+ */
+export async function queueCandidates(
+  posts: IncomingPost[],
+  source: string,
+  extraLog: Record<string, unknown> = {}
+): Promise<ScanResult> {
   const admin = createSupabaseAdminClient()
   if (!admin) return { skipped: 'service role not configured', found: 0, inserted: 0 }
-  const token = process.env.THREADS_SEARCH_TOKEN
   const apiKey = process.env.GEMINI_API_KEY
 
   const log = async (payload: Record<string, unknown>) => {
     try {
-      await admin.from('scan_log').insert({ source: 'threads', payload })
+      await admin.from('scan_log').insert({ source, payload })
     } catch {
       /* diagnostics only */
     }
   }
 
-  if (!token || !apiKey) {
-    const skipped = !token ? 'THREADS_SEARCH_TOKEN not set' : 'GEMINI_API_KEY not set'
-    await log({ tokenPresent: !!token, geminiPresent: !!apiKey, skipped })
-    return { skipped, found: 0, inserted: 0 }
+  if (!apiKey) {
+    await log({ ...extraLog, received: posts.length, skipped: 'GEMINI_API_KEY not set' })
+    return { skipped: 'GEMINI_API_KEY not set', found: 0, inserted: 0 }
   }
 
   const now = Date.now()
   const fresh = new Map<string, Candidate>()
-  const diag: Array<{ kw: string; status: number; total: number; error?: string }> = []
-  for (const keyword of KEYWORDS) {
-    const r = await searchKeyword(token, keyword)
-    diag.push({ kw: keyword, status: r.status, total: r.posts.length, ...(r.error ? { error: r.error } : {}) })
-    for (const p of r.posts) {
-      if (!p.permalink || !p.text) continue
-      const ts = p.timestamp ? new Date(p.timestamp).getTime() : 0
-      if (!ts || now - ts > FRESH_MS) continue // fresh only (<24h)
-      if (!fresh.has(p.permalink)) fresh.set(p.permalink, { ...p, keyword })
+  let stale = 0
+  for (const p of posts) {
+    if (!p.permalink || !p.text) continue
+    const ts = p.timestamp ? new Date(p.timestamp).getTime() : 0
+    if (!ts || now - ts > FRESH_MS) {
+      stale++
+      continue
     }
+    if (!fresh.has(p.permalink)) fresh.set(p.permalink, { ...p, keyword: p.keyword ?? '' })
   }
 
   const found = fresh.size
@@ -229,14 +239,37 @@ export async function scanThreads(): Promise<ScanResult> {
     }
   }
 
-  await log({
-    tokenPresent: true,
-    geminiPresent: true,
-    found,
-    evaluated,
-    skipped,
-    inserted,
-    keywords: diag,
-  })
+  await log({ ...extraLog, received: posts.length, stale, found, evaluated, skipped, inserted })
   return { found, inserted }
+}
+
+export async function scanThreads(): Promise<ScanResult> {
+  const admin = createSupabaseAdminClient()
+  if (!admin) return { skipped: 'service role not configured', found: 0, inserted: 0 }
+  const token = process.env.THREADS_SEARCH_TOKEN
+  const apiKey = process.env.GEMINI_API_KEY
+
+  const log = async (payload: Record<string, unknown>) => {
+    try {
+      await admin.from('scan_log').insert({ source: 'threads', payload })
+    } catch {
+      /* diagnostics only */
+    }
+  }
+
+  if (!token || !apiKey) {
+    const skipped = !token ? 'THREADS_SEARCH_TOKEN not set' : 'GEMINI_API_KEY not set'
+    await log({ tokenPresent: !!token, geminiPresent: !!apiKey, skipped })
+    return { skipped, found: 0, inserted: 0 }
+  }
+
+  const collected: IncomingPost[] = []
+  const diag: Array<{ kw: string; status: number; total: number; error?: string }> = []
+  for (const keyword of KEYWORDS) {
+    const r = await searchKeyword(token, keyword)
+    diag.push({ kw: keyword, status: r.status, total: r.posts.length, ...(r.error ? { error: r.error } : {}) })
+    for (const p of r.posts) collected.push({ ...p, keyword })
+  }
+
+  return queueCandidates(collected, 'threads', { keywords: diag })
 }
