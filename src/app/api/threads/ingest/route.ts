@@ -5,14 +5,12 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 /**
- * Apify ingest for the Threads engagement queue.
+ * Apify ingest — the only source feeding the Threads engagement queue.
  *
- * Threads' own keyword_search only returns posts from accounts with a role on
- * our Meta app until `threads_keyword_search` clears App Review, so it finds
- * nothing useful. Until then an Apify Threads scraper runs on a schedule and
- * calls this route, which pushes the results through the SAME freshness /
- * dedupe / relevance filters as the native sweep. When Meta approves, drop the
- * Apify schedule and nothing else changes.
+ * Threads' own keyword_search stayed scoped to our own account (a probe run
+ * returned 18 month-old posts from us and nothing else), so an Apify Threads
+ * scraper does the finding on a schedule and calls this route. The native
+ * sweep is no longer scheduled; /api/threads/scan stays only as a manual probe.
  *
  * Accepts either shape:
  *   - an Apify webhook body — we read resource.defaultDatasetId and pull the

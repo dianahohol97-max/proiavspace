@@ -3,10 +3,6 @@
     {
       "path": "/api/billing/renew",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/threads/scan",
-      "schedule": "0 8 * * *"
     }
   ]
 }
