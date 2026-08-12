@@ -163,6 +163,10 @@ export interface ScanResult {
   skipped?: string
   found: number
   inserted: number
+  /** Dropped for being older than the window. */
+  stale?: number
+  /** The window itself, so a caller can tell which build answered it. */
+  windowHours?: number
 }
 
 export type IncomingPost = FoundPost & { keyword?: string }
@@ -243,7 +247,7 @@ export async function queueCandidates(
   }
 
   await log({ ...extraLog, received: posts.length, stale, found, evaluated, skipped, inserted })
-  return { found, inserted }
+  return { found, inserted, stale, windowHours: FRESH_MS / 3_600_000 }
 }
 
 export async function scanThreads(): Promise<ScanResult> {
