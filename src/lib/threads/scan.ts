@@ -117,12 +117,22 @@ export async function composeReply(
     `отримує красиву галерею замість архіву в Google Drive (100 ГБ за 79 грн, безкоштовний ` +
     `старт, проЯв.space).\n\n` +
     `Ось пост у Threads від @${author ?? 'автор'}:\n"${text ?? ''}"\n\n`
+  // Deliberately permissive: the earlier wording demanded the post already be
+  // about delivering photos, and a real run rejected all 33 fresh candidates.
+  // Anything from a working photographer is fair game to answer warmly; only
+  // clearly unrelated posts are dropped. The founder approves every draft
+  // before it goes out, so she is the real filter — this step only has to
+  // avoid writing under posts where a reply would be bizarre.
   const gated =
-    `КРОК 1 — доречність. Відповідай лише якщо це природне місце, де проЯв додає цінність: ` +
-    `фотограф/автор говорить про віддачу чи передачу фото клієнтам, клієнтські галереї, ` +
-    `біль із Google Drive / файлообмінниками / архівами, вибір сервісу галерей, або суміжну тему. ` +
-    `Якщо пост не про це (випадкове фото, особисте, не по темі) — відповідай РІВНО одним словом: SKIP.\n\n` +
-    `КРОК 2 — якщо доречно, напиши `
+    `КРОК 1 — доречність. Відповідай, якщо автор — фотограф або говорить про зйомку, ` +
+    `клієнтів, роботу з фото: процес, віддачу чи передачу фото, галереї, архіви, ` +
+    `Google Drive чи файлообмінники, ціни, дедлайни, вигорання, пошук клієнтів, ` +
+    `обробку, організацію роботи — будь-що з життя фотографа.\n` +
+    `SKIP став лише тоді, коли пост узагалі не стосується фотографії й фотографів ` +
+    `(політика, реклама чужих товарів, особисте без звʼязку з роботою) або коли ` +
+    `відповідь від бренду виглядала б недоречно (горе, конфлікт, чутлива тема). ` +
+    `Якщо вагаєшся — краще напиши відповідь, ніж пропусти.\n\n` +
+    `КРОК 2 — напиши `
   const ask =
     (gate ? gated : 'Напиши ') +
     `КОРОТКУ (1–2 речення) теплу, корисну відповідь українською. ` +
@@ -157,6 +167,31 @@ export async function composeReply(
 /** Auto-scan drafting: relevance-gated compose over a found candidate. */
 async function draftReply(apiKey: string, post: Candidate): Promise<string | null> {
   return composeReply(apiKey, post.text ?? '', post.username, true)
+}
+
+/**
+ * How close a post sits to what проЯв actually solves. Used to order
+ * candidates, never to reject them — the relevance gate decides that, and the
+ * founder decides after it. Weights are blunt on purpose: a post naming the
+ * pain outranks one that merely mentions a shoot.
+ */
+const TOPIC_WEIGHTS: Array<[RegExp, number]> = [
+  // the pain itself
+  [/google\s*drive|гугл\s*драйв|дропбокс|dropbox|wetransfer|файлообмінник/i, 10],
+  [/галере[її]|gallery|pixieset|pic-?time|zenfolio/i, 8],
+  [/віддат|переда[тю]|надісла|відправ|скид(аю|ати)/i, 6],
+  [/архів|посилання\s*на\s*фото|zip/i, 5],
+  // the work around it
+  [/клієнт/i, 4],
+  [/фотограф|фотосесі|зйомк|знімк/i, 2],
+  [/обробк|ретуш|дедлайн|терпінн|чека[ює]/i, 2],
+]
+
+function onTopicScore(text?: string): number {
+  if (!text) return 0
+  let score = 0
+  for (const [re, w] of TOPIC_WEIGHTS) if (re.test(text)) score += w
+  return score
 }
 
 export interface ScanResult {
@@ -223,7 +258,13 @@ export async function queueCandidates(
       .in('source_url', urls)
     const have = new Set((existing ?? []).map((r) => (r as { source_url: string }).source_url))
 
-    for (const [url, p] of fresh) {
+    // Both caps below bite when a sweep brings back dozens of candidates, so
+    // the order they are visited decides which posts get a draft at all.
+    // Scrape order is arbitrary — score first, so the closest matches to what
+    // проЯв actually solves are the ones that make the cut.
+    const ranked = [...fresh].sort((a, b) => onTopicScore(b[1].text) - onTopicScore(a[1].text))
+
+    for (const [url, p] of ranked) {
       if (inserted >= MAX_NEW_PER_RUN) break
       if (evaluated >= MAX_EVAL_PER_RUN) break
       if (have.has(url)) continue
