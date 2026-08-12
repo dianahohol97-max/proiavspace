@@ -12,15 +12,14 @@ export const maxDuration = 60
  * scraper does the finding on a schedule and calls this route. The native
  * sweep is no longer scheduled; /api/threads/scan stays only as a manual probe.
  *
- * Accepts either shape:
+ * Accepts any of these shapes:
+ *   - a bare `[...]` array — the Apify run-sync-get-dataset-items response
+ *     forwarded verbatim. This is what the Make scenario sends: its HTTP module
+ *     passes the response buffer through as a raw body, so nothing is
+ *     re-serialised on the way and no JSON escaping can go wrong.
  *   - an Apify webhook body — we read resource.defaultDatasetId and pull the
  *     dataset items with APIFY_TOKEN
  *   - { posts: [...] } — items passed straight through, for manual replay
- *
- * The dataset id is the shape Make uses: piping the whole item array through a
- * Make HTTP module means interpolating a response buffer into a JSON body,
- * which Make mangles. A dataset id is a short string, so the scenario stays
- * `{"datasetId": "..."}` and this route does the bulk fetch itself.
  *
  * Env: APIFY_TOKEN (dataset read), MAKE_SECRET or CRON_SECRET (auth).
  * `apifyToken` in the body overrides the env var — the Make scenario already
@@ -132,12 +131,16 @@ async function fetchDataset(datasetId: string, bodyToken?: string): Promise<unkn
 export async function POST(req: NextRequest) {
   if (!authed(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  let body: ApifyWebhookBody
+  let parsed: unknown
   try {
-    body = (await req.json()) as ApifyWebhookBody
+    parsed = await req.json()
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
   }
+  // A bare array is the dataset itself, forwarded verbatim by the scenario.
+  const body: ApifyWebhookBody = Array.isArray(parsed)
+    ? { posts: parsed }
+    : ((parsed ?? {}) as ApifyWebhookBody)
 
   const datasetId = body.resource?.defaultDatasetId ?? body.defaultDatasetId ?? body.datasetId
   let items: unknown[]
