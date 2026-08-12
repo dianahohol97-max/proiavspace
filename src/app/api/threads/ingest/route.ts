@@ -17,13 +17,21 @@ export const maxDuration = 60
  *     dataset items with APIFY_TOKEN
  *   - { posts: [...] } — items passed straight through, for manual replay
  *
+ * The dataset id is the shape Make uses: piping the whole item array through a
+ * Make HTTP module means interpolating a response buffer into a JSON body,
+ * which Make mangles. A dataset id is a short string, so the scenario stays
+ * `{"datasetId": "..."}` and this route does the bulk fetch itself.
+ *
  * Env: APIFY_TOKEN (dataset read), MAKE_SECRET or CRON_SECRET (auth).
+ * `apifyToken` in the body overrides the env var — the Make scenario already
+ * holds the token, and this route is behind the shared secret either way.
  */
 
 interface ApifyWebhookBody {
   resource?: { defaultDatasetId?: string }
   defaultDatasetId?: string
   datasetId?: string
+  apifyToken?: string
   posts?: unknown[]
 }
 
@@ -42,17 +50,38 @@ const str = (v: unknown): string | undefined =>
  * rather than pinning to one actor. Anything without a URL and text is dropped
  * downstream by the freshness gate.
  */
+/** First non-empty string among the given keys, camelCase or snake_case alike. */
+const pick = (r: Record<string, unknown>, ...keys: string[]): string | undefined => {
+  for (const k of keys) {
+    const v = str(r[k])
+    if (v) return v
+  }
+  return undefined
+}
+
+/** Threads permalinks carry the handle: https://www.threads.com/@handle/post/CODE */
+const handleFromUrl = (url: string): string | undefined =>
+  /threads\.(?:net|com)\/@([^/?#]+)/i.exec(url)?.[1]
+
 function normalise(raw: unknown): IncomingPost | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
   const user = (r.user ?? r.owner ?? r.author) as Record<string, unknown> | undefined
 
-  const permalink =
-    str(r.permalink) ?? str(r.url) ?? str(r.postUrl) ?? str(r.threadUrl) ?? str(r.link)
-  const text = str(r.text) ?? str(r.caption) ?? str(r.content) ?? str(r.postText)
+  const permalink = pick(r, 'permalink', 'url', 'postUrl', 'post_url', 'threadUrl', 'thread_url', 'link')
+  const text = pick(r, 'text', 'caption', 'content', 'postText', 'post_text', 'text_content', 'caption_text')
   if (!permalink || !text) return null
 
-  const rawTs = r.timestamp ?? r.takenAt ?? r.taken_at ?? r.publishedOn ?? r.createdAt ?? r.date
+  const rawTs =
+    r.timestamp ??
+    r.takenAt ??
+    r.taken_at ??
+    r.taken_at_timestamp ??
+    r.publishedOn ??
+    r.published_at ??
+    r.createdAt ??
+    r.created_at ??
+    r.date
   let timestamp: string | undefined
   if (typeof rawTs === 'number') {
     // Unix seconds vs milliseconds — anything below ~1e12 is seconds.
@@ -62,18 +91,36 @@ function normalise(raw: unknown): IncomingPost | null {
     if (!Number.isNaN(d.getTime())) timestamp = d.toISOString()
   }
 
+  // Actors spell the author a dozen ways and some omit it entirely, so fall
+  // back to the handle embedded in the permalink — it is always there.
+  const username =
+    pick(
+      r,
+      'username',
+      'user_name',
+      'ownerUsername',
+      'owner_username',
+      'authorUsername',
+      'author_username',
+      'accountUsername',
+      'account_username',
+      'handle',
+    ) ??
+    (user ? pick(user, 'username', 'user_name', 'handle') : undefined) ??
+    handleFromUrl(permalink)
+
   return {
-    id: str(r.id) ?? str(r.postId) ?? str(r.pk) ?? permalink,
+    id: pick(r, 'id', 'postId', 'post_id', 'post_code', 'postCode', 'code', 'pk') ?? permalink,
     text,
-    username: (str(r.username) ?? str(r.ownerUsername) ?? str(user?.username))?.replace(/^@/, ''),
+    username: username?.replace(/^@/, ''),
     timestamp,
     permalink,
-    keyword: str(r.searchQuery) ?? str(r.query) ?? str(r.keyword) ?? 'apify',
+    keyword: pick(r, 'searchQuery', 'search_query', 'query', 'keyword') ?? 'apify',
   }
 }
 
-async function fetchDataset(datasetId: string): Promise<unknown[]> {
-  const token = process.env.APIFY_TOKEN
+async function fetchDataset(datasetId: string, bodyToken?: string): Promise<unknown[]> {
+  const token = bodyToken || process.env.APIFY_TOKEN
   if (!token) throw new Error('APIFY_TOKEN not set')
   const url = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=500`
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
@@ -98,7 +145,7 @@ export async function POST(req: NextRequest) {
     items = body.posts
   } else if (datasetId) {
     try {
-      items = await fetchDataset(datasetId)
+      items = await fetchDataset(datasetId, str(body.apifyToken))
     } catch (e) {
       return NextResponse.json({ error: String(e) }, { status: 502 })
     }
