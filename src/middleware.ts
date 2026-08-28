@@ -47,7 +47,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except API routes, auth callback, Next internals and files.
-    '/((?!api|auth|_next/static|_next/image|favicon.ico|.*\\..*).*)',
+    // Everything except API routes, auth callback, the /vistela app served by
+    // another project, Next internals and files.
+    '/((?!api|auth|vistela|_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 }
