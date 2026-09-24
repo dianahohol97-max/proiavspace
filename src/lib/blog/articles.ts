@@ -8,19 +8,54 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import legacySlugs from './legacy-slugs.json'
 
+/** Old DB slugs are remapped on read so the 301 targets in next.config resolve. */
+const LEGACY_SLUGS = legacySlugs as Record<string, string>
+export function currentSlug(slug: string): string {
+  return (!slug.startsWith('_') && LEGACY_SLUGS[slug]) || slug
+}
+
+/**
+ * Article blocks. Text in p / ul / table cells / faq answers may contain
+ * inline links written as [anchor](/uk/path) — rendered by ArticleBody.
+ */
 export type Block =
   | { type: 'p'; text: string }
   | { type: 'h2'; text: string }
+  | { type: 'h3'; text: string }
   | { type: 'ul'; items: string[] }
+  | { type: 'ol'; items: string[] }
+  | { type: 'table'; caption?: string; head: string[]; rows: string[][] }
+  /**
+   * Illustration. Without `src` it renders as a visible placeholder
+   * describing the image that still has to be made (never shipped silently).
+   */
+  | { type: 'img'; src?: string; alt: string; caption?: string; width?: number; height?: number }
+  | { type: 'faq'; items: { q: string; a: string }[] }
   | { type: 'cta'; text: string; href: string }
+
+/** Real (non-placeholder) images of an article — for the image sitemap. */
+export function articleImages(article: Article): { src: string; alt: string }[] {
+  return article.body.flatMap((b) => (b.type === 'img' && b.src ? [{ src: b.src, alt: b.alt }] : []))
+}
+
+/** FAQ items of an article (for FAQPage structured data). */
+export function articleFaq(article: Article): { q: string; a: string }[] {
+  return article.body.flatMap((b) => (b.type === 'faq' ? b.items : []))
+}
 
 export interface Article {
   slug: string
+  /** H1 (may be long). */
   title: string
+  /** <title> — ≤ 60 characters including « — проЯв». Falls back to `title`. */
+  seoTitle?: string
   description: string
-  /** ISO date (published / last meaningful update). */
+  /** ISO date of first publication. */
   date: string
+  /** ISO date of the last meaningful update (dateModified). Defaults to `date`. */
+  updated?: string
   readingMinutes: number
   tags: string[]
   body: Block[]
@@ -108,7 +143,7 @@ const CURATED: Article[] = [
     ],
   },
   {
-    slug: 'yak-peredaty-foto-kliyentu',
+    slug: 'yak-peredaty-foto-kliientu',
     title: 'Як передати фото клієнту після зйомки: 5 способів',
     description:
       '5 робочих способів передати фото клієнту після зйомки і чому WeTransfer — не найкраща ідея для фотографа. Практичний розбір.',
@@ -138,7 +173,7 @@ const CURATED: Article[] = [
     ],
   },
   {
-    slug: 'galereya-dlya-fotografa',
+    slug: 'halereia-dlia-fotohrafa',
     title: 'Галерея для фотографа: як обрати онлайн-галерею у 2026',
     description:
       'Як обрати онлайн-галерею для фотографа у 2026: на що дивитися, які функції важливі й де ховаються приховані витрати.',
@@ -166,7 +201,7 @@ const CURATED: Article[] = [
     ],
   },
   {
-    slug: 'proyav-vs-pixieset-pic-time',
+    slug: 'proiav-vs-pixieset-pic-time',
     title: 'проЯв, Pixieset чи Pic-Time: що обрати фотографу',
     description:
       'Порівняння проЯв, Pixieset і Pic-Time для українського фотографа: ціни, оплати, локалізація й що справді має значення.',
@@ -193,7 +228,7 @@ const CURATED: Article[] = [
     ],
   },
   {
-    slug: 'skilky-koshtuye-zberihaty-foto',
+    slug: 'skilky-koshtuie-zberihaty-foto',
     title: 'Скільки коштує зберігати фотографії: рахуємо на сезон',
     description:
       'Рахуємо реальну вартість сховища для фотографа на сезон: скільки важать зйомки, скільки ГБ треба й у що це обходиться.',
@@ -223,7 +258,7 @@ const CURATED: Article[] = [
     ],
   },
   {
-    slug: 'sajt-fotografa-za-vechir',
+    slug: 'sait-fotohrafa-za-vechir',
     title: 'Власний сайт фотографа за вечір: навіщо і як зробити',
     description:
       'Навіщо фотографу власний сайт і як зробити його за вечір: структура, домен, SEO та бронювання без розробників.',
@@ -250,7 +285,7 @@ const CURATED: Article[] = [
     ],
   },
   {
-    slug: 'yak-pryjmaty-oplatu-za-foto',
+    slug: 'yak-pryimaty-oplatu-za-foto',
     title: 'Як приймати оплату за фотопослуги в Україні',
     description:
       'Як приймати оплату за фотопослуги в Україні: способи, передоплата, чеки й як зробити оплату зручною для клієнта.',
@@ -304,7 +339,7 @@ interface Row {
 function rowToAdmin(row: Row): AdminArticle {
   return {
     id: row.id,
-    slug: row.slug,
+    slug: currentSlug(row.slug),
     title: row.title,
     description: row.description,
     date: row.published_date,

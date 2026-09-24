@@ -1,14 +1,14 @@
 # проЯв (proiav.space)
 
-> проЯв — українська платформа для фотографів: клієнтські онлайн-галереї,
-> персональні сайти-портфоліо та бронювання зйомок з оплатою напряму на
-> картку фотографа. Український інтерфейс, ціни в гривні, оплата через
-> Monobank/WayForPay. 3 ГБ безкоштовно назавжди, без картки при реєстрації.
+> проЯв — українська платформа клієнтських онлайн-галерей для фотографів:
+> передача зйомки клієнту красивим посиланням, відбір фото клієнтом, пароль
+> і термін дії, оригінали без стискання, zip одним кліком. Український
+> інтерфейс, ціни в гривні. 3 ГБ безкоштовно назавжди, без картки.
 
-proiav (proiav.space) is a Ukrainian SaaS for photographers: client photo
-gallery delivery, personal portfolio sites and session booking with payments
-that go directly to the photographer's own card (the platform never touches
-the money). Ukrainian-first UI, hryvnia pricing, free 3 GB tier.
+proiav (proiav.space) is a Ukrainian SaaS for photographers focused on client
+photo gallery delivery: favourites, password protection, expiry dates,
+one-click zip, view/download stats, uncompressed originals. Ukrainian-first
+UI, hryvnia pricing, free 3 GB tier.
 
 ## Що вміє / What it does
 
@@ -19,11 +19,8 @@ the money). Ukrainian-first UI, hryvnia pricing, free 3 GB tier.
 - Client galleries: favorites, password protection, expiry dates, one-click
   zip download, view/download stats, video support, fullscreen slideshow.
   Originals stored byte-for-byte, never recompressed.
-- Сайти для фотографів: 8 дизайнерських тем, портфоліо, прайс, контакти,
-  мультимовність, власний домен із SSL. (У розробці — скоро запуск.)
-- Бронювання зйомок: клієнт сам обирає вільний слот і одразу оплачує на
-  картку фотографа (Monobank еквайринг, WayForPay, банка, реквізити);
-  синхронізація з Google Calendar.
+- Додатково: сторінка бронювання зйомки з оплатою напряму на картку
+  фотографа (Monobank еквайринг, WayForPay, банка, реквізити).
 - Реферальна програма: 10% кредитом з кожної оплати запрошеного колеги.
 
 ## Кому підходить / Who it's for
@@ -42,7 +39,11 @@ the money). Ukrainian-first UI, hryvnia pricing, free 3 GB tier.
 ## Посилання / Links
 
 - Головна: https://proiav.space/uk
-- English: https://proiav.space/en
-- Блог із порадами для фотографів: https://proiav.space/uk/blog
+- Онлайн-галерея для фотографа: https://proiav.space/uk/halerei
+- Тарифи: https://proiav.space/uk/tsiny
+- Галерея з паролем: https://proiav.space/uk/halereia-z-parolem
+- Для весільних фотографів: https://proiav.space/uk/dlia-vesilnykh-fotohrafiv
+- Порівняння з Pixieset, Pic-Time, Pixover, Gallery4you: https://proiav.space/uk/porivniannia/pixieset
 - Демо клієнтської галереї: https://proiav.space/uk/gallery-demo
-- Теми сайтів: https://proiav.space/uk/themes
+- Блог із порадами для фотографів: https://proiav.space/uk/blog
+- English: https://proiav.space/en

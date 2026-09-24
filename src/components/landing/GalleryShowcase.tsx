@@ -18,13 +18,37 @@ import Link from 'next/link'
  */
 /** Per-photo crop focus (object-position): faces sit in the upper third of
  *  these frames, so a centered crop beheads them in wide/short tiles. */
-const PHOTOS: { src: string; pos: string }[] = [
-  { src: '/themes/13.jpg', pos: '50% 20%' },
-  { src: '/themes/11.jpg', pos: '50% 28%' },
-  { src: '/themes/14.jpg', pos: '50% 45%' },
-  { src: '/themes/02.jpg', pos: '50% 50%' },
-  { src: '/themes/03.jpg', pos: '50% 30%' },
-  { src: '/themes/01.jpg', pos: '50% 24%' },
+const PHOTOS: { src: string; pos: string; alt: { uk: string; en: string } }[] = [
+  {
+    src: '/themes/13.webp',
+    pos: '50% 20%',
+    alt: { uk: 'Наречені йдуть пшеничним полем на заході сонця — кадр весільної онлайн-галереї', en: 'Bride and groom walking through a wheat field at sunset' },
+  },
+  {
+    src: '/themes/11.webp',
+    pos: '50% 28%',
+    alt: { uk: 'Пара обіймається в полі — лав-сторі у клієнтській галереї', en: 'Couple embracing in a meadow' },
+  },
+  {
+    src: '/themes/14.webp',
+    pos: '50% 45%',
+    alt: { uk: 'Букет польових квітів у руках нареченої біля вікна', en: 'Bride holding a wildflower bouquet by the window' },
+  },
+  {
+    src: '/themes/02.webp',
+    pos: '50% 50%',
+    alt: { uk: 'Обручки на весільному букеті з білих троянд', en: 'Wedding rings resting on a white rose bouquet' },
+  },
+  {
+    src: '/themes/03.webp',
+    pos: '50% 30%',
+    alt: { uk: 'Наречені з бенгальськими вогнями ввечері', en: 'Newlyweds with sparklers in the evening' },
+  },
+  {
+    src: '/themes/01.webp',
+    pos: '50% 24%',
+    alt: { uk: 'Наречені в обіймах на тлі заходу сонця — обкладинка весільної галереї', en: 'Newlyweds embracing at sunset — wedding gallery cover' },
+  },
 ]
 
 const THEMES = {
@@ -131,7 +155,7 @@ export function GalleryShowcase({
           style={{
             height: 220,
             backgroundImage:
-              'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/01.jpg")',
+              'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/01.webp")',
             backgroundSize: 'cover',
             // faces live in the upper third of the hero shot
             backgroundPosition: '50% 24%',
@@ -178,9 +202,12 @@ export function GalleryShowcase({
             <img
               key={photo.src}
               src={photo.src}
-              alt=""
+              alt={uk ? photo.alt.uk : photo.alt.en}
+              width={1100}
+              height={1100}
               loading="lazy"
-              className="w-full object-cover"
+              decoding="async"
+              className="h-auto w-full object-cover"
               style={{
                 aspectRatio: aspect(i),
                 objectPosition: photo.pos,

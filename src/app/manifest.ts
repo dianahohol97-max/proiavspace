@@ -2,10 +2,10 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'проЯв — галереї, сайти і бронювання для фотографів',
+    name: 'проЯв — онлайн-галереї для фотографів',
     short_name: 'проЯв',
     description:
-      'Передавайте зйомки клієнтам у красивих галереях, збирайте персональний сайт і приймайте оплати напряму на картку.',
+      'Онлайн-галерея для фотографа: передавайте зйомки клієнтам красивим посиланням — з відбором фото, паролем і завантаженням оригіналів.',
     start_url: '/uk',
     display: 'standalone',
     background_color: '#f4f4f1',

@@ -1,9 +1,13 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { isLocale } from '@/lib/i18n/config'
-import { jsonLdScript } from '@/lib/jsonld'
+import { isLocale, type Locale } from '@/lib/i18n/config'
 import { getLandingCopy } from '@/lib/landing/copy'
 import { GALLERY_PLANS, type GalleryPlanId } from '@/lib/plans'
+import { preloadBrandFonts } from '@/lib/seo/fonts'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { faqNode, graph, softwareApplicationNode } from '@/lib/seo/structured-data'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { LangPicker } from '@/components/LangPicker'
 import { Logo } from '@/components/Logo'
 import { AuthNav } from '@/components/landing/AuthNav'
@@ -11,52 +15,42 @@ import { GalleryShowcase } from '@/components/landing/GalleryShowcase'
 import { Reveal } from '@/components/landing/Reveal'
 import s from './landing.module.css'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+  const locale = isLocale(params.locale) ? params.locale : 'uk'
+  const uk = locale === 'uk'
+  return buildMetadata({
+    locale,
+    path: '',
+    languages: ['uk', 'en'],
+    absoluteTitle: true,
+    title: uk
+      ? 'Онлайн-галерея для фотографа: передати фото клієнту — проЯв'
+      : 'Online client gallery for photographers — proiav',
+    description: uk
+      ? 'Онлайн-галерея для фотографа: передайте зйомку клієнту красивим посиланням — з відбором фото, паролем, оригіналами без стискання й zip. 3 ГБ безкоштовно.'
+      : 'Deliver shoots to clients in a beautiful online gallery: favourites, a password and expiry, uncompressed originals and one-click zip. 3 GB free forever.',
+    image: {
+      url: '/og.png',
+      alt: uk ? 'проЯв — усе, що стається після зйомки' : 'proiav — everything after the shutter clicks',
+    },
+  })
+}
 
-/** Structured data: product with real plan prices + the FAQ — rich results. */
-function buildJsonLd(locale: string, t: ReturnType<typeof getLandingCopy>) {
-  return {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${BASE_URL}/#org`,
-        name: 'проЯв',
-        url: BASE_URL,
-        logo: `${BASE_URL}/icon.svg`,
+/** Structured data: Organization + WebSite + product with real plan prices + the FAQ. */
+function buildJsonLd(locale: Locale, t: ReturnType<typeof getLandingCopy>) {
+  return graph(
+    softwareApplicationNode({
+      description: t.hero.lede,
+      url: `/${locale}`,
+      planNames: {
+        free: t.pricing.plans.free.name,
+        basic: t.pricing.plans.basic.name,
+        plus: t.pricing.plans.plus.name,
+        pro: t.pricing.plans.pro.name,
       },
-      {
-        '@type': 'WebSite',
-        '@id': `${BASE_URL}/#site`,
-        name: 'проЯв',
-        url: BASE_URL,
-        inLanguage: ['uk', 'en'],
-        publisher: { '@id': `${BASE_URL}/#org` },
-      },
-      {
-        '@type': 'SoftwareApplication',
-        name: 'проЯв',
-        applicationCategory: 'BusinessApplication',
-        operatingSystem: 'Web',
-        url: `${BASE_URL}/${locale}`,
-        description: t.hero.lede,
-        offers: (Object.keys(GALLERY_PLANS) as GalleryPlanId[]).map((id) => ({
-          '@type': 'Offer',
-          name: t.pricing.plans[id].name,
-          price: GALLERY_PLANS[id].priceUahMonth,
-          priceCurrency: 'UAH',
-        })),
-      },
-      {
-        '@type': 'FAQPage',
-        mainEntity: t.faq.items.map((item) => ({
-          '@type': 'Question',
-          name: item.q,
-          acceptedAnswer: { '@type': 'Answer', text: item.a },
-        })),
-      },
-    ],
-  }
+    }),
+    faqNode(t.faq.items)
+  )
 }
 
 export default function LandingPage({ params }: { params: { locale: string } }) {
@@ -65,6 +59,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
   const t = getLandingCopy(locale)
   const login = `/${locale}/login`
   const jsonLd = buildJsonLd(locale, t)
+  preloadBrandFonts(locale)
 
   const marqueeTiles = ['p01 t34', 'p08 t43', 'p07 t11', 'p14 t34', 'p15 t43', 'p16 t11', 'p12 t34', 'p03 t43']
   const tile = (spec: string, key: number) => {
@@ -74,10 +69,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
 
   return (
     <main className={s.page}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <div className={s.wrap}>
         {/* ---------- nav ---------- */}
         <nav className={s.nav}>

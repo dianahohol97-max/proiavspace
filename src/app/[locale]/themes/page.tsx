@@ -2,24 +2,31 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { isLocale } from '@/lib/i18n/config'
+import { buildMetadata } from '@/lib/seo/metadata'
 import { THEME_DEMOS } from '@/lib/site/demoContent'
 import { SiteRenderer, type SiteLabels } from '@/components/site/SiteRenderer'
 import { Logo } from '@/components/Logo'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Site themes belong to the photographer-site builder, which is not launched
+ * yet — the page stays reachable (and followed) but out of the index and the
+ * sitemap, so search results only promise what the product does today.
+ */
 export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
-  const uk = params.locale === 'uk'
-  const title = uk ? 'Теми сайтів для фотографів — проЯв' : 'Site themes for photographers — proiav'
-  const description = uk
-    ? 'Вісім готових тем для персонального сайту фотографа: весілля, сімейні, фешн, документальна та комерційна зйомка.'
-    : 'Eight ready themes for a photographer’s personal site: weddings, family, fashion, documentary and commercial.'
-  return {
-    title,
-    description,
-    alternates: { canonical: `/${params.locale}/themes` },
-    openGraph: { type: 'website', title, description, url: `/${params.locale}/themes` },
-  }
+  const locale = isLocale(params.locale) ? params.locale : 'uk'
+  const uk = locale === 'uk'
+  return buildMetadata({
+    locale,
+    path: '/themes',
+    languages: ['uk', 'en'],
+    title: uk ? 'Теми сайтів для фотографів' : 'Site themes for photographers',
+    description: uk
+      ? 'Вісім готових тем для персонального сайту фотографа: весілля, сімейні, фешн, документальна та комерційна зйомка.'
+      : 'Eight ready themes for a photographer’s personal site: weddings, family, fashion, documentary and commercial.',
+    noindex: true,
+  })
 }
 
 export default function ThemesPage({ params }: { params: { locale: string } }) {
