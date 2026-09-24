@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { articleFaq, getArticle, getArticles } from '@/lib/blog/articles'
 import { categoriesFor, relatedArticles } from '@/lib/blog/categories'
+import { withProductLinks } from '@/lib/blog/linking'
 import { isLocale } from '@/lib/i18n/config'
 import { preloadBrandFonts } from '@/lib/seo/fonts'
 import { buildMetadata } from '@/lib/seo/metadata'
@@ -135,7 +136,7 @@ export default async function ArticlePage({
 
           <div className="mt-8 h-px w-full bg-line" />
 
-          <ArticleBody blocks={article.body} locale={locale} />
+          <ArticleBody blocks={withProductLinks(article)} locale={locale} />
         </article>
 
         {/* --- read next (by shared tags) --- */}

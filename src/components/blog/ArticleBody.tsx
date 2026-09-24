@@ -9,6 +9,9 @@ import type { Block } from '@/lib/blog/articles'
  */
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g
 
+const SHOW_BRIEFS =
+  process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_SHOW_IMAGE_BRIEFS === '1'
+
 /** Editorial marker for facts awaiting confirmation — rendered loud so it never ships unnoticed. */
 const TODO = /(\[УТОЧНИТИ[^\]]*\])/
 
@@ -156,6 +159,10 @@ export function ArticleBody({ blocks, locale }: { blocks: Block[]; locale: strin
             )
 
           case 'img':
+            // Unproduced illustrations (no src) are editorial briefs: visible
+            // in development or with NEXT_PUBLIC_SHOW_IMAGE_BRIEFS=1, never
+            // shipped as grey boxes to readers.
+            if (!block.src && !SHOW_BRIEFS) return null
             return (
               <figure key={index} className="my-10">
                 {block.src ? (
@@ -167,7 +174,7 @@ export function ArticleBody({ blocks, locale }: { blocks: Block[]; locale: strin
                     height={block.height ?? 750}
                     loading="lazy"
                     decoding="async"
-                    className="h-auto w-full rounded-2xl"
+                    className={`h-auto rounded-2xl ${block.narrow ? 'mx-auto w-full max-w-[320px] border border-line' : 'w-full'}`}
                   />
                 ) : (
                   // Placeholder: the image still has to be produced. The alt
@@ -180,7 +187,9 @@ export function ArticleBody({ blocks, locale }: { blocks: Block[]; locale: strin
                     {block.alt}
                   </div>
                 )}
-                {block.caption && <figcaption className="mt-3 text-sm text-muted">{block.caption}</figcaption>}
+                {block.caption && (
+                  <figcaption className={`mt-3 text-sm text-muted ${block.narrow ? 'text-center' : ''}`}>{block.caption}</figcaption>
+                )}
               </figure>
             )
 

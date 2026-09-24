@@ -42,10 +42,17 @@ export function transliterateUk(input: string): string {
 
 /** Readable, stable slug from a Ukrainian phrase (no random suffix). */
 export function slugifyUk(input: string, maxLength = 80): string {
-  return transliterateUk(input)
+  const words = transliterateUk(input)
     .normalize('NFKD')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, maxLength)
-    .replace(/-+$/g, '')
+    .split('-')
+  // Cut on a word boundary, never mid-word.
+  let slug = ''
+  for (const word of words) {
+    const next = slug ? `${slug}-${word}` : word
+    if (next.length > maxLength) break
+    slug = next
+  }
+  return slug
 }
