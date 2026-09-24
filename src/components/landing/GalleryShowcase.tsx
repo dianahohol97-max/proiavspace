@@ -11,20 +11,18 @@ import Link from 'next/link'
  */
 
 /**
- * One coherent golden-hour wedding story (hand-picked from the demo set):
- * couple in the wheat field, the walk, the bouquet by the window, rings on
- * the bouquet, evening sparklers, and the sunset hero that is also the cover.
- * Everything else in /themes is a different shoot and must not mix in here.
+ * One coherent wedding story in the Norwegian mountains — the same shoot the
+ * live demo uses (/themes 01–24). `ratio` is the file's real proportion, so
+ * masonry shows true verticals/horizontals; `pos` is the crop focus
+ * (object-position) that keeps the couple in square/portrait tiles.
  */
-/** Per-photo crop focus (object-position): faces sit in the upper third of
- *  these frames, so a centered crop beheads them in wide/short tiles. */
-const PHOTOS: { src: string; pos: string }[] = [
-  { src: '/themes/13.jpg', pos: '50% 20%' },
-  { src: '/themes/11.jpg', pos: '50% 28%' },
-  { src: '/themes/14.jpg', pos: '50% 45%' },
-  { src: '/themes/02.jpg', pos: '50% 50%' },
-  { src: '/themes/03.jpg', pos: '50% 30%' },
-  { src: '/themes/01.jpg', pos: '50% 24%' },
+const PHOTOS: { src: string; ratio: string; pos: string }[] = [
+  { src: '/themes/15.jpg', ratio: '3 / 2', pos: '55% 40%' },
+  { src: '/themes/18.jpg', ratio: '2 / 3', pos: '50% 35%' },
+  { src: '/themes/01.jpg', ratio: '3 / 2', pos: '60% 55%' },
+  { src: '/themes/13.jpg', ratio: '2 / 3', pos: '50% 60%' },
+  { src: '/themes/16.jpg', ratio: '3 / 2', pos: '42% 45%' },
+  { src: '/themes/21.jpg', ratio: '3 / 2', pos: '48% 65%' },
 ]
 
 const THEMES = {
@@ -40,10 +38,6 @@ const LAYOUTS = [
   { key: 'collage', name: ['Колаж', 'Collage'] },
   { key: 'editorial', name: ['Едіторіал', 'Editorial'] },
 ] as const
-
-/** The demo files are square, so masonry re-crops them to a believable mix of
- *  verticals/horizontals via object-fit — visually identical to real ratios. */
-const MASONRY_RATIOS = ['3 / 4', '1 / 1', '4 / 5', '4 / 3', '3 / 4', '4 / 3', '4 / 5', '1 / 1']
 
 type LayoutKey = (typeof LAYOUTS)[number]['key']
 type ThemeKey = keyof typeof THEMES
@@ -70,7 +64,7 @@ export function GalleryShowcase({
   const wide = (i: number) => i % 4 === 0 || i % 4 === 3
   const aspect = (i: number) =>
     layout === 'masonry'
-      ? MASONRY_RATIOS[i % MASONRY_RATIOS.length]
+      ? PHOTOS[i].ratio
       : layout === 'portrait'
         ? '3 / 4'
         : layout === 'editorial' && wide(i)
@@ -131,10 +125,10 @@ export function GalleryShowcase({
           style={{
             height: 220,
             backgroundImage:
-              'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/01.jpg")',
+              'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/07.jpg")',
             backgroundSize: 'cover',
-            // faces live in the upper third of the hero shot
-            backgroundPosition: '50% 24%',
+            // the couple's faces sit just above the middle of the cover shot
+            backgroundPosition: '48% 35%',
           }}
         >
           <div className="w-full p-5 text-center text-white">

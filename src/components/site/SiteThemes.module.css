@@ -683,15 +683,15 @@
   gap: 18px;
   margin-top: clamp(24px, 4vw, 44px);
 }
-.airGrid .big {
+.airGrid :global(.big) {
   aspect-ratio: 16 / 10;
 }
-.airGrid .col {
+.airGrid :global(.col) {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
-.airGrid .col > div {
+.airGrid :global(.col) > div {
   flex: 1;
   min-height: 120px;
 }

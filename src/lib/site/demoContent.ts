@@ -4,7 +4,8 @@ import type { PortfolioItem } from '@/components/site/SiteRenderer'
 
 /**
  * Filled demo content for the public «Теми» showcase — one realistic sample
- * site per theme, with generated photos in /public/themes. Ukrainian copy;
+ * site per theme, with photos in /public/themes (plus a few landing
+ * /public/showcase shots). Ukrainian copy;
  * the point is to show how each theme looks, not to be a real business.
  */
 export interface ThemeDemo {
@@ -20,10 +21,11 @@ export interface ThemeDemo {
   portfolio: PortfolioItem[]
 }
 
-function img(n: number): string {
-  return `/themes/${String(n).padStart(2, '0')}.jpg`
+/** A /themes photo by number, or any other public path as-is. */
+function img(n: number | string): string {
+  return typeof n === 'string' ? n : `/themes/${String(n).padStart(2, '0')}.jpg`
 }
-function ph(id: string, n: number, category: string, caption = ''): PortfolioItem {
+function ph(id: string, n: number | string, category: string, caption = ''): PortfolioItem {
   return { id, previewUrl: img(n), visible: true, category, caption }
 }
 
@@ -60,17 +62,17 @@ export const THEME_DEMOS: ThemeDemo[] = [
       contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 1, 'Весілля', 'Марта і Богдан'),
-      ph('2', 13, 'Весілля', 'У полі на заході'),
-      ph('3', 15, 'Весілля', 'Перший танець'),
-      ph('4', 14, 'Деталі', 'Букет нареченої'),
-      ph('5', 16, 'Деталі', 'Обручки й обітниці'),
-      ph('6', 17, 'Емоції', 'Побачив наречену'),
-      ph('7', 11, 'Пари', 'Заручини'),
-      ph('8', 18, 'Сімейні', 'Перші дні'),
-      ph('9', 19, 'Сімейні', 'Осінь у парку'),
-      ph('10', 5, 'Портрети'),
-      ph('11', 7, 'Портрети'),
+      ph('1', 7, 'Весілля', 'Марта і Богдан'),
+      ph('2', 1, 'Весілля', 'Біля старого паркану'),
+      ph('3', 15, 'Весілля', 'Дорога в гори'),
+      ph('4', 18, 'Пари', 'Тільки ми'),
+      ph('5', 12, 'Весілля', 'Червоний дім на пагорбі'),
+      ph('6', 4, 'Емоції', 'Біжимо'),
+      ph('7', 13, 'Пари', 'Серед трав'),
+      ph('8', '/showcase/09.jpg', 'Сімейні', 'Велика родина'),
+      ph('9', '/showcase/14.jpg', 'Сімейні', 'На татових плечах'),
+      ph('10', '/showcase/06.jpg', 'Портрети'),
+      ph('11', '/showcase/02.jpg', 'Портрети'),
     ],
   },
   {
@@ -91,12 +93,11 @@ export const THEME_DEMOS: ThemeDemo[] = [
       contact: { email: 'olga@example.com', phone: '', instagram: '@olga.vyshnia', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 35, 'Вечірні', 'Бенгальські вогні'),
-      ph('2', 36, 'Вечірні', 'Місто вночі'),
-      ph('3', 3, 'Вечірні', 'При свічках'),
-      ph('4', 15, 'Весілля', 'Перший танець'),
-      ph('5', 23, 'Портрети'),
-      ph('6', 33, 'Портрети'),
+      ph('1', 26, 'Вечірні', 'Перший танець під гірляндами'),
+      ph('2', 25, 'Вечірні', 'Коридор із вогнів'),
+      ph('3', 27, 'Весілля', 'Поцілунок під іскрами'),
+      ph('4', 28, 'Весілля', 'Щасливі'),
+      ph('5', 29, 'Вечірні', 'Сукня в іскрах'),
     ],
   },
   {
@@ -118,14 +119,8 @@ export const THEME_DEMOS: ThemeDemo[] = [
       contact: { email: 'iryna@example.com', phone: '+380 63 200 00 00', instagram: '@iryna.lito', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 18, 'Сімейні', 'Ранок удома'),
-      ph('2', 19, 'Сімейні', 'Осінь у парку'),
-      ph('3', 20, 'Пари', 'Разом на кухні'),
-      ph('4', 32, 'Портрети', 'Біля вікна'),
-      ph('5', 4, 'Сімейні'),
-      ph('6', 12, 'Діти'),
-      ph('7', 11, 'Пари'),
-      ph('8', 7, 'Портрети'),
+      ph('1', 31, 'Діти', 'Босоніж до сонця'),
+      ph('2', 30, 'Сімейні', 'Вечір біля озера'),
     ],
   },
   {
@@ -144,14 +139,11 @@ export const THEME_DEMOS: ThemeDemo[] = [
       contact: { email: 'taras@example.com', phone: '', instagram: '@taras.kadr', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 25, 'Історії', 'Дощ у місті'),
-      ph('2', 32, 'Портрети', 'Біля вікна'),
-      ph('3', 34, 'Портрети', 'Профіль'),
-      ph('4', 14, 'Деталі'),
-      ph('5', 5, 'Портрети'),
-      ph('6', 7, 'Портрети'),
-      ph('7', 11, 'Пари'),
-      ph('8', 4, 'Історії'),
+      ph('1', 38, 'Портрети', 'Бурштин'),
+      ph('2', 35, 'Портрети', 'У русі'),
+      ph('3', 37, 'Портрети', 'Червоне світло'),
+      ph('4', 36, 'Портрети', 'Вогні міста'),
+      ph('5', 39, 'Історії', 'Вікно'),
     ],
   },
   {
@@ -173,14 +165,16 @@ export const THEME_DEMOS: ThemeDemo[] = [
       contact: { email: 'hello@nota.example', phone: '+380 44 300 00 00', instagram: '@studio.nota', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 21, 'Бʼюті', 'Чиста шкіра'),
-      ph('2', 22, 'Фешн', 'У русі'),
-      ph('3', 23, 'Фешн', 'Контраст'),
-      ph('4', 34, 'Портрети'),
-      ph('5', 31, 'Стиль життя', 'Смак'),
-      ph('6', 6, 'Фешн'),
-      ph('7', 9, 'Фешн'),
-      ph('8', 5, 'Бʼюті'),
+      ph('1', 43, 'Фешн', 'Червоний костюм'),
+      ph('2', 42, 'Фешн', 'Monochrome'),
+      ph('3', 41, 'Деталі', 'Брошки'),
+      ph('4', 40, 'Фешн', 'На бордюрі'),
+      ph('5', 44, 'Фешн', 'Вузька вулиця'),
+      ph('6', 48, 'Портрети'),
+      ph('7', 45, 'Фешн'),
+      ph('8', 47, 'Фешн', 'Лукбук'),
+      ph('9', 46, 'Портрети'),
+      ph('10', 49, 'Фешн'),
     ],
   },
   {
@@ -198,7 +192,11 @@ export const THEME_DEMOS: ThemeDemo[] = [
       },
       contact: { email: 'anna@example.com', phone: '', instagram: '@anna.svit', bookingUrl: '' },
     }),
-    portfolio: [ph('1', 7, 'Портрети'), ph('2', 5, 'Портрети'), ph('3', 10, 'Натюрморт'), ph('4', 11, 'Пари')],
+    portfolio: [
+      ph('1', 33, 'Живопис', 'Біла троянда'),
+      ph('2', 32, 'Процес', 'Акварель'),
+      ph('3', 34, 'Натюрморт', 'Троянди у вазі'),
+    ],
   },
   {
     value: 'arkhiv',
@@ -216,14 +214,11 @@ export const THEME_DEMOS: ThemeDemo[] = [
       contact: { email: 'maksym@example.com', phone: '+380 50 400 00 00', instagram: '@maksym.day', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 25, 'Вулиця', 'Дощ у місті'),
-      ph('2', 26, 'Репортаж', 'За лаштунками'),
-      ph('3', 27, 'Події', 'Тост'),
-      ph('4', 33, 'Люди'),
-      ph('5', 17, 'Емоції'),
-      ph('6', 8, 'Вулиця'),
-      ph('7', 4, 'Події'),
-      ph('8', 11, 'Люди'),
+      ph('1', 50, 'Люди', 'Погляд'),
+      ph('2', 51, 'Місто', 'Пасажири'),
+      ph('3', 52, 'Місто', 'Вечірній трамвай'),
+      ph('4', 53, 'Люди', 'Втома'),
+      ph('5', 54, 'Місто', 'Рух'),
     ],
   },
   {
@@ -247,14 +242,11 @@ export const THEME_DEMOS: ThemeDemo[] = [
       contact: { email: 'hello@vasylenko.ua', phone: '+380 44 000 00 00', instagram: '@vasylenko.prod', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 28, 'Каталоги', 'Кераміка — 120 SKU'),
-      ph('2', 29, 'Продукт', 'Парфум'),
-      ph('3', 30, 'Каталоги', 'Трикотаж'),
-      ph('4', 31, 'Фуд', 'Сезонне меню'),
-      ph('5', 24, 'Кампейни', 'Кампейн'),
-      ph('6', 9, 'Кампейни', 'Кампейн «Ковчег»'),
-      ph('7', 10, 'Каталоги'),
-      ph('8', 6, 'Фешн', 'Лукбук FW26'),
+      ph('1', 57, 'Кампейни', 'Лінійка догляду'),
+      ph('2', 55, 'Продукт', 'Олії'),
+      ph('3', 56, 'Кампейни', 'Сет'),
+      ph('4', 58, 'Продукт', 'Флакони й тубуси'),
+      ph('5', 59, 'Продукт', 'У дії'),
     ],
   },
 ]
