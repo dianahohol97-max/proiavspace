@@ -9,7 +9,25 @@ import type { Block } from '@/lib/blog/articles'
  */
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g
 
+/** Editorial marker for facts awaiting confirmation — rendered loud so it never ships unnoticed. */
+const TODO = /(\[УТОЧНИТИ[^\]]*\])/
+
 export function RichText({ text }: { text: string }) {
+  if (TODO.test(text)) {
+    return (
+      <>
+        {text.split(TODO).map((part, i) =>
+          TODO.test(part) ? (
+            <mark key={i} className="rounded bg-[#ffe3e0] px-1 font-semibold text-[#b3261e]">
+              {part}
+            </mark>
+          ) : (
+            <RichText key={i} text={part} />
+          )
+        )}
+      </>
+    )
+  }
   const out: ReactNode[] = []
   let last = 0
   for (const match of text.matchAll(LINK)) {
@@ -103,7 +121,9 @@ export function ArticleBody({ blocks, locale }: { blocks: Block[]; locale: strin
               <div key={index} className="my-8 overflow-x-auto rounded-2xl border border-line">
                 <table className="w-full min-w-[520px] border-collapse text-left text-[0.95rem] leading-6">
                   {block.caption && (
-                    <caption className="px-4 pb-2 pt-4 text-left text-sm text-muted">{block.caption}</caption>
+                    <caption className="px-4 pb-2 pt-4 text-left text-sm text-muted">
+                      <RichText text={block.caption} />
+                    </caption>
                   )}
                   <thead className="bg-[#f4f4f1]">
                     <tr>

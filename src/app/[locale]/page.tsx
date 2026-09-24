@@ -11,6 +11,7 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { LangPicker } from '@/components/LangPicker'
 import { Logo } from '@/components/Logo'
 import { AuthNav } from '@/components/landing/AuthNav'
+import { primaryNav } from '@/lib/seo/nav'
 import { GalleryShowcase } from '@/components/landing/GalleryShowcase'
 import { Reveal } from '@/components/landing/Reveal'
 import s from './landing.module.css'
@@ -77,9 +78,17 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
             <Logo />
           </Link>
           <span className={s.navLinks}>
-            <a href="#galleries">{t.nav.galleries}</a>
-            <a href="#pricing">{t.nav.pricing}</a>
-            <Link href={`/${locale}/blog`}>{t.nav.blog}</Link>
+            {primaryNav(locale).map((link) =>
+              link.href.includes('#') ? (
+                <a key={link.href} href={link.href.slice(link.href.indexOf('#'))}>
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} href={link.href}>
+                  {link.label}
+                </Link>
+              )
+            )}
             <AuthNav
               locale={locale}
               labels={{ signIn: t.nav.signIn, ctaShort: t.nav.ctaShort, dashboard: t.nav.dashboard }}
@@ -103,6 +112,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <em>{t.hero.titleAccent}</em>
               {t.hero.titleAfter}
             </h1>
+            <p className={s.subtitle}>{t.hero.subtitle}</p>
             <p className={s.lede}>{t.hero.lede}</p>
             <div className={s.ctaRow}>
               <Link href={login} className={s.pillHot}>
@@ -173,7 +183,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <p>{t.products.lede}</p>
             </div>
           </Reveal>
-          <div className={s.prodGrid}>
+          <div className={`${s.prodGrid} ${s.prodGridTwo}`}>
             <Reveal>
               <div className={s.prod}>
                 <span className={s.prodNo}>{t.products.items[0].no}</span>
@@ -192,29 +202,8 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               </div>
             </Reveal>
             <Reveal>
-              <div className={`${s.prod} ${s.prodSoon}`}>
-                <span className={s.prodNo}>{t.products.items[1].no}</span>
-                <span className={s.soonBadge}>{t.products.soon}</span>
-                <div className={s.pSite}>
-                  <div className={s.wm}>{t.hero.mockName}</div>
-                  <div className={s.hl}>{t.hero.mockTitle}</div>
-                  <div className={s.themeRow}>
-                    <div className={`${s.ph} ${s.p09}`} />
-                    <div className={`${s.ph} ${s.p14}`} />
-                    <div className={`${s.ph} ${s.p04}`} />
-                  </div>
-                </div>
-                <h3>{t.products.items[1].title}</h3>
-                <p>{t.products.items[1].text}</p>
-                <p className={s.tag}>
-                  <b>{t.products.items[1].tagStrong}</b>
-                  {t.products.items[1].tagRest}
-                </p>
-              </div>
-            </Reveal>
-            <Reveal>
               <div className={s.prod}>
-                <span className={s.prodNo}>{t.products.items[2].no}</span>
+                <span className={s.prodNo}>{t.products.items[1].no}</span>
                 <div className={s.pBook}>
                   <div className={s.slot}>
                     <span>Сб, 14:00 · 60 хв</span>
@@ -226,11 +215,11 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
                   </div>
                   <div className={s.ok}>✓</div>
                 </div>
-                <h3>{t.products.items[2].title}</h3>
-                <p>{t.products.items[2].text}</p>
+                <h3>{t.products.items[1].title}</h3>
+                <p>{t.products.items[1].text}</p>
                 <p className={s.tag}>
-                  <b>{t.products.items[2].tagStrong}</b>
-                  {t.products.items[2].tagRest}
+                  <b>{t.products.items[1].tagStrong}</b>
+                  {t.products.items[1].tagRest}
                 </p>
               </div>
             </Reveal>
@@ -246,7 +235,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
             <div className={s.secHead}>
               <span className={s.lbl}>{locale === 'uk' ? 'Дизайн-студія' : 'Design studio'}</span>
               <h2 className={s.h2}>
-                {locale === 'uk' ? 'Галерея, яку хочеться ' : 'A gallery clients love '}
+                {locale === 'uk' ? 'Онлайн-галерея, яку клієнт захоче ' : 'A gallery clients love '}
                 <span className={s.accentWord}>
                   {locale === 'uk' ? 'переслати друзям' : 'to share'}
                 </span>
@@ -334,9 +323,9 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
       {/* ---------- principles ---------- */}
       <section className={s.principles}>
         <div className={s.wrap}>
-          <h2 className={s.huge} aria-hidden="true">
+          <p className={s.huge} aria-hidden="true">
             {t.principles.huge}
-          </h2>
+          </p>
           <Reveal>
             <div className={s.secHead}>
               <h2 className={s.h2}>{t.principles.title}</h2>
@@ -405,21 +394,6 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
             })}
           </div>
 
-          <Reveal>
-            <div id="sites" className={s.secHead} style={{ marginTop: 64, scrollMarginTop: 90 }}>
-              <h2 className={s.h2}>
-                {t.pricing.siteTitle} <span className={s.soonBadge}>{t.pricing.soonBadge}</span>
-              </h2>
-            </div>
-          </Reveal>
-          <Reveal>
-            <div className={s.comingSoon}>
-              <p>{t.pricing.siteComingSoon}</p>
-              <Link href={login} className={s.pillGhost}>
-                {t.hero.cta}
-              </Link>
-            </div>
-          </Reveal>
           <p className={s.fineprint}>{t.pricing.fineprint}</p>
         </section>
 
@@ -482,8 +456,23 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
       <div className={s.wrap}>
         <footer className={s.footer}>
           <Logo size={17} textSize={13} />
-          <span>{t.footer.tagline}</span>
+          <span>
+            {t.footer.tagline} · © {new Date().getFullYear()} проЯв
+          </span>
           <span style={{ display: 'inline-flex', gap: 16, flexWrap: 'wrap' }}>
+            {locale === 'uk' && (
+              <>
+                <Link href="/uk/halerei" style={{ color: 'inherit' }}>
+                  Онлайн-галерея
+                </Link>
+                <Link href="/uk/tsiny" style={{ color: 'inherit' }}>
+                  Тарифи
+                </Link>
+                <Link href="/uk/porivniannia" style={{ color: 'inherit' }}>
+                  Порівняння
+                </Link>
+              </>
+            )}
             <Link href={`/${locale}/blog`} style={{ color: 'inherit' }}>
               {t.footer.blog}
             </Link>

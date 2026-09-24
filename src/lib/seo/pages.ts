@@ -1,4 +1,5 @@
 import type { Locale } from '@/lib/i18n/config'
+import { PRODUCT_PAGES } from '@/lib/landing/product-pages'
 
 /**
  * Registry of static marketing pages: the sitemap, breadcrumbs and the
@@ -22,7 +23,7 @@ export interface MarketingPage {
   unlisted?: boolean
 }
 
-export const MARKETING_PAGES: MarketingPage[] = [
+const STATIC_PAGES: MarketingPage[] = [
   {
     id: 'home',
     path: '',
@@ -74,6 +75,21 @@ export const MARKETING_PAGES: MarketingPage[] = [
     changeFrequency: 'yearly',
   },
 ]
+
+/** Ukrainian product & comparison pages (drafts are unlisted). */
+const PRODUCT_ENTRIES: MarketingPage[] = PRODUCT_PAGES.map((p) => ({
+  id: p.id,
+  path: p.path,
+  languages: ['uk'],
+  crumb: p.crumb,
+  ogTitle: p.ogTitle ?? p.h1,
+  ogKicker: p.kicker,
+  priority: p.id === 'halerei' ? 0.9 : p.id === 'tsiny' ? 0.8 : 0.7,
+  changeFrequency: 'monthly',
+  unlisted: p.draft,
+}))
+
+export const MARKETING_PAGES: MarketingPage[] = [...STATIC_PAGES, ...PRODUCT_ENTRIES]
 
 export function getMarketingPage(id: string): MarketingPage | undefined {
   return MARKETING_PAGES.find((p) => p.id === id)
