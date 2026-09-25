@@ -857,8 +857,16 @@ const PIXIESET_VS_ARTICLE = '/uk/blog/proiav-vs-pixieset-pic-time'
 const IMPORT_ZIP_MAX_GB = 10
 const PROMO_ACCOUNTS = 30
 const PROMO_UNTIL = '31.12.2026'
-/** Basic paid yearly, per month, in whole hryvnias. */
-const basicYearPerMonth = Math.round(P.basic.priceUahYear / 12)
+/**
+ * Yearly price spread over 12 months, whole hryvnias. 1290 / 12 = 107,5, so it
+ * is shown as «≈108»; an exact split would be shown without the «≈».
+ */
+const yearPerMonth = (yearUah: number) => {
+  const exact = yearUah / 12
+  const rounded = Math.round(exact)
+  return { value: rounded, approx: rounded !== exact }
+}
+const basicYearPerMonth = yearPerMonth(P.basic.priceUahYear)
 
 const mihratsiiaEn: ProductPageCopy = {
   crumb: 'Switch from Pixieset',
@@ -922,7 +930,7 @@ const mihratsiiaEn: ProductPageCopy = {
       rows: [
         ['Pixieset Client Gallery Plus', '100 GB', '{{price:16}}', '{{price:20}}'],
         ['Pic-Time Professional', '100 GB', '{{price:21}}', '{{price:25}}'],
-        ['proiav Basic', `${P.basic.storageGb} GB`, `${basicYearPerMonth} UAH`, `${P.basic.priceUahMonth} UAH`],
+        ['proiav Basic', `${P.basic.storageGb} GB`, `${basicYearPerMonth.approx ? '≈' : ''}${basicYearPerMonth.value} UAH`, `${P.basic.priceUahMonth} UAH`],
       ],
     },
     {
@@ -1055,7 +1063,7 @@ const mihratsiia: ProductPageContent = {
       rows: [
         ['Pixieset Client Gallery Plus', '100 ГБ', '{{price:16}}', '{{price:20}}'],
         ['Pic-Time Professional', '100 ГБ', '{{price:21}}', '{{price:25}}'],
-        ['проЯв Базовий', `${P.basic.storageGb} ГБ`, uah(basicYearPerMonth), uah(P.basic.priceUahMonth)],
+        ['проЯв Базовий', `${P.basic.storageGb} ГБ`, `${basicYearPerMonth.approx ? '≈' : ''}${uah(basicYearPerMonth.value)}`, uah(P.basic.priceUahMonth)],
       ],
     },
     {
