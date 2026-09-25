@@ -11,44 +11,18 @@ import Link from 'next/link'
  */
 
 /**
- * One coherent golden-hour wedding story (hand-picked from the demo set):
- * couple in the wheat field, the walk, the bouquet by the window, rings on
- * the bouquet, evening sparklers, and the sunset hero that is also the cover.
- * Everything else in /themes is a different shoot and must not mix in here.
+ * One coherent wedding story in the Norwegian mountains — the same shoot the
+ * live demo uses (/themes 01–24). `ratio` is the file's real proportion, so
+ * masonry shows true verticals/horizontals; `pos` is the crop focus
+ * (object-position) that keeps the couple in square/portrait tiles.
  */
-/** Per-photo crop focus (object-position): faces sit in the upper third of
- *  these frames, so a centered crop beheads them in wide/short tiles. */
-const PHOTOS: { src: string; pos: string; alt: { uk: string; en: string } }[] = [
-  {
-    src: '/themes/13.webp',
-    pos: '50% 20%',
-    alt: { uk: 'Наречені йдуть пшеничним полем на заході сонця — кадр весільної онлайн-галереї', en: 'Bride and groom walking through a wheat field at sunset' },
-  },
-  {
-    src: '/themes/11.webp',
-    pos: '50% 28%',
-    alt: { uk: 'Пара обіймається в полі — лав-сторі у клієнтській галереї', en: 'Couple embracing in a meadow' },
-  },
-  {
-    src: '/themes/14.webp',
-    pos: '50% 45%',
-    alt: { uk: 'Букет польових квітів у руках нареченої біля вікна', en: 'Bride holding a wildflower bouquet by the window' },
-  },
-  {
-    src: '/themes/02.webp',
-    pos: '50% 50%',
-    alt: { uk: 'Обручки на весільному букеті з білих троянд', en: 'Wedding rings resting on a white rose bouquet' },
-  },
-  {
-    src: '/themes/03.webp',
-    pos: '50% 30%',
-    alt: { uk: 'Наречені з бенгальськими вогнями ввечері', en: 'Newlyweds with sparklers in the evening' },
-  },
-  {
-    src: '/themes/01.webp',
-    pos: '50% 24%',
-    alt: { uk: 'Наречені в обіймах на тлі заходу сонця — обкладинка весільної галереї', en: 'Newlyweds embracing at sunset — wedding gallery cover' },
-  },
+const PHOTOS: { src: string; ratio: string; pos: string; alt: { uk: string; en: string } }[] = [
+  { src: '/themes/15.webp', ratio: '3 / 2', pos: '55% 40%', alt: { uk: 'Наречені йдуть сільською дорогою в горах, тримаючись за руки — кадр весільної онлайн-галереї', en: 'Bride and groom walking hand in hand down a mountain road' } },
+  { src: '/themes/18.webp', ratio: '2 / 3', pos: '50% 35%', alt: { uk: 'Наречені торкаються чолами — крупний план у клієнтській галереї', en: 'Newlyweds touching foreheads, close-up' } },
+  { src: '/themes/01.webp', ratio: '3 / 2', pos: '60% 55%', alt: { uk: 'Наречені біля деревʼяного паркану на тлі гір', en: 'Newlyweds by a wooden fence with mountains behind' } },
+  { src: '/themes/13.webp', ratio: '2 / 3', pos: '50% 60%', alt: { uk: 'Наречені обіймаються на зеленому схилі в горах', en: 'Newlyweds embracing on a green mountain slope' } },
+  { src: '/themes/16.webp', ratio: '3 / 2', pos: '42% 45%', alt: { uk: 'Поцілунок нареченої й нареченого серед сосен', en: 'Bride and groom kissing among pine trees' } },
+  { src: '/themes/21.webp', ratio: '3 / 2', pos: '48% 65%', alt: { uk: 'Наречені цілуються посеред гірської дороги', en: 'Newlyweds kissing in the middle of a mountain road' } },
 ]
 
 const THEMES = {
@@ -64,10 +38,6 @@ const LAYOUTS = [
   { key: 'collage', name: ['Колаж', 'Collage'] },
   { key: 'editorial', name: ['Едіторіал', 'Editorial'] },
 ] as const
-
-/** The demo files are square, so masonry re-crops them to a believable mix of
- *  verticals/horizontals via object-fit — visually identical to real ratios. */
-const MASONRY_RATIOS = ['3 / 4', '1 / 1', '4 / 5', '4 / 3', '3 / 4', '4 / 3', '4 / 5', '1 / 1']
 
 type LayoutKey = (typeof LAYOUTS)[number]['key']
 type ThemeKey = keyof typeof THEMES
@@ -94,7 +64,7 @@ export function GalleryShowcase({
   const wide = (i: number) => i % 4 === 0 || i % 4 === 3
   const aspect = (i: number) =>
     layout === 'masonry'
-      ? MASONRY_RATIOS[i % MASONRY_RATIOS.length]
+      ? PHOTOS[i].ratio
       : layout === 'portrait'
         ? '3 / 4'
         : layout === 'editorial' && wide(i)
@@ -155,10 +125,10 @@ export function GalleryShowcase({
           style={{
             height: 220,
             backgroundImage:
-              'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/01.webp")',
+              'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/07.webp")',
             backgroundSize: 'cover',
-            // faces live in the upper third of the hero shot
-            backgroundPosition: '50% 24%',
+            // the couple's faces sit just above the middle of the cover shot
+            backgroundPosition: '48% 35%',
           }}
         >
           <div className="w-full p-5 text-center text-white">
@@ -203,11 +173,9 @@ export function GalleryShowcase({
               key={photo.src}
               src={photo.src}
               alt={uk ? photo.alt.uk : photo.alt.en}
-              width={1100}
-              height={1100}
-              loading="lazy"
               decoding="async"
-              className="h-auto w-full object-cover"
+              loading="lazy"
+              className="w-full object-cover"
               style={{
                 aspectRatio: aspect(i),
                 objectPosition: photo.pos,

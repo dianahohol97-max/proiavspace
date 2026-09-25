@@ -26,23 +26,44 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
   })
 }
 
-function img(n: number): string {
-  return `/themes/${String(n).padStart(2, '0')}.webp`
+/** WebP for viewing; the "download" button hands out the original JPEG. */
+function img(n: number, ext: 'webp' | 'jpg' = 'webp'): string {
+  return `/themes/${String(n).padStart(2, '0')}.${ext}`
 }
 
-// One coherent golden-hour wedding story — only the shots that read as a
-// single shoot (field couple, walk, bouquets, sparklers). The rest of the
-// /themes set is other genres and must not mix into this demo.
-// The focal pair keeps faces in frame when a cropped layout is chosen
+// One wedding story in the Norwegian mountains (fence, fields, road, red
+// farmhouse). `v` marks the vertical frames (2:3); the rest are 3:2. The
+// focal pair keeps the couple in frame when a cropped layout is chosen
 // (same mechanism as real galleries' assets.focal_x/focal_y).
-const PHOTOS: { n: number; focalY: number }[] = [
-  { n: 13, focalY: 20 },
-  { n: 11, focalY: 28 },
-  { n: 14, focalY: 45 },
-  { n: 2, focalY: 50 },
-  { n: 3, focalY: 30 },
-  { n: 1, focalY: 24 },
+const PHOTOS: { n: number; v?: true; fx: number; fy: number }[] = [
+  { n: 1, fx: 60, fy: 55 },
+  { n: 2, fx: 47, fy: 75 },
+  { n: 3, fx: 53, fy: 60 },
+  { n: 4, fx: 52, fy: 55 },
+  { n: 5, fx: 47, fy: 70 },
+  { n: 6, v: true, fx: 50, fy: 55 },
+  { n: 7, fx: 48, fy: 35 },
+  { n: 8, fx: 48, fy: 85 },
+  { n: 9, v: true, fx: 50, fy: 88 },
+  { n: 10, v: true, fx: 50, fy: 75 },
+  { n: 11, fx: 48, fy: 72 },
+  { n: 12, fx: 52, fy: 55 },
+  { n: 13, v: true, fx: 50, fy: 60 },
+  { n: 14, fx: 70, fy: 55 },
+  { n: 15, fx: 55, fy: 40 },
+  { n: 16, fx: 42, fy: 45 },
+  { n: 17, fx: 42, fy: 62 },
+  { n: 18, v: true, fx: 50, fy: 35 },
+  { n: 19, v: true, fx: 50, fy: 55 },
+  { n: 20, fx: 45, fy: 70 },
+  { n: 21, fx: 48, fy: 65 },
+  { n: 22, fx: 47, fy: 75 },
+  { n: 23, fx: 52, fy: 75 },
+  { n: 24, fx: 42, fy: 70 },
 ]
+
+/** Close-up of the couple, forehead to forehead — the gallery cover. */
+const COVER = 7
 
 export default async function GalleryDemoPage({
   params,
@@ -59,16 +80,16 @@ export default async function GalleryDemoPage({
   // The gallery inherits its palette/typography from the chosen theme.
   const active = THEME_DEMOS.find((d) => d.value === searchParams.theme) ?? THEME_DEMOS[0]
 
-  const items: GalleryItem[] = PHOTOS.map(({ n, focalY }) => ({
+  const items: GalleryItem[] = PHOTOS.map(({ n, v, fx, fy }) => ({
     id: String(n),
     kind: 'photo',
-    width: 1100,
-    height: 1100,
+    width: v ? 1333 : 2000,
+    height: v ? 2000 : 1333,
     previewUrl: img(n),
     posterUrl: null,
-    focalX: 50,
-    focalY,
-    downloadHref: img(n),
+    focalX: fx,
+    focalY: fy,
+    downloadHref: img(n, 'jpg'),
   }))
 
   return (
@@ -117,15 +138,15 @@ export default async function GalleryDemoPage({
         eventLine={uk ? '14 вересня 2026 · Львів' : '14 September 2026 · Lviv'}
         brandName="Ольга Вишня"
         logoUrl={null}
-        coverUrl={img(1)}
+        coverUrl={img(COVER)}
         items={items}
         initialFavorites={['11', '5']}
         showBadge
         tipUrl={null}
         theme={active.theme}
         mode={active.mode}
-        // Cover focal: the hero couple's faces sit in the upper third.
-        style={{ focalX: 50, focalY: 28 }}
+        // Cover focal: the couple's faces sit just above the middle.
+        style={{ focalX: 48, focalY: 35 }}
         labels={{
           scrollHint: dict.publicGallery.scrollHint,
           selected: dict.publicGallery.selected,
