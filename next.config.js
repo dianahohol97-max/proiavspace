@@ -1,3 +1,5 @@
+const legacyBlogSlugs = require('./src/lib/blog/legacy-slugs.json')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Originals and previews are served straight from R2 via presigned URLs —
@@ -13,6 +15,17 @@ const nextConfig = {
   // proiav.space/vistela is served by a separate Vercel project (the wedding
   // gallery/RSVP app). It sets basePath '/vistela', so the prefix is kept on
   // the way through and its assets resolve.
+  // Blog slugs moved to the official Ukrainian transliteration — old URLs 301.
+  async redirects() {
+    const locales = 'uk|en|pl|de|es|fr|it|ro|pt'
+    const out = []
+    for (const [from, to] of Object.entries(legacyBlogSlugs)) {
+      if (from.startsWith('_')) continue
+      out.push({ source: `/:locale(${locales})/blog/${from}`, destination: `/:locale/blog/${to}`, permanent: true })
+      out.push({ source: `/blog/${from}`, destination: `/uk/blog/${to}`, permanent: true })
+    }
+    return out
+  },
   async rewrites() {
     return {
       beforeFiles: [
@@ -24,6 +37,7 @@ const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
       '/[locale]/s/[handle]/opengraph-image': ['./src/assets/fonts/**'],
+      '/og/[key]': ['./src/assets/fonts/**'],
     },
   },
 }

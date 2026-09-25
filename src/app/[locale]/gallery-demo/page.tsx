@@ -2,22 +2,33 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { ogImagePath } from '@/lib/seo/pages'
+import { breadcrumbNode, graph } from '@/lib/seo/structured-data'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { THEME_DEMOS } from '@/lib/site/demoContent'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
 
 export const dynamic = 'force-dynamic'
 
 export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
-  const uk = params.locale === 'uk'
-  const title = uk ? 'Демо клієнтської галереї — проЯв' : 'Client gallery demo — proiav'
-  const description = uk
-    ? 'Подивіться, як клієнт отримує фото: галерея з обкладинкою, вибором улюблених кадрів і завантаженням оригіналів — у будь-якому стилі.'
-    : 'See how a client receives photos: a branded gallery with favourites and full-resolution downloads — in any style.'
-  return { title, description, alternates: { canonical: `/${params.locale}/gallery-demo` } }
+  const locale = isLocale(params.locale) ? params.locale : 'uk'
+  const uk = locale === 'uk'
+  return buildMetadata({
+    locale,
+    path: '/gallery-demo',
+    languages: ['uk', 'en'],
+    title: uk ? 'Демо онлайн-галереї: як клієнт бачить фото' : 'Client gallery demo',
+    description: uk
+      ? 'Подивіться, як клієнт отримує зйомку в онлайн-галереї: обкладинка, відбір улюблених кадрів, слайдшоу й завантаження оригіналів. Спробуйте різні стилі.'
+      : 'See how a client receives a shoot in an online gallery: a cover, picking favourite frames, a slideshow and full-resolution downloads. Try every style.',
+    image: { url: ogImagePath('page.gallery-demo'), alt: uk ? 'Демо клієнтської галереї проЯв' : 'proiav client gallery demo' },
+  })
 }
 
-function img(n: number): string {
-  return `/themes/${String(n).padStart(2, '0')}.jpg`
+/** WebP for viewing; the "download" button hands out the original JPEG. */
+function img(n: number, ext: 'webp' | 'jpg' = 'webp'): string {
+  return `/themes/${String(n).padStart(2, '0')}.${ext}`
 }
 
 // One wedding story in the Norwegian mountains (fence, fields, road, red
@@ -78,11 +89,19 @@ export default async function GalleryDemoPage({
     posterUrl: null,
     focalX: fx,
     focalY: fy,
-    downloadHref: img(n),
+    downloadHref: img(n, 'jpg'),
   }))
 
   return (
     <>
+      <JsonLd
+        data={graph(
+          breadcrumbNode([
+            { name: 'проЯв', path: `/${locale}` },
+            { name: uk ? 'Демо галереї' : 'Gallery demo', path: `/${locale}/gallery-demo` },
+          ])
+        )}
+      />
       {/* style switcher */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line bg-bg px-4 py-3">
         <span className="mr-1 text-xs font-semibold uppercase tracking-widest text-muted">

@@ -1,0 +1,18 @@
+{
+  "_comment": "Old blog slugs (inconsistent transliteration) → official-transliteration slugs. Served as 301 by next.config.js; old DB rows are remapped on read in articles.ts. Never remove an entry: external links may point at the old URL. Retired articles point at their closest living article (sait-fotohrafa-za-vechir → portfolio-fotohrafa-yak-zibraty).",
+  "galereya-dlya-fotografa": "halereia-dlia-fotohrafa",
+  "yak-peredaty-foto-kliyentu": "yak-peredaty-foto-kliientu",
+  "proyav-vs-pixieset-pic-time": "proiav-vs-pixieset-pic-time",
+  "skilky-koshtuye-zberihaty-foto": "skilky-koshtuie-zberihaty-foto",
+  "sajt-fotografa-za-vechir": "portfolio-fotohrafa-yak-zibraty",
+  "yak-pryjmaty-oplatu-za-foto": "yak-pryimaty-oplatu-za-foto",
+  "portfolio-fotografa-yak-zibraty": "portfolio-fotohrafa-yak-zibraty",
+  "yak-vidbyraty-foto-pislya-zjomky": "yak-vidbyraty-foto-pislia-ziomky",
+  "instagram-dlya-fotografa": "instagram-dlia-fotohrafa",
+  "backup-fotografij-fotograf": "rezervne-kopiiuvannia-fotohrafii",
+  "peredoplata-za-fotosesiyu": "peredoplata-za-fotosesiiu",
+  "yak-znajty-pershyh-kliyentiv-fotograf": "yak-znaity-pershykh-kliientiv-fotohrafu",
+  "dogovir-z-kliyentom-fotograf": "dohovir-z-kliientom-dlia-fotohrafa",
+  "yak-vybraty-cinu-na-fotosesiyu": "yak-vstanovyty-tsinu-na-fotosesiiu",
+  "sait-fotohrafa-za-vechir": "portfolio-fotohrafa-yak-zibraty"
+}

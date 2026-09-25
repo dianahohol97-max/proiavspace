@@ -1,62 +1,58 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { isLocale } from '@/lib/i18n/config'
-import { jsonLdScript } from '@/lib/jsonld'
+import { isLocale, type Locale } from '@/lib/i18n/config'
 import { getLandingCopy } from '@/lib/landing/copy'
 import { GALLERY_PLANS, type GalleryPlanId } from '@/lib/plans'
+import { preloadBrandFonts } from '@/lib/seo/fonts'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { brandOgImage } from '@/lib/seo/pages'
+import { faqNode, graph, softwareApplicationNode } from '@/lib/seo/structured-data'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { LangPicker } from '@/components/LangPicker'
 import { Logo } from '@/components/Logo'
 import { AuthNav } from '@/components/landing/AuthNav'
+import { primaryNav } from '@/lib/seo/nav'
 import { GalleryShowcase } from '@/components/landing/GalleryShowcase'
 import { Reveal } from '@/components/landing/Reveal'
 import s from './landing.module.css'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+  const locale = isLocale(params.locale) ? params.locale : 'uk'
+  const uk = locale === 'uk'
+  return buildMetadata({
+    locale,
+    path: '',
+    languages: ['uk', 'en'],
+    absoluteTitle: true,
+    title: uk
+      ? 'Онлайн-галерея для фотографа: передати фото клієнту — проЯв'
+      : 'Online client gallery for photographers — proiav',
+    description: uk
+      ? 'Онлайн-галерея для фотографа: передайте зйомку клієнту красивим посиланням — з відбором фото, паролем, оригіналами без стискання й zip. 3 ГБ безкоштовно.'
+      : 'Deliver shoots to clients in a beautiful online gallery: favourites, a password and expiry, uncompressed originals and one-click zip. 3 GB free forever.',
+    image: {
+      url: brandOgImage(locale),
+      alt: uk ? 'проЯв — усе, що стається після зйомки' : 'proiav — everything after the shutter clicks',
+    },
+  })
+}
 
-/** Structured data: product with real plan prices + the FAQ — rich results. */
-function buildJsonLd(locale: string, t: ReturnType<typeof getLandingCopy>) {
-  return {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${BASE_URL}/#org`,
-        name: 'проЯв',
-        url: BASE_URL,
-        logo: `${BASE_URL}/icon.svg`,
+/** Structured data: Organization + WebSite + product with real plan prices + the FAQ. */
+function buildJsonLd(locale: Locale, t: ReturnType<typeof getLandingCopy>) {
+  return graph(
+    softwareApplicationNode({
+      description: t.hero.lede,
+      url: `/${locale}`,
+      planNames: {
+        free: t.pricing.plans.free.name,
+        basic: t.pricing.plans.basic.name,
+        plus: t.pricing.plans.plus.name,
+        pro: t.pricing.plans.pro.name,
       },
-      {
-        '@type': 'WebSite',
-        '@id': `${BASE_URL}/#site`,
-        name: 'проЯв',
-        url: BASE_URL,
-        inLanguage: ['uk', 'en'],
-        publisher: { '@id': `${BASE_URL}/#org` },
-      },
-      {
-        '@type': 'SoftwareApplication',
-        name: 'проЯв',
-        applicationCategory: 'BusinessApplication',
-        operatingSystem: 'Web',
-        url: `${BASE_URL}/${locale}`,
-        description: t.hero.lede,
-        offers: (Object.keys(GALLERY_PLANS) as GalleryPlanId[]).map((id) => ({
-          '@type': 'Offer',
-          name: t.pricing.plans[id].name,
-          price: GALLERY_PLANS[id].priceUahMonth,
-          priceCurrency: 'UAH',
-        })),
-      },
-      {
-        '@type': 'FAQPage',
-        mainEntity: t.faq.items.map((item) => ({
-          '@type': 'Question',
-          name: item.q,
-          acceptedAnswer: { '@type': 'Answer', text: item.a },
-        })),
-      },
-    ],
-  }
+    }),
+    faqNode(t.faq.items)
+  )
 }
 
 export default function LandingPage({ params }: { params: { locale: string } }) {
@@ -65,6 +61,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
   const t = getLandingCopy(locale)
   const login = `/${locale}/login`
   const jsonLd = buildJsonLd(locale, t)
+  preloadBrandFonts(locale)
 
   const marqueeTiles = ['p01 t34', 'p08 t43', 'p07 t11', 'p14 t34', 'p15 t43', 'p16 t11', 'p12 t34', 'p03 t43']
   const tile = (spec: string, key: number) => {
@@ -74,10 +71,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
 
   return (
     <main className={s.page}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <div className={s.wrap}>
         {/* ---------- nav ---------- */}
         <nav className={s.nav}>
@@ -85,9 +79,17 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
             <Logo />
           </Link>
           <span className={s.navLinks}>
-            <a href="#galleries">{t.nav.galleries}</a>
-            <a href="#pricing">{t.nav.pricing}</a>
-            <Link href={`/${locale}/blog`}>{t.nav.blog}</Link>
+            {primaryNav(locale).map((link) =>
+              link.href.includes('#') ? (
+                <a key={link.href} href={link.href.slice(link.href.indexOf('#'))}>
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} href={link.href}>
+                  {link.label}
+                </Link>
+              )
+            )}
             <AuthNav
               locale={locale}
               labels={{ signIn: t.nav.signIn, ctaShort: t.nav.ctaShort, dashboard: t.nav.dashboard }}
@@ -111,6 +113,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <em>{t.hero.titleAccent}</em>
               {t.hero.titleAfter}
             </h1>
+            <p className={s.subtitle}>{t.hero.subtitle}</p>
             <p className={s.lede}>{t.hero.lede}</p>
             <div className={s.ctaRow}>
               <Link href={login} className={s.pillHot}>
@@ -181,7 +184,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <p>{t.products.lede}</p>
             </div>
           </Reveal>
-          <div className={s.prodGrid}>
+          <div className={`${s.prodGrid} ${s.prodGridTwo}`}>
             <Reveal>
               <div className={s.prod}>
                 <span className={s.prodNo}>{t.products.items[0].no}</span>
@@ -200,29 +203,8 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               </div>
             </Reveal>
             <Reveal>
-              <div className={`${s.prod} ${s.prodSoon}`}>
-                <span className={s.prodNo}>{t.products.items[1].no}</span>
-                <span className={s.soonBadge}>{t.products.soon}</span>
-                <div className={s.pSite}>
-                  <div className={s.wm}>{t.hero.mockName}</div>
-                  <div className={s.hl}>{t.hero.mockTitle}</div>
-                  <div className={s.themeRow}>
-                    <div className={`${s.ph} ${s.p09}`} />
-                    <div className={`${s.ph} ${s.p14}`} />
-                    <div className={`${s.ph} ${s.p04}`} />
-                  </div>
-                </div>
-                <h3>{t.products.items[1].title}</h3>
-                <p>{t.products.items[1].text}</p>
-                <p className={s.tag}>
-                  <b>{t.products.items[1].tagStrong}</b>
-                  {t.products.items[1].tagRest}
-                </p>
-              </div>
-            </Reveal>
-            <Reveal>
               <div className={s.prod}>
-                <span className={s.prodNo}>{t.products.items[2].no}</span>
+                <span className={s.prodNo}>{t.products.items[1].no}</span>
                 <div className={s.pBook}>
                   <div className={s.slot}>
                     <span>Сб, 14:00 · 60 хв</span>
@@ -234,11 +216,11 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
                   </div>
                   <div className={s.ok}>✓</div>
                 </div>
-                <h3>{t.products.items[2].title}</h3>
-                <p>{t.products.items[2].text}</p>
+                <h3>{t.products.items[1].title}</h3>
+                <p>{t.products.items[1].text}</p>
                 <p className={s.tag}>
-                  <b>{t.products.items[2].tagStrong}</b>
-                  {t.products.items[2].tagRest}
+                  <b>{t.products.items[1].tagStrong}</b>
+                  {t.products.items[1].tagRest}
                 </p>
               </div>
             </Reveal>
@@ -254,7 +236,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
             <div className={s.secHead}>
               <span className={s.lbl}>{locale === 'uk' ? 'Дизайн-студія' : 'Design studio'}</span>
               <h2 className={s.h2}>
-                {locale === 'uk' ? 'Галерея, яку хочеться ' : 'A gallery clients love '}
+                {locale === 'uk' ? 'Онлайн-галерея, яку клієнт захоче ' : 'A gallery clients love '}
                 <span className={s.accentWord}>
                   {locale === 'uk' ? 'переслати друзям' : 'to share'}
                 </span>
@@ -342,9 +324,9 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
       {/* ---------- principles ---------- */}
       <section className={s.principles}>
         <div className={s.wrap}>
-          <h2 className={s.huge} aria-hidden="true">
+          <p className={s.huge} aria-hidden="true">
             {t.principles.huge}
-          </h2>
+          </p>
           <Reveal>
             <div className={s.secHead}>
               <h2 className={s.h2}>{t.principles.title}</h2>
@@ -413,21 +395,6 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
             })}
           </div>
 
-          <Reveal>
-            <div id="sites" className={s.secHead} style={{ marginTop: 64, scrollMarginTop: 90 }}>
-              <h2 className={s.h2}>
-                {t.pricing.siteTitle} <span className={s.soonBadge}>{t.pricing.soonBadge}</span>
-              </h2>
-            </div>
-          </Reveal>
-          <Reveal>
-            <div className={s.comingSoon}>
-              <p>{t.pricing.siteComingSoon}</p>
-              <Link href={login} className={s.pillGhost}>
-                {t.hero.cta}
-              </Link>
-            </div>
-          </Reveal>
           <p className={s.fineprint}>{t.pricing.fineprint}</p>
         </section>
 
@@ -490,8 +457,23 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
       <div className={s.wrap}>
         <footer className={s.footer}>
           <Logo size={17} textSize={13} />
-          <span>{t.footer.tagline}</span>
+          <span>
+            {t.footer.tagline} · © {new Date().getFullYear()} проЯв
+          </span>
           <span style={{ display: 'inline-flex', gap: 16, flexWrap: 'wrap' }}>
+            {locale === 'uk' && (
+              <>
+                <Link href="/uk/halerei" style={{ color: 'inherit' }}>
+                  Онлайн-галерея
+                </Link>
+                <Link href="/uk/tsiny" style={{ color: 'inherit' }}>
+                  Тарифи
+                </Link>
+                <Link href="/uk/porivniannia" style={{ color: 'inherit' }}>
+                  Порівняння
+                </Link>
+              </>
+            )}
             <Link href={`/${locale}/blog`} style={{ color: 'inherit' }}>
               {t.footer.blog}
             </Link>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isLocale, locales } from '@/lib/i18n/config'
 import { getLegalCopy } from '@/lib/legal/copy'
+import { buildMetadata, clampDescription } from '@/lib/seo/metadata'
 import { LegalDocView } from '@/components/legal/LegalDocView'
 
 export function generateStaticParams() {
@@ -9,12 +10,15 @@ export function generateStaticParams() {
 }
 
 export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
-  const copy = getLegalCopy(isLocale(params.locale) ? params.locale : 'uk')
-  return {
+  const locale = isLocale(params.locale) ? params.locale : 'uk'
+  const copy = getLegalCopy(locale)
+  return buildMetadata({
+    locale,
+    path: '/privacy',
+    languages: ['uk', 'en'],
     title: copy.privacy.title,
-    description: copy.privacy.intro.slice(0, 155),
-    alternates: { canonical: `/${params.locale}/privacy` },
-  }
+    description: clampDescription(copy.privacy.intro),
+  })
 }
 
 export default function PrivacyPage({ params }: { params: { locale: string } }) {

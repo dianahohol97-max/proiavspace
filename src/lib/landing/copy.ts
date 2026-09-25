@@ -13,6 +13,8 @@ export interface LandingCopy {
     titleBefore: string
     titleAccent: string
     titleAfter: string
+    /** Keyword-bearing line right under the H1. */
+    subtitle: string
     lede: string
     cta: string
     ctaNote: string
@@ -106,23 +108,24 @@ const uk: LandingCopy = {
     titleBefore: 'Усе, що стається ',
     titleAccent: 'після',
     titleAfter: ' зйомки',
+    subtitle: 'Онлайн-галерея для фотографа: передайте фото клієнту одним красивим посиланням.',
     lede:
-      'Галереї, у яких клієнт одразу розуміє, як забрати фото — без Google Drive і питань «як завантажити». Персональний сайт за вечір і бронювання з оплатою напряму на вашу картку. Скрізь лише ваш бренд.',
+      'Галереї, у яких клієнт одразу розуміє, як забрати фото — без Google Drive і питань «як завантажити». Відбір кадрів сердечками, пароль і термін дії, оригінали без стискання. Скрізь лише ваш бренд.',
     cta: 'Почати безкоштовно',
     ctaNote: '3 ГБ назавжди безкоштовно. Без картки при реєстрації.',
-    statNumber: '120 000',
-    statText: 'фотографій передано клієнтам через галереї «Прояву»',
+    statNumber: '30 000',
+    statText: 'фотографій передано клієнтам через галереї проЯв',
     slotPay: 'Оплатити фотографу',
     mockName: 'Олена Романюк',
     mockTitle: 'Весільні історії',
   },
   strip: { label: 'Роботи фотографів' },
   products: {
-    label: 'Три продукти · один кабінет',
-    titleBefore: 'Кожен етап роботи з клієнтом — ',
+    label: 'Галереї · бронювання · один кабінет',
+    titleBefore: 'Клієнтська галерея для фотографа — ',
     titleAccent: 'під вашим брендом',
     lede:
-      'Починається все з галерей — саме там фотограф щотижня зустрічається з клієнтом. Бронювання вже працює, а конструктор сайтів для фотографів — на підході.',
+      'Усе починається з галерей — саме там фотограф щотижня зустрічається з клієнтом. А якщо хочете, щоб клієнт сам обирав час зйомки й одразу платив, — бронювання теж уже працює.',
     soon: 'Скоро',
     items: [
       {
@@ -133,14 +136,7 @@ const uk: LandingCopy = {
         tagRest: ' Файли — як зняли',
       },
       {
-        no: '02 — Сайти',
-        title: 'Сайт-візитівка за вечір',
-        text: 'Вісім готових тем — від редакційної «Тиші» до музейної «Галереї». Портфоліо збирається саме з ваших опублікованих зйомок.',
-        tagStrong: 'Теми перемикаються',
-        tagRest: ' без втрати контенту',
-      },
-      {
-        no: '03 — Бронювання',
+        no: '02 — Бронювання',
         title: 'Клієнт сам обирає час',
         text: 'І одразу оплачує — Monobank, WayForPay, банка чи реквізити. Двоє не заброюють один слот, неоплачені броні звільняються самі.',
         tagStrong: 'Гроші напряму вам.',
@@ -150,8 +146,8 @@ const uk: LandingCopy = {
   },
   bento: {
     label: 'Все в одному кабінеті',
-    titleBefore: 'Дрібниці, з яких складається ',
-    titleAccent: 'спокійна робота',
+    titleBefore: 'Галерея з паролем, відбором і zip — ',
+    titleAccent: 'дрібниці спокійної роботи',
     cards: {
       selection: {
         label: 'Відбір',
@@ -163,9 +159,9 @@ const uk: LandingCopy = {
       payments: { label: 'Оплати', text: 'Напряму на вашу картку. Завжди.' },
       stats: { label: 'Статистика', number: '247', text: 'переглядів галереї цього тижня' },
       themes: {
-        label: 'Теми сайту',
-        text: 'Вісім характерів',
-        chips: ['Тиша', 'Опівніч', 'Плівка', 'Журнал', 'Архів'],
+        label: 'Дизайн галереї',
+        text: 'Три настрої й пʼять розкладок',
+        chips: ['Мозаїка', 'Колаж', 'Едіторіал', 'Квадрати', 'Портрет 3:4'],
       },
       previewPhoto: 'Превʼю без втрат швидкості',
       autoRelease: { label: 'Бронювання', text: 'Неоплачений слот звільняється сам за кілька годин' },
@@ -183,7 +179,7 @@ const uk: LandingCopy = {
     items: [
       {
         title: 'Ваш бренд попереду',
-        text: 'З першого платного тарифу на галереях і сайтах немає жодної згадки про нас. Клієнт бачить лише фотографа.',
+        text: 'З першого платного тарифу в галереях немає жодної згадки про нас. Клієнт бачить лише фотографа.',
       },
       {
         title: 'Гроші — напряму',
@@ -201,8 +197,8 @@ const uk: LandingCopy = {
   },
   pricing: {
     label: 'Тарифи',
-    titleBefore: 'Галереї — за місце, сайти — ',
-    titleAccent: 'окремим прайсом',
+    titleBefore: 'Тарифи онлайн-галереї: ',
+    titleAccent: 'платите лише за місце',
     lede:
       'Відбір фото клієнтом безкоштовний для всіх. Платні тарифи знімають наш брендинг, додають відео, статистику й більше місця.',
     perMonth: '/ місяць',
@@ -216,7 +212,7 @@ const uk: LandingCopy = {
       free: {
         name: 'Безкоштовний',
         note: 'Для перших галерей і проби пера',
-        bullets: ['Відбір фото клієнтом', 'Галереї з паролем і терміном дії', 'Сайт-пробник на 7 днів'],
+        bullets: ['Відбір фото клієнтом', 'Галереї з паролем і терміном дії', 'Без обмеження кількості галерей'],
       },
       basic: {
         name: 'Базовий',
@@ -261,11 +257,11 @@ const uk: LandingCopy = {
   },
   faq: {
     label: 'Питання, які ставлять найчастіше',
-    title: 'Коротко про важливе',
+    title: 'Питання про онлайн-галереї проЯв',
     items: [
       {
-        q: 'Чи бачать клієнти, що галерея зроблена на «Прояві»?',
-        a: "На безкоштовному тарифі внизу галереї стоїть маленький підпис «Створено на Прояві». Уже з Базового його немає: на сторінках — лише ваше ім'я, ваш логотип і ваші фотографії.",
+        q: 'Чи бачать клієнти, що галерея зроблена на проЯв?',
+        a: "На безкоштовному тарифі внизу галереї стоїть маленький підпис «Створено на проЯв». Уже з Базового його немає: на сторінках — лише ваше ім'я, ваш логотип і ваші фотографії.",
       },
       {
         q: 'Через кого проходять гроші за зйомки?',
@@ -288,7 +284,7 @@ const uk: LandingCopy = {
     cta: 'Створити безкоштовний акаунт',
   },
   footer: {
-    tagline: 'Галереї · Сайти · Бронювання — для фотографів України',
+    tagline: 'Онлайн-галереї для фотографів України',
     blog: 'Блог',
     terms: 'Публічна оферта',
     privacy: 'Політика конфіденційності',
@@ -302,23 +298,24 @@ const en: LandingCopy = {
     titleBefore: 'Everything that happens ',
     titleAccent: 'after',
     titleAfter: ' the shutter clicks',
+    subtitle: 'An online client gallery for photographers: deliver a shoot with one beautiful link.',
     lede:
-      'Galleries where the client instantly knows how to grab their photos — no Google Drive, no "how do I download this?". A personal site built in an evening, and bookings paid straight to your card. Your brand everywhere.',
+      'Galleries where the client instantly knows how to grab their photos — no Google Drive, no "how do I download this?". Favourites, a password and expiry, uncompressed originals. Your brand everywhere.',
     cta: 'Start for free',
     ctaNote: '3 GB free forever. No card at sign-up.',
-    statNumber: '120 000',
-    statText: 'photos delivered to clients through Proiav galleries',
+    statNumber: '30 000',
+    statText: 'photos delivered to clients through proiav galleries',
     slotPay: 'Pay the photographer',
     mockName: 'Olena Romaniuk',
     mockTitle: 'Wedding stories',
   },
   strip: { label: 'Photographers’ work' },
   products: {
-    label: 'Three products · one dashboard',
-    titleBefore: 'Every step of client work — ',
+    label: 'Galleries · booking · one dashboard',
+    titleBefore: 'A client gallery for photographers — ',
     titleAccent: 'under your brand',
     lede:
-      'It all starts with galleries — that is where a photographer meets clients every week. Booking already works, and the photographer site builder is on the way.',
+      'It all starts with galleries — that is where a photographer meets clients every week. And if you want clients to pick a time and pay right away, booking already works too.',
     soon: 'Soon',
     items: [
       {
@@ -329,14 +326,7 @@ const en: LandingCopy = {
         tagRest: ' Files exactly as shot',
       },
       {
-        no: '02 — Sites',
-        title: 'A personal site in an evening',
-        text: 'Eight ready themes — from the editorial Tysha to the museum-like Galereia. The portfolio assembles from your published shoots.',
-        tagStrong: 'Themes switch',
-        tagRest: ' without losing content',
-      },
-      {
-        no: '03 — Booking',
+        no: '02 — Booking',
         title: 'Clients pick their own time',
         text: 'And pay right away — Monobank, WayForPay, a jar or requisites. No double-booking, unpaid holds release themselves.',
         tagStrong: 'Money goes straight to you.',
@@ -359,9 +349,9 @@ const en: LandingCopy = {
       payments: { label: 'Payments', text: 'Straight to your card. Always.' },
       stats: { label: 'Stats', number: '247', text: 'gallery views this week' },
       themes: {
-        label: 'Site themes',
-        text: 'Eight characters',
-        chips: ['Tysha', 'Opivnich', 'Plivka', 'Zhurnal', 'Arkhiv'],
+        label: 'Gallery design',
+        text: 'Three moods, five layouts',
+        chips: ['Masonry', 'Collage', 'Editorial', 'Squares', 'Portrait 3:4'],
       },
       previewPhoto: 'Previews with zero speed loss',
       autoRelease: { label: 'Booking', text: 'An unpaid slot frees itself after a few hours' },
@@ -379,7 +369,7 @@ const en: LandingCopy = {
     items: [
       {
         title: 'Your brand up front',
-        text: 'From the first paid tier, galleries and sites never mention us. The client sees only the photographer.',
+        text: 'From the first paid tier, galleries never mention us. The client sees only the photographer.',
       },
       {
         title: 'Money goes direct',
@@ -397,8 +387,8 @@ const en: LandingCopy = {
   },
   pricing: {
     label: 'Pricing',
-    titleBefore: 'Galleries by storage, sites — ',
-    titleAccent: 'priced separately',
+    titleBefore: 'Online gallery pricing: ',
+    titleAccent: 'pay only for storage',
     lede:
       'Client photo selection is free for everyone. Paid tiers remove our branding and add video, statistics and more room.',
     perMonth: '/ month',
@@ -412,7 +402,7 @@ const en: LandingCopy = {
       free: {
         name: 'Free',
         note: 'For your first galleries',
-        bullets: ['Client photo selection', 'Password & expiry on galleries', 'A trial site for 7 days'],
+        bullets: ['Client photo selection', 'Password & expiry on galleries', 'Unlimited galleries'],
       },
       basic: {
         name: 'Basic',
@@ -459,8 +449,8 @@ const en: LandingCopy = {
     title: 'The important bits, briefly',
     items: [
       {
-        q: 'Do clients see the gallery is made on Proiav?',
-        a: 'On the free tier a small “Made with Proiav” note sits at the bottom of the gallery. From Basic up it is gone: pages carry only your name, your logo and your photos.',
+        q: 'Do clients see the gallery is made on proiav?',
+        a: 'On the free tier a small “Made with proiav” note sits at the bottom of the gallery. From Basic up it is gone: pages carry only your name, your logo and your photos.',
       },
       {
         q: 'Who do shoot payments go through?',
@@ -483,7 +473,7 @@ const en: LandingCopy = {
     cta: 'Create a free account',
   },
   footer: {
-    tagline: 'Galleries · Sites · Booking — for photographers in Ukraine',
+    tagline: 'Online client galleries for photographers in Ukraine',
     blog: 'Blog',
     terms: 'Public offer',
     privacy: 'Privacy policy',

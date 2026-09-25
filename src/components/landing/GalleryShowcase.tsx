@@ -16,13 +16,13 @@ import Link from 'next/link'
  * masonry shows true verticals/horizontals; `pos` is the crop focus
  * (object-position) that keeps the couple in square/portrait tiles.
  */
-const PHOTOS: { src: string; ratio: string; pos: string }[] = [
-  { src: '/themes/15.jpg', ratio: '3 / 2', pos: '55% 40%' },
-  { src: '/themes/18.jpg', ratio: '2 / 3', pos: '50% 35%' },
-  { src: '/themes/01.jpg', ratio: '3 / 2', pos: '60% 55%' },
-  { src: '/themes/13.jpg', ratio: '2 / 3', pos: '50% 60%' },
-  { src: '/themes/16.jpg', ratio: '3 / 2', pos: '42% 45%' },
-  { src: '/themes/21.jpg', ratio: '3 / 2', pos: '48% 65%' },
+const PHOTOS: { src: string; ratio: string; pos: string; alt: { uk: string; en: string } }[] = [
+  { src: '/themes/15.webp', ratio: '3 / 2', pos: '55% 40%', alt: { uk: 'Наречені йдуть сільською дорогою в горах, тримаючись за руки — кадр весільної онлайн-галереї', en: 'Bride and groom walking hand in hand down a mountain road' } },
+  { src: '/themes/18.webp', ratio: '2 / 3', pos: '50% 35%', alt: { uk: 'Наречені торкаються чолами — крупний план у клієнтській галереї', en: 'Newlyweds touching foreheads, close-up' } },
+  { src: '/themes/01.webp', ratio: '3 / 2', pos: '60% 55%', alt: { uk: 'Наречені біля деревʼяного паркану на тлі гір', en: 'Newlyweds by a wooden fence with mountains behind' } },
+  { src: '/themes/13.webp', ratio: '2 / 3', pos: '50% 60%', alt: { uk: 'Наречені обіймаються на зеленому схилі в горах', en: 'Newlyweds embracing on a green mountain slope' } },
+  { src: '/themes/16.webp', ratio: '3 / 2', pos: '42% 45%', alt: { uk: 'Поцілунок нареченої й нареченого серед сосен', en: 'Bride and groom kissing among pine trees' } },
+  { src: '/themes/21.webp', ratio: '3 / 2', pos: '48% 65%', alt: { uk: 'Наречені цілуються посеред гірської дороги', en: 'Newlyweds kissing in the middle of a mountain road' } },
 ]
 
 const THEMES = {
@@ -125,7 +125,7 @@ export function GalleryShowcase({
           style={{
             height: 220,
             backgroundImage:
-              'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/07.jpg")',
+              'linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.42)), url("/themes/07.webp")',
             backgroundSize: 'cover',
             // the couple's faces sit just above the middle of the cover shot
             backgroundPosition: '48% 35%',
@@ -172,7 +172,8 @@ export function GalleryShowcase({
             <img
               key={photo.src}
               src={photo.src}
-              alt=""
+              alt={uk ? photo.alt.uk : photo.alt.en}
+              decoding="async"
               loading="lazy"
               className="w-full object-cover"
               style={{

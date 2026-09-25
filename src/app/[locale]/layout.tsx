@@ -1,85 +1,49 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isLocale, locales } from '@/lib/i18n/config'
+import { brandOgImage } from '@/lib/seo/pages'
+import { BASE_URL, BRAND, OG_LOCALE, isIndexedLocale } from '@/lib/seo/site'
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics'
 import '@/app/globals.css'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-
+/**
+ * Site-wide DEFAULTS only. Every marketing page builds its own complete
+ * metadata via buildMetadata() (src/lib/seo/metadata.ts); these fallbacks
+ * cover the pages that don't — client galleries and booking links, which are
+ * noindex and only need a sane title and share card. No canonical here: a
+ * canonical inherited from the layout would point every child page at /uk.
+ */
 export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
   const locale = isLocale(params.locale) ? params.locale : 'uk'
   const uk = locale === 'uk'
-
-  const title = uk
-    ? 'проЯв — галереї, сайти і бронювання для фотографів'
-    : 'Proiav — galleries, sites and booking for photographers'
+  const title = uk ? 'проЯв — онлайн-галереї для фотографів' : 'proiav — online client galleries for photographers'
   const description = uk
-    ? 'Передавайте зйомки клієнтам у красивих онлайн-галереях, збирайте персональний сайт за вечір і приймайте бронювання з оплатою напряму на вашу картку. 3 ГБ безкоштовно, без нашого брендингу на платних тарифах.'
-    : 'Deliver shoots to clients in beautiful online galleries, build a personal site in an evening and take bookings paid straight to your card. 3 GB free.'
+    ? 'Онлайн-галерея для фотографа: передайте зйомку клієнту красивим посиланням, з відбором фото, паролем і завантаженням оригіналів.'
+    : 'Online client galleries for photographers: deliver a shoot with a beautiful link, favourites, a password and full-resolution downloads.'
+
+  const verificationOther: Record<string, string> = {}
+  if (process.env.BING_SITE_VERIFICATION) verificationOther['msvalidate.01'] = process.env.BING_SITE_VERIFICATION
 
   return {
     metadataBase: new URL(BASE_URL),
-    title: { default: title, template: uk ? '%s · проЯв' : '%s · Proiav' },
+    title,
     description,
-    applicationName: 'проЯв',
-    keywords: uk
-      ? [
-          'онлайн галерея для фотографа',
-          'передати фото клієнту',
-          'сайт для фотографа',
-          'бронювання фотосесії',
-          'галерея фотографій з паролем',
-          'фотограф Україна',
-        ]
-      : ['online client gallery', 'photographer website builder', 'photo session booking', 'Ukraine'],
-    alternates: {
-      // The marketing landing exists only in Ukrainian and English. The other
-      // client-facing locales render the English copy, so they canonicalize to
-      // /en — Google consolidates the signal instead of seeing duplicates.
-      // (Gallery/booking/site pages set their own canonical and override this.)
-      canonical: locale === 'uk' ? '/uk' : '/en',
-      languages: { uk: '/uk', en: '/en', 'x-default': '/uk' },
-    },
+    applicationName: BRAND,
     openGraph: {
       type: 'website',
-      siteName: 'проЯв',
-      locale: uk ? 'uk_UA' : 'en_US',
-      alternateLocale: uk ? ['en_US'] : ['uk_UA'],
-      url: `/${locale}`,
+      siteName: BRAND,
+      locale: OG_LOCALE[locale] ?? 'uk_UA',
       title,
       description,
-      images: [
-        {
-          url: '/og.png',
-          width: 1200,
-          height: 630,
-          alt: uk
-            ? 'проЯв — усе, що стається після зйомки'
-            : 'Proiav — everything after the shutter clicks',
-        },
-      ],
+      images: [{ url: brandOgImage(locale), width: 1200, height: 630, alt: title }],
     },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: ['/og.png'],
+    twitter: { card: 'summary_large_image', title, description, images: [brandOgImage(locale)] },
+    robots: isIndexedLocale(locale) ? { index: true, follow: true } : { index: false, follow: true },
+    // Search Console / Bing Webmaster ownership tags — set the env vars in Vercel.
+    verification: {
+      ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+      ...(Object.keys(verificationOther).length ? { other: verificationOther } : {}),
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-        'max-video-preview': -1,
-      },
-    },
-    // Google Search Console ownership tag — set the env after registering.
-    verification: process.env.GOOGLE_SITE_VERIFICATION
-      ? { google: process.env.GOOGLE_SITE_VERIFICATION }
-      : undefined,
     // Belt-and-suspenders with <html translate="no">: page-level opt-out from
     // machine translation, which corrupts React-managed DOM (see layout note).
     other: { google: 'notranslate' },

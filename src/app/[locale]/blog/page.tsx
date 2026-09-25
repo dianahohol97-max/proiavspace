@@ -2,23 +2,30 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getArticles, type Article } from '@/lib/blog/articles'
+import { CATEGORIES, articlesIn } from '@/lib/blog/categories'
 import { isLocale } from '@/lib/i18n/config'
-import { Logo } from '@/components/Logo'
+import { preloadBrandFonts } from '@/lib/seo/fonts'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { ogImagePath } from '@/lib/seo/pages'
+import { graph } from '@/lib/seo/structured-data'
+import { Breadcrumbs } from '@/components/marketing/Breadcrumbs'
+import { SiteFooter } from '@/components/marketing/SiteFooter'
+import { SiteHeader } from '@/components/marketing/SiteHeader'
+import { JsonLd } from '@/components/seo/JsonLd'
 
 export const dynamic = 'force-dynamic'
 
 export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
-  const uk = params.locale === 'uk'
-  const title = uk ? 'Блог для фотографів — проЯв' : 'Blog for photographers — proiav'
-  const description = uk
-    ? 'Практичні поради: як передати фото клієнту, обрати галерею, зробити сайт і приймати оплату. Для фотографів.'
-    : 'Practical guides for photographers: delivering photos, choosing a gallery, building a site, taking payments.'
-  return {
-    title,
-    description,
-    alternates: { canonical: `/${params.locale}/blog` },
-    openGraph: { type: 'website', title, description, url: `/${params.locale}/blog` },
-  }
+  const locale = isLocale(params.locale) ? params.locale : 'uk'
+  return buildMetadata({
+    locale,
+    path: '/blog',
+    languages: ['uk'],
+    title: 'Блог для фотографів: галереї, клієнти, ціни',
+    description:
+      'Практичні статті для фотографів: як передати фото клієнту, обрати онлайн-галерею, встановити ціну на зйомку й працювати з клієнтами без нервів.',
+    image: { url: ogImagePath('page.blog'), alt: 'Блог проЯв для фотографів' },
+  })
 }
 
 function fmtDate(date: string, uk: boolean): string {
@@ -35,32 +42,19 @@ export default async function BlogHubPage({ params }: { params: { locale: string
   const uk = locale === 'uk'
   const articles = await getArticles()
   const [featured, ...rest] = articles
+  const topics = CATEGORIES.filter((c) => articlesIn(c, articles).length > 0)
+  preloadBrandFonts(locale)
 
   return (
     <main className="min-h-screen">
-      {/* --- brand bar --- */}
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <Link href={`/${locale}`} className="text-fg no-underline">
-          <Logo />
-        </Link>
-        <nav className="hidden items-center gap-7 text-sm text-muted sm:flex">
-          <Link href={`/${locale}#galleries`} className="no-underline hover:text-fg">
-            {uk ? 'Галереї' : 'Galleries'}
-          </Link>
-          <Link href={`/${locale}#pricing`} className="no-underline hover:text-fg">
-            {uk ? 'Тарифи' : 'Pricing'}
-          </Link>
-          <Link href={`/${locale}/blog`} className="font-semibold text-fg no-underline">
-            {uk ? 'Блог' : 'Blog'}
-          </Link>
-        </nav>
-        <Link
-          href={`/${locale}/login`}
-          className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white no-underline transition-colors hover:bg-accent-deep"
-        >
-          {uk ? 'Спробувати' : 'Try it'}
-        </Link>
-      </header>
+      <JsonLd data={graph()} />
+      <SiteHeader locale={locale} current={`/${locale}/blog`} />
+      <Breadcrumbs
+        items={[
+          { name: 'проЯв', path: `/${locale}` },
+          { name: 'Блог', path: `/${locale}/blog` },
+        ]}
+      />
 
       {/* --- masthead --- */}
       <section className="mx-auto max-w-5xl px-6 pb-4 pt-10 sm:pt-16">
@@ -68,13 +62,26 @@ export default async function BlogHubPage({ params }: { params: { locale: string
           {uk ? 'Журнал проЯв' : 'proiav journal'}
         </p>
         <h1 className="mt-4 max-w-3xl font-brand text-4xl leading-[1.05] tracking-tight sm:text-6xl">
-          {uk ? 'Поради, що працюють на фотографа' : 'Guides that work for photographers'}
+          {uk ? 'Блог для фотографів: поради, що працюють' : 'Guides that work for photographers'}
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
           {uk
-            ? 'Як передавати зйомки, встановлювати ціни, будувати особистий бренд і приймати оплату — практично й без води.'
+            ? 'Як передавати зйомки клієнтам, обирати онлайн-галерею, встановлювати ціни й будувати особистий бренд — практично й без води.'
             : 'Delivering shoots, pricing, building a personal brand and taking payments — practical, no fluff.'}
         </p>
+        {topics.length > 0 && (
+          <nav aria-label="Теми блогу" className="mt-8 flex flex-wrap gap-2">
+            {topics.map((topic) => (
+              <Link
+                key={topic.slug}
+                href={`/uk/blog/tema/${topic.slug}`}
+                className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-fg no-underline transition-colors hover:border-accent hover:text-accent"
+              >
+                {topic.name}
+              </Link>
+            ))}
+          </nav>
+        )}
       </section>
 
       {articles.length === 0 ? (
@@ -106,8 +113,8 @@ export default async function BlogHubPage({ params }: { params: { locale: string
             </h2>
             <p className="mt-2 max-w-md text-muted">
               {uk
-                ? 'Галереї, сайт і бронювання під вашим брендом. 3 ГБ безкоштовно, без картки.'
-                : 'Galleries, a site and bookings under your brand. 3 GB free, no card.'}
+                ? 'Онлайн-галереї для клієнтів під вашим брендом. 3 ГБ безкоштовно, без картки.'
+                : 'Client galleries under your brand. 3 GB free, no card.'}
             </p>
           </div>
           <Link
@@ -118,6 +125,7 @@ export default async function BlogHubPage({ params }: { params: { locale: string
           </Link>
         </div>
       </section>
+      <SiteFooter locale={locale} />
     </main>
   )
 }
@@ -155,7 +163,7 @@ function FeaturedCard({ article, locale, uk }: { article: Article; locale: strin
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
         <TagChips tags={article.tags} />
         <p className="text-xs uppercase tracking-widest text-muted">
-          {fmtDate(article.date, uk)} · {article.readingMinutes} {uk ? 'хв' : 'min'}
+          {fmtDate(article.updated ?? article.date, uk)} · {article.readingMinutes} {uk ? 'хв' : 'min'}
         </p>
       </div>
     </Link>
@@ -174,7 +182,7 @@ function ArticleCard({ article, locale, uk }: { article: Article; locale: string
       </h3>
       <p className="mt-3 line-clamp-3 flex-1 leading-relaxed text-muted">{article.description}</p>
       <p className="mt-5 text-xs uppercase tracking-widest text-muted">
-        {fmtDate(article.date, uk)} · {article.readingMinutes} {uk ? 'хв' : 'min'}
+        {fmtDate(article.updated ?? article.date, uk)} · {article.readingMinutes} {uk ? 'хв' : 'min'}
       </p>
     </Link>
   )
