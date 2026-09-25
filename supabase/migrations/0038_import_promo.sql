@@ -1,6 +1,6 @@
 -- Promo «Імпортуй галерею — місяць Базового безкоштовно».
 --
--- Granted automatically on the first completed zip import (0035) that brought
+-- Granted automatically on the first completed zip import (0037) that brought
 -- in at least one file, once per account, to accounts on the free plan, while
 -- fewer than N grants exist and before the deadline (both passed in by the
 -- server from src/lib/promo.ts, so the rules live in one place).

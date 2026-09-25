@@ -3,7 +3,7 @@ import { GALLERY_PLANS } from '@/lib/plans'
 /**
  * «Імпортуй галерею — місяць Базового безкоштовно». The rules live here; the
  * atomic grant (slot count, once per account, free accounts only) is the
- * grant_import_promo() function in migration 0036.
+ * grant_import_promo() function in migration 0038.
  */
 export const IMPORT_PROMO = {
   plan: GALLERY_PLANS.basic,
