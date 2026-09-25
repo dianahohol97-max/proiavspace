@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { KEY_ARTICLES } from './key-articles'
 import legacySlugs from './legacy-slugs.json'
+import type { QualityReport } from './generator/types'
 
 /** Old DB slugs are remapped on read so the 301 targets in next.config resolve. */
 const LEGACY_SLUGS = legacySlugs as Record<string, string>
@@ -62,6 +63,17 @@ export interface Article {
   body: Block[]
   /** Author slug (src/lib/blog/authors.ts); defaults to the blog's author. */
   author?: string
+  /** Optional co-author (e.g. the photographer whose shots illustrate it). */
+  coauthor?: Coauthor
+  /** Internal links are part of the text (generator v2) — no auto-inserted paragraph. */
+  linksManaged?: boolean
+}
+
+export interface Coauthor {
+  name: string
+  url?: string
+  /** Shown before the name, e.g. «Фото». */
+  role?: string
 }
 
 /**
@@ -108,6 +120,22 @@ export interface AdminArticle extends Article {
   id: string
   status: 'draft' | 'published'
   source: string
+  /** generator/quality.ts report of the current body. */
+  qualityReport?: QualityReport
+  /** Pending rewrite ("update existing article" mode), not live yet. */
+  revision?: Revision
+}
+
+export interface Revision {
+  title: string
+  seoTitle?: string
+  description: string
+  tags: string[]
+  body: Block[]
+  readingMinutes: number
+  report?: QualityReport
+  generatedAt: string
+  provider?: string
 }
 
 interface Row {
@@ -123,6 +151,13 @@ interface Row {
   source: string
   created_at?: string | null
   updated_at?: string | null
+  // v2 columns (migration 0035) — optional until it is applied.
+  seo_title?: string | null
+  author?: string | null
+  coauthor?: Coauthor | null
+  modified_date?: string | null
+  quality_report?: QualityReport | null
+  revision?: Revision | null
 }
 
 /**
@@ -148,7 +183,14 @@ function rowToAdmin(row: Row): AdminArticle {
     body: Array.isArray(row.body) ? (row.body as Block[]) : [],
     status: row.status === 'published' ? 'published' : 'draft',
     source: row.source,
-    updated: editedDate(row),
+    updated: row.modified_date ?? editedDate(row),
+    seoTitle: row.seo_title ?? undefined,
+    author: row.author ?? undefined,
+    coauthor: row.coauthor ?? undefined,
+    // Rows from the v1 engine are source 'ai'; v2 writes 'ai:<provider>' or 'editor'.
+    linksManaged: row.source !== 'ai',
+    qualityReport: row.quality_report ?? undefined,
+    revision: row.revision ?? undefined,
   }
 }
 
@@ -160,12 +202,16 @@ function anonClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
+/** Public columns only — revision / sources / report stay admin-side. Needs migration 0035. */
+const PUBLIC_COLS =
+  'id, slug, title, description, published_date, reading_minutes, tags, body, status, source, created_at, updated_at, seo_title, author, coauthor, modified_date'
+
 async function fetchPublished(): Promise<Article[]> {
   const supabase = anonClient()
   if (!supabase) return []
   const { data } = await supabase
     .from('blog_articles')
-    .select('id, slug, title, description, published_date, reading_minutes, tags, body, status, source, created_at, updated_at')
+    .select(PUBLIC_COLS)
     .eq('status', 'published')
   return ((data as Row[] | null) ?? []).map(rowToAdmin)
 }
@@ -185,8 +231,7 @@ export async function getArticle(slug: string): Promise<Article | null> {
 
 /* ---------- admin (service role — bypasses RLS, sees drafts) ---------- */
 
-const ADMIN_COLS =
-  'id, slug, title, description, published_date, reading_minutes, tags, body, status, source, created_at, updated_at'
+const ADMIN_COLS = `${PUBLIC_COLS}, quality_report, revision`
 
 /** Every DB article (draft + published), newest first. Admin only. */
 export async function getAdminArticles(): Promise<AdminArticle[]> {
