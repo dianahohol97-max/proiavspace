@@ -840,11 +840,13 @@ const porivnianniaHub: ProductPageContent = {
 
 /*
  * Competitor facts come only from the owner's check of their public pages on
- * 25.09.2026 (linked inline). Dollar amounts are {{price:N}} markers:
+ * COMPETITOR_PRICES_CHECKED (linked inline). Dollar amounts are {{price:N}} markers:
  * ProductPage converts them at the NBU rate of the day; the note under the
  * price table states that rate's date once ({{fx-date}}), inside an
  * {{fx-if}}…{{fx-end}} block that vanishes when the rate is unavailable.
  */
+/** When Pixieset / Pic-Time prices were last checked on their sites — update with the prices. */
+const COMPETITOR_PRICES_CHECKED = '25.09.2026'
 const PIXIESET_PRICING = 'https://pixieset.com/pricing/'
 const PIXIESET_DOWNLOAD_HELP = 'https://help.pixieset.com/hc/en-us/articles/115003594212-Client-Download-Experience'
 const PIXIESET_RESOLUTION_HELP = 'https://help.pixieset.com/hc/en-us/articles/115003795572-Collection-download-settings'
@@ -925,7 +927,7 @@ const mihratsiiaEn: ProductPageCopy = {
     },
     {
       type: 'p',
-      text: `{{fx-if}}Hryvnia prices use the [NBU rate](${NBU_SOURCE_URL}) of {{fx-date}}, updated daily. {{fx-end}}Sources: [pixieset.com/pricing](${PIXIESET_PRICING}), [pic-time.com/pricing](${PICTIME_PRICING}).`,
+      text: `Pixieset and Pic-Time prices checked on their sites on ${COMPETITOR_PRICES_CHECKED}{{fx-if}}; hryvnia amounts use the [NBU rate](${NBU_SOURCE_URL}) of {{fx-date}}, updated daily{{fx-end}}. Sources: [pixieset.com/pricing](${PIXIESET_PRICING}), [pic-time.com/pricing](${PICTIME_PRICING}).`,
     },
     {
       type: 'p',
@@ -1058,7 +1060,7 @@ const mihratsiia: ProductPageContent = {
     },
     {
       type: 'p',
-      text: `{{fx-if}}Ціни в гривнях — за [курсом НБУ](${NBU_SOURCE_URL}) на {{fx-date}}, оновлюється щодня. {{fx-end}}Джерела: [pixieset.com/pricing](${PIXIESET_PRICING}), [pic-time.com/pricing](${PICTIME_PRICING}).`,
+      text: `Ціни Pixieset і Pic-Time перевірено ${COMPETITOR_PRICES_CHECKED} на їхніх сайтах{{fx-if}}; у гривнях — за [курсом НБУ](${NBU_SOURCE_URL}) на {{fx-date}}, оновлюється щодня{{fx-end}}. Джерела: [pixieset.com/pricing](${PIXIESET_PRICING}), [pic-time.com/pricing](${PICTIME_PRICING}).`,
     },
     {
       type: 'p',
