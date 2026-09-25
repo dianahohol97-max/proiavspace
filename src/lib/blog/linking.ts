@@ -4,8 +4,10 @@ import { categoriesFor } from './categories'
 /**
  * Automatic contextual linking: every article must point at least twice at
  * the product pages. Hand-written articles already do; for the rest (incl.
- * AI-generated DB articles) a short, topic-matched paragraph is woven into
- * the body at render time — the stored content is never modified.
+ * older AI-generated DB articles) a short, topic-matched paragraph is woven
+ * into the body at render time — the stored content is never modified.
+ * Generator-v2 articles manage their links themselves (exactly one product
+ * link, checked by generator/quality.ts) and are left as written.
  */
 const PRODUCT_PATHS = [
   '/uk/halerei',
@@ -37,7 +39,7 @@ function productLinkCount(blocks: Block[]): number {
 }
 
 export function withProductLinks(article: Article): Block[] {
-  if (productLinkCount(article.body) >= 2) return article.body
+  if (article.linksManaged || productLinkCount(article.body) >= 2) return article.body
   const topic = categoriesFor(article)[0]?.slug
   const paragraph: Block = { type: 'p', text: (topic && BY_TOPIC[topic]) || FALLBACK }
   // After the paragraph that follows the second H2 (roughly the first third).

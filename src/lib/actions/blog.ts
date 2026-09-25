@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
-import { generateNextArticle, type GenerateResult } from '@/lib/blog/generate'
+import { generateNextArticle, rewriteArticle, type GenerateResult } from '@/lib/blog/generator'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
@@ -45,6 +45,68 @@ export async function generateArticleNow(locale: Locale): Promise<GenerateResult
   return result
 }
 
+/**
+ * "Update existing article": rewrite by the current rules into `revision`.
+ * The live article is not touched until applyRevision.
+ */
+export async function rewriteArticleNow(locale: Locale, id: string, query?: string): Promise<GenerateResult> {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user || !isAdminEmail(user.email)) {
+    return { ok: false, message: 'Немає доступу.' }
+  }
+  const result = await rewriteArticle(id, query)
+  if (result.ok) revalidatePath(`/${locale}/dashboard/blog/${id}`)
+  return result
+}
+
+/**
+ * Apply a reviewed revision: live fields are replaced, slug and published_date
+ * stay, dateModified becomes today (only if the article is live — a draft has
+ * no public history to update).
+ */
+export async function applyRevision(locale: Locale, id: string): Promise<void> {
+  const admin = await requireAdmin()
+  const { data, error: readErr } = await admin
+    .from('blog_articles')
+    .select('status, revision')
+    .eq('id', id)
+    .maybeSingle()
+  if (readErr || !data) throw new Error('Статтю не знайдено')
+  const row = data as { status: string; revision: Record<string, unknown> | null }
+  const rev = row.revision
+  if (!rev) return
+  const now = new Date()
+  const { error } = await admin
+    .from('blog_articles')
+    .update({
+      title: rev.title,
+      seo_title: rev.seoTitle,
+      description: rev.description,
+      tags: rev.tags,
+      body: rev.body,
+      reading_minutes: rev.readingMinutes,
+      sources: rev.sources,
+      quality_report: rev.report,
+      revision: null,
+      updated_at: now.toISOString(),
+      ...(row.status === 'published' ? { modified_date: now.toISOString().slice(0, 10) } : {}),
+    })
+    .eq('id', id)
+  if (error) throw new Error(`Failed to apply revision: ${error.message}`)
+  revalidateBlog(locale)
+  revalidatePath(`/${locale}/dashboard/blog/${id}`)
+}
+
+export async function discardRevision(locale: Locale, id: string): Promise<void> {
+  const admin = await requireAdmin()
+  const { error } = await admin.from('blog_articles').update({ revision: null }).eq('id', id)
+  if (error) throw new Error(`Failed to discard revision: ${error.message}`)
+  revalidatePath(`/${locale}/dashboard/blog/${id}`)
+}
+
 export async function setArticleStatus(
   locale: Locale,
   id: string,
@@ -82,9 +144,20 @@ export async function updateArticle(locale: Locale, id: string, formData: FormDa
   }
   if (!Array.isArray(body)) throw new Error('Тіло статті має бути масивом блоків')
 
+  const { data: current } = await admin.from('blog_articles').select('status').eq('id', id).maybeSingle()
+  const now = new Date()
   const { error } = await admin
     .from('blog_articles')
-    .update({ title, description, body, updated_at: new Date().toISOString() })
+    .update({
+      title,
+      description,
+      body,
+      updated_at: now.toISOString(),
+      // An edit of a live article is a real update → dateModified.
+      ...((current as { status?: string } | null)?.status === 'published'
+        ? { modified_date: now.toISOString().slice(0, 10) }
+        : {}),
+    })
     .eq('id', id)
   if (error) throw new Error(`Failed to update article: ${error.message}`)
   revalidateBlog(locale)

@@ -1,27 +1,36 @@
 name: Blog — generate article
 
-# Content engine: twice a week (~8/month) writes the next queued topic into a
-# DRAFT article in the database. Review and publish it in the dashboard
-# (Дашборд → Блог). Nothing goes live automatically.
+# Content engine v2 (src/lib/blog/generator): writes the next queued topic into
+# a DRAFT article in the database — web-search research, NBU rates, quality
+# check. Review and publish it in the dashboard (Дашборд → Блог). Nothing goes
+# live automatically.
 #
 # Requires repo secrets: GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
+# Optional repo variables: BLOG_LLM_PROVIDER (gemini | anthropic), GEMINI_MODEL.
 
 on:
-  schedule:
-    - cron: '0 8 * * 1,4' # Mon & Thu, 08:00 UTC (~10:00–11:00 Kyiv)
+  # PAUSED until generator v2 is merged and migration 0035 is applied —
+  # uncomment to resume twice-weekly drafts (~8/month).
+  # schedule:
+  #   - cron: '0 8 * * 1,4' # Mon & Thu, 08:00 UTC (~10:00–11:00 Kyiv)
   workflow_dispatch: {}
 
 jobs:
   generate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - name: Write the next article (as a draft)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/generate-article.mjs
+          BLOG_LLM_PROVIDER: ${{ vars.BLOG_LLM_PROVIDER || 'gemini' }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.5-pro' }}
+        run: npm run blog:generate

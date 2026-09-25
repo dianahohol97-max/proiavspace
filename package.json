@@ -8,8 +8,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "blog:generate": "node scripts/generate-article.mjs",
-    "seo:submit": "node scripts/seo-submit.mjs"
+    "seo:submit": "node scripts/seo-submit.mjs",
+    "blog": "tsx scripts/blog.ts",
+    "blog:generate": "tsx scripts/blog.ts generate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.620.0",
@@ -30,6 +31,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.7",
+    "tsx": "^4.23.15",
     "typescript": "^5.5.4"
   }
 }
