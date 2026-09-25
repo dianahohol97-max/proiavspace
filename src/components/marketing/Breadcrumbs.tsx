@@ -3,11 +3,11 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { breadcrumbNode, type Crumb } from '@/lib/seo/structured-data'
 
 /** Visible breadcrumb trail + matching BreadcrumbList structured data. */
-export function Breadcrumbs({ items }: { items: Crumb[] }) {
+export function Breadcrumbs({ items, label = 'Хлібні крихти' }: { items: Crumb[]; label?: string }) {
   return (
     <>
       <JsonLd data={{ '@context': 'https://schema.org', ...breadcrumbNode(items) }} />
-      <nav aria-label="Хлібні крихти" className="mx-auto max-w-5xl px-6">
+      <nav aria-label={label} className="mx-auto max-w-5xl px-6">
         <ol className="flex flex-wrap items-center gap-2 text-xs text-muted">
           {items.map((item, i) => (
             <li key={item.path} className="flex items-center gap-2">
