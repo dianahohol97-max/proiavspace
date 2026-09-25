@@ -81,8 +81,14 @@ export default async function DashboardPage({ params }: { params: { locale: stri
       <header className="mb-8 flex flex-wrap items-center gap-4">
         <h1 className="font-brand text-3xl">{dict.dashboard.title}</h1>
         <Link
+          href={`/${locale}/dashboard/import`}
+          className="ml-auto rounded-full border border-line px-6 py-3 text-sm font-bold text-fg no-underline transition-colors hover:border-fg"
+        >
+          {dict.dashboard.importLink}
+        </Link>
+        <Link
           href={`/${locale}/dashboard/galleries/new`}
-          className="ml-auto rounded-full bg-accent px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-accent-deep"
+          className="rounded-full bg-accent px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-accent-deep"
         >
           + {dict.dashboard.newGallery}
         </Link>
@@ -111,6 +117,12 @@ export default async function DashboardPage({ params }: { params: { locale: stri
             className="mt-8 inline-block rounded-full bg-accent px-7 py-3 text-sm font-bold text-white no-underline transition-colors hover:bg-accent-deep"
           >
             {dict.dashboard.onboardCta}
+          </Link>
+          <Link
+            href={`/${locale}/dashboard/import`}
+            className="mt-4 block text-sm text-muted"
+          >
+            {dict.dashboard.importLink}
           </Link>
         </div>
       ) : (
