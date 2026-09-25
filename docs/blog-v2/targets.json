@@ -1,0 +1,88 @@
+{
+  "product": [
+    {
+      "path": "/uk/halerei",
+      "title": "Онлайн-галерея для фотографа"
+    },
+    {
+      "path": "/uk/tsiny",
+      "title": "Тарифи онлайн-галереї: платите лише за місце"
+    },
+    {
+      "path": "/uk/halereia-z-parolem",
+      "title": "Галерея фотографій з паролем і терміном дії"
+    },
+    {
+      "path": "/uk/dlia-vesilnykh-fotohrafiv",
+      "title": "Онлайн-галерея для весільного фотографа"
+    },
+    {
+      "path": "/uk/porivniannia",
+      "title": "Порівняння сервісів онлайн-галерей"
+    }
+  ],
+  "articles": [
+    {
+      "path": "/uk/blog/naikrashchi-servisy-halerei-dlia-fotohrafiv",
+      "title": "Найкращі сервіси клієнтських галерей для фотографів у 2026: чесне порівняння"
+    },
+    {
+      "path": "/uk/blog/yak-peredaty-foto-kliientu",
+      "title": "Як передати фото клієнту після зйомки: 5 способів"
+    },
+    {
+      "path": "/uk/blog/halereia-dlia-fotohrafa",
+      "title": "Галерея для фотографа: як обрати онлайн-галерею у 2026"
+    },
+    {
+      "path": "/uk/blog/proiav-vs-pixieset-pic-time",
+      "title": "проЯв, Pixieset чи Pic-Time: що обрати фотографу"
+    },
+    {
+      "path": "/uk/blog/skilky-koshtuie-zberihaty-foto",
+      "title": "Скільки коштує зберігати фотографії: рахуємо на сезон"
+    },
+    {
+      "path": "/uk/blog/yak-pryimaty-oplatu-za-foto",
+      "title": "Як приймати оплату за фотопослуги в Україні"
+    },
+    {
+      "path": "/uk/blog/yak-vstanovyty-tsinu-na-fotosesiiu",
+      "title": "Як встановити ціну на фотосесію: практичний підхід"
+    },
+    {
+      "path": "/uk/blog/dohovir-z-kliientom-dlia-fotohrafa",
+      "title": "Договір із клієнтом для фотографа: навіщо і що в ньому має бути"
+    },
+    {
+      "path": "/uk/blog/peredoplata-za-fotosesiiu",
+      "title": "Передоплата за фотосесію: як просити без ніяковості"
+    },
+    {
+      "path": "/uk/blog/yak-znaity-pershykh-kliientiv-fotohrafu",
+      "title": "Як знайти перших клієнтів фотографу-початківцю"
+    },
+    {
+      "path": "/uk/blog/yak-vidbyraty-foto-pislia-ziomky",
+      "title": "Як відбирати фото після зйомки швидше і без вигорання"
+    },
+    {
+      "path": "/uk/blog/portfolio-fotohrafa-yak-zibraty",
+      "title": "Портфоліо фотографа: як зібрати, щоб продавало"
+    },
+    {
+      "path": "/uk/blog/instagram-dlia-fotohrafa",
+      "title": "Instagram для фотографа: як вести, щоб приходили замовлення"
+    },
+    {
+      "path": "/uk/blog/rezervne-kopiiuvannia-fotohrafii",
+      "title": "Резервне копіювання фотографій: як не втратити зйомку"
+    }
+  ],
+  "other": [
+    "/uk/login",
+    "/uk/blog",
+    "/uk/gallery-demo",
+    "/uk/autor/eva-khudiuk"
+  ]
+}
