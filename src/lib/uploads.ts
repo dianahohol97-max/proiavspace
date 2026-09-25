@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
-import { galleryPrefix, isVariantName } from '@/lib/storage'
+import { galleryPrefix, getStorage, isVariantName } from '@/lib/storage'
+import { MAX_FILE_BYTES } from '@/lib/upload/limits'
 
 /**
  * Shared server-side upload logic for the single-PUT (/api/uploads/*) and
@@ -8,7 +9,7 @@ import { galleryPrefix, isVariantName } from '@/lib/storage'
  * quota gate and for asset registration, so the two paths cannot drift.
  */
 
-export const MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB per file (video-friendly)
+export { MAX_FILE_BYTES }
 
 export type UploadCheck = { ok: true } | { ok: false; status: number; error: string }
 
@@ -69,6 +70,12 @@ export interface RegisterAssetInput {
   width?: number
   height?: number
   variants?: Record<string, string>
+  /** Zip import only: the file's name inside the zip (duplicate guard). */
+  originalName?: string
+  /** Zip import only: the gallery_imports row this file belongs to. */
+  importId?: string
+  /** Zip import only: sort position, so the gallery keeps the zip's name order. */
+  position?: number
 }
 
 export function parseRegisterAssetInput(value: unknown): RegisterAssetInput | null {
@@ -88,6 +95,10 @@ export function parseRegisterAssetInput(value: unknown): RegisterAssetInput | nu
     typeof v.sizeBytes === 'number' &&
     (v.width === undefined || typeof v.width === 'number') &&
     (v.height === undefined || typeof v.height === 'number') &&
+    (v.originalName === undefined ||
+      (typeof v.originalName === 'string' && v.originalName.length <= 512)) &&
+    (v.importId === undefined || typeof v.importId === 'string') &&
+    (v.position === undefined || (Number.isInteger(v.position) && (v.position as number) >= 0)) &&
     variantsOk
   return ok ? (v as unknown as RegisterAssetInput) : null
 }
@@ -109,6 +120,20 @@ export async function registerAsset(
     return { ok: false, status: 400, error: 'key_mismatch' }
   }
 
+  // Imported files must belong to one of this user's running imports.
+  if (input.importId) {
+    const { data: running } = await supabase
+      .from('gallery_imports')
+      .select('id')
+      .eq('id', input.importId)
+      .eq('owner_id', userId)
+      .eq('status', 'running')
+      .maybeSingle()
+    if (!running) {
+      return { ok: false, status: 400, error: 'import_not_running' }
+    }
+  }
+
   const kind = input.contentType.startsWith('video/') ? 'video' : 'photo'
 
   const { data, error } = await supabase
@@ -125,10 +150,25 @@ export async function registerAsset(
       // counted against the quota to keep accounting simple for now.
       size_bytes: input.sizeBytes,
       variants: input.variants ?? {},
+      ...(input.importId
+        ? {
+            original_name: input.originalName ?? null,
+            import_id: input.importId,
+            position: input.position ?? 0,
+          }
+        : {}),
     })
     .select('id')
     .single()
 
+  if (error?.code === '23505' && input.importId) {
+    // Same file name already in this gallery (two tabs importing one zip):
+    // drop the objects we just uploaded so they don't sit unaccounted.
+    await getStorage()
+      .delete(allKeys)
+      .catch(() => {})
+    return { ok: false, status: 409, error: 'duplicate' }
+  }
   if (error) {
     return { ok: false, status: 500, error: error.message }
   }
