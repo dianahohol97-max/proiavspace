@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { articleImages, getArticles } from '@/lib/blog/articles'
 import { CATEGORIES, articlesIn } from '@/lib/blog/categories'
-import { MARKETING_PAGES, ogImagePath } from '@/lib/seo/pages'
+import { MARKETING_PAGES, brandOgImage, ogImagePath } from '@/lib/seo/pages'
 import { absoluteUrl, isIndexedLocale } from '@/lib/seo/site'
 
 export const revalidate = 3600
@@ -101,7 +101,7 @@ export async function GET() {
         changefreq: page.changeFrequency,
         priority: locale === 'uk' ? page.priority : Math.max(0.1, page.priority - 0.2),
         alternates,
-        images: [{ loc: page.id === 'home' ? '/og.png' : ogImagePath(`page.${page.id}`), title: page.ogTitle }],
+        images: [{ loc: page.id === 'home' && locale !== 'uk' ? brandOgImage(locale) : ogImagePath(`page.${page.id}`), title: page.ogTitle }],
       })
     }
   }

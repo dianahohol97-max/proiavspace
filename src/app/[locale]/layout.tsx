@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isLocale, locales } from '@/lib/i18n/config'
+import { brandOgImage } from '@/lib/seo/pages'
 import { BASE_URL, BRAND, OG_LOCALE, isIndexedLocale } from '@/lib/seo/site'
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics'
 import '@/app/globals.css'
@@ -34,9 +35,9 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
       locale: OG_LOCALE[locale] ?? 'uk_UA',
       title,
       description,
-      images: [{ url: '/og.png', width: 1200, height: 630, alt: title }],
+      images: [{ url: brandOgImage(locale), width: 1200, height: 630, alt: title }],
     },
-    twitter: { card: 'summary_large_image', title, description, images: ['/og.png'] },
+    twitter: { card: 'summary_large_image', title, description, images: [brandOgImage(locale)] },
     robots: isIndexedLocale(locale) ? { index: true, follow: true } : { index: false, follow: true },
     // Search Console / Bing Webmaster ownership tags — set the env vars in Vercel.
     verification: {

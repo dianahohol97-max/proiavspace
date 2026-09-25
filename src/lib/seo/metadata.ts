@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/lib/i18n/config'
+import { brandOgImage } from './pages'
 import { BRAND, BRAND_LATIN, OG_LOCALE, isIndexedLocale } from './site'
 
 export interface PageSeo {
@@ -21,7 +22,7 @@ export interface PageSeo {
    * exist in (e.g. a Ukrainian article under /en) canonicalizes to the first.
    */
   languages?: readonly Locale[]
-  /** Social card. Defaults to the brand card /og.png. */
+  /** Social card. Defaults to the generated brand card. */
   image?: { url: string; alt: string; width?: number; height?: number }
   type?: 'website' | 'article'
   publishedTime?: string
@@ -82,7 +83,7 @@ export function buildMetadata(seo: PageSeo): Metadata {
   }
 
   const image = seo.image ?? {
-    url: '/og.png',
+    url: brandOgImage(seo.locale),
     alt: seo.locale === 'uk' ? 'проЯв — онлайн-галереї для фотографів' : 'proiav — online client galleries for photographers',
   }
   const ogImage = { width: 1200, height: 630, ...image }

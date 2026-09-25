@@ -7,7 +7,7 @@
  * photographer's identity only (zero-branding principle).
  */
 import { GALLERY_PLANS, type GalleryPlanId } from '@/lib/plans'
-import { BASE_URL, BRAND, BRAND_LATIN, absoluteUrl } from './site'
+import { BASE_URL, BRAND, BRAND_LATIN, BRAND_PROFILES, absoluteUrl } from './site'
 
 export type JsonLdNode = Record<string, unknown>
 
@@ -15,16 +15,8 @@ export const ORG_ID = `${BASE_URL}/#org`
 export const SITE_ID = `${BASE_URL}/#website`
 export const APP_ID = `${BASE_URL}/#app`
 
-/** Brand profiles (Instagram, Threads, Telegram…), comma-separated in env. */
-function sameAs(): string[] {
-  return (process.env.NEXT_PUBLIC_SOCIAL_LINKS ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
 export function organizationNode(): JsonLdNode {
-  const links = sameAs()
+  const links = BRAND_PROFILES
   return {
     '@type': 'Organization',
     '@id': ORG_ID,
@@ -136,7 +128,11 @@ export function articleNode(opts: {
     image: absoluteUrl(opts.image),
     keywords: opts.tags.join(', '),
     author: opts.author
-      ? { '@type': 'Person', name: opts.author.name, ...(opts.author.url ? { url: opts.author.url } : {}) }
+      ? {
+          '@type': 'Person',
+          name: opts.author.name,
+          ...(opts.author.url ? { '@id': `${opts.author.url}#person`, url: opts.author.url } : {}),
+        }
       : { '@type': 'Organization', name: `Команда ${BRAND}`, url: `${BASE_URL}/uk` },
     publisher: { '@id': ORG_ID },
     isPartOf: { '@id': SITE_ID },

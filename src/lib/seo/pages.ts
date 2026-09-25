@@ -1,4 +1,5 @@
 import type { Locale } from '@/lib/i18n/config'
+import { AUTHORS } from '@/lib/blog/authors'
 import { PRODUCT_PAGES } from '@/lib/landing/product-pages'
 
 /**
@@ -89,10 +90,27 @@ const PRODUCT_ENTRIES: MarketingPage[] = PRODUCT_PAGES.map((p) => ({
   unlisted: p.draft,
 }))
 
-export const MARKETING_PAGES: MarketingPage[] = [...STATIC_PAGES, ...PRODUCT_ENTRIES]
+/** Blog author pages. */
+const AUTHOR_ENTRIES: MarketingPage[] = AUTHORS.map((a) => ({
+  id: `autor-${a.slug}`,
+  path: `/autor/${a.slug}`,
+  languages: ['uk'],
+  crumb: a.name,
+  ogTitle: a.name,
+  ogKicker: 'Авторка блогу проЯв',
+  priority: 0.4,
+  changeFrequency: 'monthly',
+}))
+
+export const MARKETING_PAGES: MarketingPage[] = [...STATIC_PAGES, ...PRODUCT_ENTRIES, ...AUTHOR_ENTRIES]
 
 export function getMarketingPage(id: string): MarketingPage | undefined {
   return MARKETING_PAGES.find((p) => p.id === id)
+}
+
+/** The site-wide brand share card (home page, fallbacks). */
+export function brandOgImage(locale: string): string {
+  return ogImagePath(locale === 'uk' ? 'page.home' : 'page.home-en')
 }
 
 /** Generated share card for a registry page. */

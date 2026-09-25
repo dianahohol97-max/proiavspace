@@ -4,6 +4,9 @@ import { notFound } from 'next/navigation'
 import { articleFaq, getArticle, getArticles } from '@/lib/blog/articles'
 import { categoriesFor, relatedArticles } from '@/lib/blog/categories'
 import { withProductLinks } from '@/lib/blog/linking'
+import { authorPath, getAuthor } from '@/lib/blog/authors'
+import { absoluteUrl } from '@/lib/seo/site'
+import { AuthorAvatar } from '@/components/blog/AuthorAvatar'
 import { isLocale } from '@/lib/i18n/config'
 import { preloadBrandFonts } from '@/lib/seo/fonts'
 import { buildMetadata } from '@/lib/seo/metadata'
@@ -67,6 +70,7 @@ export default async function ArticlePage({
   const topics = categoriesFor(article)
   const faq = articleFaq(article)
   const modified = article.updated ?? article.date
+  const author = getAuthor(article.author)
 
   const path = `/uk/blog/${article.slug}`
   const jsonLd = graph(
@@ -78,6 +82,7 @@ export default async function ArticlePage({
       dateModified: modified,
       image: ogImagePath(`blog.${article.slug}`),
       tags: article.tags,
+      author: { name: author.name, url: absoluteUrl(authorPath(author)) },
     }),
     ...(faq.length ? [faqNode(faq.map((f) => ({ q: f.q, a: stripLinks(f.a) })))] : [])
   )
@@ -112,7 +117,15 @@ export default async function ArticlePage({
             </div>
           )}
           <h1 className="font-brand text-3xl leading-[1.1] tracking-tight sm:text-5xl">{article.title}</h1>
-          <p className="mt-6 flex flex-wrap items-center gap-3 text-sm text-muted">
+          <Link
+            href={authorPath(author)}
+            rel="author"
+            className="mt-6 inline-flex items-center gap-3 text-sm font-semibold text-fg no-underline hover:text-accent"
+          >
+            <AuthorAvatar author={author} size={36} />
+            {author.name}
+          </Link>
+          <p className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
             {modified !== article.date ? (
               <>
                 <span>

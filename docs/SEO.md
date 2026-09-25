@@ -58,7 +58,7 @@
 | halereia-dlia-fotohrafa | код | 21.07 | 466 → 1247 | 10 | 5 | 2 скрини + 1 бриф | 149 ✓ |
 | proiav-vs-pixieset-pic-time | код | 17.07 | 474 → 1188 | 14 | 2 | 1 скрин + 1 бриф | 147 ✓ |
 | skilky-koshtuie-zberihaty-foto | код | 14.07 | 525 → 1210 | 11 | 3 | 2 брифи | 157 ✓ |
-| sait-fotohrafa-za-vechir | код | 10.07 | 491 | 5 | 2 (авто) | 0 | 143 ✓ · ⚠ див. §3 |
+| ~~sait-fotohrafa-za-vechir~~ | — | 10.07 | — | — | — | — | 308 → portfolio-fotohrafa-yak-zibraty (§3) |
 | yak-pryimaty-oplatu-za-foto | код | 07.07 | 480 | 5 | 3 | 0 | 151 ✓ |
 | yak-vstanovyty-tsinu-na-fotosesiiu | БД (AI) | 23.07 | 532 | 5 | 2 (авто) | 0 | 118 ✗ |
 | dohovir-z-kliientom-dlia-fotohrafa | БД (AI) | 22.07 | 425 | 5 | 2 (авто) | 0 | 140 ✓ |
@@ -73,20 +73,24 @@
 
 ---
 
-## 3. [УТОЧНИТИ] — потрібні твої відповіді
+## 3. Відкриті питання та рішення
 
-1. **Сторінки порівнянь** (`/uk/porivniannia/*`) — noindex, доки ти не підтвердиш факти. На сторінках вони підсвічені червоним `[УТОЧНИТИ]`.
-   - Pixieset: безкоштовний план (обсяг і обмеження), актуальні ціни, чи проходить оплата українською карткою, наявність відбору / пароля / відео / статистики / власного домену, чи локалізована клієнтська галерея.
-   - Pic-Time: те саме.
-   - Pixover: країна, мова, функції, тарифи, спосіб оплати, у чому він сильніший.
-   - Gallery4you: мова, функції, тарифи в гривні, ліміти, у чому він сильніший.
+Відкрите:
+1. **Сторінки порівнянь** (`/uk/porivniannia/*`) лишаються noindex, доки ти не надішлеш факти про конкурентів. На сторінках вони підсвічені червоним `[УТОЧНИТИ]`.
+   - Pixieset і Pic-Time: безкоштовний план (обсяг і обмеження), актуальні ціни, чи проходить оплата українською карткою, чи є відбір, пароль, відео, статистика, власний домен, чи локалізована клієнтська галерея.
+   - Pixover і Gallery4you: мова, функції, тарифи, спосіб оплати, у чому вони сильніші.
    - Дата перевірки даних.
-   - Коли факти будуть: прибрати `draft: true` у `src/lib/landing/product-pages.ts`, і сторінка стане індексованою та потрапить у sitemap.
-2. **Цифра «120 000 фотографій передано»** на головній — вона реальна? Якщо ні, її треба прибрати.
-3. **Автор статей.** Зараз стоїть Organization «Команда проЯв». Якщо даси імʼя, коротке біо й посилання на профіль реальної людини, я поставлю Person-автора: це сильніший сигнал E-E-A-T.
-4. **Соцмережі бренду.** Потрібні URL Instagram / Threads / Telegram / Facebook для `NEXT_PUBLIC_SOCIAL_LINKS` (Organization.sameAs).
-5. **Стаття `sait-fotohrafa-za-vechir`** прямо обіцяє «у проЯв персональний сайт збирається з готових блоків… підключити домен». На лендінгу сайти позначені «Скоро». Варіанти: (а) noindex до запуску конструктора, (б) переписати як загальний гайд без обіцянок проЯв, (в) лишити як є, якщо конструктор уже доступний користувачам.
-6. **Бейдж у клієнтських галереях** «Створено на «Прояві»» (`uk.ts → madeOn`) уже веде на головну. Чи міняти текст на «Створено на проЯв» і посилання — на `/uk/halerei`? Галереї я не чіпала, бо так вимагали правила.
+   - Щоб опублікувати сторінку: прибрати `draft: true` у `src/lib/landing/product-pages.ts`.
+2. **Бейдж у клієнтських галереях** «Створено на «Прояві»» (`uk.ts → madeOn`) уже веде на головну. Чи міняти текст на «Створено на проЯв» і посилання — на `/uk/halerei`?
+3. **8 коротких AI-статей** — повертаємось через 2–3 тижні за даними Search Console і розширюємо ті, що отримують покази.
+
+Вирішено:
+- **Цифра на головній** — «30 000+» (реальна). У JSON-LD і на OG-картинках вона не дублюється.
+- **Автор статей — Ева Худюк.** Сторінка `/uk/autor/eva-khudiuk`: імʼя, біо, місце під фото (поки ініціали), список статей. У кожній статті є підпис із посиланням на сторінку. У JSON-LD `author` — Person з `url` на цю сторінку, без sameAs; на самій сторінці розмітка ProfilePage. Щоб додати фото: поклади файл у `public/authors/` і вкажи `photo` в `src/lib/blog/authors.ts`, там само редагується біо.
+- **Соцмережі бренду.** У Organization поки немає sameAs. Коли акаунти зʼявляться, достатньо додати URL у масив `BRAND_PROFILES` у `src/lib/seo/site.ts`.
+- **Стаття `sait-fotohrafa-za-vechir`** віддає 308 на `/uk/blog/portfolio-fotohrafa-yak-zibraty` (старий слаг `sajt-fotografa-za-vechir` веде туди ж напряму, без ланцюжка). Вона прибрана з блогу, sitemap і «Читати далі». Чому портфоліо, а не `/uk/halerei`: людина, яка шукала «сайт фотографа», хоче показати свої роботи й отримувати клієнтів — це інтент статті про портфоліо. Сторінка галерей відповідає на інше питання (як віддати зйомку). Редирект на нерелевантну сторінку Google часто вважає «soft 404» і не передає їй вагу.
+- **OG-картинка головної.** Статична `og.png` містила «Галереї · Сайти · Бронювання», тому головна й сторінки-фолбеки тепер використовують згенеровану картку `/og/page.home.png` («Онлайн-галерея для фотографа»). Файл `og.png` лишився в репозиторії, але ніде не використовується.
+- **Ціни.** Головна, `/uk/tsiny`, статті й промпт AI-генератора беруть ціни з `src/lib/plans.ts`. JSON-LD Offer і видимий текст збігаються (перевірено скриптом).
 
 ---
 
@@ -141,7 +145,6 @@ LCP на всіх сторінках — це текст, тож демо-гал
 | `GOOGLE_SITE_VERIFICATION` | з GSC: лише значення `content="…"` мета-тегу |
 | `BING_SITE_VERIFICATION` | з Bing Webmaster: значення `content` тегу `msvalidate.01` |
 | `INDEXNOW_KEY` | будь-які 32 hex-символи, напр. `openssl rand -hex 16` |
-| `NEXT_PUBLIC_SOCIAL_LINKS` | URL соцмереж через кому |
 
 Після зміни env зроби redeploy.
 
@@ -168,14 +171,14 @@ INDEXNOW_KEY=… GOOGLE_SA_JSON=./sa.json npm run seo:submit -- --inspect
 
 ## 7. Перші беклінки (без спаму)
 
-1. **Власні профілі бренду**: Instagram, Threads, Telegram-канал, Facebook, LinkedIn company page — посилання на `/uk` у біо. Додай їх у `NEXT_PUBLIC_SOCIAL_LINKS`.
+1. **Власні профілі бренду**: Instagram, Threads, Telegram-канал, Facebook, LinkedIn company page — посилання на `/uk` у біо. Додай їх у `BRAND_PROFILES` (`src/lib/seo/site.ts`).
 2. **Каталоги SaaS**: AlternativeTo (додай проЯв як альтернативу до Pixieset і Pic-Time), Product Hunt (лонч англійської версії), Crunchbase.
 3. **Україномовні спільноти фотографів** (Facebook-групи, Telegram-чати): не реклама, а корисні пости, наприклад «шаблон повідомлення клієнту з фото» з посиланням на статтю.
 4. **Tech-медіа**: колонка на DOU від спільноти («як ми робили сервіс галерей для фотографів») — розповідь про розробку, а не реклама.
 5. **Фотошколи й курси**: безкоштовний акаунт чи знижка для студентів в обмін на посилання в матеріалах курсу.
 6. **Орендні фотостудії й прокати техніки**: розділ «корисні сервіси для фотографів» на їхніх сайтах.
 7. **Реферали**: попроси активних фотографів-користувачів згадати проЯв на своїх сайтах (сторінка «як я віддаю фото»).
-8. **Бейдж у безкоштовних галереях** уже веде на головну. SEO-ваги він не має, бо галереї nofollow, але це реферальний трафік: можна вести його на `/uk/halerei` з UTM, щоб бачити конверсію (див. §3.6).
+8. **Бейдж у безкоштовних галереях** уже веде на головну. SEO-ваги він не має, бо галереї nofollow, але це реферальний трафік: можна вести його на `/uk/halerei` з UTM, щоб бачити конверсію (див. §3).
 9. **YouTube / Reels**: 60-секундне відео «як передати фото клієнту» з посиланням на статтю.
 
 ---
@@ -211,17 +214,55 @@ INDEXNOW_KEY=… GOOGLE_SA_JSON=./sa.json npm run seo:submit -- --inspect
 - [x] Верифікація Google/Bing через env, IndexNow, `npm run seo:submit`
 
 ### Потрібно від тебе
-- [ ] Відповіді з §3 (факти конкурентів, «120 000», автор, соцмережі, стаття про сайт, бейдж)
-- [ ] Env у Vercel (§6.1) + redeploy
-- [ ] GSC і Bing (§6.2–6.3)
+- [ ] Факти про конкурентів (§3) → зняти `draft` з порівнянь
+- [ ] Фото й фінальне біо Еви (`src/lib/blog/authors.ts`)
 - [ ] Зображення за брифами (§8)
-- [ ] Розширити 8 AI-статей або дати добро, щоб це зробила я
+- [ ] Через 2–3 тижні: дані GSC → розширення AI-статей з показами
 
 ### Перевірити після деплою
 - [ ] `https://proiav.space/robots.txt` і `https://proiav.space/sitemap.xml` відкриваються; у sitemap є 8 статей із БД і теми блогу
-- [ ] `https://proiav.space/uk/blog/galereya-dlya-fotografa` → 308 на `/uk/blog/halereia-dlia-fotohrafa` (так само для інших старих слагів)
+- [ ] Див. «Після мерджу» нижче
 - [ ] `https://proiav.space/og/page.halerei.png` віддає картинку
 - [ ] Rich Results Test (search.google.com/test/rich-results) для `/uk`, `/uk/tsiny`, `/uk/blog/halereia-dlia-fotohrafa` — без помилок
 - [ ] `view-source:` на `/pl` → `noindex, follow`; на `/uk` → `index, follow` і canonical `https://proiav.space/uk`
 - [ ] Поділитися посиланням на статтю в Telegram — превʼю з OG-картинкою статті
 - [ ] Через тиждень: GSC → «Сторінки» → скільки проіндексовано; «Покращення» → FAQ / Breadcrumbs
+
+---
+
+## 10. Після мерджу — чекліст для тебе
+
+1. **Змінні у Vercel** (Production), §6.1:
+   - [ ] `NEXT_PUBLIC_APP_URL` = `https://proiav.space` (без www і без `/` в кінці)
+   - [ ] `GOOGLE_SITE_VERIFICATION`
+   - [ ] `BING_SITE_VERIFICATION`
+   - [ ] `INDEXNOW_KEY`
+2. [ ] **Redeploy** Production. Змінні `NEXT_PUBLIC_*` потрапляють у код під час збірки, тому після їх зміни потрібна нова збірка.
+3. **Швидка перевірка проду:**
+   - [ ] `https://proiav.space/robots.txt` відкривається, у кінці `Sitemap: https://proiav.space/sitemap.xml`
+   - [ ] `https://proiav.space/sitemap.xml` містить 8 статей із БД з новими слагами, теми блогу й `/uk/autor/eva-khudiuk`; у ньому немає `sait-fotohrafa-za-vechir`
+   - [ ] `view-source:https://proiav.space/uk` → canonical `https://proiav.space/uk`, `index, follow`, тег `google-site-verification`
+4. **Search Console:**
+   - [ ] «Підтвердити» ресурс
+   - [ ] «Файли Sitemap» → `sitemap.xml` → «Надіслати»
+5. **Ручна індексація** («Перевірка URL» → «Надіслати запит на індексування»), до ~10 на день:
+   - [ ] https://proiav.space/uk
+   - [ ] https://proiav.space/uk/halerei
+   - [ ] https://proiav.space/uk/tsiny
+   - [ ] https://proiav.space/uk/halereia-z-parolem
+   - [ ] https://proiav.space/uk/dlia-vesilnykh-fotohrafiv
+   - [ ] https://proiav.space/uk/blog
+   - [ ] https://proiav.space/uk/blog/yak-peredaty-foto-kliientu
+   - [ ] https://proiav.space/uk/blog/halereia-dlia-fotohrafa
+6. **Редиректи статей із БД** — кожен має дати 308 на новий слаг, а новий слаг — 200:
+   ```bash
+   for s in portfolio-fotografa-yak-zibraty yak-vidbyraty-foto-pislya-zjomky instagram-dlya-fotografa \
+            backup-fotografij-fotograf peredoplata-za-fotosesiyu yak-znajty-pershyh-kliyentiv-fotograf \
+            dogovir-z-kliyentom-fotograf yak-vybraty-cinu-na-fotosesiyu; do
+     curl -sIL -o /dev/null -w "%{http_code} %{url_effective}\n" https://proiav.space/uk/blog/$s
+   done
+   ```
+   - [ ] Усі 8 рядків: `200 https://proiav.space/uk/blog/<новий-слаг>`
+7. [ ] **Bing**: Webmaster Tools → «Import from Google Search Console».
+8. [ ] (опційно) `INDEXNOW_KEY=… npm run seo:submit`
+9. [ ] **Rich Results Test** для `/uk`, `/uk/tsiny`, `/uk/blog/halereia-dlia-fotohrafa`: без помилок, видно FAQ, Breadcrumbs, Article з автором.

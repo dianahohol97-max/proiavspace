@@ -6,6 +6,7 @@ import { getLandingCopy } from '@/lib/landing/copy'
 import { GALLERY_PLANS, type GalleryPlanId } from '@/lib/plans'
 import { preloadBrandFonts } from '@/lib/seo/fonts'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { brandOgImage } from '@/lib/seo/pages'
 import { faqNode, graph, softwareApplicationNode } from '@/lib/seo/structured-data'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { LangPicker } from '@/components/LangPicker'
@@ -31,7 +32,7 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
       ? 'Онлайн-галерея для фотографа: передайте зйомку клієнту красивим посиланням — з відбором фото, паролем, оригіналами без стискання й zip. 3 ГБ безкоштовно.'
       : 'Deliver shoots to clients in a beautiful online gallery: favourites, a password and expiry, uncompressed originals and one-click zip. 3 GB free forever.',
     image: {
-      url: '/og.png',
+      url: brandOgImage(locale),
       alt: uk ? 'проЯв — усе, що стається після зйомки' : 'proiav — everything after the shutter clicks',
     },
   })

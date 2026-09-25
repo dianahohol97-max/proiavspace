@@ -26,6 +26,12 @@ export function absoluteUrl(path: string): string {
   return `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
 }
 
+/**
+ * Official brand profiles (Instagram, Threads, Telegram…) → Organization.sameAs.
+ * Empty until the accounts exist; add full URLs here and nothing else changes.
+ */
+export const BRAND_PROFILES: string[] = []
+
 export const OG_LOCALE: Record<string, string> = {
   uk: 'uk_UA',
   en: 'en_US',

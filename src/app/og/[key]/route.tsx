@@ -32,6 +32,9 @@ async function resolve(key: string): Promise<{ kicker: string; title: string } |
   if (dot < 0) return null
   const kind = key.slice(0, dot)
   const id = key.slice(dot + 1)
+  if (kind === 'page' && id === 'home-en') {
+    return { kicker: 'Everything after the shutter clicks', title: 'Online client galleries for photographers' }
+  }
   if (kind === 'page') {
     const page = getMarketingPage(id)
     return page ? { kicker: page.ogKicker, title: page.ogTitle } : null
