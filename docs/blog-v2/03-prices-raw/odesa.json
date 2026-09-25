@@ -1,0 +1,152 @@
+[
+{
+"city": "Одеса",
+"photographer": "Дмитро Маковей",
+"url": "https://makovey.com.ua/",
+"genre": "весільна",
+"amount": 1700,
+"currency": "USD",
+"package": "«Преміум» до 12 год, 800+ фото, фотокнига",
+"flag": "2026-2027"
+},
+{
+"city": "Одеса",
+"photographer": "Вікторія Гречуха",
+"url": "https://hrechykha.com/services",
+"genre": "love story",
+"amount": 200,
+"currency": "USD",
+"package": "Love Story",
+"flag": ""
+},
+{
+"city": "Одеса",
+"photographer": "Вікторія Гречуха",
+"url": "https://hrechykha.com/services",
+"genre": "весільна",
+"amount": 1500,
+"currency": "USD",
+"package": "HISTORY: love story + 12 год, фотокнига",
+"flag": ""
+},
+{
+"city": "Одеса",
+"photographer": "Дмитро Сазонов",
+"url": "https://sazonov.com.ua/price/",
+"genre": "портрет",
+"amount": 2200,
+"currency": "UAH",
+"package": "міні 1 год, 100-150 фото",
+"flag": "© 2024"
+},
+{
+"city": "Одеса",
+"photographer": "Дмитро Сазонов",
+"url": "https://sazonov.com.ua/price/",
+"genre": "сімейна",
+"amount": 4200,
+"currency": "UAH",
+"package": "2 год, 300-400 фото",
+"flag": "© 2024"
+},
+{
+"city": "Одеса",
+"photographer": "Дмитро Сазонов",
+"url": "https://sazonov.com.ua/price/",
+"genre": "love story",
+"amount": 4200,
+"currency": "UAH",
+"package": "2 год, 300-400 фото",
+"flag": "© 2024"
+},
+{
+"city": "Одеса",
+"photographer": "Дмитро Сазонов",
+"url": "https://sazonov.com.ua/price/",
+"genre": "весільна",
+"amount": 20000,
+"currency": "UAH",
+"package": "«Популярний», до 12 год, 800+ фото",
+"flag": "© 2024"
+},
+{
+"city": "Одеса",
+"photographer": "Helena Photo Art",
+"url": "https://helenaphotoart.com/stoimost-odessa",
+"genre": "сімейна",
+"amount": 155,
+"currency": "USD",
+"package": "«Стандартный» 1,5 год, до 5 осіб",
+"flag": "пакет без назви жанру"
+},
+{
+"city": "Одеса",
+"photographer": "Helena Photo Art",
+"url": "https://helenaphotoart.com/stoimost-odessa",
+"genre": "портрет",
+"amount": 80,
+"currency": "USD",
+"package": "від, за годину з ретушшю",
+"flag": "«від»"
+},
+{
+"city": "Одеса",
+"photographer": "Sakelari photo",
+"url": "https://sakelariphoto.com/prajs",
+"genre": "love story",
+"amount": 7000,
+"currency": "UAH",
+"package": "«one» 1 год, 150+ фото",
+"flag": "прайс 2026"
+},
+{
+"city": "Одеса",
+"photographer": "Sakelari photo",
+"url": "https://sakelariphoto.com/prajs",
+"genre": "сімейна",
+"amount": 7000,
+"currency": "UAH",
+"package": "«one» 1 год, 150+ фото",
+"flag": "прайс 2026"
+},
+{
+"city": "Одеса",
+"photographer": "Sakelari photo",
+"url": "https://sakelariphoto.com/prajs",
+"genre": "портрет",
+"amount": 7000,
+"currency": "UAH",
+"package": "«one» 1 год, 150+ фото",
+"flag": "прайс 2026"
+},
+{
+"city": "Одеса",
+"photographer": "Sakelari photo",
+"url": "https://sakelariphoto.com/prajs",
+"genre": "весільна",
+"amount": 1500,
+"currency": "USD",
+"package": "до 10 год + love story, 600+ фото",
+"flag": "прайс 2026"
+},
+{
+"city": "Одеса",
+"photographer": "Костянтин Бондаренко",
+"url": "https://bondarenko-photo.com/price",
+"genre": "весільна",
+"amount": 1000,
+"currency": "USD",
+"package": "«OPTIMAL» до 12 год, 800+ фото",
+"flag": "2026"
+},
+{
+"city": "Одеса",
+"photographer": "Юрій Пориваєв",
+"url": "https://porivaevphoto.com/services",
+"genre": "портрет",
+"amount": 3500,
+"currency": "UAH",
+"package": "від, 60 хв, 70+ фото; студія окремо",
+"flag": "«від»"
+}
+]

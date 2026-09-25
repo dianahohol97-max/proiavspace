@@ -1,0 +1,142 @@
+[
+{
+"city": "Львів",
+"photographer": "Оля Грабовенська",
+"url": "https://grabovenska.com/price",
+"genre": "весільна",
+"amount": 700,
+"currency": "USD",
+"package": "ALL day, 800 фото",
+"flag": ""
+},
+{
+"city": "Львів",
+"photographer": "ParaPhoto",
+"url": "https://paraphoto.com.ua/price",
+"genre": "сімейна",
+"amount": 3000,
+"currency": "UAH",
+"package": "1 год, 40-50 фото",
+"flag": ""
+},
+{
+"city": "Львів",
+"photographer": "ParaPhoto",
+"url": "https://paraphoto.com.ua/price",
+"genre": "весільна",
+"amount": 1500,
+"currency": "USD",
+"package": "PREMIUM 10 год, 600-800 фото, фотокнига, 2 фотографи",
+"flag": ""
+},
+{
+"city": "Львів",
+"photographer": "Palamidi",
+"url": "https://photopalamidi.com/services",
+"genre": "портрет",
+"amount": 1900,
+"currency": "UAH",
+"package": "30 хв, від 20 фото",
+"flag": ""
+},
+{
+"city": "Львів",
+"photographer": "Palamidi",
+"url": "https://photopalamidi.com/services",
+"genre": "love story",
+"amount": 4200,
+"currency": "UAH",
+"package": "BRONZE 1 год, від 50 фото",
+"flag": ""
+},
+{
+"city": "Львів",
+"photographer": "Palamidi",
+"url": "https://photopalamidi.com/services",
+"genre": "сімейна",
+"amount": 4200,
+"currency": "UAH",
+"package": "BRONZE 1 год, від 50 фото",
+"flag": ""
+},
+{
+"city": "Львів",
+"photographer": "Palamidi",
+"url": "https://photopalamidi.com/services",
+"genre": "весільна",
+"amount": 32000,
+"currency": "UAH",
+"package": "повний день 10 год",
+"flag": ""
+},
+{
+"city": "Львів",
+"photographer": "Орест Паламар",
+"url": "https://orest-palamar.com/",
+"genre": "весільна",
+"amount": 1100,
+"currency": "USD",
+"package": "Premium 12 год, 600+ фото, love story, фотокнига",
+"flag": "сезон 2024-25"
+},
+{
+"city": "Львів",
+"photographer": "Ростислав Пічний",
+"url": "https://pichnyi.com/price/",
+"genre": "весільна",
+"amount": 1000,
+"currency": "USD",
+"package": "Authorʼs Ultra, без обмеження часу, 2 камери, 2000+ фото, фотокнига",
+"flag": "© 2026"
+},
+{
+"city": "Львів",
+"photographer": "Ростислав Пічний",
+"url": "https://pichnyi.com/price/",
+"genre": "love story",
+"amount": 4000,
+"currency": "UAH",
+"package": "Just Hour, до 1 год",
+"flag": "© 2026"
+},
+{
+"city": "Львів",
+"photographer": "Ростислав Пічний",
+"url": "https://pichnyi.com/price/",
+"genre": "сімейна",
+"amount": 8000,
+"currency": "UAH",
+"package": "до 3 год",
+"flag": "© 2026"
+},
+{
+"city": "Львів",
+"photographer": "Ростислав Пічний",
+"url": "https://pichnyi.com/price/",
+"genre": "портрет",
+"amount": 3000,
+"currency": "UAH",
+"package": "Just You, 60 хв",
+"flag": "© 2026"
+},
+{
+"city": "Львів",
+"photographer": "Єлизавета Марченко",
+"url": "https://wedliphoto.com/price",
+"genre": "весільна",
+"amount": 950,
+"currency": "USD",
+"package": "повний день до 12 год, 500+ фото",
+"flag": "місто з профілю mywed"
+},
+{
+"city": "Львів",
+"photographer": "Валерій Шишка",
+"url": "https://valeriyshyshka.com/prices",
+"genre": "весільна",
+"amount": 750,
+"currency": "EUR",
+"package": "«Преміум», від ранку до зняття вельону, фотокнига",
+"flag": "місто з профілю girko.net"
+}
+]

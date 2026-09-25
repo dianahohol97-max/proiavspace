@@ -1,0 +1,172 @@
+[
+{
+"city": "Дніпро",
+"photographer": "Іван Лавренко",
+"url": "https://lavrenko.com.ua/fotograf-dnepropetrovsk-cena",
+"genre": "портрет",
+"amount": 3500,
+"currency": "UAH",
+"package": "погодинно, 10-20 фото",
+"flag": "footer 2024"
+},
+{
+"city": "Дніпро",
+"photographer": "Іван Лавренко",
+"url": "https://lavrenko.com.ua/fotograf-dnepropetrovsk-cena",
+"genre": "сімейна",
+"amount": 3500,
+"currency": "UAH",
+"package": "погодинно",
+"flag": "footer 2024"
+},
+{
+"city": "Дніпро",
+"photographer": "Іван Лавренко",
+"url": "https://lavrenko.com.ua/fotografdnepr_cena",
+"genre": "love story",
+"amount": 2000,
+"currency": "UAH",
+"package": "за годину",
+"flag": "footer 2024"
+},
+{
+"city": "Дніпро",
+"photographer": "Іван Лавренко",
+"url": "https://lavrenko.com.ua/fotografdnepr_cena",
+"genre": "весільна",
+"amount": 7500,
+"currency": "UAH",
+"package": "від, 8-12 год, 500+ фото",
+"flag": "footer 2024; «від»"
+},
+{
+"city": "Дніпро",
+"photographer": "Олена Шулик",
+"url": "https://elenashulyk.com/",
+"genre": "портрет",
+"amount": 4000,
+"currency": "UAH",
+"package": "1 год, 150 фото; студія окремо",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Олена Шулик",
+"url": "https://elenashulyk.com/",
+"genre": "сімейна",
+"amount": 4000,
+"currency": "UAH",
+"package": "1 год, загальна ставка",
+"flag": "загальна ставка"
+},
+{
+"city": "Дніпро",
+"photographer": "Олена Шулик",
+"url": "https://elenashulyk.com/",
+"genre": "весільна",
+"amount": 31000,
+"currency": "UAH",
+"package": "до 12 год",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Олексій Ревуцький",
+"url": "https://revutskyalex.com/family_fotosessii",
+"genre": "сімейна",
+"amount": 3500,
+"currency": "UAH",
+"package": "BASIC 1-1,5 год",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Олексій Ревуцький",
+"url": "https://revutskyalex.com/lovestory",
+"genre": "love story",
+"amount": 3500,
+"currency": "UAH",
+"package": "BASIC 1-1,5 год",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Олексій Ревуцький",
+"url": "https://revutskyalex.com/individualnye-fotosessii",
+"genre": "портрет",
+"amount": 3200,
+"currency": "UAH",
+"package": "BASIC 1-1,5 год",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Наталія Дудник",
+"url": "https://nataliia-dudnyk.com/services",
+"genre": "портрет",
+"amount": 4000,
+"currency": "UAH",
+"package": "за годину, від 60 фото",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Наталія Дудник",
+"url": "https://nataliia-dudnyk.com/services",
+"genre": "сімейна",
+"amount": 4000,
+"currency": "UAH",
+"package": "за годину",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Наталія Дудник",
+"url": "https://nataliia-dudnyk.com/services",
+"genre": "love story",
+"amount": 4000,
+"currency": "UAH",
+"package": "за годину",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Наталія Дудник",
+"url": "https://nataliia-dudnyk.com/poslugi-1",
+"genre": "весільна",
+"amount": 1200,
+"currency": "USD",
+"package": "«Все включено», повний день",
+"flag": ""
+},
+{
+"city": "Дніпро",
+"photographer": "Максим Коробський",
+"url": "https://korobsky.com/prices",
+"genre": "весільна",
+"amount": 800,
+"currency": "USD",
+"package": "«Максимальний» до 12 год, 600+ фото",
+"flag": "сезон 2026"
+},
+{
+"city": "Дніпро",
+"photographer": "Максим Іванченко",
+"url": "https://imaxfoto.com/price",
+"genre": "весільна",
+"amount": 1000,
+"currency": "USD",
+"package": "«Максимальний» до 10 год, 500+ фото",
+"flag": "дата не вказана"
+},
+{
+"city": "Дніпро",
+"photographer": "Євгеній Ричко",
+"url": "https://www.wedfine.art/price/",
+"genre": "весільна",
+"amount": 42000,
+"currency": "UAH",
+"package": "повний день + love story, 700+ фото, фотокнига",
+"flag": "сторінка 01.2025"
+}
+]
