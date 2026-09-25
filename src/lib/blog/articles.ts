@@ -120,6 +120,19 @@ interface Row {
   body: unknown
   status: string
   source: string
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+/**
+ * dateModified for DB articles: only a real edit counts — updated_at later
+ * than the insert (the seed/publish flow writes both at once).
+ */
+function editedDate(row: Row): string | undefined {
+  if (!row.created_at || !row.updated_at) return undefined
+  const edited = new Date(row.updated_at).getTime() - new Date(row.created_at).getTime() > 60_000
+  const day = row.updated_at.slice(0, 10)
+  return edited && day > row.published_date ? day : undefined
 }
 
 function rowToAdmin(row: Row): AdminArticle {
@@ -134,6 +147,7 @@ function rowToAdmin(row: Row): AdminArticle {
     body: Array.isArray(row.body) ? (row.body as Block[]) : [],
     status: row.status === 'published' ? 'published' : 'draft',
     source: row.source,
+    updated: editedDate(row),
   }
 }
 
@@ -150,7 +164,7 @@ async function fetchPublished(): Promise<Article[]> {
   if (!supabase) return []
   const { data } = await supabase
     .from('blog_articles')
-    .select('id, slug, title, description, published_date, reading_minutes, tags, body, status, source')
+    .select('id, slug, title, description, published_date, reading_minutes, tags, body, status, source, created_at, updated_at')
     .eq('status', 'published')
   return ((data as Row[] | null) ?? []).map(rowToAdmin)
 }
@@ -171,7 +185,7 @@ export async function getArticle(slug: string): Promise<Article | null> {
 /* ---------- admin (service role — bypasses RLS, sees drafts) ---------- */
 
 const ADMIN_COLS =
-  'id, slug, title, description, published_date, reading_minutes, tags, body, status, source'
+  'id, slug, title, description, published_date, reading_minutes, tags, body, status, source, created_at, updated_at'
 
 /** Every DB article (draft + published), newest first. Admin only. */
 export async function getAdminArticles(): Promise<AdminArticle[]> {
