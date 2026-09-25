@@ -38,11 +38,16 @@ export async function getNbuUsdRate(): Promise<NbuRate | null> {
 
 /** `{{price:16}}`, `{{price:16.5}}` — a dollar amount to show with its hryvnia equivalent. */
 const PRICE_MARKER = /\{\{price:(\d+(?:\.\d+)?)\}\}/g
-/** `{{fx-source}}` — where the rate comes from; empty when there is no rate. */
-const SOURCE_MARKER = /\{\{fx-source\}\}/g
+/** `{{fx-date}}` — the date of the rate used, DD.MM.YYYY. */
+const DATE_MARKER = /\{\{fx-date\}\}/g
+/**
+ * `{{fx-if}}…{{fx-end}}` — text that only makes sense with a rate (e.g. the
+ * «Ціни в гривнях — за курсом НБУ на {{fx-date}}» note); dropped without one.
+ */
+const IF_RATE_BLOCK = /\{\{fx-if\}\}([\s\S]*?)\{\{fx-end\}\}/g
 
 export function hasFxMarkers(text: string): boolean {
-  return text.includes('{{price:') || text.includes('{{fx-source}}')
+  return text.includes('{{price:') || text.includes('{{fx-')
 }
 
 function usd(amount: number): string {
@@ -50,25 +55,20 @@ function usd(amount: number): string {
 }
 
 /**
- * Substitute price markers: «$16 (≈ 660 ₴ за курсом НБУ на 25.09.2026)» /
- * «$16 (≈ 660 UAH at the NBU rate of 25.09.2026)». Hryvnias are rounded to
- * whole units. Without a rate: «$16».
+ * Substitute the markers. Prices become «$16 ≈ 720 ₴» / «$16 ≈ 720 UAH»
+ * (hryvnias rounded to whole units) — the rate date is stated once, in a note
+ * next to the prices, via {{fx-date}}. Without a rate: «$16», and every
+ * {{fx-if}}…{{fx-end}} block disappears.
  */
 export function renderFx(text: string, rate: NbuRate | null, locale: string): string {
   const en = locale === 'en'
   return text
+    .replace(IF_RATE_BLOCK, (_, inner: string) => (rate ? inner : ''))
+    .replace(DATE_MARKER, () => rate?.date ?? '')
     .replace(PRICE_MARKER, (_, raw: string) => {
       const amount = Number(raw)
       if (!rate) return usd(amount)
       const uah = Math.round(amount * rate.rate).toLocaleString(en ? 'en-US' : 'uk-UA')
-      return en
-        ? `${usd(amount)} (≈ ${uah} UAH at the NBU rate of ${rate.date})`
-        : `${usd(amount)} (≈ ${uah} ₴ за курсом НБУ на ${rate.date})`
-    })
-    .replace(SOURCE_MARKER, () => {
-      if (!rate) return ''
-      return en
-        ? `Hryvnia equivalents use the official National Bank of Ukraine rate of ${rate.date}: $1 = ${rate.rate.toFixed(2)} UAH ([bank.gov.ua](${NBU_SOURCE_URL})).`
-        : `Гривневі суми — за офіційним курсом НБУ на ${rate.date}: $1 = ${rate.rate.toFixed(2).replace('.', ',')} ₴ ([bank.gov.ua](${NBU_SOURCE_URL})).`
+      return en ? `${usd(amount)} ≈ ${uah} UAH` : `${usd(amount)} ≈ ${uah} ₴`
     })
 }

@@ -9,6 +9,7 @@
  */
 import type { Block } from '@/lib/blog/articles'
 import type { Locale } from '@/lib/i18n/config'
+import { NBU_SOURCE_URL } from '@/lib/fx/nbu'
 import { GALLERY_PLANS, GRACE_PERIOD_DAYS } from '@/lib/plans'
 import type { Crumb } from '@/lib/seo/structured-data'
 
@@ -839,11 +840,11 @@ const porivnianniaHub: ProductPageContent = {
 
 /*
  * Competitor facts come only from the owner's check of their public pages on
- * MIGRATION_CHECKED (linked inline). Dollar amounts are {{price:N}} markers:
- * ProductPage converts them at the NBU rate of the day ({{fx-source}} = the
- * rate date and source; both vanish when the rate is unavailable).
+ * 25.09.2026 (linked inline). Dollar amounts are {{price:N}} markers:
+ * ProductPage converts them at the NBU rate of the day; the note under the
+ * price table states that rate's date once ({{fx-date}}), inside an
+ * {{fx-if}}…{{fx-end}} block that vanishes when the rate is unavailable.
  */
-const MIGRATION_CHECKED = '25.09.2026'
 const PIXIESET_PRICING = 'https://pixieset.com/pricing/'
 const PIXIESET_DOWNLOAD_HELP = 'https://help.pixieset.com/hc/en-us/articles/115003594212-Client-Download-Experience'
 const PIXIESET_RESOLUTION_HELP = 'https://help.pixieset.com/hc/en-us/articles/115003795572-Collection-download-settings'
@@ -915,18 +916,16 @@ const mihratsiiaEn: ProductPageCopy = {
     { type: 'h2', text: 'What 100 GB costs' },
     {
       type: 'table',
-      caption: `Checked on ${MIGRATION_CHECKED}. Sources: [Pixieset pricing](${PIXIESET_PRICING}), [Pic-Time pricing](${PICTIME_PRICING}), [proiav pricing](/en#pricing). {{fx-source}}`,
-      head: ['Plan', 'Storage', 'Paid yearly', 'Paid monthly'],
+      head: ['Plan', 'Storage', 'Per month, billed yearly', 'Billed monthly'],
       rows: [
-        ['Pixieset Client Gallery Plus', '100 GB', '{{price:16}} a month', '{{price:20}} a month'],
-        ['Pic-Time Professional', '100 GB', '{{price:21}} a month', '{{price:25}} a month'],
-        [
-          'proiav Basic',
-          `${P.basic.storageGb} GB`,
-          `${P.basic.priceUahYear.toLocaleString('en-US')} UAH a year (≈ ${basicYearPerMonth} UAH a month)`,
-          `${P.basic.priceUahMonth} UAH a month`,
-        ],
+        ['Pixieset Client Gallery Plus', '100 GB', '{{price:16}}', '{{price:20}}'],
+        ['Pic-Time Professional', '100 GB', '{{price:21}}', '{{price:25}}'],
+        ['proiav Basic', `${P.basic.storageGb} GB`, `${basicYearPerMonth} UAH`, `${P.basic.priceUahMonth} UAH`],
       ],
+    },
+    {
+      type: 'p',
+      text: `{{fx-if}}Hryvnia prices use the [NBU rate](${NBU_SOURCE_URL}) of {{fx-date}}, updated daily. {{fx-end}}Sources: [pixieset.com/pricing](${PIXIESET_PRICING}), [pic-time.com/pricing](${PICTIME_PRICING}).`,
     },
     {
       type: 'p',
@@ -1050,18 +1049,16 @@ const mihratsiia: ProductPageContent = {
     { type: 'h2', text: 'Скільки коштують 100 ГБ' },
     {
       type: 'table',
-      caption: `Перевірено ${MIGRATION_CHECKED}. Джерела: [тарифи Pixieset](${PIXIESET_PRICING}), [тарифи Pic-Time](${PICTIME_PRICING}), [тарифи проЯв](/uk/tsiny). {{fx-source}}`,
-      head: ['Тариф', 'Сховище', 'Оплата за рік', 'Помісячно'],
+      head: ['Тариф', 'Сховище', 'За місяць при річній оплаті', 'При помісячній оплаті'],
       rows: [
-        ['Pixieset Client Gallery Plus', '100 ГБ', '{{price:16}} на місяць', '{{price:20}} на місяць'],
-        ['Pic-Time Professional', '100 ГБ', '{{price:21}} на місяць', '{{price:25}} на місяць'],
-        [
-          'проЯв Базовий',
-          `${P.basic.storageGb} ГБ`,
-          `${uah(P.basic.priceUahYear)} на рік (≈ ${uah(basicYearPerMonth)} на місяць)`,
-          `${uah(P.basic.priceUahMonth)} на місяць`,
-        ],
+        ['Pixieset Client Gallery Plus', '100 ГБ', '{{price:16}}', '{{price:20}}'],
+        ['Pic-Time Professional', '100 ГБ', '{{price:21}}', '{{price:25}}'],
+        ['проЯв Базовий', `${P.basic.storageGb} ГБ`, uah(basicYearPerMonth), uah(P.basic.priceUahMonth)],
       ],
+    },
+    {
+      type: 'p',
+      text: `{{fx-if}}Ціни в гривнях — за [курсом НБУ](${NBU_SOURCE_URL}) на {{fx-date}}, оновлюється щодня. {{fx-end}}Джерела: [pixieset.com/pricing](${PIXIESET_PRICING}), [pic-time.com/pricing](${PICTIME_PRICING}).`,
     },
     {
       type: 'p',
