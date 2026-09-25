@@ -12,6 +12,8 @@ import {
   planStorageBytes,
   sitePlanPriceUah,
 } from '@/lib/plans'
+import { IMPORT_PROMO } from '@/lib/promo'
+import { sendEmail } from '@/lib/email'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -64,9 +66,23 @@ export async function GET(request: NextRequest) {
     // ignore — the read-time guard in get_site already hides expired trials
   }
 
+  // Import promo: one reminder 7 days before the free month ends, to anyone
+  // who hasn't connected auto-payment. Independent of the payment provider.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
+  let promoReminders = 0
+  try {
+    promoReminders = await sendPromoReminders(admin, appUrl)
+  } catch {
+    // Best-effort; tomorrow's run retries whatever wasn't marked as sent.
+  }
+
   const payments = getPayments()
   if (!payments) {
-    return NextResponse.json({ expiredSites, charges: 'billing_not_configured' })
+    return NextResponse.json({
+      expiredSites,
+      promoReminders,
+      charges: 'billing_not_configured',
+    })
   }
 
   const nowIso = new Date().toISOString()
@@ -101,7 +117,14 @@ export async function GET(request: NextRequest) {
 
   // 2. Active subscriptions that are due: charge the saved card.
   if (!canChargeTokens(payments)) {
-    return NextResponse.json({ renewed, failed, swept, expiredSites, charges: 'unsupported' })
+    return NextResponse.json({
+      renewed,
+      failed,
+      swept,
+      expiredSites,
+      promoReminders,
+      charges: 'unsupported',
+    })
   }
 
   const { data: dueSubs } = await admin
@@ -114,10 +137,10 @@ export async function GET(request: NextRequest) {
     .lte('next_charge_at', nowIso)
     .limit(25)
 
-  // Same fallback as the checkout route — without it a missing env var yields
-  // a "undefined/api/billing/webhook" URL, so async (3DS) charges never get
-  // their callback and the subscription silently stalls behind the pending guard.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
+  // appUrl (above) uses the same fallback as the checkout route — without it a
+  // missing env var yields a "undefined/api/billing/webhook" URL, so async
+  // (3DS) charges never get their callback and the subscription silently
+  // stalls behind the pending guard.
   for (const sub of (dueSubs ?? []) as SubscriptionRow[]) {
     if (!isBillingPeriod(sub.period)) continue
 
@@ -267,5 +290,97 @@ export async function GET(request: NextRequest) {
     // 'pending' — the webhook finishes the job.
   }
 
-  return NextResponse.json({ renewed, failed, swept, expiredSites })
+  return NextResponse.json({ renewed, failed, swept, expiredSites, promoReminders })
+}
+
+/**
+ * «Промо закінчується за 7 днів» — sent once per grant (reminder_sent_at), only
+ * while auto-payment isn't connected. Accounts that meanwhile bought a plan
+ * with auto-renewal are marked as done without an email.
+ */
+async function sendPromoReminders(
+  admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  appUrl: string
+): Promise<number> {
+  // Email not configured: send nothing and mark nothing, so reminders still go
+  // out once it is (if the promo hasn't ended by then).
+  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return 0
+  const now = Date.now()
+  const { data: due } = await admin
+    .from('promo_grants')
+    .select('user_id, ends_at')
+    .is('reminder_sent_at', null)
+    .is('autopay_at', null)
+    .gt('ends_at', new Date(now).toISOString())
+    .lte('ends_at', new Date(now + IMPORT_PROMO.reminderDaysBefore * 24 * 3600 * 1000).toISOString())
+    .limit(50)
+
+  let sent = 0
+  for (const grant of (due ?? []) as { user_id: string; ends_at: string }[]) {
+    const { data: activeSub } = await admin
+      .from('billing_subscriptions')
+      .select('id')
+      .eq('user_id', grant.user_id)
+      .eq('product', 'gallery')
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle()
+
+    if (!activeSub) {
+      const [{ data: account }, { data: profile }] = await Promise.all([
+        admin.auth.admin.getUserById(grant.user_id),
+        admin.from('profiles').select('locale').eq('user_id', grant.user_id).single(),
+      ])
+      const email = account?.user?.email
+      if (email) {
+        const en = profile?.locale === 'en'
+        const locale = en ? 'en' : 'uk'
+        const date = new Date(grant.ends_at).toLocaleDateString(en ? 'en-GB' : 'uk-UA', {
+          timeZone: 'Europe/Kyiv',
+        })
+        const price = IMPORT_PROMO.plan.priceUahMonth
+        const link = `${appUrl}/${locale}/dashboard/billing`
+        const delivered = await sendEmail(
+          en
+            ? {
+                to: email,
+                subject: `Your free «Basic» month ends on ${date}`,
+                text: [
+                  `Hi! The free month of the «Basic» plan you got for importing a gallery ends on ${date}.`,
+                  '',
+                  `To keep «Basic» (100 GB, ${price} UAH/month), connect auto-payment: ${price} UAH is charged now and the paid month starts on ${date}.`,
+                  link,
+                  '',
+                  'Without auto-payment the account returns to the Free plan. Your files are not deleted; new uploads above the free limit pause.',
+                  '',
+                  '— proiav.space',
+                ].join('\n'),
+              }
+            : {
+                to: email,
+                subject: `Безкоштовний місяць «Базового» закінчується ${date}`,
+                text: [
+                  `Привіт! Безкоштовний місяць тарифу «Базовий» за імпорт галереї закінчується ${date}.`,
+                  '',
+                  `Щоб лишитися на «Базовому» (100 ГБ, ${price} ₴/міс), підключи автоплатіж: ${price} ₴ спишемо зараз, а оплачений місяць почнеться ${date}.`,
+                  link,
+                  '',
+                  'Без автоплатежу акаунт повернеться на Безкоштовний тариф. Файли не видаляються — лише нові завантаження понад безкоштовний ліміт стануть на паузу.',
+                  '',
+                  '— проЯв',
+                ].join('\n'),
+              }
+        )
+        // Not delivered (Resend down): leave it unmarked, tomorrow retries.
+        if (!delivered) continue
+        sent += 1
+      }
+    }
+
+    await admin
+      .from('promo_grants')
+      .update({ reminder_sent_at: new Date().toISOString() })
+      .eq('user_id', grant.user_id)
+  }
+  return sent
 }

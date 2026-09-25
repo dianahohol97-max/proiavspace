@@ -8,14 +8,16 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "blog:generate": "node scripts/generate-article.mjs",
-    "seo:submit": "node scripts/seo-submit.mjs"
+    "seo:submit": "node scripts/seo-submit.mjs",
+    "blog": "tsx scripts/blog.ts",
+    "blog:generate": "tsx scripts/blog.ts generate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.620.0",
     "@aws-sdk/s3-request-presigner": "^3.620.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.0",
+    "@zip.js/zip.js": "^2.18.2",
     "fflate": "^0.8.3",
     "lucide-react": "^0.427.0",
     "next": "^14.2.35",
@@ -30,6 +32,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.7",
+    "tsx": "^4.23.15",
     "typescript": "^5.5.4"
   }
 }

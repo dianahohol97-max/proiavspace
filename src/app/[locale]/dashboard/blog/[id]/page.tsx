@@ -1,13 +1,23 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getAdminArticle } from '@/lib/blog/articles'
-import { deleteArticle, setArticleStatus, updateArticle } from '@/lib/actions/blog'
+import {
+  applyRevision,
+  deleteArticle,
+  discardRevision,
+  setArticleStatus,
+  updateArticle,
+} from '@/lib/actions/blog'
 import { isAdminEmail } from '@/lib/admin'
 import { isLocale } from '@/lib/i18n/config'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { ArticleBody } from '@/components/blog/ArticleBody'
+import { QualityReportView } from '@/components/blog/QualityReportView'
+import { RewriteButton } from './RewriteButton'
 
 export const dynamic = 'force-dynamic'
+// The rewrite action (research + writing + source check) takes 1–3 minutes.
+export const maxDuration = 300
 
 /** Review one AI article: rendered preview + publish / edit / delete. */
 export default async function BlogReviewPage({
@@ -33,6 +43,9 @@ export default async function BlogReviewPage({
   const unpublishAction = setArticleStatus.bind(null, locale, article.id, 'draft')
   const deleteAction = deleteArticle.bind(null, locale, article.id)
   const updateAction = updateArticle.bind(null, locale, article.id)
+  const applyAction = applyRevision.bind(null, locale, article.id)
+  const discardAction = discardRevision.bind(null, locale, article.id)
+  const revision = article.revision
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
@@ -82,15 +95,73 @@ export default async function BlogReviewPage({
         </form>
       </div>
 
+      {/* --- quality report of the current body --- */}
+      {article.qualityReport && (
+        <section className="mt-6">
+          <QualityReportView report={article.qualityReport} />
+        </section>
+      )}
+
       {/* --- rendered preview --- */}
       <article className="mt-8 rounded-2xl border border-line p-6">
         <p className="text-xs uppercase tracking-widest text-muted">
           {article.readingMinutes} хв · {article.tags.join(' · ')}
         </p>
         <h1 className="mt-2 font-display text-3xl leading-tight">{article.title}</h1>
+        {article.seoTitle && (
+          <p className="mt-2 text-xs text-muted">
+            &lt;title&gt; ({article.seoTitle.length}): {article.seoTitle}
+          </p>
+        )}
         <p className="mt-2 text-muted">{article.description}</p>
         <ArticleBody blocks={article.body} locale={locale} />
       </article>
+
+      {/* --- update existing article (rewrite into a revision) --- */}
+      <section className="mt-10 rounded-2xl border border-line p-5">
+        <h2 className="font-brand text-lg">Оновити статтю</h2>
+        <p className="mb-4 mt-1 text-sm text-muted">
+          Перепише статтю за поточними правилами (факти з пошуку, таблиця, FAQ, перевірка). Слаг і дата
+          публікації збережуться. Нова версія зʼявиться нижче — жива стаття не зміниться, поки не
+          натиснеш «Застосувати».
+        </p>
+        <RewriteButton locale={locale} id={article.id} defaultQuery={article.seoTitle ?? article.title} />
+      </section>
+
+      {revision && (
+        <section className="mt-10">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="font-brand text-xl">Оновлена версія</h2>
+            <span className="text-xs text-muted">
+              {new Date(revision.generatedAt).toLocaleString('uk-UA')} · {revision.provider}
+            </span>
+            <form action={applyAction} className="ml-auto">
+              <button
+                type="submit"
+                className="rounded-full bg-accent px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-accent-deep"
+              >
+                Застосувати
+              </button>
+            </form>
+            <form action={discardAction}>
+              <button type="submit" className="text-sm text-muted underline hover:text-fg">
+                Відхилити
+              </button>
+            </form>
+          </div>
+          {revision.report && (
+            <div className="mt-4">
+              <QualityReportView report={revision.report} />
+            </div>
+          )}
+          <article className="mt-4 rounded-2xl border border-line p-6">
+            <h1 className="font-display text-3xl leading-tight">{revision.title}</h1>
+            <p className="mt-2 text-xs text-muted">&lt;title&gt;: {revision.seoTitle}</p>
+            <p className="mt-2 text-muted">{revision.description}</p>
+            <ArticleBody blocks={revision.body} locale={locale} />
+          </article>
+        </section>
+      )}
 
       {/* --- light editing --- */}
       <details className="mt-8">

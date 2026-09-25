@@ -114,6 +114,8 @@ export function articleNode(opts: {
   image: string
   tags: string[]
   author?: { name: string; url?: string }
+  /** Co-author, e.g. the photographer (schema.org `contributor`). */
+  contributor?: { name: string; url?: string }
 }): JsonLdNode {
   const url = absoluteUrl(opts.path)
   return {
@@ -134,6 +136,15 @@ export function articleNode(opts: {
           ...(opts.author.url ? { '@id': `${opts.author.url}#person`, url: opts.author.url } : {}),
         }
       : { '@type': 'Organization', name: `Команда ${BRAND}`, url: `${BASE_URL}/uk` },
+    ...(opts.contributor
+      ? {
+          contributor: {
+            '@type': 'Person',
+            name: opts.contributor.name,
+            ...(opts.contributor.url ? { url: opts.contributor.url } : {}),
+          },
+        }
+      : {}),
     publisher: { '@id': ORG_ID },
     isPartOf: { '@id': SITE_ID },
   }

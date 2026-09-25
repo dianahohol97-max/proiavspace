@@ -197,7 +197,7 @@ export function ArticleBody({ blocks, locale }: { blocks: Block[]; locale: strin
             return (
               <section key={index} className="my-12">
                 <h2 className="mb-5 font-brand text-2xl leading-snug tracking-tight text-fg sm:text-[1.6rem]">
-                  Часті питання
+                  {locale === 'en' ? 'Frequently asked questions' : 'Часті питання'}
                 </h2>
                 <div className="flex flex-col divide-y divide-line rounded-2xl border border-line">
                   {block.items.map((item, i) => (

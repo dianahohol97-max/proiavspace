@@ -1,6 +1,6 @@
 import type { Locale } from '@/lib/i18n/config'
 import { AUTHORS } from '@/lib/blog/authors'
-import { PRODUCT_PAGES } from '@/lib/landing/product-pages'
+import { PRODUCT_PAGES, productPageLanguages } from '@/lib/landing/product-pages'
 
 /**
  * Registry of static marketing pages: the sitemap, breadcrumbs and the
@@ -77,11 +77,11 @@ const STATIC_PAGES: MarketingPage[] = [
   },
 ]
 
-/** Ukrainian product & comparison pages (drafts are unlisted). */
+/** Product & comparison pages (drafts are unlisted). */
 const PRODUCT_ENTRIES: MarketingPage[] = PRODUCT_PAGES.map((p) => ({
   id: p.id,
   path: p.path,
-  languages: ['uk'],
+  languages: productPageLanguages(p),
   crumb: p.crumb,
   ogTitle: p.ogTitle ?? p.h1,
   ogKicker: p.kicker,
