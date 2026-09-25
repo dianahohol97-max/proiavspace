@@ -17,6 +17,8 @@
  *   GEMINI_MODEL                 (optional, default "gemini-2.5-flash")
  */
 
+import { readFileSync } from 'node:fs'
+
 const API_KEY = process.env.GEMINI_API_KEY
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -26,6 +28,27 @@ function fail(message) {
   console.error(`✖ ${message}`)
   process.exit(1)
 }
+
+/**
+ * Tariffs come from src/lib/plans.ts — the single source of truth — so the
+ * prompt never quotes stale prices. This runs on plain Node (no TypeScript),
+ * so the numbers are read out of the file; if its shape ever changes and a
+ * value can't be found, the run stops instead of guessing.
+ */
+function readGalleryPlans() {
+  const src = readFileSync(new URL('../src/lib/plans.ts', import.meta.url), 'utf8')
+  const plans = {}
+  for (const id of ['free', 'basic', 'plus', 'pro']) {
+    const match = src.match(
+      new RegExp(`\\n  ${id}: \\{[^}]*?storageGb: (\\d+),\\s*priceUahMonth: (\\d+),\\s*priceUahYear: (\\d+),`)
+    )
+    if (!match) fail(`Could not read the "${id}" plan from src/lib/plans.ts`)
+    plans[id] = { storageGb: Number(match[1]), month: Number(match[2]), year: Number(match[3]) }
+  }
+  return plans
+}
+const P = readGalleryPlans()
+const size = (gb) => (gb >= 1024 ? `${gb / 1024} ТБ` : `${gb} ГБ`)
 
 if (!API_KEY) fail('GEMINI_API_KEY is not set')
 if (!SUPABASE_URL || !SERVICE_KEY) fail('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set')
@@ -55,7 +78,7 @@ const today = new Date().toISOString().slice(0, 10)
 const PROMPT = `Ти — україномовний контент-редактор бренду «проЯв» (proiav.space), SaaS для фотографів: клієнтські онлайн-галереї + персональні сайти + бронювання. Напиши ОДНУ SEO-статтю українською.
 
 ФАКТИ ПРО ПРОДУКТ (згадуй природно, не рекламно):
-- Freemium: безкоштовно 3 ГБ; тарифи Базовий 79₴/міс (100 ГБ), Плюс 319₴ (500 ГБ), Максимальний 559₴ (1 ТБ); сайти — окремий тариф. Річна оплата = 2 місяці безкоштовно.
+- Freemium: безкоштовно ${size(P.free.storageGb)}; тарифи Базовий ${P.basic.month}₴/міс (${size(P.basic.storageGb)}), Плюс ${P.plus.month}₴ (${size(P.plus.storageGb)}), Максимальний ${P.pro.month}₴ (${size(P.pro.storageGb)}); сайти — окремий тариф. Річна оплата = 2 місяці безкоштовно.
 - Клієнтські галереї: захист паролем, відбір/вподобайки клієнтом, завантаження оригіналів, водяний знак, термін дії.
 - Оплати напряму фотографу (Monobank/картки). Нуль брендингу платформи на платних тарифах.
 - Персональний сайт фотографа за вечір (власний домен, SEO). Бронювання зі слотами.

@@ -1,3 +1,4 @@
+import { GALLERY_PLANS } from '@/lib/plans'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 /**
@@ -114,7 +115,7 @@ export async function composeReply(
 ): Promise<string | null> {
   const brand =
     `Ти — голос українського бренду проЯв: онлайн-галерея для фотографів, де клієнт ` +
-    `отримує красиву галерею замість архіву в Google Drive (100 ГБ за 79 грн, безкоштовний ` +
+    `отримує красиву галерею замість архіву в Google Drive (${GALLERY_PLANS.basic.storageGb} ГБ за ${GALLERY_PLANS.basic.priceUahMonth} грн, безкоштовний ` +
     `старт, проЯв.space).\n\n` +
     `Ось пост у Threads від @${author ?? 'автор'}:\n"${text ?? ''}"\n\n`
   // Deliberately permissive: the earlier wording demanded the post already be

@@ -62,16 +62,16 @@ export const GALLERY_PLANS: Record<GalleryPlanId, GalleryPlan> = {
   basic: {
     id: 'basic',
     storageGb: 100,
-    priceUahMonth: 79,
-    priceUahYear: 790,
+    priceUahMonth: 129,
+    priceUahYear: 1290,
     backend: 'b2',
     features: { ...baseFeatures, brandingRemoval: true, photographerLogo: true },
   },
   plus: {
     id: 'plus',
     storageGb: 500,
-    priceUahMonth: 319,
-    priceUahYear: 3190,
+    priceUahMonth: 519,
+    priceUahYear: 5190,
     backend: 'b2',
     features: {
       ...baseFeatures,
@@ -85,8 +85,8 @@ export const GALLERY_PLANS: Record<GalleryPlanId, GalleryPlan> = {
   pro: {
     id: 'pro',
     storageGb: 1024,
-    priceUahMonth: 559,
-    priceUahYear: 5590,
+    priceUahMonth: 899,
+    priceUahYear: 8990,
     backend: 'b2',
     features: {
       ...baseFeatures,

@@ -348,7 +348,7 @@ async function sendPromoReminders(
                 text: [
                   `Hi! The free month of the «Basic» plan you got for importing a gallery ends on ${date}.`,
                   '',
-                  `To keep «Basic» (100 GB, ${price} UAH/month), connect auto-payment: ${price} UAH is charged now and the paid month starts on ${date}.`,
+                  `To keep «Basic» (${IMPORT_PROMO.plan.storageGb} GB, ${price} UAH/month), connect auto-payment: ${price} UAH is charged now and the paid month starts on ${date}.`,
                   link,
                   '',
                   'Without auto-payment the account returns to the Free plan. Your files are not deleted; new uploads above the free limit pause.',
@@ -362,7 +362,7 @@ async function sendPromoReminders(
                 text: [
                   `Привіт! Безкоштовний місяць тарифу «Базовий» за імпорт галереї закінчується ${date}.`,
                   '',
-                  `Щоб лишитися на «Базовому» (100 ГБ, ${price} ₴/міс), підключи автоплатіж: ${price} ₴ спишемо зараз, а оплачений місяць почнеться ${date}.`,
+                  `Щоб лишитися на «Базовому» (${IMPORT_PROMO.plan.storageGb} ГБ, ${price} ₴/міс), підключи автоплатіж: ${price} ₴ спишемо зараз, а оплачений місяць почнеться ${date}.`,
                   link,
                   '',
                   'Без автоплатежу акаунт повернеться на Безкоштовний тариф. Файли не видаляються — лише нові завантаження понад безкоштовний ліміт стануть на паузу.',
