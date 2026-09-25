@@ -4,12 +4,14 @@ import {
   BUNDLE_SITE_DISCOUNT,
   GALLERY_PLANS,
   SITE_PLANS,
+  type BillingPeriod,
   galleryPlanPriceUah,
   isBillingPeriod,
   isGalleryPlanId,
   isSitePlanId,
   sitePlanPriceUah,
 } from '@/lib/plans'
+import { IMPORT_PROMO, isPromoRunning, type PromoGrant } from '@/lib/promo'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -19,6 +21,8 @@ interface CheckoutBody {
   plan: string
   period: string
   locale?: string
+  /** 'import_autopay': connect auto-payment during the free promo month. */
+  promo?: string
 }
 
 function isCheckoutBody(value: unknown): value is CheckoutBody {
@@ -27,7 +31,8 @@ function isCheckoutBody(value: unknown): value is CheckoutBody {
   return (
     typeof v.plan === 'string' &&
     typeof v.period === 'string' &&
-    (v.locale === undefined || typeof v.locale === 'string')
+    (v.locale === undefined || typeof v.locale === 'string') &&
+    (v.promo === undefined || v.promo === 'import_autopay')
   )
 }
 
@@ -50,6 +55,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
+  // The promo checkout always buys Базовий per month, whatever was sent.
+  const isPromoAutopay = body.promo === 'import_autopay'
+  const planId: string = isPromoAutopay ? IMPORT_PROMO.plan.id : body.plan
+  const period: BillingPeriod = isPromoAutopay ? 'month' : body.period
+
   // The destination line is shown to the payer on the monobank/LiqPay page —
   // Ukrainian, branded «проЯв» (the big merchant name above it comes from the
   // acquiring profile and cannot be set via the API).
@@ -62,9 +72,31 @@ export async function POST(request: NextRequest) {
     site_plus: 'Сайт Плюс',
   }
 
+  // The import promo's free month (see lib/promo). While it runs, referral
+  // credit is not redeemed — the promo and the referral bonus never land in
+  // the same month; the credit simply waits for the next payment.
+  const { data: promoGrant } = await supabase
+    .from('promo_grants')
+    .select('ends_at, autopay_at')
+    .eq('user_id', user.id)
+    .maybeSingle<PromoGrant>()
+  const promoRunning = isPromoRunning(promoGrant)
+
   let amount: number
   let description: string
-  if (isGalleryPlanId(body.plan) && body.plan !== 'free') {
+  let purpose: string | null = null
+  if (isPromoAutopay) {
+    // «Підключити автоплатіж»: the first Базовий month is paid now, and the
+    // paid period starts when the free month ends (the webhook handles that).
+    if (!promoGrant || !promoRunning || promoGrant.autopay_at) {
+      return NextResponse.json({ error: 'promo_not_active' }, { status: 400 })
+    }
+    const plan = IMPORT_PROMO.plan
+    amount = galleryPlanPriceUah(plan, 'month')
+    const startsOn = new Date(promoGrant.ends_at).toLocaleDateString('uk-UA')
+    description = `проЯв · тариф «${planNameUk[plan.id]}» (${plan.storageGb} ГБ), автоплатіж: перший оплачений місяць з ${startsOn}`
+    purpose = 'promo_autopay'
+  } else if (isGalleryPlanId(body.plan) && body.plan !== 'free') {
     const plan = GALLERY_PLANS[body.plan]
     amount = galleryPlanPriceUah(plan, body.period)
     description = `проЯв · тариф «${planNameUk[plan.id] ?? plan.id}» (${plan.storageGb} ГБ), ${periodUk}`
@@ -97,7 +129,7 @@ export async function POST(request: NextRequest) {
   // at least 1 ₴ so there is no zero-amount checkout). The exact applied amount
   // is recorded so the webhook deducts it from the balance once, on success.
   let creditAppliedKop = 0
-  {
+  if (!promoRunning) {
     const { data: creditProfile } = await supabase
       .from('profiles')
       .select('credit_balance_kop')
@@ -124,6 +156,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'billing_not_configured', missing }, { status: 503 })
   }
 
+  // A provider that runs its own recurring schedule (LiqPay) would start
+  // charging from today, which can't express «paid period starts later».
+  if (purpose === 'promo_autopay' && payments.recurring) {
+    return NextResponse.json({ error: 'promo_autopay_unsupported' }, { status: 400 })
+  }
+
   const orderId = crypto.randomUUID()
   const locale = body.locale === 'en' ? 'en' : 'uk'
 
@@ -131,12 +169,13 @@ export async function POST(request: NextRequest) {
     user_id: user.id,
     provider: payments.name,
     order_id: orderId,
-    plan: body.plan,
-    period: body.period,
+    plan: planId,
+    period,
     amount,
     currency: 'UAH',
     status: 'pending',
     credit_applied_kop: creditAppliedKop,
+    purpose,
   })
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -149,7 +188,7 @@ export async function POST(request: NextRequest) {
       amount,
       currency: 'UAH',
       description,
-      period: body.period,
+      period,
       resultUrl: `${appUrl}/${locale}/dashboard/billing`,
       serverUrl: `${appUrl}/api/billing/webhook`,
       language: locale,

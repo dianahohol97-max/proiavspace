@@ -54,7 +54,9 @@ export type ImporterStrings = Record<
   | 'another'
   | 'back'
   | 'gb'
-  | 'mb',
+  | 'mb'
+  | 'promoGranted'
+  | 'promoLink',
   string
 >
 
@@ -325,6 +327,7 @@ export function ZipImporter({
           skippedUnsupported,
           skippedVideo,
           failed,
+          promoEndsAt: null,
         },
         galleries: started.galleries.map(({ title, galleryId }) => ({ title, galleryId })),
       })
@@ -479,6 +482,16 @@ export function ZipImporter({
               <li className="text-accent">{fill(t.reportFailed, { n: phase.report.failed })}</li>
             )}
           </ul>
+          {phase.report.promoEndsAt && (
+            <p className="mt-6 rounded-xl bg-accent/10 p-4 text-sm leading-relaxed">
+              {fill(t.promoGranted, {
+                date: new Date(phase.report.promoEndsAt).toLocaleDateString(
+                  locale === 'uk' ? 'uk-UA' : 'en-GB'
+                ),
+              })}{' '}
+              <Link href={`/${locale}/dashboard/billing`}>{t.promoLink}</Link>
+            </p>
+          )}
           <p className="mt-6 text-sm font-bold">{t.reportGalleries}</p>
           <ul className="mt-2 flex flex-col gap-1 text-sm">
             {phase.galleries.map((gallery) => (

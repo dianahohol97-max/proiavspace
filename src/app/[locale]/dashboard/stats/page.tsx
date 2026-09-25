@@ -9,6 +9,7 @@ import {
   type GalleryPlanId,
   type SitePlanId,
 } from '@/lib/plans'
+import { IMPORT_PROMO } from '@/lib/promo'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -108,6 +109,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
     { count: photosDelivered },
     { data: payments30 },
     { data: bookings30 },
+    { data: promoGrants },
   ] = await Promise.all([
       admin
         .from('profiles')
@@ -147,6 +149,10 @@ export default async function StatsPage({ params }: { params: { locale: string }
         .in('status', ['booked', 'paid'])
         .or(`booked_at.gte.${since30},paid_at.gte.${since30}`)
         .returns<BookingRow[]>(),
+      admin
+        .from('promo_grants')
+        .select('user_id, ends_at, autopay_at')
+        .returns<{ user_id: string; ends_at: string; autopay_at: string | null }[]>(),
     ])
   const referralsTotal = refs?.length ?? 0
   const referralsPaid = (refs ?? []).filter((r) => r.status === 'converted').length
@@ -217,9 +223,21 @@ export default async function StatsPage({ params }: { params: { locale: string }
     details: w.details,
   }))
 
-  const paidGalleryUsers = galleryPlanIds
-    .filter((id) => id !== 'free')
-    .reduce((sum, id) => sum + (galleryPlanCounts.get(id) ?? 0), 0)
+  // Import promo (lib/promo): accounts in their free «Базовий» month carry
+  // plan = basic but haven't paid — keep them out of the paid count.
+  const promoRows = promoGrants ?? []
+  const promoRunningUsers = new Set(
+    promoRows.filter((g) => new Date(g.ends_at).getTime() > nowMs).map((g) => g.user_id),
+  )
+  const promoAutopay = promoRows.filter((g) => g.autopay_at).length
+  const promoFreeNow = profileRows.filter(
+    (p) => p.plan !== 'free' && promoRunningUsers.has(p.user_id),
+  ).length
+
+  const paidGalleryUsers =
+    galleryPlanIds
+      .filter((id) => id !== 'free')
+      .reduce((sum, id) => sum + (galleryPlanCounts.get(id) ?? 0), 0) - promoFreeNow
 
   const activeSubs = subRows.filter((s) => s.status === 'active')
   // Rough MRR: monthly-equivalent price of every active subscription.
@@ -315,6 +333,11 @@ export default async function StatsPage({ params }: { params: { locale: string }
         {tile(t.storage, formatGb(storageUsed))}
         {tile(t.referralsTotal, referralsTotal)}
         {tile(t.referralsPaid, referralsPaid)}
+        {tile(
+          uk ? 'Промо за імпорт: видано' : 'Import promo: granted',
+          `${promoRows.length} / ${IMPORT_PROMO.maxGrants}`,
+        )}
+        {tile(uk ? 'Промо: з автоплатежем' : 'Promo: auto-payment', promoAutopay)}
       </div>
 
       {/* --- growth / galleries / photos --- */}
