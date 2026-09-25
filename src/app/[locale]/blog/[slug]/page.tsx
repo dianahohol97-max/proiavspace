@@ -83,6 +83,7 @@ export default async function ArticlePage({
       image: ogImagePath(`blog.${article.slug}`),
       tags: article.tags,
       author: { name: author.name, url: absoluteUrl(authorPath(author)) },
+      contributor: article.coauthor,
     }),
     ...(faq.length ? [faqNode(faq.map((f) => ({ q: f.q, a: stripLinks(f.a) })))] : [])
   )
@@ -125,6 +126,18 @@ export default async function ArticlePage({
             <AuthorAvatar author={author} size={36} />
             {author.name}
           </Link>
+          {article.coauthor && (
+            <span className="ml-4 text-sm text-muted">
+              {article.coauthor.role ?? 'Фото'}:{' '}
+              {article.coauthor.url ? (
+                <a href={article.coauthor.url} rel="noopener" className="text-fg underline-offset-4 hover:text-accent">
+                  {article.coauthor.name}
+                </a>
+              ) : (
+                <span className="text-fg">{article.coauthor.name}</span>
+              )}
+            </span>
+          )}
           <p className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
             {modified !== article.date ? (
               <>

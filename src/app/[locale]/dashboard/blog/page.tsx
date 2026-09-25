@@ -7,6 +7,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { GenerateButton } from './GenerateButton'
 
 export const dynamic = 'force-dynamic'
+// Generation (research + writing + source check) takes 1–3 minutes.
+export const maxDuration = 300
 
 /** Founder-only blog CMS: review AI drafts, publish, and see what's live. */
 export default async function BlogAdminPage({ params }: { params: { locale: string } }) {

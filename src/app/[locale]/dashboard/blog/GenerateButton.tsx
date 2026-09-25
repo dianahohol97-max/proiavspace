@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { generateArticleNow } from '@/lib/actions/blog'
 import type { Locale } from '@/lib/i18n/config'
-import type { GenerateResult } from '@/lib/blog/generate'
+import type { GenerateResult } from '@/lib/blog/generator'
 
 /**
  * One-click generation from the dashboard — writes the next queued topic into a
@@ -47,7 +47,7 @@ export function GenerateButton({ locale }: { locale: Locale }) {
       )}
       {pending && (
         <p className="text-xs text-muted">
-          Це займає 10–30 секунд — модель пише й перевіряє статтю.
+          1–3 хвилини: пошук фактів, текст, перевірка джерел.
         </p>
       )}
     </div>
