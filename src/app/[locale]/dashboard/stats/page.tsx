@@ -14,6 +14,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
+// Owner-only page: never index it (the locale layout defaults to index/follow).
+export const metadata = {
+  robots: { index: false, follow: false },
+}
+
 const GB = 1024 * 1024 * 1024
 
 function formatGb(bytes: number): string {
@@ -36,6 +41,22 @@ interface WithdrawalRow {
   amount_kop: number
   details: string
   created_at: string
+}
+interface GalleryRow {
+  owner_id: string
+  is_published: boolean
+  expires_at: string | null
+  has_password: boolean | null
+}
+interface PaymentRow {
+  status: string
+  amount: number | string
+}
+interface BookingRow {
+  status: string
+  price_uah: number | string
+  booked_at: string | null
+  paid_at: string | null
 }
 interface SubRow {
   product: string
@@ -73,20 +94,59 @@ export default async function StatsPage({ params }: { params: { locale: string }
     )
   }
 
-  const [{ data: profiles }, { data: galleries }, { data: sites }, { data: subs }, { data: refs }] =
-    await Promise.all([
+  const DAY = 24 * 60 * 60 * 1000
+  const nowMs = Date.now()
+  const since30 = new Date(nowMs - 30 * DAY).toISOString()
+
+  const [
+    { data: profiles },
+    { data: galleries },
+    { data: sites },
+    { data: subs },
+    { data: refs },
+    { count: photosTotal },
+    { count: photosDelivered },
+    { data: payments30 },
+    { data: bookings30 },
+  ] = await Promise.all([
       admin
         .from('profiles')
         .select('user_id, display_name, plan, site_plan, storage_used_bytes, created_at, is_ambassador')
         .order('created_at', { ascending: true })
         .returns<ProfileRow[]>(),
-      admin.from('galleries').select('is_published').returns<{ is_published: boolean }[]>(),
+      admin
+        .from('galleries')
+        .select('owner_id, is_published, expires_at, has_password')
+        .returns<GalleryRow[]>(),
       admin.from('sites').select('is_published').returns<{ is_published: boolean }[]>(),
       admin
         .from('billing_subscriptions')
         .select('product, plan, period, status')
         .returns<SubRow[]>(),
       admin.from('referrals').select('status').returns<{ status: string }[]>(),
+      // Photo counts are head-only (no rows transferred). "Delivered" = photos
+      // in published galleries; the explicit FK hint is needed because
+      // galleries.cover_asset_id is a second path between the two tables.
+      admin.from('assets').select('id', { count: 'exact', head: true }).eq('kind', 'photo'),
+      admin
+        .from('assets')
+        .select('id, galleries!assets_gallery_id_fkey!inner(is_published)', {
+          count: 'exact',
+          head: true,
+        })
+        .eq('kind', 'photo')
+        .eq('galleries.is_published', true),
+      admin
+        .from('payments')
+        .select('status, amount')
+        .gte('created_at', since30)
+        .returns<PaymentRow[]>(),
+      admin
+        .from('booking_slots')
+        .select('status, price_uah, booked_at, paid_at')
+        .in('status', ['booked', 'paid'])
+        .or(`booked_at.gte.${since30},paid_at.gte.${since30}`)
+        .returns<BookingRow[]>(),
     ])
   const referralsTotal = refs?.length ?? 0
   const referralsPaid = (refs ?? []).filter((r) => r.status === 'converted').length
@@ -185,6 +245,54 @@ export default async function StatsPage({ params }: { params: { locale: string }
   const publishedSites = siteRows.filter((s) => s.is_published).length
   const publishedGalleries = galleryRows.filter((g) => g.is_published).length
 
+  // --- growth, galleries, payments, bookings (read-only) ---
+  const newSince = (days: number) =>
+    profileRows.filter((p) => nowMs - new Date(p.created_at).getTime() <= days * DAY).length
+  const newUsers7 = newSince(7)
+  const newUsers30 = newSince(30)
+
+  // Same rule the public gallery page uses: published and not expired.
+  const activeGalleries = galleryRows.filter(
+    (g) => g.is_published && (!g.expires_at || new Date(g.expires_at).getTime() > nowMs),
+  ).length
+  const passwordGalleries = galleryRows.filter((g) => g.has_password === true).length
+  const galleriesByOwner = new Map<string, number>()
+  for (const g of galleryRows) galleriesByOwner.set(g.owner_id, (galleriesByOwner.get(g.owner_id) ?? 0) + 1)
+
+  const paymentRows = payments30 ?? []
+  const paidPayments = paymentRows.filter((p) => p.status === 'paid')
+  const paidSum = paidPayments.reduce((sum, p) => sum + Number(p.amount), 0)
+  const unpaidPayments = paymentRows.filter((p) => p.status === 'pending' || p.status === 'failed').length
+  const pastDueSubs = subRows.filter((s) => s.status === 'past_due').length
+
+  const since30Ms = nowMs - 30 * DAY
+  const bookingRows = bookings30 ?? []
+  const bookingsCount = bookingRows.filter(
+    (b) => b.booked_at && new Date(b.booked_at).getTime() >= since30Ms,
+  ).length
+  const bookingsPaidSum = bookingRows
+    .filter((b) => b.status === 'paid' && b.paid_at && new Date(b.paid_at).getTime() >= since30Ms)
+    .reduce((sum, b) => sum + Number(b.price_uah), 0)
+
+  const dateFmt = (iso: string) =>
+    new Date(iso).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  const recentSignups = [...profileRows]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, 50)
+    .map((p) => ({
+      userId: p.user_id,
+      email: emailById.get(p.user_id) || '—',
+      plan: galleryPlanName[p.plan as GalleryPlanId] ?? p.plan,
+      joined: dateFmt(p.created_at),
+      galleries: galleriesByOwner.get(p.user_id) ?? 0,
+      storage: formatGb(p.storage_used_bytes ?? 0),
+    }))
+  const uk = locale === 'uk'
+
   const tile = (label: string, value: string | number) => (
     <div className="rounded-2xl border border-line p-5">
       <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted">{label}</p>
@@ -208,6 +316,42 @@ export default async function StatsPage({ params }: { params: { locale: string }
         {tile(t.referralsTotal, referralsTotal)}
         {tile(t.referralsPaid, referralsPaid)}
       </div>
+
+      {/* --- growth / galleries / photos --- */}
+      <section className="mt-12">
+        <h2 className="mb-4 font-brand text-xl">{uk ? 'Кабінети й галереї' : 'Accounts & galleries'}</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {tile(uk ? 'Нових за 7 днів' : 'New, 7 days', newUsers7)}
+          {tile(uk ? 'Нових за 30 днів' : 'New, 30 days', newUsers30)}
+          {tile(uk ? 'Галереї активні' : 'Active galleries', `${activeGalleries} / ${galleryRows.length}`)}
+          {tile(uk ? 'Галереї з паролем' : 'Password-protected', passwordGalleries)}
+          {tile(uk ? 'Фото передано клієнтам' : 'Photos delivered', photosDelivered ?? 0)}
+          {tile(uk ? 'Фото завантажено всього' : 'Photos uploaded', photosTotal ?? 0)}
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          {uk
+            ? 'Активні — опубліковані й з незакінченим терміном. «Передано клієнтам» — фото (assets.kind = photo) в опублікованих галереях; «всього» — усі фото, що зараз зберігаються (видалені не враховуються).'
+            : 'Active = published and not expired. "Delivered" = photos (assets.kind = photo) in published galleries; "uploaded" = all photos currently stored (deleted ones are not counted).'}
+        </p>
+      </section>
+
+      {/* --- payments & bookings, last 30 days --- */}
+      <section className="mt-12">
+        <h2 className="mb-4 font-brand text-xl">{uk ? 'Оплати й бронювання · 30 днів' : 'Payments & bookings · 30 days'}</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {tile(uk ? 'Оплат тарифів' : 'Plan payments', paidPayments.length)}
+          {tile(uk ? 'Сума оплат' : 'Paid total', `${Math.round(paidSum)} ₴`)}
+          {tile(uk ? 'Не оплачені' : 'Unpaid', unpaidPayments)}
+          {tile(uk ? 'Прострочені підписки' : 'Past-due subscriptions', pastDueSubs)}
+          {tile(uk ? 'Бронювань' : 'Bookings', bookingsCount)}
+          {tile(uk ? 'Оплачено бронювань' : 'Bookings paid', `${Math.round(bookingsPaidSum)} ₴`)}
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          {uk
+            ? '«Не оплачені» — платежі зі статусом pending або failed за 30 днів (зокрема покинуті checkout). «Прострочені» — підписки зі статусом past_due зараз. Бронювання — слоти, заброньовані за 30 днів; сума — слоти, оплачені за 30 днів.'
+            : '"Unpaid" = pending or failed payments in the last 30 days (incl. abandoned checkouts). "Past-due" = subscriptions currently past_due. Bookings = slots booked in the last 30 days; total = slots paid in the last 30 days.'}
+        </p>
+      </section>
 
       {/* --- ambassador cash-out requests --- */}
       {withdrawalRequests.length > 0 && (
@@ -250,6 +394,37 @@ export default async function StatsPage({ params }: { params: { locale: string }
           </div>
         </section>
       )}
+
+      {/* --- last 50 sign-ups --- */}
+      <section className="mt-12">
+        <h2 className="mb-4 font-brand text-xl">
+          {uk ? 'Останні реєстрації' : 'Latest sign-ups'} · {recentSignups.length}
+        </h2>
+        <div className="overflow-x-auto rounded-2xl border border-line">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-line text-[11px] uppercase tracking-widest text-muted">
+                <th className="px-4 py-3 font-semibold">Email</th>
+                <th className="px-4 py-3 font-semibold">{uk ? 'Тариф' : 'Plan'}</th>
+                <th className="px-4 py-3 font-semibold">{uk ? 'Дата' : 'Date'}</th>
+                <th className="px-4 py-3 font-semibold">{uk ? 'Галерей' : 'Galleries'}</th>
+                <th className="px-4 py-3 font-semibold">{uk ? 'Обсяг' : 'Storage'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentSignups.map((r, index) => (
+                <tr key={r.userId} className={index > 0 ? 'border-t border-line' : ''}>
+                  <td className="px-4 py-3 text-fg">{r.email}</td>
+                  <td className="px-4 py-3">{r.plan}</td>
+                  <td className="px-4 py-3 text-muted">{r.joined}</td>
+                  <td className="px-4 py-3">{r.galleries}</td>
+                  <td className="px-4 py-3">{r.storage}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* --- photographers list --- */}
       <section className="mt-12">
