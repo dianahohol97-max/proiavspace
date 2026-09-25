@@ -84,6 +84,8 @@ create index if not exists assets_import_idx
 -- Close an import: imported count/bytes are recomputed from the assets that
 -- were really registered under it; the skip counters are what the browser saw
 -- inside the zip (nothing to verify them against — they only feed the report).
+-- setof: an import that isn't running (finished, foreign) yields NO row, not a
+-- row of NULLs.
 create or replace function public.finish_gallery_import(
   p_import_id uuid,
   p_skipped_duplicate int,
@@ -91,7 +93,7 @@ create or replace function public.finish_gallery_import(
   p_skipped_video int,
   p_failed int
 )
-returns public.gallery_imports
+returns setof public.gallery_imports
 language sql
 security definer
 set search_path = public
