@@ -1,4 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { planStorageBytes } from '@/lib/plans'
+import { IMPORT_PROMO } from '@/lib/promo'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -29,12 +32,14 @@ export interface ImportReport {
   skippedUnsupported: number
   skippedVideo: number
   failed: number
+  /** Set when this import earned the «місяць Базового» promo: its end date. */
+  promoEndsAt: string | null
 }
 
 /**
  * Zip import, last step: close the import. The imported count and bytes come
  * from the assets actually registered under it (finish_gallery_import), so
- * the report — and anything built on it — never trusts the browser's tally.
+ * the report — and the promo built on it — never trusts the browser's tally.
  */
 export async function POST(request: NextRequest) {
   const supabase = createSupabaseServerClient()
@@ -77,6 +82,25 @@ export async function POST(request: NextRequest) {
     skippedUnsupported: row.skipped_unsupported,
     skippedVideo: row.skipped_video,
     failed: row.failed_count,
+    promoEndsAt: null,
   }
+
+  // Promo: the first successful import grants a free month of «Базовий».
+  // All eligibility rules (slots, deadline, once per account, free plan only)
+  // are checked atomically in grant_import_promo(); null means «not granted».
+  if (report.importedCount > 0) {
+    const admin = createSupabaseAdminClient()
+    if (admin) {
+      const { data: endsAt } = await admin.rpc('grant_import_promo', {
+        p_user: user.id,
+        p_import_id: body.importId,
+        p_storage_bytes: planStorageBytes(IMPORT_PROMO.plan),
+        p_max_grants: IMPORT_PROMO.maxGrants,
+        p_deadline: IMPORT_PROMO.deadline,
+      })
+      report.promoEndsAt = typeof endsAt === 'string' ? endsAt : null
+    }
+  }
+
   return NextResponse.json({ report })
 }

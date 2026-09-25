@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { openCheckout } from '@/lib/billing/open-checkout'
 import type { BillingPeriod } from '@/lib/plans'
 import type { Locale } from '@/lib/i18n/config'
 import type { PlanCard } from './billing-cards'
@@ -55,27 +56,7 @@ export function BillingPlans({
         setNotice(labels.checkoutError)
         return
       }
-      const form = (await response.json()) as { url: string; fields: Record<string, string> }
-
-      // No fields (monobank) → the checkout page is opened by plain redirect;
-      // otherwise (LiqPay) auto-submit a hidden POST form.
-      if (Object.keys(form.fields).length === 0) {
-        window.location.assign(form.url)
-        return
-      }
-
-      const element = document.createElement('form')
-      element.method = 'POST'
-      element.action = form.url
-      for (const [name, value] of Object.entries(form.fields)) {
-        const input = document.createElement('input')
-        input.type = 'hidden'
-        input.name = name
-        input.value = value
-        element.appendChild(input)
-      }
-      document.body.appendChild(element)
-      element.submit()
+      openCheckout((await response.json()) as { url: string; fields: Record<string, string> })
     } catch {
       // Network/JS failure before we got a response.
       setNotice(labels.checkoutError)

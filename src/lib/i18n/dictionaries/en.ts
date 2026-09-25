@@ -339,6 +339,12 @@ export const en: Dictionary = {
     galleryPlansTitle: 'Galleries',
     sitePlansTitle: 'Sites',
     bundleNote: 'Gallery + Site bundle: 15% off the site while both subscriptions are active.',
+    promoActive: '🎁 Import promo: the «Basic» plan is free until {date}.',
+    promoAutopayHint:
+      'To keep the plan for {price} UAH/month after the promo, connect auto-payment: {price} UAH is charged now and the paid month starts on {date}. Without auto-payment the account returns to the Free plan — files are never deleted.',
+    promoAutopayButton: 'Connect auto-payment',
+    promoAutopayDone:
+      'Auto-payment connected: free until {date}, then «Basic» for {price} UAH/month.',
     graceNotice: 'Your paid plan is active until the date below, then the storage limit drops to free:',
     autoRenewTitle: 'Auto-renewal',
     autoRenewNextCharge: 'next charge',
@@ -422,6 +428,9 @@ export const en: Dictionary = {
     back: '← Back to galleries',
     gb: '{n} GB',
     mb: '{n} MB',
+    promoGranted:
+      '🎁 Your import earned a free month of the «Basic» plan — until {date}.',
+    promoLink: 'Connect auto-payment',
   },
   publicGallery: {
     passwordTitle: 'This gallery is password protected',

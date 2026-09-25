@@ -31,8 +31,8 @@ function referralRewardKop(amountUah: number): number {
 }
 
 /** Next cron charge: one period from now (no extra grace — that's for expiry). */
-function nextChargeAt(period: string): string {
-  const next = new Date()
+function nextChargeAt(period: string, from = new Date()): string {
+  const next = new Date(from)
   if (period === 'year') next.setFullYear(next.getFullYear() + 1)
   else next.setMonth(next.getMonth() + 1)
   return next.toISOString()
@@ -78,7 +78,9 @@ export async function POST(request: NextRequest) {
 
   const { data: payment } = await admin
     .from('payments')
-    .select('id, user_id, plan, period, status, subscription_id, amount, credit_applied_kop')
+    .select(
+      'id, user_id, plan, period, status, subscription_id, amount, credit_applied_kop, purpose'
+    )
     .eq('order_id', event.orderId)
     .single()
   if (!payment) {
@@ -104,6 +106,25 @@ export async function POST(request: NextRequest) {
   if (!product) return NextResponse.json({ ok: true })
 
   if (event.status === 'paid') {
+    // «Підключити автоплатіж» in the import promo month: this payment covers
+    // the month AFTER the free one, so every period below starts at the
+    // promo's end instead of today (see lib/promo, checkout route).
+    let periodStart = new Date()
+    if (payment.purpose === 'promo_autopay') {
+      const { data: grant } = await admin
+        .from('promo_grants')
+        .select('ends_at')
+        .eq('user_id', payment.user_id)
+        .maybeSingle()
+      if (grant?.ends_at && new Date(grant.ends_at).getTime() > periodStart.getTime()) {
+        periodStart = new Date(grant.ends_at)
+      }
+      await admin
+        .from('promo_grants')
+        .update({ autopay_at: new Date().toISOString() })
+        .eq('user_id', payment.user_id)
+    }
+
     // Auto-renewal bookkeeping decides whether the plan needs an expiry date.
     let autoRenews = payments.recurring
     if (payment.subscription_id) {
@@ -123,7 +144,7 @@ export async function POST(request: NextRequest) {
           period: payment.period,
           provider: payments.name,
           card_token: event.cardToken,
-          next_charge_at: nextChargeAt(payment.period),
+          next_charge_at: nextChargeAt(payment.period, periodStart),
           status: 'active',
         },
         { onConflict: 'user_id,product' }
@@ -138,7 +159,7 @@ export async function POST(request: NextRequest) {
         .update({
           plan: plan.id,
           storage_limit_bytes: planStorageBytes(plan),
-          grace_until: autoRenews ? null : paidUntil(payment.period),
+          grace_until: autoRenews ? null : paidUntil(payment.period, periodStart),
         })
         .eq('user_id', payment.user_id)
     } else {
