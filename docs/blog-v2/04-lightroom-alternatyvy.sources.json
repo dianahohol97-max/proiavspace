@@ -1,0 +1,16 @@
+[
+ {"claim":"Adobe Україна — Lightroom (1 ТБ) з Lightroom Classic; «Для фотографів» (1 ТБ) з Photoshop; Creative Cloud Pro; 7 днів тріалу","value":"5,75 / 9,59 / 40,79 US$/міс з ПДВ, річний план з щомісячною оплатою","amount":5.75,"currency":"USD","url":"https://www.adobe.com/ua/products/photoshop-lightroom/plans.html","checked":"вересень 2026","note":"сторінка за захистом від ботів (503 для перевірки), перевірено в браузері"},
+ {"claim":"Adobe — генеративні кредити 250 / 1000 / 4000","value":"see page","url":"https://www.adobe.com/ua/creativecloud/photography/compare-plans.html","checked":"вересень 2026"},
+ {"claim":"Lightroom Classic — мови інтерфейсу (16, без української)","value":"Deutsch, English, Español, Français, Italiano, Nederlands, Português (Brasil), Russian, Svenska, Thai, 日本語, 简体中文, 繁體中文, 한국어, Norsk, Polski","url":"https://helpx.adobe.com/lightroom-classic/system-requirements.html","checked":"вересень 2026"},
+ {"claim":"Capture One — Pro $18/міс (річна), All in One $24.67, Studio $48.50, вічна ліцензія Pro $349; 550+ камер; 5 років підписки → ліцензія безкоштовно","value":"see page","amount":18,"currency":"USD","url":"https://www.captureone.com/en/pricing/capture-one-pro","checked":"вересень 2026"},
+ {"claim":"Capture One — тріал 7 днів","value":"7 days","url":"https://support.captureone.com/hc/en-us/articles/360002468637-How-to-activate-Capture-One","checked":"вересень 2026"},
+ {"claim":"Capture One Express вимкнено 12.02.2024","value":"February 12, 2024","url":"https://support.captureone.com/hc/en-us/articles/15416245558301-Capture-One-Express-Deprecation-FAQ","checked":"вересень 2026"},
+ {"claim":"darktable 5.6.1, Windows (x64, ARM), macOS, Linux; GPL 3.0; база даних lighttable","value":"5.6.1","url":"https://www.darktable.org/install/","checked":"вересень 2026"},
+ {"claim":"darktable — імпорт XMP Lightroom (метадані й частина обробки)","value":"tags, labels, ratings, GPS; crop, exposure, vignette, clarity, tone curve, HSL, split-toning, grain, spot removal","url":"https://docs.darktable.org/usermanual/development/en/overview/sidecar-files/sidecar-import/","checked":"вересень 2026"},
+ {"claim":"darktable — український переклад, оновлено 19.09.2026","value":"PO-Revision-Date 2026-09-19","url":"https://github.com/darktable-org/darktable/blob/master/po/uk.po","checked":"вересень 2026"},
+ {"claim":"RawTherapee 5.13 — 26.07.2026, Windows/macOS/Linux, ARM64","value":"5.13","url":"https://rawtherapee.com/downloads/","checked":"вересень 2026"},
+ {"claim":"RawTherapee — українська мова інтерфейсу","value":"Українська","url":"https://github.com/Beep6581/RawTherapee/blob/dev/rtdata/languages/Ukrainian","checked":"вересень 2026"},
+ {"claim":"digiKam 9.1.0 — Windows 10+, macOS, Linux; розпізнавання облич","value":"9.1.0","url":"https://www.digikam.org/","checked":"вересень 2026"},
+ {"claim":"digiKam — український переклад, оновлено 23.09.2026","value":"PO-Revision-Date 2026-09-23","url":"https://invent.kde.org/graphics/digikam/-/blob/master/po/uk/digikam.po","checked":"вересень 2026"},
+ {"claim":"Курс НБУ 25.09.2026","value":"USD 44.9729","url":"https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?date=20260925&json","checked":"вересень 2026"}
+]

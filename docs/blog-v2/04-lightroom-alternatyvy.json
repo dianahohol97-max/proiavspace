@@ -1,0 +1,284 @@
+{
+  "title": "Lightroom vs Capture One vs безкоштовні альтернативи у 2026",
+  "seoTitle": "Безкоштовна альтернатива Lightroom і Capture One у 2026",
+  "description": "Безкоштовна альтернатива Lightroom: чесно порівнюємо darktable, RawTherapee і digiKam з Lightroom та Capture One — ціни підписок у ₴, мова, перехід з каталогу.",
+  "tags": [
+    "Lightroom",
+    "Capture One",
+    "обробка",
+    "програми"
+  ],
+  "body": [
+    {
+      "type": "p",
+      "text": "Шукаєш безкоштовну альтернативу Lightroom? У 2026 році реальних варіантів три: darktable, RawTherapee і digiKam — усі безплатні, з відкритим кодом і українським інтерфейсом. Для порівняння: Lightroom в Україні коштує від {{price 5.75 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць з ПДВ при річному плані, Capture One Pro — від {{price 18 USD | https://www.captureone.com/en/pricing/capture-one-pro}} на місяць при оплаті за рік."
+    },
+    {
+      "type": "p",
+      "text": "Нижче — таблиця з цінами підписок у гривнях, платформами, мовою інтерфейсу й тим, що з твоєї роботи в Lightroom переживе переїзд. Окремо — кому безкоштовні програми не підійдуть, щоб ти не витратив тиждень на міграцію й не повернувся назад. Усі ціни й версії я звіряла на офіційних сайтах у вересні 2026 року."
+    },
+    {
+      "type": "h2",
+      "text": "Порівняння: Lightroom, Capture One і безкоштовні програми"
+    },
+    {
+      "type": "table",
+      "caption": "Ціни й можливості, станом на вересень 2026",
+      "head": [
+        "Програма",
+        "Ціна",
+        "Платформи",
+        "Каталог фото",
+        "Українська мова",
+        "Пробний період"
+      ],
+      "rows": [
+        [
+          "Lightroom (план 1 ТБ)",
+          "{{price 5.75 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць, річний план",
+          "Windows, macOS, мобільні, веб",
+          "так, Lightroom Classic входить",
+          "ні, у Lightroom Classic української немає",
+          "7 днів"
+        ],
+        [
+          "Adobe «Для фотографів» (1 ТБ)",
+          "{{price 9.59 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць, річний план",
+          "Windows, macOS, мобільні, веб",
+          "так + Photoshop",
+          "ні, у Lightroom Classic української немає",
+          "7 днів"
+        ],
+        [
+          "Capture One Pro",
+          "{{price 18 USD | https://www.captureone.com/en/pricing/capture-one-pro}} на місяць (річна підписка) або {{price 349 USD | https://www.captureone.com/en/pricing/capture-one-pro}} разово",
+          "Windows, macOS",
+          "так",
+          "перевір перед покупкою",
+          "7 днів"
+        ],
+        [
+          "darktable 5.6.1",
+          "безкоштовно",
+          "Windows, macOS, Linux",
+          "так, база даних у режимі lighttable",
+          "так",
+          "не потрібен"
+        ],
+        [
+          "RawTherapee 5.13",
+          "безкоштовно",
+          "Windows, macOS, Linux",
+          "ні, файловий браузер",
+          "так",
+          "не потрібен"
+        ],
+        [
+          "digiKam 9.1.0",
+          "безкоштовно",
+          "Windows, macOS, Linux",
+          "так, повноцінний менеджер фото з розпізнаванням облич",
+          "так",
+          "не потрібен"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Ціни Adobe для України вказані в доларах із ПДВ і списуються щомісяця в межах річного плану. Capture One показує ціну в доларах на міжнародній сторінці; чи додається податок при оплаті з України, перевір у кошику перед покупкою."
+    },
+    {
+      "type": "h2",
+      "text": "Lightroom: скільки коштує в Україні і що входить"
+    },
+    {
+      "type": "p",
+      "text": "Adobe продає в Україні три плани, де є Lightroom. Найдешевший — Lightroom (1 ТБ) за {{price 5.75 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць: [за описом Adobe](https://www.adobe.com/ua/products/photoshop-lightroom/plans.html), він включає повну версію Lightroom для компʼютера, мобільних і вебу, а також Lightroom Classic. План «Для фотографів» за {{price 9.59 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} додає Photoshop."
+    },
+    {
+      "type": "p",
+      "text": "Обидва плани мають 1 ТБ хмарного сховища, а різниця між ними — лише Photoshop і кількість генеративних кредитів: 250 на місяць у плані Lightroom і 1000 у плані «Для фотографів», [за таблицею порівняння](https://www.adobe.com/ua/creativecloud/photography/compare-plans.html). Якщо ти не ретушуєш у Photoshop, переплачувати немає сенсу."
+    },
+    {
+      "type": "p",
+      "text": "Важливо: план річний, хоча рахунок приходить щомісяця. Безкоштовний пробний період — 7 днів. Для порівняння, повний Creative Cloud Pro з понад 20 програмами коштує {{price 40.79 USD | https://www.adobe.com/ua/creativecloud/photography/compare-plans.html}} на місяць — фотографу він потрібен рідко. І ще один мінус для нас: Lightroom Classic [доступний 16 мовами](https://helpx.adobe.com/lightroom-classic/system-requirements.html), серед яких є польська й російська, але немає української."
+    },
+    {
+      "type": "h2",
+      "text": "Capture One: підписка чи вічна ліцензія"
+    },
+    {
+      "type": "p",
+      "text": "Capture One Pro — головний платний конкурент Lightroom, особливо в студійній і предметній зйомці завдяки зйомці з підключенням до компʼютера (tethering) і підтримці понад 550 камер. Підписка Pro коштує {{price 18 USD | https://www.captureone.com/en/pricing/capture-one-pro}} на місяць при річній оплаті, All in One з мобільним застосунком для iPad і iPhone — {{price 24.67 USD | https://www.captureone.com/en/pricing/capture-one-pro}}. Різниця між ними: All in One додає застосунок для iPad і iPhone, онлайн-інструменти для спільної роботи з клієнтом, хмарну синхронізацію налаштувань і пріоритетну підтримку. Якщо ти знімаєш лише на компʼютер і не показуєш клієнтам кадри під час зйомки, вистачить Pro."
+    },
+    {
+      "type": "p",
+      "text": "На відміну від Adobe, Capture One досі продає вічну ліцензію Pro за {{price 349 USD | https://www.captureone.com/en/pricing/capture-one-pro}}. Виробник прямо пише, що вона підходить тим, хто не залежить від найновіших оновлень і підтримки нових камер. Якщо ти купиш камеру, що вийде через рік, стара ліцензія може не відкрити її RAW. Підписку можна скасувати будь-коли без штрафів, а тим, хто був на підписці 5 років, [вічну ліцензію дають безкоштовно](https://www.captureone.com/en/pricing/capture-one-pro)."
+    },
+    {
+      "type": "p",
+      "text": "Безкоштовної версії Capture One більше немає: [ліцензії Capture One Express вимкнули 12 лютого 2024 року](https://support.captureone.com/hc/en-us/articles/15416245558301-Capture-One-Express-Deprecation-FAQ). Пробний період Pro — [7 днів](https://support.captureone.com/hc/en-us/articles/360002468637-How-to-activate-Capture-One), повторно його не дають."
+    },
+    {
+      "type": "h2",
+      "text": "darktable: найближча безкоштовна альтернатива Lightroom"
+    },
+    {
+      "type": "p",
+      "text": "[darktable](https://www.darktable.org/) влаштований як Lightroom: режим lighttable з базою даних для перегляду й сортування і режим darkroom для обробки RAW. Програма розповсюджується під ліцензією GPL 3.0, актуальна версія — 5.6.1 для Windows (зокрема на ARM-процесорах), macOS і Linux."
+    },
+    {
+      "type": "p",
+      "text": "Для переїзду з Lightroom це найкращий варіант, бо darktable [читає XMP-файли Lightroom](https://docs.darktable.org/usermanual/development/en/overview/sidecar-files/sidecar-import/): переносяться теги, кольорові мітки, рейтинги й GPS, а з обробки — кадрування, експозиція, віньєтка, clarity, тональна крива, HSL, спліт-тонування, зерно й точкове ретушування. Розробники чесно попереджають, що результат ніколи не буде ідентичним і більшість кадрів доведеться доправити."
+    },
+    {
+      "type": "p",
+      "text": "Українська локалізація darktable [активно підтримується](https://github.com/darktable-org/darktable/blob/master/po/uk.po): останнє оновлення перекладу — 19 вересня 2026 року. Мінус — висока крива навчання: логіка модулів і сценно-орієнтована обробка відрізняються від звичних повзунків Lightroom, тож перший тиждень робота йтиме повільніше."
+    },
+    {
+      "type": "img",
+      "alt": "Інтерфейс darktable у режимі lighttable з сіткою мініатюр RAW-файлів і панеллю рейтингів",
+      "caption": "Скріншот darktable 5.6 українською: lighttable з імпортованою зйомкою, видно рейтинги й кольорові мітки, перенесені з Lightroom."
+    },
+    {
+      "type": "h2",
+      "text": "RawTherapee і digiKam: коли вони кращі за darktable"
+    },
+    {
+      "type": "p",
+      "text": "[RawTherapee](https://rawtherapee.com/downloads/) — це саме RAW-конвертер, без каталогу: ти відкриваєш папку, обробляєш і експортуєш. Версія 5.13 вийшла 26 липня 2026 року для Windows, macOS і Linux, зокрема для ARM-процесорів. Українська мова інтерфейсу [є в програмі](https://github.com/Beep6581/RawTherapee/blob/dev/rtdata/languages/Ukrainian). Він підійде, якщо тобі потрібна максимальна якість конвертації окремих кадрів, а не керування тисячами фото."
+    },
+    {
+      "type": "p",
+      "text": "[digiKam](https://www.digikam.org/) — навпаки, насамперед менеджер фото: теги, пошук, автоматичне розпізнавання облич, публікація в соцмережі, а RAW-обробка в ньому базова. Версія 9.1.0 доступна для Windows 10 і новіших, macOS і Linux; український переклад [оновлено 23 вересня 2026 року](https://invent.kde.org/graphics/digikam/-/blob/master/po/uk/digikam.po)."
+    },
+    {
+      "type": "p",
+      "text": "Робоча звʼязка без жодної підписки: digiKam як каталог і архів, darktable або RawTherapee для обробки. Так ти закриваєш обидві функції Lightroom Classic — бібліотеку й проявку — безкоштовно, але ціною двох програм замість однієї."
+    },
+    {
+      "type": "h2",
+      "text": "Скільки коштує рік роботи в кожній програмі"
+    },
+    {
+      "type": "p",
+      "text": "Місячна ціна вводить в оману, бо Adobe й Capture One продають річні плани. Нижче я перемножила місячні ціни на 12 і перерахувала в гривні за курсом НБУ на 25.09.2026; це моя оцінка, а не рахунок від виробника, і курс за рік зміниться."
+    },
+    {
+      "type": "table",
+      "caption": "Вартість одного року, станом на вересень 2026",
+      "head": [
+        "Програма",
+        "Ціна з сайту",
+        "Рік у гривнях (оцінка)",
+        "Що отримуєш за ці гроші"
+      ],
+      "rows": [
+        [
+          "Lightroom (1 ТБ)",
+          "{{price 5.75 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць",
+          "≈ 3 100 ₴",
+          "Lightroom, Lightroom Classic, 1 ТБ хмари, оновлення й підтримка нових камер"
+        ],
+        [
+          "Adobe «Для фотографів»",
+          "{{price 9.59 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць",
+          "≈ 5 180 ₴",
+          "те саме + Photoshop"
+        ],
+        [
+          "Capture One Pro, підписка",
+          "{{price 18 USD | https://www.captureone.com/en/pricing/capture-one-pro}} на місяць",
+          "≈ 9 710 ₴",
+          "Capture One Pro з оновленнями"
+        ],
+        [
+          "Capture One Pro, ліцензія",
+          "{{price 349 USD | https://www.captureone.com/en/pricing/capture-one-pro}} разово",
+          "≈ 15 700 ₴ один раз",
+          "поточна версія назавжди, без гарантії підтримки нових камер"
+        ],
+        [
+          "darktable, RawTherapee, digiKam",
+          "безкоштовно",
+          "нічого",
+          "усе, крім хмари, мобільних версій та інтеграцій з AI-сервісами"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Висновок з таблиці неочевидний: найдешевший платний варіант — не вічна ліцензія Capture One, а план Lightroom за {{price 5.75 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць. Вічна ліцензія Capture One окупається порівняно з його ж підпискою лише на третій рік, і то за умови, що ти не міняєш камеру. Безкоштовні програми економлять близько 3 100 ₴ на рік порівняно з найдешевшим Lightroom — відчутно для початківця, але менше за вартість однієї сімейної зйомки в більшості великих міст."
+    },
+    {
+      "type": "h2",
+      "text": "Як перейти з Lightroom і нічого не втратити"
+    },
+    {
+      "type": "ol",
+      "items": [
+        "У Lightroom Classic виділи всі фото й збережи метадані у файли (Ctrl+S / Cmd+S), щоб поруч із RAW зʼявилися XMP з рейтингами, мітками й обробкою.",
+        "Перевір, що XMP лежать поруч з усіма RAW, а не лише з обробленими кадрами.",
+        "Імпортуй у darktable одну завершену зйомку й порівняй 10–20 кадрів з тим, що було в Lightroom.",
+        "Не видаляй каталог Lightroom і не скасовуй підписку, доки не проведеш у новій програмі хоча б дві нові зйомки від імпорту до експорту.",
+        "Експортовані JPEG для клієнтів зберігай окремо від робочих RAW: їх не доведеться переробляти після переїзду."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Перед міграцією зроби повну резервну копію RAW, XMP і каталогу — як організувати її на двох дисках і в хмарі, я описувала в статті про [резервне копіювання фотографій](/uk/blog/rezervne-kopiiuvannia-fotohrafii). А якщо головна причина переходу — 1 ТБ хмари Adobe, порахуй, [скільки коштує зберігати фото](/uk/blog/skilky-koshtuie-zberihaty-foto) іншими способами."
+    },
+    {
+      "type": "img",
+      "alt": "Меню Lightroom Classic із командою збереження метаданих у XMP-файли перед переїздом на іншу програму",
+      "caption": "Бриф: скріншот Lightroom Classic, меню Metadata → Save Metadata to Files, виділено всю колекцію."
+    },
+    {
+      "type": "h2",
+      "text": "Кому не підійде безкоштовна альтернатива"
+    },
+    {
+      "type": "ul",
+      "items": [
+        "Весільним фотографам, які працюють з AI-відбором чи AI-обробкою: Aftershoot, Narrative, Imagen і Evoto інтегруються з Lightroom і частково з Capture One, але не з darktable чи RawTherapee.",
+        "Тим, хто купує пресети й продає власні: пресети Lightroom у darktable не відкриваються, переноситься лише обробка окремих кадрів з XMP.",
+        "Студійним і предметним фотографам, які знімають з підключенням до компʼютера: tethering у Capture One — сильніший аргумент, ніж ціна.",
+        "Тим, кому потрібна синхронізація з телефоном: мобільних версій darktable, RawTherapee і digiKam немає.",
+        "Тим, хто не має тижня на навчання в сезон: переходь узимку, коли зйомок мало."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Яку б програму ти не обрав, клієнт бачить лише результат. Готові JPEG зручно віддавати через [онлайн-галерею проЯв](/uk/halerei): без стискання, з паролем, а клієнт завантажує всю зйомку одним архівом."
+    },
+    {
+      "type": "h2",
+      "text": "Часті питання"
+    },
+    {
+      "type": "faq",
+      "items": [
+        {
+          "q": "Яка безкоштовна альтернатива Lightroom найближча за логікою?",
+          "a": "darktable: так само має режим бібліотеки з базою даних і режим обробки RAW, а ще читає XMP-файли Lightroom з рейтингами, мітками й частиною обробки."
+        },
+        {
+          "q": "Скільки коштує Lightroom в Україні у 2026?",
+          "a": "План Lightroom (1 ТБ) коштує {{price 5.75 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць з ПДВ при річному плані й уже включає Lightroom Classic."
+        },
+        {
+          "q": "Чи є безкоштовна версія Capture One?",
+          "a": "Ні. Capture One Express вимкнули 12 лютого 2024 року; залишився 7-денний пробний період Capture One Pro."
+        },
+        {
+          "q": "Чи перенесуться мої пресети з Lightroom у darktable?",
+          "a": "Пресети — ні. Переноситься обробка конкретних фото з XMP-файлів: кадрування, експозиція, тональна крива, HSL та кілька інших параметрів, і результат усе одно доведеться доправляти."
+        }
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Мій висновок: якщо ти працюєш з AI-інструментами й пресетами, залишайся на Lightroom за {{price 5.75 USD | https://www.adobe.com/ua/products/photoshop-lightroom/plans.html}} на місяць — це найдешевший повний план. Якщо ж хочеш назавжди позбутися підписок і готовий витратити тиждень на навчання, переходь на darktable, а архів тримай у digiKam."
+    }
+  ]
+}
