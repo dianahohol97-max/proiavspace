@@ -1,0 +1,182 @@
+[
+{
+"city": "Київ",
+"photographer": "Наталія Борисова",
+"url": "https://www.nataliaborisova.com.ua/fotosesija-kyiv-tsina",
+"genre": "портрет",
+"amount": 3000,
+"currency": "UAH",
+"package": "EXPRESS: 1 год у студії, 100 фото; студія окремо",
+"flag": "footer 2023; суперечливі ціни на сторінці"
+},
+{
+"city": "Київ",
+"photographer": "Наталія Борисова",
+"url": "https://www.nataliaborisova.com.ua/fotosesija-kyiv-tsina",
+"genre": "портрет",
+"amount": 6500,
+"currency": "UAH",
+"package": "MAXIMUM: 2 год, 250-300 фото",
+"flag": "footer 2023"
+},
+{
+"city": "Київ",
+"photographer": "Наталія Борисова",
+"url": "https://www.nataliaborisova.com.ua/fotosesija-love-story-kyiv",
+"genre": "love story",
+"amount": 3000,
+"currency": "UAH",
+"package": "EXPRESS 1 год",
+"flag": "footer 2023"
+},
+{
+"city": "Київ",
+"photographer": "Наталія Борисова",
+"url": "https://www.nataliaborisova.com.ua/vesilny-fotograf-kyiv",
+"genre": "весільна",
+"amount": 7000,
+"currency": "UAH",
+"package": "BASIC: церемонія + фотосесія, 3 год",
+"flag": "footer 2023"
+},
+{
+"city": "Київ",
+"photographer": "Наталія Борисова",
+"url": "https://www.nataliaborisova.com.ua/vesilny-fotograf-kyiv",
+"genre": "весільна",
+"amount": 24000,
+"currency": "UAH",
+"package": "FULL DAY 12 год",
+"flag": "footer 2023"
+},
+{
+"city": "Київ",
+"photographer": "Ілона Півень",
+"url": "https://pivenilona.com/price",
+"genre": "сімейна",
+"amount": 5000,
+"currency": "UAH",
+"package": "СТАНДАРТ 1 год, 100+ фото",
+"flag": ""
+},
+{
+"city": "Київ",
+"photographer": "Ілона Півень",
+"url": "https://pivenilona.com/price",
+"genre": "портрет",
+"amount": 5000,
+"currency": "UAH",
+"package": "СТАНДАРТ 1 год",
+"flag": ""
+},
+{
+"city": "Київ",
+"photographer": "Ілона Півень",
+"url": "https://pivenilona.com/price",
+"genre": "love story",
+"amount": 5000,
+"currency": "UAH",
+"package": "СТАНДАРТ 1 год",
+"flag": ""
+},
+{
+"city": "Київ",
+"photographer": "Вікторія Топольян",
+"url": "https://topolian.com/blog/simeina-fotosesiia-kyiv-tsina",
+"genre": "сімейна",
+"amount": 4500,
+"currency": "UAH",
+"package": "Standard 1 год, 50 кадрів в обробці",
+"flag": "2026; у FAQ інша сума 3500"
+},
+{
+"city": "Київ",
+"photographer": "Женя Лайт",
+"url": "https://www.lightphotography.com.ua/price/",
+"genre": "сімейна",
+"amount": 3000,
+"currency": "UAH",
+"package": "Basic 1 год, 70-100 фото",
+"flag": "2026"
+},
+{
+"city": "Київ",
+"photographer": "Женя Лайт",
+"url": "https://www.lightphotography.com.ua/price/",
+"genre": "портрет",
+"amount": 3000,
+"currency": "UAH",
+"package": "Basic 1 год",
+"flag": "2026"
+},
+{
+"city": "Київ",
+"photographer": "Женя Лайт",
+"url": "https://www.lightphotography.com.ua/price/",
+"genre": "весільна",
+"amount": 15000,
+"currency": "UAH",
+"package": "Premium до 10 год, 500-700 фото",
+"flag": "2026"
+},
+{
+"city": "Київ",
+"photographer": "Олександра Олександрова",
+"url": "https://alexandrovaphoto.com/weddingprice",
+"genre": "весільна",
+"amount": 1000,
+"currency": "USD",
+"package": "PREMIUM до 12 год, 800+ фото",
+"flag": "2026-2027"
+},
+{
+"city": "Київ",
+"photographer": "Олександра Олександрова",
+"url": "https://alexandrovaphoto.com/familyandloveprice",
+"genre": "сімейна",
+"amount": 5500,
+"currency": "UAH",
+"package": "MINIMUM 1 год, 100+ фото",
+"flag": ""
+},
+{
+"city": "Київ",
+"photographer": "Олександра Олександрова",
+"url": "https://alexandrovaphoto.com/familyandloveprice",
+"genre": "love story",
+"amount": 5500,
+"currency": "UAH",
+"package": "MINIMUM 1 год, 100+ фото",
+"flag": ""
+},
+{
+"city": "Київ",
+"photographer": "Наталія Шкаврон",
+"url": "https://nataliashkavron.com.ua/semeynaya-fotosessiya",
+"genre": "сімейна",
+"amount": 4500,
+"currency": "UAH",
+"package": "«Тепла мить» до 1 год, 70 фото",
+"flag": "валюта за контекстом"
+},
+{
+"city": "Київ",
+"photographer": "Vision Production",
+"url": "https://visionproduction.com.ua/simejna-fotosesiya-v-kyyevi/",
+"genre": "сімейна",
+"amount": 5500,
+"currency": "UAH",
+"package": "Лайт 1 год, студія й одяг включені",
+"flag": "студія з фотографом"
+},
+{
+"city": "Київ",
+"photographer": "2DStudio",
+"url": "https://2dstudio.com.ua/price",
+"genre": "сімейна",
+"amount": 4000,
+"currency": "UAH",
+"package": "сімейний репортаж, 1 год",
+"flag": "дата не вказана"
+}
+]
