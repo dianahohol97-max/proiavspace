@@ -11,8 +11,10 @@ import {
   type GalleryPlanId,
   type SitePlanId,
 } from '@/lib/plans'
+import { IMPORT_PROMO, isPromoRunning, type PromoGrant } from '@/lib/promo'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BillingPlans } from '@/components/BillingPlans'
+import { PromoAutopay } from '@/components/PromoAutopay'
 import { buildGalleryCard, buildSiteCard } from '@/components/billing-cards'
 import {
   BillingSubscriptions,
@@ -61,6 +63,13 @@ export default async function BillingPage({ params }: { params: { locale: string
     .from('billing_subscriptions')
     .select('product, plan, period, next_charge_at, status')
     .eq('user_id', user.id)
+
+  const { data: promoGrant } = await supabase
+    .from('promo_grants')
+    .select('ends_at, autopay_at')
+    .eq('user_id', user.id)
+    .maybeSingle<PromoGrant>()
+  const promoRunning = isPromoRunning(promoGrant)
 
   const galleryNames: Record<GalleryPlanId, string> = {
     free: dict.billing.planFree,
@@ -158,7 +167,39 @@ export default async function BillingPage({ params }: { params: { locale: string
         {currentSiteName} · {dict.dashboard.storageUsed}: {formatGb(profile.storage_used_bytes)} /{' '}
         {formatGb(effectiveStorageLimit)}
       </p>
-      {profile.grace_until && (
+      {promoGrant && promoRunning && (
+        <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm">
+          {(() => {
+            const values: Record<string, string> = {
+              date: new Date(promoGrant.ends_at).toLocaleDateString(
+                locale === 'uk' ? 'uk-UA' : 'en-GB'
+              ),
+              price: String(IMPORT_PROMO.plan.priceUahMonth),
+            }
+            const fill = (template: string) =>
+              template.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match)
+            return promoGrant.autopay_at ? (
+              <p className="text-sm leading-relaxed">{fill(dict.billing.promoAutopayDone)}</p>
+            ) : (
+              <>
+                <p className="font-bold">{fill(dict.billing.promoActive)}</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  {fill(dict.billing.promoAutopayHint)}
+                </p>
+                <PromoAutopay
+                  locale={locale}
+                  labels={{
+                    button: dict.billing.promoAutopayButton,
+                    notConfigured: dict.billing.notConfigured,
+                    checkoutError: dict.billing.checkoutError,
+                  }}
+                />
+              </>
+            )
+          })()}
+        </div>
+      )}
+      {profile.grace_until && !promoRunning && (
         <p className="mt-2 text-sm text-accent">
           {dict.billing.graceNotice}{' '}
           {new Date(profile.grace_until).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB')}

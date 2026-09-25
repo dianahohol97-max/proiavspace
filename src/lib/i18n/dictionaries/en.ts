@@ -49,6 +49,7 @@ export const en: Dictionary = {
     onboardStep3: 'Send the client a link — optionally password-protected',
     onboardCta: 'Create your first gallery',
     newGallery: 'New gallery',
+    importLink: 'Import from another service',
     storageUsed: 'Storage used',
     photosCount: 'Photos',
     views: 'Views',
@@ -338,6 +339,12 @@ export const en: Dictionary = {
     galleryPlansTitle: 'Galleries',
     sitePlansTitle: 'Sites',
     bundleNote: 'Gallery + Site bundle: 15% off the site while both subscriptions are active.',
+    promoActive: '🎁 Import promo: the «Basic» plan is free until {date}.',
+    promoAutopayHint:
+      'To keep the plan for {price} UAH/month after the promo, connect auto-payment: {price} UAH is charged now and the paid month starts on {date}. Without auto-payment the account returns to the Free plan — files are never deleted.',
+    promoAutopayButton: 'Connect auto-payment',
+    promoAutopayDone:
+      'Auto-payment connected: free until {date}, then «Basic» for {price} UAH/month.',
     graceNotice: 'Your paid plan is active until the date below, then the storage limit drops to free:',
     autoRenewTitle: 'Auto-renewal',
     autoRenewNextCharge: 'next charge',
@@ -378,6 +385,52 @@ export const en: Dictionary = {
     freePrice: 'Free',
     notConfigured: 'Payments are not connected yet. We will let you know once plan upgrades go live.',
     checkoutError: 'Could not start the payment. Please try again in a minute.',
+  },
+  importer: {
+    title: 'Import a gallery from a zip',
+    lede:
+      'Download your gallery as a zip from Pixieset, Pic-Time or another service — we unpack it right in your browser and transfer the originals unchanged. Every folder in the zip becomes its own gallery «Name — Folder»; all galleries are created as drafts.',
+    keepOpen:
+      'Keep this tab open while the import runs — a computer works best. If the tab gets closed, just pick the same zip again: files already transferred are skipped.',
+    limit: 'One zip — up to {max}. Split a bigger gallery into several zips and import them one by one.',
+    choose: 'Choose a zip file',
+    reading: 'Reading the zip…',
+    tooLarge:
+      'This zip is larger than {max}. Split the gallery into several zips of up to {max} each and import them one by one.',
+    notZip: 'This file could not be read as a zip archive.',
+    encrypted: 'The zip is password-protected — such archives are not supported.',
+    nameLabel: 'Gallery name',
+    nameHint:
+      'If one gallery was split into several zips, give them the same name and the files will end up in the same galleries.',
+    planTitle: 'What will be imported',
+    planGallery: '{count} files',
+    planSummary: 'Files in total: {files} · {size}',
+    planUnsupported: 'Not a photo or video — will be skipped: {n}',
+    planDuplicateInZip: 'Repeated file names in one folder — will be skipped: {n}',
+    planNoFiles: 'This zip contains no photos or videos.',
+    start: 'Start import',
+    cancel: 'Cancel',
+    quotaExceeded:
+      'Not enough storage: {need} needed, {available} available. Free up space or move to a bigger plan.',
+    startError: 'Could not start the import. Please try again.',
+    progress: '{done} of {total} transferred',
+    current: 'Now: {name}',
+    reportTitle: 'Import finished',
+    reportImported: 'Files imported: {n}',
+    reportSize: 'Storage used: {size}',
+    reportDuplicate: 'Duplicates skipped (a file with this name is already in the gallery): {n}',
+    reportUnsupported: 'Skipped — not a photo or video: {n}',
+    reportVideo: 'Videos skipped (video starts on the Plus plan): {n}',
+    reportFailed:
+      'Failed to upload: {n}. Pick the same zip again — the import only uploads what is missing.',
+    reportGalleries: 'Galleries (drafts) — review and publish:',
+    another: 'Import another zip',
+    back: '← Back to galleries',
+    gb: '{n} GB',
+    mb: '{n} MB',
+    promoGranted:
+      '🎁 Your import earned a free month of the «Basic» plan — until {date}.',
+    promoLink: 'Connect auto-payment',
   },
   publicGallery: {
     passwordTitle: 'This gallery is password protected',
