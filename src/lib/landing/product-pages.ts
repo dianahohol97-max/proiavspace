@@ -8,6 +8,7 @@
  * sitemap) until the facts are confirmed.
  */
 import type { Block } from '@/lib/blog/articles'
+import type { Locale } from '@/lib/i18n/config'
 import { GALLERY_PLANS, GRACE_PERIOD_DAYS } from '@/lib/plans'
 import type { Crumb } from '@/lib/seo/structured-data'
 
@@ -36,7 +37,19 @@ export interface ProductPageContent {
   dateModified?: string
   /** Share-card headline (defaults to h1). */
   ogTitle?: string
+  /**
+   * Languages the page exists in (default: uk only). Any language other than
+   * uk must have its copy in `translations`.
+   */
+  languages?: readonly Locale[]
+  translations?: Partial<Record<Locale, ProductPageCopy>>
 }
+
+/** The per-language part of a page (everything a reader sees). */
+export type ProductPageCopy = Pick<
+  ProductPageContent,
+  'crumb' | 'seoTitle' | 'description' | 'kicker' | 'h1' | 'lede' | 'body' | 'faq' | 'related' | 'cta' | 'secondary' | 'ogTitle'
+>
 
 const P = GALLERY_PLANS
 const uah = (n: number) => `${n.toLocaleString('uk-UA')} ₴`
@@ -820,6 +833,297 @@ const porivnianniaHub: ProductPageContent = {
   ],
 }
 
+/* ------------------------------------------------------------------ */
+/* /uk/mihratsiia, /en/mihratsiia — moving from Pixieset / Pic-Time   */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Competitor facts come only from the owner's check of their public pages on
+ * MIGRATION_CHECKED (linked inline). Dollar amounts are {{price:N}} markers:
+ * ProductPage converts them at the NBU rate of the day ({{fx-source}} = the
+ * rate date and source; both vanish when the rate is unavailable).
+ */
+const MIGRATION_CHECKED = '25.09.2026'
+const PIXIESET_PRICING = 'https://pixieset.com/pricing/'
+const PIXIESET_DOWNLOAD_HELP = 'https://help.pixieset.com/hc/en-us/articles/115003594212-Client-Download-Experience'
+const PIXIESET_RESOLUTION_HELP = 'https://help.pixieset.com/hc/en-us/articles/115003795572-Collection-download-settings'
+const PICTIME_PRICING = 'https://www.pic-time.com/pricing/client-delivery-suite'
+const PICTIME_DOWNLOAD_HELP = 'https://help.pic-time.com/en/articles/11402965-how-can-i-download-my-gallery-media-in-pic-time-2-0'
+const PIXIESET_VS_ARTICLE = '/uk/blog/proiav-vs-pixieset-pic-time'
+/** Largest single zip the importer accepts. */
+const IMPORT_ZIP_MAX_GB = 10
+const PROMO_ACCOUNTS = 30
+const PROMO_UNTIL = '31.12.2026'
+/** Basic paid yearly, per month, in whole hryvnias. */
+const basicYearPerMonth = Math.round(P.basic.priceUahYear / 12)
+
+const mihratsiiaEn: ProductPageCopy = {
+  crumb: 'Switch from Pixieset',
+  seoTitle: 'Switch from Pixieset to proiav: Pixieset alternative',
+  description:
+    'Moving from Pixieset or Pic-Time? Import your gallery zip into proiav: originals byte for byte, prices in hryvnia, Ukrainian cards and your logo on Basic.',
+  kicker: 'Switching to proiav',
+  h1: 'Switch from Pixieset or Pic-Time to proiav',
+  lede: `Prices in hryvnia and payment with a Ukrainian bank card. Originals kept byte for byte, exactly as you upload them. And your brand, not ours: from the Basic plan (${P.basic.priceUahMonth} UAH a month) galleries show your logo and no proiav badge.`,
+  ogTitle: 'Switch from Pixieset or Pic-Time to proiav',
+  cta: 'Create a free account',
+  secondary: { label: 'What the gallery can do', href: '/en#galleries' },
+  body: [
+    { type: 'h2', text: 'How it works' },
+    {
+      type: 'p',
+      text: 'Moving is not a one-click transfer: you download your gallery from the old service and import the archive into proiav yourself. It takes three steps.',
+    },
+    { type: 'h3', text: '1. Download your gallery as a zip' },
+    {
+      type: 'ul',
+      items: [
+        `Pixieset: download the collection as a zip ([how client downloads work](${PIXIESET_DOWNLOAD_HELP})). To get originals, choose “Original” / full resolution in the [collection download settings](${PIXIESET_RESOLUTION_HELP}). Pixieset offers this only on paid plans (Basic and up).`,
+        `Pic-Time: download the gallery media as a zip ([Pic-Time guide](${PICTIME_DOWNLOAD_HELP})). The archive is split into subfolders, one per scene.`,
+      ],
+    },
+    { type: 'h3', text: '2. Import the zip into proiav' },
+    {
+      type: 'p',
+      text: 'In your proiav dashboard, click “Import from another service” and pick the zip. The archive is unpacked in your browser and the files go straight to storage, so keep the tab open until the import finishes (a computer works best). Every folder inside the zip becomes its own gallery named “Title — Folder”. Galleries are created as drafts, so clients see nothing yet.',
+    },
+    { type: 'h3', text: '3. Review, publish and send the new link' },
+    {
+      type: 'p',
+      text: 'Check the draft, set a cover, layout and password if you need one, publish the gallery and send your client the new proiav link.',
+    },
+    { type: 'h2', text: 'What moves over and what doesn’t' },
+    {
+      type: 'table',
+      head: ['', 'Moves over?'],
+      rows: [
+        ['Original photos', 'Yes, byte for byte (from Pixieset: if you picked full resolution when downloading)'],
+        ['File names', 'Yes'],
+        ['Folders / scenes', 'Yes: if the zip has folders, each one becomes a separate gallery (Pic-Time puts every scene in its own folder)'],
+        ['Video', 'Yes, on plans with video (Plus and Maximum)'],
+        ['Duplicates by file name', 'Skipped; the import report shows how many'],
+        ['Client favorites', 'No, the client marks them again'],
+        ['Gallery passwords', 'No, you set them again'],
+        ['View and download stats', 'No'],
+        ['Comments and print orders', 'No'],
+      ],
+    },
+    {
+      type: 'p',
+      text: `One zip can be up to ${IMPORT_ZIP_MAX_GB} GB. For a bigger gallery, split it into several zips and import them one by one.`,
+    },
+    { type: 'h2', text: 'What 100 GB costs' },
+    {
+      type: 'table',
+      caption: `Checked on ${MIGRATION_CHECKED}. Sources: [Pixieset pricing](${PIXIESET_PRICING}), [Pic-Time pricing](${PICTIME_PRICING}), [proiav pricing](/en#pricing). {{fx-source}}`,
+      head: ['Plan', 'Storage', 'Paid yearly', 'Paid monthly'],
+      rows: [
+        ['Pixieset Client Gallery Plus', '100 GB', '{{price:16}} a month', '{{price:20}} a month'],
+        ['Pic-Time Professional', '100 GB', '{{price:21}} a month', '{{price:25}} a month'],
+        [
+          'proiav Basic',
+          `${P.basic.storageGb} GB`,
+          `${P.basic.priceUahYear.toLocaleString('en-US')} UAH a year (≈ ${basicYearPerMonth} UAH a month)`,
+          `${P.basic.priceUahMonth} UAH a month`,
+        ],
+      ],
+    },
+    {
+      type: 'p',
+      text: 'Removing Pic-Time branding starts from its Professional plan. In proiav, the Basic plan already removes our badge and adds your logo.',
+    },
+    {
+      type: 'p',
+      text: `Free plans, for reference: Pixieset Free gives 3 GB without originals; Pic-Time Free gives 10 GB that drops to 3 GB after 3–6 months (by their own data); proiav Free gives ${P.free.storageGb} GB with originals and no time limit.`,
+    },
+    { type: 'h2', text: 'Import a gallery, get a month of Basic free' },
+    {
+      type: 'ul',
+      items: [
+        'For accounts on the Free plan.',
+        'Credited automatically after your first successful zip import, once per account.',
+        `Valid for the first ${PROMO_ACCOUNTS} accounts or until ${PROMO_UNTIL}, whichever comes first. After that, import keeps working; the promo just isn’t credited.`,
+        `After the free month, Basic is ${P.basic.priceUahMonth} UAH a month if you turn on auto-payment during the promo month. We email you 7 days before it ends.`,
+        'Without auto-payment, the account goes back to Free. Your files are not deleted.',
+        'Can’t be combined with the referral bonus in the same month: the bonus moves to the next month.',
+      ],
+    },
+    { type: 'h2', text: 'What happens to the links your clients already have' },
+    {
+      type: 'p',
+      text: 'Old Pixieset or Pic-Time links keep working as long as your subscription and gallery there are active. After the move you send clients the new proiav links. There is no automatic redirect from the old links.',
+    },
+    {
+      type: 'p',
+      text: `A detailed comparison of the three services is in our article [proiav, Pixieset or Pic-Time](${PIXIESET_VS_ARTICLE}) (in Ukrainian).`,
+    },
+    { type: 'cta', text: 'Create a free account', href: '/en/login' },
+  ],
+  faq: [
+    {
+      q: 'Do photos lose quality when I move them?',
+      a: 'No. proiav stores files byte for byte as they are in the zip. From Pixieset, choose full resolution when downloading, otherwise the zip holds reduced copies.',
+    },
+    {
+      q: 'Can I move several galleries?',
+      a: `Yes. Every folder in the zip becomes a separate gallery, and you can import as many zips as you need, each up to ${IMPORT_ZIP_MAX_GB} GB.`,
+    },
+    {
+      q: 'What about client favorites and passwords?',
+      a: 'They don’t move over. Clients mark favorites again in the new gallery, and you set passwords again in the gallery settings.',
+    },
+    {
+      q: 'How much does it cost, and is there a promo?',
+      a: `Free is ${P.free.storageGb} GB; Basic is ${P.basic.storageGb} GB for ${P.basic.priceUahMonth} UAH a month or ${P.basic.priceUahYear} UAH a year. Accounts on the Free plan get a month of Basic after their first successful zip import (first ${PROMO_ACCOUNTS} accounts, until ${PROMO_UNTIL}).`,
+    },
+    {
+      q: `What if my zip is bigger than ${IMPORT_ZIP_MAX_GB} GB?`,
+      a: `Split the gallery into several zips of up to ${IMPORT_ZIP_MAX_GB} GB each and import them one after another.`,
+    },
+  ],
+  related: [
+    { label: 'What the gallery can do', href: '/en#galleries' },
+    { label: 'Pricing', href: '/en#pricing' },
+    { label: 'proiav, Pixieset or Pic-Time (in Ukrainian)', href: PIXIESET_VS_ARTICLE },
+  ],
+}
+
+const mihratsiia: ProductPageContent = {
+  id: 'mihratsiia',
+  path: '/mihratsiia',
+  crumb: 'Перехід з Pixieset',
+  seoTitle: 'Перейти з Pixieset на проЯв: альтернатива Pixieset в Україні',
+  description:
+    'Переходиш з Pixieset чи Pic-Time? Імпортуй zip галереї у проЯв: оригінали байт у байт, ціни в гривні, оплата українською карткою і твій логотип на Базовому.',
+  kicker: 'Перехід на проЯв',
+  h1: 'Переходь з Pixieset чи Pic-Time на проЯв',
+  lede: `Ціни в гривні й оплата українською карткою. Оригінали зберігаються байт у байт — такими, як ти їх завантажуєш. І твій бренд, а не наш: з тарифу Базовий (${uah(P.basic.priceUahMonth)} на місяць) у галереях твій логотип і немає підпису проЯв.`,
+  ogTitle: 'Переходь з Pixieset чи Pic-Time на проЯв',
+  cta: 'Створити акаунт безкоштовно',
+  secondary: { label: 'Що вміє галерея', href: '/uk/halerei' },
+  languages: ['uk', 'en'],
+  dateModified: '2026-09-25',
+  body: [
+    { type: 'h2', text: 'Як це працює' },
+    {
+      type: 'p',
+      text: 'Переїзд — це не «одна кнопка»: ти завантажуєш галерею зі старого сервісу й сам імпортуєш архів у проЯв. Це три кроки.',
+    },
+    { type: 'h3', text: '1. Завантаж zip своєї галереї' },
+    {
+      type: 'ul',
+      items: [
+        `Pixieset: завантаж колекцію zip-архівом ([як працює завантаження](${PIXIESET_DOWNLOAD_HELP})). Щоб отримати оригінали, у [налаштуваннях завантаження колекції](${PIXIESET_RESOLUTION_HELP}) обери «Original» / повну роздільність. Pixieset дає це лише на платних тарифах (від Basic).`,
+        `Pic-Time: завантаж медіа галереї zip-архівом ([інструкція Pic-Time](${PICTIME_DOWNLOAD_HELP})). Архів розкладено по підпапках — окрема папка для кожної сцени.`,
+      ],
+    },
+    { type: 'h3', text: '2. Імпортуй zip у проЯв' },
+    {
+      type: 'p',
+      text: 'У кабінеті проЯв натисни «Імпортувати з іншого сервісу» й обери zip. Архів розпаковується у твоєму браузері, а файли завантажуються напряму в сховище, тому вкладку треба тримати відкритою до кінця імпорту — найкраще з компʼютера. Кожна папка в zip стає окремою галереєю з назвою «Назва — Папка». Галереї створюються як чернетки, тож клієнти поки нічого не бачать.',
+    },
+    { type: 'h3', text: '3. Переглянь, опублікуй і надішли нове посилання' },
+    {
+      type: 'p',
+      text: 'Перевір чернетку, за потреби постав обкладинку, розкладку й пароль, опублікуй галерею й надішли клієнту нове посилання проЯв.',
+    },
+    { type: 'h2', text: 'Що переноситься, а що ні' },
+    {
+      type: 'table',
+      head: ['', 'Переноситься?'],
+      rows: [
+        ['Оригінали фото', 'Так, байт у байт (з Pixieset — якщо при завантаженні обрано повну роздільність)'],
+        ['Імена файлів', 'Так'],
+        ['Структура папок / сцен', 'Так: якщо в zip є папки, кожна стає окремою галереєю (Pic-Time кладе кожну сцену в окрему папку)'],
+        ['Відео', 'Так, на тарифах з відео (Плюс і Максимальний)'],
+        ['Дублі за іменем файлу', 'Пропускаються — у звіті імпорту видно скільки'],
+        ['Обране клієнтом', 'Ні — клієнт позначає заново'],
+        ['Паролі галерей', 'Ні — виставляєш заново'],
+        ['Статистика переглядів і завантажень', 'Ні'],
+        ['Коментарі й замовлення друку', 'Ні'],
+      ],
+    },
+    {
+      type: 'p',
+      text: `Один zip — до ${IMPORT_ZIP_MAX_GB} ГБ. Більшу галерею розбий на кілька zip і імпортуй по черзі.`,
+    },
+    { type: 'h2', text: 'Скільки коштують 100 ГБ' },
+    {
+      type: 'table',
+      caption: `Перевірено ${MIGRATION_CHECKED}. Джерела: [тарифи Pixieset](${PIXIESET_PRICING}), [тарифи Pic-Time](${PICTIME_PRICING}), [тарифи проЯв](/uk/tsiny). {{fx-source}}`,
+      head: ['Тариф', 'Сховище', 'Оплата за рік', 'Помісячно'],
+      rows: [
+        ['Pixieset Client Gallery Plus', '100 ГБ', '{{price:16}} на місяць', '{{price:20}} на місяць'],
+        ['Pic-Time Professional', '100 ГБ', '{{price:21}} на місяць', '{{price:25}} на місяць'],
+        [
+          'проЯв Базовий',
+          `${P.basic.storageGb} ГБ`,
+          `${uah(P.basic.priceUahYear)} на рік (≈ ${uah(basicYearPerMonth)} на місяць)`,
+          `${uah(P.basic.priceUahMonth)} на місяць`,
+        ],
+      ],
+    },
+    {
+      type: 'p',
+      text: 'Прибрати брендинг Pic-Time можна з тарифу Professional. У проЯв підпис сервісу зникає, а твій логотип зʼявляється вже на Базовому.',
+    },
+    {
+      type: 'p',
+      text: `Для довідки про безкоштовні тарифи: Pixieset Free — 3 ГБ без оригіналів; Pic-Time Free — 10 ГБ, що зменшуються до 3 ГБ через 3–6 місяців (за їхніми ж даними); проЯв Безкоштовний — ${P.free.storageGb} ГБ з оригіналами й без терміну. Усі тарифи — на сторінці [тарифів проЯв](/uk/tsiny).`,
+    },
+    { type: 'h2', text: 'Імпортуй галерею — місяць Базового безкоштовно' },
+    {
+      type: 'ul',
+      items: [
+        'Для акаунтів на Безкоштовному тарифі.',
+        'Нараховується автоматично після першого успішного zip-імпорту, один раз на акаунт.',
+        `Діє для перших ${PROMO_ACCOUNTS} акаунтів або до ${PROMO_UNTIL} — що настане раніше. Після цього імпорт працює, просто промо не нараховується.`,
+        `Після безкоштовного місяця — Базовий за ${uah(P.basic.priceUahMonth)} на місяць, якщо в промо-місяці підключиш автоплатіж. За 7 днів до кінця надішлемо лист.`,
+        'Без автоплатежу акаунт повертається на Безкоштовний тариф. Файли не видаляються.',
+        'Не поєднується з реферальним бонусом у тому ж місяці — бонус переноситься на наступний.',
+      ],
+    },
+    { type: 'h2', text: 'Що з чинними посиланнями для клієнтів' },
+    {
+      type: 'p',
+      text: 'Старі посилання Pixieset чи Pic-Time працюють, поки в тебе там активна підписка й галерея. Після переходу надсилаєш клієнтам нові посилання проЯв. Автоматичного перенаправлення зі старих посилань немає.',
+    },
+    {
+      type: 'p',
+      text: `Що ще вміє галерея — відбір фото сердечками, пароль і термін дії, zip для клієнта — на сторінці [онлайн-галерея для фотографа](/uk/halerei). Докладне порівняння трьох сервісів — у статті [проЯв, Pixieset чи Pic-Time](${PIXIESET_VS_ARTICLE}).`,
+    },
+    { type: 'cta', text: 'Створити акаунт безкоштовно', href: '/uk/login' },
+  ],
+  faq: [
+    {
+      q: 'Чи втрачається якість при перенесенні?',
+      a: 'Ні. проЯв зберігає файли байт у байт такими, як вони лежать у zip. З Pixieset обирай повну роздільність при завантаженні, інакше в архіві будуть зменшені копії.',
+    },
+    {
+      q: 'Чи можна перенести кілька галерей?',
+      a: `Так. Кожна папка в zip стає окремою галереєю, а zip-архівів можна імпортувати скільки завгодно — кожен до ${IMPORT_ZIP_MAX_GB} ГБ.`,
+    },
+    {
+      q: 'Що з обраним клієнтів і паролями?',
+      a: 'Вони не переносяться. Клієнт позначає обране заново в новій галереї, а паролі ти виставляєш у налаштуваннях галереї.',
+    },
+    {
+      q: 'Скільки коштує і чи є промо?',
+      a: `Безкоштовно — ${P.free.storageGb} ГБ; Базовий — ${P.basic.storageGb} ГБ за ${uah(P.basic.priceUahMonth)} на місяць або ${uah(P.basic.priceUahYear)} на рік. Акаунти на Безкоштовному тарифі отримують місяць Базового після першого успішного zip-імпорту (перші ${PROMO_ACCOUNTS} акаунтів, до ${PROMO_UNTIL}).`,
+    },
+    {
+      q: `Що, якщо zip більший за ${IMPORT_ZIP_MAX_GB} ГБ?`,
+      a: `Розбий галерею на кілька zip до ${IMPORT_ZIP_MAX_GB} ГБ кожен і імпортуй їх по черзі.`,
+    },
+  ],
+  related: [
+    { label: 'Онлайн-галерея для фотографа', href: '/uk/halerei' },
+    { label: 'Тарифи проЯв', href: '/uk/tsiny' },
+    { label: 'проЯв, Pixieset чи Pic-Time', href: PIXIESET_VS_ARTICLE },
+  ],
+  translations: { en: mihratsiiaEn },
+}
+
 export const PRODUCT_PAGES: ProductPageContent[] = [
   halerei,
   tsiny,
@@ -830,8 +1134,17 @@ export const PRODUCT_PAGES: ProductPageContent[] = [
   picTime,
   pixover,
   gallery4you,
+  mihratsiia,
 ]
 
-export function getProductPage(id: string): ProductPageContent | undefined {
-  return PRODUCT_PAGES.find((p) => p.id === id)
+export function productPageLanguages(page: ProductPageContent): readonly Locale[] {
+  return page.languages ?? ['uk']
+}
+
+/** The page in the given language (uk = the base content). */
+export function getProductPage(id: string, locale: Locale = 'uk'): ProductPageContent | undefined {
+  const page = PRODUCT_PAGES.find((p) => p.id === id)
+  if (!page || locale === 'uk') return page
+  const copy = page.translations?.[locale]
+  return copy ? { ...page, ...copy } : undefined
 }
