@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { isVariantName } from '@/lib/storage'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -35,7 +36,7 @@ function isCompleteBody(value: unknown): value is CompleteBody {
   )
 }
 
-/** Registers a portfolio photo after the direct PUT; RLS scopes the insert. */
+/** Registers a portfolio photo after the direct PUT. */
 export async function POST(request: NextRequest) {
   const supabase = createSupabaseServerClient()
   const {
@@ -56,7 +57,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'key_mismatch' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  // Rows are written only here, after the key check above — the user's own
+  // client has no INSERT on portfolio_assets (migration 0041).
+  const admin = createSupabaseAdminClient()
+  if (!admin) {
+    return NextResponse.json({ error: 'not_configured' }, { status: 503 })
+  }
+
+  const { data, error } = await admin
     .from('portfolio_assets')
     .insert({
       owner_id: user.id,

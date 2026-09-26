@@ -13,6 +13,12 @@ function safeNext(next: string | null): string {
   if (!next) return '/uk/dashboard'
   // Must be a single leading slash followed by a non-slash/backslash char.
   if (!/^\/[^/\\]/.test(next)) return '/uk/dashboard'
+  // URL parsing strips tabs/newlines, so `/\t/evil.com` would become
+  // `//evil.com`: reject control characters, whitespace and backslashes outright.
+  if (/[\u0000-\u0020\u007f\\]/.test(next)) return '/uk/dashboard'
+  // Belt and braces: the resolved target must stay on our origin.
+  const base = 'https://proiav.invalid'
+  if (new URL(next, base).origin !== base) return '/uk/dashboard'
   return next
 }
 

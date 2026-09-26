@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
-import { isGalleryUnlocked } from '@/lib/gallery-access'
+import { galleryAssetsClient, isGalleryUnlocked } from '@/lib/gallery-access'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
@@ -105,7 +105,7 @@ export default async function PublicGalleryPage({
     )
   }
 
-  const { data: assets } = await supabase
+  const { data: assets } = await galleryAssetsClient(supabase, gallery)
     .from('assets')
     .select('*')
     .eq('gallery_id', gallery.id)

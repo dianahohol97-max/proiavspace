@@ -1,5 +1,7 @@
 import { createHmac } from 'node:crypto'
 import { cookies } from 'next/headers'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import type { Gallery } from './types'
 
 /**
@@ -33,4 +35,18 @@ export function isGalleryUnlocked(gallery: Pick<Gallery, 'id' | 'has_password'>)
   if (!gallery.has_password) return true
   const cookie = cookies().get(unlockCookieName(gallery.id))
   return cookie?.value === unlockCookieValue(gallery.id)
+}
+
+/**
+ * Client for reading a public gallery's assets AFTER the caller has checked
+ * isGalleryUnlocked. Anon RLS only exposes assets of open (password-less)
+ * galleries (migration 0042), so a password gallery's assets are read with
+ * the service role — the unlock cookie check above is what authorizes it.
+ */
+export function galleryAssetsClient(
+  supabase: SupabaseClient,
+  gallery: Pick<Gallery, 'has_password'>
+): SupabaseClient {
+  if (!gallery.has_password) return supabase
+  return createSupabaseAdminClient() ?? supabase
 }
