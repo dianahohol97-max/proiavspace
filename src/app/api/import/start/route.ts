@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
@@ -85,10 +86,27 @@ async function existingNames(supabase: SupabaseClient, galleryId: string): Promi
 }
 
 /**
+ * Identifies "the same zip" for resuming: a hash of every planned gallery
+ * title with its file names and sizes. Re-running an interrupted import of the
+ * same zip gives the same value; a different zip that merely shares a name
+ * (two clients' «Export.zip») does not, so it never lands in the other
+ * client's gallery.
+ */
+function zipFingerprint(body: StartBody): string {
+  const lines = body.galleries
+    .map((gallery) =>
+      [gallery.title.trim(), ...gallery.files.map((f) => `${f.name}:${f.size}`).sort()].join('\n')
+    )
+    .sort()
+  return createHash('sha256').update(lines.join('\n\n')).digest('hex').slice(0, 16)
+}
+
+/**
  * Zip import, step 1. The browser has read the zip's table of contents and
  * sends the plan (galleries + file names/sizes, no bytes). Here we:
- *   - reuse the galleries an earlier import of the same zip created, and list
- *     the file names they already hold, so re-running an import resumes it;
+ *   - reuse the galleries an earlier import of the SAME zip (same fingerprint)
+ *     created, and list the file names they already hold, so re-running an
+ *     import resumes it;
  *   - check the plan's storage BEFORE anything is created — a zip that does
  *     not fit fails upfront, not at 80%;
  *   - create the missing galleries as drafts and the gallery_imports row.
@@ -127,20 +145,27 @@ export async function POST(request: NextRequest) {
 
   // Any failed read below answers 500 before anything is created: resuming on
   // a partial picture would duplicate galleries and files.
-  const titles = body.galleries.map((gallery) => gallery.title.trim())
+  // Resume key = title + fingerprint of this zip (see zipFingerprint).
+  const fingerprint = zipFingerprint(body)
+  const sourceKey = (title: string) => `${title} #zip:${fingerprint}`
+  const titleByKey = new Map(body.galleries.map((g) => [sourceKey(g.title.trim()), g.title.trim()]))
+  const keys = [...titleByKey.keys()]
   const galleryIdByTitle = new Map<string, string>()
-  for (let i = 0; i < titles.length; i += LOOKUP_CHUNK) {
+  for (let i = 0; i < keys.length; i += LOOKUP_CHUNK) {
     const { data: mapped, error: mappedError } = await supabase
       .from('imported_galleries')
       .select('gallery_id, source_key')
       .eq('owner_id', user.id)
-      .in('source_key', titles.slice(i, i + LOOKUP_CHUNK))
+      .in('source_key', keys.slice(i, i + LOOKUP_CHUNK))
       .returns<{ gallery_id: string; source_key: string }[]>()
     if (mappedError) {
       console.error('import start: imported_galleries lookup failed', mappedError.message)
       return NextResponse.json({ error: 'lookup_failed' }, { status: 500 })
     }
-    for (const row of mapped ?? []) galleryIdByTitle.set(row.source_key, row.gallery_id)
+    for (const row of mapped ?? []) {
+      const title = titleByKey.get(row.source_key)
+      if (title) galleryIdByTitle.set(title, row.gallery_id)
+    }
   }
 
   // What will really be uploaded: not already there, allowed by the plan.
@@ -202,7 +227,7 @@ export async function POST(request: NextRequest) {
       // create a second one, so an unmapped gallery is removed again.
       const { error: mapError } = await supabase
         .from('imported_galleries')
-        .insert({ gallery_id: galleryId, owner_id: user.id, source_key: title })
+        .insert({ gallery_id: galleryId, owner_id: user.id, source_key: sourceKey(title) })
       if (mapError) {
         console.error('import start: imported_galleries insert failed', mapError.message)
         await supabase.from('galleries').delete().eq('id', galleryId)
