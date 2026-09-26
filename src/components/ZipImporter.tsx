@@ -425,7 +425,14 @@ export function ZipImporter({
             <button
               type="button"
               disabled={phase.plan.galleries.length === 0 || !phase.name.trim()}
-              onClick={() => void runImport(phase.file, phase.plan)}
+              onClick={() =>
+                // Anything unexpected (a bad response body, a failed chunk
+                // load) returns to the start screen instead of hanging in
+                // «running» with the leave-page warning on.
+                void runImport(phase.file, phase.plan).catch(() =>
+                  setPhase({ kind: 'idle', error: t.startError })
+                )
+              }
               className="rounded-full bg-accent px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-accent-deep disabled:opacity-50"
             >
               {t.start}
