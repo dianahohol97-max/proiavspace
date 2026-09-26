@@ -12,6 +12,9 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export { MAX_FILE_BYTES }
 
+/** Browser-made preview/thumb/poster JPEGs are far below this. */
+const MAX_VARIANT_BYTES = 25 * 1024 * 1024
+
 export type UploadCheck = { ok: true } | { ok: false; status: number; error: string }
 
 export async function authorizeUpload(
@@ -135,16 +138,34 @@ export async function registerAsset(
     }
   }
 
-  // The gallery must be the caller's own: the key prefix alone would accept
-  // another user's gallery id.
-  const { data: gallery } = await supabase
-    .from('galleries')
-    .select('id')
-    .eq('id', input.galleryId)
-    .eq('owner_id', userId)
-    .maybeSingle()
-  if (!gallery) {
-    return { ok: false, status: 404, error: 'gallery_not_found' }
+  // Never trust the client's own size/type: read what storage actually holds
+  // and run the full upload gate (gallery ownership, type, per-file cap, video
+  // on «Плюс»+, quota) against those real values. Anything that fails is
+  // removed from storage so it can't sit there uncounted.
+  const storage = getStorage()
+  const discard = () => storage.delete(allKeys).catch(() => {})
+  const stored = await storage.head(input.key)
+  if (!stored) {
+    return { ok: false, status: 400, error: 'upload_missing' }
+  }
+  const contentType = stored.contentType ?? input.contentType
+  const gate = await authorizeUpload(supabase, userId, {
+    galleryId: input.galleryId,
+    contentType,
+    sizeBytes: stored.sizeBytes,
+  })
+  if (!gate.ok) {
+    await discard()
+    return gate
+  }
+  // Variants (preview/thumb/poster) are small JPEGs made in the browser; they
+  // aren't counted against the quota, so a "variant" can't be a big file.
+  for (const variantKey of Object.values(input.variants ?? {})) {
+    const variant = await storage.head(variantKey)
+    if (!variant || variant.sizeBytes > MAX_VARIANT_BYTES) {
+      await discard()
+      return { ok: false, status: 400, error: 'invalid_variant' }
+    }
   }
 
   // Asset rows are written only here, server-side, after the checks above —
@@ -154,7 +175,7 @@ export async function registerAsset(
     return { ok: false, status: 503, error: 'not_configured' }
   }
 
-  const kind = input.contentType.startsWith('video/') ? 'video' : 'photo'
+  const kind = contentType.startsWith('video/') ? 'video' : 'photo'
 
   const { data, error } = await admin
     .from('assets')
@@ -163,12 +184,12 @@ export async function registerAsset(
       owner_id: userId,
       r2_key: input.key,
       kind,
-      content_type: input.contentType,
+      content_type: contentType,
       width: input.width ?? null,
       height: input.height ?? null,
       // Original size only; variant overhead (~5-10%) is deliberately not
       // counted against the quota to keep accounting simple for now.
-      size_bytes: input.sizeBytes,
+      size_bytes: stored.sizeBytes,
       variants: input.variants ?? {},
       ...(input.importId
         ? {
@@ -184,9 +205,7 @@ export async function registerAsset(
   if (error?.code === '23505' && input.importId) {
     // Same file name already in this gallery (two tabs importing one zip):
     // drop the objects we just uploaded so they don't sit unaccounted.
-    await getStorage()
-      .delete(allKeys)
-      .catch(() => {})
+    await discard()
     return { ok: false, status: 409, error: 'duplicate' }
   }
   if (error) {

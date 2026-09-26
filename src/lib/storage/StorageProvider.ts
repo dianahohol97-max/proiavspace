@@ -55,6 +55,13 @@ export interface StorageProvider {
   /** List objects under a prefix (used for gallery cleanup / reconciliation). */
   list(prefix: string): Promise<StorageObject[]>
 
+  /**
+   * What is actually stored under a key (size and content type as the
+   * storage recorded them), or null when there is no such object. The server
+   * trusts this, never the client's own claims about an upload.
+   */
+  head(key: string): Promise<{ sizeBytes: number; contentType: string | null } | null>
+
   // -- Multipart (large videos): parts go browser → storage directly, like
   //    everything else; our server only mints URLs and finalizes. -----------
 
