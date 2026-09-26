@@ -43,7 +43,7 @@ export async function authorizeUpload(
   }
 
   // Plan gates: quota (with the post-cancellation grace period applied
-  // lazily) and the video feature, which starts on the «Плюс» tier.
+  // lazily) and the video feature (plans.ts: every paid tier, from «Базовий»).
   const { data: profile } = await supabase
     .from('profiles')
     .select('plan, storage_used_bytes, storage_limit_bytes, grace_until')

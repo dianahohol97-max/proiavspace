@@ -65,7 +65,7 @@ export const GALLERY_PLANS: Record<GalleryPlanId, GalleryPlan> = {
     priceUahMonth: 129,
     priceUahYear: 1290,
     backend: 'b2',
-    features: { ...baseFeatures, brandingRemoval: true, photographerLogo: true },
+    features: { ...baseFeatures, brandingRemoval: true, photographerLogo: true, video: true },
   },
   plus: {
     id: 'plus',
