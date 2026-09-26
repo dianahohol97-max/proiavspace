@@ -95,8 +95,9 @@
 
 ## 6. Пошта для бронювань (опційно)
 
-1. Акаунт resend.com → верифікуй домен → API key.
-2. Env: `RESEND_API_KEY`, `EMAIL_FROM` (наприклад `проЯв <booking@домен>`).
+1. Акаунт brevo.com → Senders, Domains & Dedicated IPs → автентифікуй домен (DNS-записи Brevo) → SMTP & API → API key.
+2. Env: `BREVO_API_KEY`, `EMAIL_FROM` (наприклад `проЯв <booking@домен>`).
+   Перевірка: `POST /api/admin/test-email` з `{"to": "твоя@пошта"}` (під адмін-акаунтом).
    Без цього броні працюють, просто без листів — усе видно в кабінеті.
 
 ## 7. Пізніше, коли виростеш
