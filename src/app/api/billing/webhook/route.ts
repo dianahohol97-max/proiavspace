@@ -8,6 +8,7 @@ import {
   isSitePlanId,
   planStorageBytes,
 } from '@/lib/plans'
+import { applyPaidSideEffects, reversePaidSideEffects } from '@/lib/billing/paid'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -23,12 +24,6 @@ function paidUntil(period: string, from = new Date()): string {
   else until.setMonth(until.getMonth() + 1)
   until.setDate(until.getDate() + GRACE_PERIOD_DAYS)
   return until.toISOString()
-}
-
-/** Referral share: 10% of this UAH amount, in kopecks. */
-const REFERRAL_RATE = 0.1
-function referralRewardKop(amountUah: number): number {
-  return Math.round(amountUah * 100 * REFERRAL_RATE)
 }
 
 /**
@@ -221,48 +216,8 @@ export async function POST(request: NextRequest) {
 
     // The plan is applied; from here on failures are logged, not retried —
     // a re-delivery would find the payment already 'paid' and stop at the claim.
-
-    // Deduct any проЯв credit redeemed against this checkout — once (only the
-    // delivery that claimed the 'paid' transition gets here).
-    // Atomic in the DB so it can't race another concurrent charge.
-    const creditUsed = (payment.credit_applied_kop as number | undefined) ?? 0
-    if (creditUsed > 0) {
-      const { error } = await admin.rpc('consume_credit', {
-        p_user: payment.user_id,
-        p_amount: creditUsed,
-      })
-      if (error) console.error('billing webhook: consume_credit failed', payment.id, error.message)
-    }
-
-    // Referral reward: 10% of EVERY payment a referred photographer makes goes
-    // to their referrer — credit for regular referrers, cash for ambassadors.
-    // Accrued once per payment: the 'paid' claim above runs this once, and the
-    // accrual itself is keyed on payment_id in the DB (migration 0039). The
-    // accrual (balance + earnings log) is a single atomic DB call.
-    const { data: payerProfile, error: payerError } = await admin
-      .from('profiles')
-      .select('referred_by')
-      .eq('user_id', payment.user_id)
-      .single()
-    if (payerError) console.error('billing webhook: payer lookup failed', payment.id, payerError.message)
-    if (payerProfile?.referred_by) {
-      const rewardKop = referralRewardKop((payment.amount as number | undefined) ?? 0)
-      if (rewardKop > 0) {
-        const { error } = await admin.rpc('accrue_referral_reward', {
-          p_referrer: payerProfile.referred_by as string,
-          p_referred: payment.user_id,
-          p_payment: payment.id,
-          p_amount: rewardKop,
-        })
-        if (error) console.error('billing webhook: referral accrual failed', payment.id, error.message)
-      }
-      // First payment also flips the referral to 'converted' (fires once).
-      await admin
-        .from('referrals')
-        .update({ status: 'converted', converted_at: new Date().toISOString() })
-        .eq('referred_id', payment.user_id)
-        .eq('status', 'pending')
-    }
+    // Credit consumption + referral reward + 'converted' (lib/billing/paid).
+    await applyPaidSideEffects(admin, payment, { cardToken: event.cardToken })
   } else if (event.status === 'failed' && payment.subscription_id) {
     // A renewal charge bounced: stop the cron retries, start the grace
     // window so the user has a week to update the card / re-subscribe.
@@ -286,6 +241,9 @@ export async function POST(request: NextRequest) {
         .eq('user_id', payment.user_id)
     }
   } else if (event.status === 'canceled') {
+    // A refund of a settled payment takes the referral reward back and returns
+    // the credit the payer spent on it.
+    if (previousStatus === 'paid') await reversePaidSideEffects(admin, payment)
     if (product === 'gallery') {
       const graceUntil = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 3600 * 1000)
       await admin

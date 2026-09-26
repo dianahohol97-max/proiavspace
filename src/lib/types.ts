@@ -23,7 +23,9 @@ export interface Profile {
   storage_limit_bytes: number
   referral_code: string | null
   referred_by: string | null
-  pending_free_months: number
+  credit_balance_kop: number
+  cash_balance_kop: number
+  is_ambassador: boolean
   created_at: string
   updated_at: string
 }

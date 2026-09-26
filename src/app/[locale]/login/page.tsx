@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { defaultLocale, isLocale, type Locale } from '@/lib/i18n/config'
 import { getDictionary, type Dictionary } from '@/lib/i18n'
+import { normalizeRefCode, readRefCookie } from '@/lib/referrals'
 
 type Mode = 'signin' | 'signup' | 'magic'
 type Status = 'idle' | 'busy' | 'magicSent' | 'confirmSent' | 'error'
@@ -43,19 +44,22 @@ export default function LoginPage() {
     setStatus('busy')
     const supabase = createSupabaseBrowserClient()
 
+    // Referral code: from the link (?ref=) or the 30-day cookie the middleware
+    // set on any earlier ?ref= visit. Sent as signup metadata so the DB trigger
+    // links the inviter; the auth callback claims it for OAuth / magic link.
+    const ref =
+      normalizeRefCode(new URLSearchParams(window.location.search).get('ref')) ?? readRefCookie()
+
     if (mode === 'magic') {
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: callbackUrl },
+        options: { emailRedirectTo: callbackUrl, data: ref ? { ref } : undefined },
       })
       setStatus(error ? 'error' : 'magicSent')
       return
     }
 
     if (mode === 'signup') {
-      // Carry a referral code (?ref=) into the signup so the DB trigger can
-      // credit the referrer.
-      const ref = new URLSearchParams(window.location.search).get('ref')?.trim()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

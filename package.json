@@ -10,7 +10,8 @@
     "lint": "next lint",
     "seo:submit": "node scripts/seo-submit.mjs",
     "blog": "tsx scripts/blog.ts",
-    "blog:generate": "tsx scripts/blog.ts generate"
+    "blog:generate": "tsx scripts/blog.ts generate",
+    "test:referrals": "bash tests/referrals/run.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.620.0",

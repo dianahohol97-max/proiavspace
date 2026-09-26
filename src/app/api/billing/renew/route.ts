@@ -14,6 +14,7 @@ import {
 } from '@/lib/plans'
 import { IMPORT_PROMO } from '@/lib/promo'
 import { isEmailConfigured, sendEmail } from '@/lib/email'
+import { applyPaidSideEffects, rewardReferrer, type PaidPayment } from '@/lib/billing/paid'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -40,12 +41,21 @@ function nextChargeAt(period: string): string {
 
 type AdminClient = NonNullable<ReturnType<typeof createSupabaseAdminClient>>
 
-/** A renewal charge went through: advance the subscription, keep the plan. */
-async function applyRenewalPaid(admin: AdminClient, sub: SubscriptionRow): Promise<void> {
+/**
+ * A renewal charge went through: advance the subscription, keep the plan, and
+ * run the money side effects (credit consumed, referrer rewarded) — the
+ * webhook skips them for a payment the cron already marked paid.
+ */
+async function applyRenewalPaid(
+  admin: AdminClient,
+  sub: SubscriptionRow,
+  payment: PaidPayment
+): Promise<void> {
   await admin
     .from('billing_subscriptions')
     .update({ next_charge_at: nextChargeAt(sub.period), status: 'active' })
     .eq('id', sub.id)
+  await applyPaidSideEffects(admin, payment, { cardToken: sub.card_token })
   if (sub.product === 'gallery' && isGalleryPlanId(sub.plan)) {
     const plan = GALLERY_PLANS[sub.plan]
     await admin
@@ -196,7 +206,7 @@ export async function GET(request: NextRequest) {
     // logged for a manual check, because charging again could charge twice.
     const { data: pendingPayment, error: pendingError } = await admin
       .from('payments')
-      .select('id, order_id, created_at')
+      .select('id, order_id, created_at, user_id, amount, credit_applied_kop')
       .eq('subscription_id', sub.id)
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
@@ -226,7 +236,7 @@ export async function GET(request: NextRequest) {
         settled = !!data?.length
       }
       if (outcome === 'paid' && settled) {
-        await applyRenewalPaid(admin, sub)
+        await applyRenewalPaid(admin, sub, pendingPayment)
         renewed += 1
       } else if (outcome === 'failed' && settled) {
         await applyRenewalFailed(admin, sub)
@@ -240,27 +250,6 @@ export async function GET(request: NextRequest) {
         }
         stuck += 1
       }
-      continue
-    }
-
-    // Referral reward: if the user has a free month banked (from referring or
-    // being referred), burn one instead of charging this cycle — push the next
-    // charge out a period and move on.
-    const { data: freeProfile } = await admin
-      .from('profiles')
-      .select('pending_free_months')
-      .eq('user_id', sub.user_id)
-      .single()
-    const freeMonths = freeProfile?.pending_free_months ?? 0
-    if (freeMonths > 0) {
-      await admin
-        .from('billing_subscriptions')
-        .update({ next_charge_at: nextChargeAt(sub.period), status: 'active' })
-        .eq('id', sub.id)
-      await admin
-        .from('profiles')
-        .update({ pending_free_months: freeMonths - 1 })
-        .eq('user_id', sub.user_id)
       continue
     }
 
@@ -295,19 +284,32 @@ export async function GET(request: NextRequest) {
       continue
     }
 
+    // The pending row reserves the user's проЯв credit against this charge
+    // (same locked DB call as the checkout route), so the card is charged the
+    // discounted amount — «кредит зменшує наступний рахунок» holds for
+    // auto-renewals too.
     const orderId = crypto.randomUUID()
-    const { error: insertError } = await admin.from('payments').insert({
-      user_id: sub.user_id,
-      provider: payments.name,
-      order_id: orderId,
-      plan: sub.plan,
-      period: sub.period,
-      amount,
-      currency: 'UAH',
-      status: 'pending',
-      subscription_id: sub.id,
+    const { data: created, error: insertError } = await admin.rpc('create_pending_payment', {
+      p_user: sub.user_id,
+      p_provider: payments.name,
+      p_order_id: orderId,
+      p_plan: sub.plan,
+      p_period: sub.period,
+      p_amount_uah: amount,
+      p_purpose: null,
+      p_subscription: sub.id,
+      p_apply_credit: true,
     })
-    if (insertError) continue
+    const row = (created as { id: string; amount: number; credit_applied_kop: number }[] | null)?.[0]
+    if (insertError || !row) continue
+    amount = row.amount
+    if (row.credit_applied_kop > 0) description += ` (credit -${row.credit_applied_kop / 100} UAH)`
+    const paidPayment: PaidPayment = {
+      id: row.id,
+      user_id: sub.user_id,
+      amount,
+      credit_applied_kop: row.credit_applied_kop,
+    }
 
     let status: 'paid' | 'failed' | 'pending'
     try {
@@ -331,8 +333,14 @@ export async function GET(request: NextRequest) {
     if (status === 'paid') {
       // Synchronous success: apply everything now; the webhook (if any)
       // no-ops because the payment is already 'paid'.
-      await admin.from('payments').update({ status: 'paid' }).eq('order_id', orderId)
-      await applyRenewalPaid(admin, sub)
+      const { data: settledNow } = await admin
+        .from('payments')
+        .update({ status: 'paid' })
+        .eq('order_id', orderId)
+        .eq('status', 'pending')
+        .select('id')
+      // The webhook may have beaten us to it; only the claimant applies.
+      if (settledNow?.length) await applyRenewalPaid(admin, sub, paidPayment)
       renewed += 1
     } else if (status === 'failed') {
       await admin
@@ -345,7 +353,38 @@ export async function GET(request: NextRequest) {
     // 'pending' — the webhook finishes the job.
   }
 
-  return NextResponse.json({ renewed, failed, swept, stuck, expiredSites, promoReminders })
+  const referralRepairs = await repairReferralRewards(admin)
+
+  return NextResponse.json({
+    renewed,
+    failed,
+    swept,
+    stuck,
+    expiredSites,
+    promoReminders,
+    referralRepairs,
+  })
+}
+
+/**
+ * Paid payments whose referral side effects never completed (an accrual RPC
+ * error at webhook time, an old deploy): re-run them. Accrual is unique per
+ * payment in the DB, so this can never reward twice.
+ */
+async function repairReferralRewards(admin: AdminClient): Promise<number> {
+  const { data: rows } = await admin
+    .from('payments')
+    .select('id, user_id, amount, credit_applied_kop')
+    .eq('status', 'paid')
+    .is('referral_processed_at', null)
+    .order('created_at', { ascending: true })
+    .limit(50)
+  let repaired = 0
+  for (const payment of (rows ?? []) as PaidPayment[]) {
+    await rewardReferrer(admin, payment)
+    repaired += 1
+  }
+  return repaired
 }
 
 /**
