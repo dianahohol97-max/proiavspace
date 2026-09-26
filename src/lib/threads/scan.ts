@@ -258,7 +258,7 @@ export async function queueCandidates(
   if (!apiKey) {
     console.error(`threads ${source}: GEMINI_API_KEY not set, nothing drafted`)
     await log({ ...extraLog, received: posts.length, skipped: 'GEMINI_API_KEY not set' })
-    return { skipped: 'GEMINI_API_KEY not set', found: 0, inserted: 0 }
+    return { skipped: 'GEMINI_API_KEY not set', found: 0, inserted: 0, error: 'GEMINI_API_KEY not set' }
   }
 
   const now = Date.now()
