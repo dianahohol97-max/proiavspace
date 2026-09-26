@@ -2,7 +2,7 @@
 
 Усе, що вимагає твого акаунта/токенів. Код і адмінка вже готові — це «вимикачі».
 
-`MAKE_SECRET` (я згенерував): `0f7716d8f7619367916f9c9dc7098a5117c821bd84eb4aaa73d5b5dff4ebdef0`
+`MAKE_SECRET` (я згенерував): зберігається лише у Vercel → Environment Variables і в Make (не комітити)
 
 ---
 
@@ -11,9 +11,9 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 
 | Змінна | Значення | Для чого |
 |---|---|---|
-| `MAKE_SECRET` | `0f7716d8…` (той самий) | Make ↔ наші роути |
+| `MAKE_SECRET` | (той самий, з Vercel) | Make ↔ наші роути |
 | `THREADS_SEARCH_TOKEN` | Threads-токен **будь-якого** акаунта з пошуком | движок Threads |
-| `MAKE_PUBLISH_HOOK_URL` | `https://hook.eu2.make.com/o5wdohs634b065nkcd21ns5ogsbpbbkc` | кнопка «Опублікувати зараз» |
+| `MAKE_PUBLISH_HOOK_URL` | значення з Vercel (URL вебхука Make, не комітити) | кнопка «Опублікувати зараз» |
 
 `GEMINI_API_KEY` і `CRON_SECRET` уже додані.
 
@@ -26,7 +26,7 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 2. **HTTP → Make a request** (нове перше):
    - URL: `https://proiav.space/api/social/queue?format=single`
    - Method: `GET`
-   - Headers: `Authorization: Bearer 0f7716d8…`
+   - Headers: `Authorization: Bearer <MAKE_SECRET>`
    - Parse response: **Yes**
 3. **Filter** після нього: продовжити лише якщо є пост — умова `{{1.data.post.id}}` **Exists**.
 4. **Instagram → Create a Photo Post** (лишити наявний):
@@ -37,7 +37,7 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 5. **HTTP → Make a request** (позначити опублікованим):
    - URL: `https://proiav.space/api/social/posted`
    - Method: `POST`
-   - Headers: `Authorization: Bearer 0f7716d8…`, `Content-Type: application/json`
+   - Headers: `Authorization: Bearer <MAKE_SECRET>`, `Content-Type: application/json`
    - Body (raw JSON): `{ "id": "{{1.data.post.id}}" }`
 6. Розклад: кожну 1 годину. **Увімкнути.**
 
@@ -67,7 +67,7 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 ## D. Threads (пошук + ручні відповіді)
 1. Додати `THREADS_SEARCH_TOKEN` у Vercel (крок A).
 2. Пошук іде **щодня** автоматично (Vercel Cron). Для кожні 2–3 год — простий Make-сценарій:
-   - **HTTP → Make a request**: `GET https://proiav.space/api/threads/scan`, Header `Authorization: Bearer 0f7716d8…`, розклад кожні 2–3 год.
+   - **HTTP → Make a request**: `GET https://proiav.space/api/threads/scan`, Header `Authorization: Bearer <MAKE_SECRET>`, розклад кожні 2–3 год.
 3. Драфти з'являться в адмінці → **Threads** (тільки пости < 24 год).
 4. Відповідаєш **вручну**: «Відкрити пост →» → вставити драфт у Threads.
 
@@ -85,7 +85,7 @@ TikTok постимо через Buffer (без заявки на TikTok API).
 
 1. **Buffer** → Settings → Channels → **Connect a channel → TikTok** → акаунт проЯв (OAuth-клік).
 2. Make-сценарій **«проЯв — TikTok через Buffer»**:
-   - **HTTP GET** `https://proiav.space/api/social/queue?format=reel` (Header `Authorization: Bearer 0f7716d8…`, Parse: Yes)
+   - **HTTP GET** `https://proiav.space/api/social/queue?format=reel` (Header `Authorization: Bearer <MAKE_SECRET>`, Parse: Yes)
    - **Filter**: `{{1.data.post.id}}` Exists
    - **Buffer → Create Update**: профіль = **TikTok проЯв**; media = `{{1.data.post.video}}` (для рілса) або `{{1.data.post.slides}}` (для каруселі); text = `{{1.data.post.caption}}`
    - **HTTP POST** `https://proiav.space/api/social/posted` — body `{ "id": "{{1.data.post.id}}" }`
