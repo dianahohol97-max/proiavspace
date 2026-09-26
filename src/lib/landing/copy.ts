@@ -200,7 +200,7 @@ const uk: LandingCopy = {
     titleBefore: 'Тарифи онлайн-галереї: ',
     titleAccent: 'платите лише за місце',
     lede:
-      'Відбір фото клієнтом безкоштовний для всіх. Платні тарифи знімають наш брендинг, додають відео, статистику й більше місця.',
+      'Відбір фото клієнтом безкоштовний для всіх. Платні тарифи знімають наш брендинг і додають відео та більше місця, а з Плюса — статистику.',
     perMonth: '/ місяць',
     freeLabel: 'назавжди',
     yearHint: (year) => `або ${year} ₴ на рік — два місяці в подарунок`,
@@ -390,7 +390,7 @@ const en: LandingCopy = {
     titleBefore: 'Online gallery pricing: ',
     titleAccent: 'pay only for storage',
     lede:
-      'Client photo selection is free for everyone. Paid tiers remove our branding and add video, statistics and more room.',
+      'Client photo selection is free for everyone. Paid tiers remove our branding and add video and more room; Plus adds statistics.',
     perMonth: '/ month',
     freeLabel: 'forever',
     yearHint: (year) => `or ${year} ₴ per year — two months free`,
