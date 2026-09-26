@@ -12,8 +12,8 @@ export const maxDuration = 60
  * Bearer token on cron invocations).
  */
 export async function GET(request: NextRequest) {
-  // Triggered either by Vercel Cron (CRON_SECRET) or by Make (MAKE_SECRET), so
-  // the cadence can be daily out of the box or every few hours via Make.
+  // Accepts Vercel Cron (CRON_SECRET) or Make (MAKE_SECRET), so it can be put
+  // back on either schedule later; neither is configured right now.
   const auth = request.headers.get('authorization')
   const cron = process.env.CRON_SECRET
   const make = process.env.MAKE_SECRET

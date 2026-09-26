@@ -5,7 +5,8 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 /**
  * Threads engagement engine: search Threads for relevant fresh (<24h) posts,
  * draft an on-brand reply from проЯв for each, and queue them for the founder
- * to approve. Runs on a schedule (Vercel Cron). No posting happens here — the
+ * to approve. Not scheduled at the moment (manual mode, see AUTOMATION_SETUP.md
+ * §D); run by hand or put back on Vercel Cron. No posting happens here — the
  * founder replies manually, so the search token can be from ANY account.
  *
  * Env: THREADS_SEARCH_TOKEN (Threads API token with keyword search),
