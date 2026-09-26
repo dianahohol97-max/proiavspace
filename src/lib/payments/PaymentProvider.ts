@@ -84,6 +84,12 @@ export interface RecurringChargeProvider extends PaymentProvider {
   chargeToken(request: TokenChargeRequest): Promise<PaymentStatus>
   /** Best-effort card-token removal when the user cancels auto-renewal. */
   deleteToken(cardToken: string): Promise<void>
+  /**
+   * Final outcome of an earlier charge, found by our order id — for renewals
+   * whose webhook never came. 'unknown' when the provider has no definite
+   * answer (still processing, or not found); callers must not recharge then.
+   */
+  lookupCharge?(orderId: string, createdAtIso: string): Promise<'paid' | 'failed' | 'unknown'>
 }
 
 export function canChargeTokens(

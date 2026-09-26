@@ -38,6 +38,50 @@ function nextChargeAt(period: string): string {
   return next.toISOString()
 }
 
+type AdminClient = NonNullable<ReturnType<typeof createSupabaseAdminClient>>
+
+/** A renewal charge went through: advance the subscription, keep the plan. */
+async function applyRenewalPaid(admin: AdminClient, sub: SubscriptionRow): Promise<void> {
+  await admin
+    .from('billing_subscriptions')
+    .update({ next_charge_at: nextChargeAt(sub.period), status: 'active' })
+    .eq('id', sub.id)
+  if (sub.product === 'gallery' && isGalleryPlanId(sub.plan)) {
+    const plan = GALLERY_PLANS[sub.plan]
+    await admin
+      .from('profiles')
+      .update({
+        plan: plan.id,
+        storage_limit_bytes: planStorageBytes(plan),
+        grace_until: null,
+      })
+      .eq('user_id', sub.user_id)
+  }
+}
+
+/** A renewal charge bounced: past_due + the grace window (sites drop to trial). */
+async function applyRenewalFailed(admin: AdminClient, sub: SubscriptionRow): Promise<void> {
+  await admin
+    .from('billing_subscriptions')
+    .update({ status: 'past_due' })
+    .eq('id', sub.id)
+  if (sub.product === 'gallery') {
+    await admin
+      .from('profiles')
+      .update({
+        grace_until: new Date(
+          Date.now() + GRACE_PERIOD_DAYS * 24 * 3600 * 1000
+        ).toISOString(),
+      })
+      .eq('user_id', sub.user_id)
+  } else {
+    await admin
+      .from('profiles')
+      .update({ site_plan: 'site_trial' })
+      .eq('user_id', sub.user_id)
+  }
+}
+
 /**
  * Daily renewal sweep (Vercel Cron, see vercel.json). Charges saved cards
  * for subscriptions whose paid period ran out, and downgrades subscriptions
@@ -89,6 +133,7 @@ export async function GET(request: NextRequest) {
   let renewed = 0
   let failed = 0
   let swept = 0
+  let stuck = 0
 
   // 1. Canceled subscriptions whose paid period is over: finish the downgrade
   //    (gallery grace_until was set at cancel time) and drop the row.
@@ -144,17 +189,59 @@ export async function GET(request: NextRequest) {
   for (const sub of (dueSubs ?? []) as SubscriptionRow[]) {
     if (!isBillingPeriod(sub.period)) continue
 
-    // Backstop against double charges: skip when a renewal attempt from the
-    // last 48h is still waiting for its webhook.
-    const { data: pendingPayment } = await admin
+    // Backstop against double charges: while an earlier renewal attempt is
+    // still pending (no webhook yet, or the charge call threw mid-flight) the
+    // card is never charged again. The provider is asked what happened to it;
+    // only a definite answer resolves it — anything else stays blocked and is
+    // logged for a manual check, because charging again could charge twice.
+    const { data: pendingPayment, error: pendingError } = await admin
       .from('payments')
-      .select('id')
+      .select('id, order_id, created_at')
       .eq('subscription_id', sub.id)
       .eq('status', 'pending')
-      .gte('created_at', new Date(Date.now() - 48 * 3600 * 1000).toISOString())
+      .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
-    if (pendingPayment) continue
+    if (pendingError) {
+      console.error('billing renew: pending lookup failed', sub.id, pendingError.message)
+      continue
+    }
+    if (pendingPayment) {
+      const outcome = payments.lookupCharge
+        ? await payments
+            .lookupCharge(pendingPayment.order_id, pendingPayment.created_at)
+            .catch((cause: unknown) => {
+              console.error('billing renew: charge lookup failed', pendingPayment.order_id, cause)
+              return 'unknown' as const
+            })
+        : 'unknown'
+      let settled = false
+      if (outcome === 'paid' || outcome === 'failed') {
+        const { data } = await admin
+          .from('payments')
+          .update({ status: outcome })
+          .eq('id', pendingPayment.id)
+          .eq('status', 'pending')
+          .select('id')
+        settled = !!data?.length
+      }
+      if (outcome === 'paid' && settled) {
+        await applyRenewalPaid(admin, sub)
+        renewed += 1
+      } else if (outcome === 'failed' && settled) {
+        await applyRenewalFailed(admin, sub)
+        failed += 1
+      } else {
+        if (Date.now() - new Date(pendingPayment.created_at).getTime() > 48 * 3600 * 1000) {
+          console.error(
+            'billing renew: renewal payment unresolved for 48h+, check it in the Monobank cabinet',
+            pendingPayment.order_id
+          )
+        }
+        stuck += 1
+      }
+      continue
+    }
 
     // Referral reward: if the user has a free month banked (from referring or
     // being referred), burn one instead of charging this cycle — push the next
@@ -231,66 +318,34 @@ export async function GET(request: NextRequest) {
         description,
         serverUrl: `${appUrl}/api/billing/webhook`,
       })) as 'paid' | 'failed' | 'pending'
-    } catch {
-      // Transient provider/network error: leave the subscription active so
-      // tomorrow's run retries; the pending payment row blocks doubles.
-      await admin
-        .from('payments')
-        .update({ status: 'failed' })
-        .eq('order_id', orderId)
+    } catch (cause) {
+      // The provider may have accepted the charge before the error (timeout,
+      // dropped connection), so this is NOT a failure: the row stays pending,
+      // which blocks another charge until the webhook or the lookup above
+      // settles it.
+      console.error('billing renew: charge call failed, left pending', orderId, cause)
+      stuck += 1
       continue
     }
 
     if (status === 'paid') {
       // Synchronous success: apply everything now; the webhook (if any)
-      // no-ops thanks to the paid/paid dedupe.
+      // no-ops because the payment is already 'paid'.
       await admin.from('payments').update({ status: 'paid' }).eq('order_id', orderId)
-      await admin
-        .from('billing_subscriptions')
-        .update({ next_charge_at: nextChargeAt(sub.period), status: 'active' })
-        .eq('id', sub.id)
-      if (sub.product === 'gallery' && isGalleryPlanId(sub.plan)) {
-        const plan = GALLERY_PLANS[sub.plan]
-        await admin
-          .from('profiles')
-          .update({
-            plan: plan.id,
-            storage_limit_bytes: planStorageBytes(plan),
-            grace_until: null,
-          })
-          .eq('user_id', sub.user_id)
-      }
+      await applyRenewalPaid(admin, sub)
       renewed += 1
     } else if (status === 'failed') {
       await admin
         .from('payments')
         .update({ status: 'failed' })
         .eq('order_id', orderId)
-      await admin
-        .from('billing_subscriptions')
-        .update({ status: 'past_due' })
-        .eq('id', sub.id)
-      if (sub.product === 'gallery') {
-        await admin
-          .from('profiles')
-          .update({
-            grace_until: new Date(
-              Date.now() + GRACE_PERIOD_DAYS * 24 * 3600 * 1000
-            ).toISOString(),
-          })
-          .eq('user_id', sub.user_id)
-      } else {
-        await admin
-          .from('profiles')
-          .update({ site_plan: 'site_trial' })
-          .eq('user_id', sub.user_id)
-      }
+      await applyRenewalFailed(admin, sub)
       failed += 1
     }
     // 'pending' — the webhook finishes the job.
   }
 
-  return NextResponse.json({ renewed, failed, swept, expiredSites, promoReminders })
+  return NextResponse.json({ renewed, failed, swept, stuck, expiredSites, promoReminders })
 }
 
 /**
