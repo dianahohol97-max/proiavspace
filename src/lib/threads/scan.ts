@@ -31,11 +31,10 @@ const KEYWORDS = [
 
 const GRAPH = 'https://graph.threads.net/v1.0'
 const MODEL = GEMINI_MODEL
-// The sweep is now manual — a button in the command center, pressed every few
-// days — so a 24h window (sized for a twice-daily cron) threw away almost
-// everything: a real run saw 29 usable posts and kept 3. Three days still
-// lands under threads people are reading, and matches how often the button
-// actually gets pressed.
+// A 24h window (sized for a twice-daily cron) threw away almost everything: a
+// real run saw 29 usable posts and kept 3. Three days still lands under
+// threads people are reading; with the daily Vercel Cron (vercel.json) plus
+// manual runs, the dedupe against threads_replies keeps overlaps out.
 const FRESH_MS = 72 * 60 * 60 * 1000
 const MAX_NEW_PER_RUN = 8
 // Cap Gemini calls per run: we evaluate at most this many fresh candidates
