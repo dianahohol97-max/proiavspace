@@ -5,6 +5,9 @@
  *  research(): a call WITH web search — returns raw text (a JSON array of facts)
  *  write():    a call WITHOUT tools, JSON output
  */
+
+import { GEMINI_MODEL } from '@/lib/gemini'
+
 export interface LlmProvider {
   name: string
   research(prompt: string): Promise<{ text: string; searchUrls: string[] }>
@@ -18,7 +21,7 @@ export class ProviderError extends Error {}
 function gemini(): LlmProvider {
   const key = process.env.GEMINI_API_KEY
   if (!key) throw new ProviderError('Ключ GEMINI_API_KEY не додано. Додай його в змінні середовища й повтори.')
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-pro'
+  const model = GEMINI_MODEL
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`
 
   async function call(body: unknown) {

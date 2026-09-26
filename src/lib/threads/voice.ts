@@ -1,3 +1,5 @@
+import { GEMINI_MODEL } from '@/lib/gemini'
+
 /**
  * The проЯв Threads voice: drafting helpers for the founder's own feed posts
  * and comments under other people's posts (incl. trending posts that have
@@ -5,7 +7,7 @@
  * appears when it is natural).
  */
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+const MODEL = GEMINI_MODEL
 
 export const BRAND_VOICE =
   `Ти — голос українського бренду проЯв (проЯв.space) — онлайн-галереї, якими фотографи ` +

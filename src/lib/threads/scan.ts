@@ -1,3 +1,4 @@
+import { GEMINI_MODEL } from '@/lib/gemini'
 import { GALLERY_PLANS } from '@/lib/plans'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -29,7 +30,7 @@ const KEYWORDS = [
 ]
 
 const GRAPH = 'https://graph.threads.net/v1.0'
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+const MODEL = GEMINI_MODEL
 // The sweep is now manual — a button in the command center, pressed every few
 // days — so a 24h window (sized for a twice-daily cron) threw away almost
 // everything: a real run saw 29 usable posts and kept 3. Three days still
