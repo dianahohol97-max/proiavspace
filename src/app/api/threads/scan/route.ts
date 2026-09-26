@@ -26,10 +26,16 @@ export async function GET(request: NextRequest) {
   if (probe) {
     const out = await probeKeyword(probe)
     const admin = createSupabaseAdminClient()
-    if (admin) await admin.from('scan_log').insert({ source: 'threads-probe', payload: { probe, ...out } })
+    if (admin) {
+      const { error } = await admin
+        .from('scan_log')
+        .insert({ source: 'threads-probe', payload: { probe, ...out } })
+      if (error) console.error('threads probe: scan_log insert failed:', error.message)
+    }
     return NextResponse.json({ probe, ...out })
   }
 
   const result = await scanThreads()
-  return NextResponse.json(result)
+  // A failed run answers 502 so it shows up as failed in the cron logs.
+  return NextResponse.json(result, { status: result.error ? 502 : 200 })
 }

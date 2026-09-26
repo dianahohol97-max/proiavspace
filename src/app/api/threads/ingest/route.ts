@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { queueCandidates, type IncomingPost } from '@/lib/threads/scan'
+import { EVAL_BUDGET_MS, queueCandidates, type IncomingPost } from '@/lib/threads/scan'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -10,7 +10,8 @@ export const maxDuration = 60
  * Threads' own keyword_search stayed scoped to our own account (a probe run
  * returned 18 month-old posts from us and nothing else), so an Apify Threads
  * scraper does the finding on a schedule and calls this route. The native
- * sweep is no longer scheduled; /api/threads/scan stays only as a manual probe.
+ * sweep (/api/threads/scan) runs daily via Vercel Cron as well, and doubles as
+ * a manual probe.
  *
  * Accepts any of these shapes:
  *   - a bare `[...]` array — the Apify run-sync-get-dataset-items response
@@ -122,13 +123,17 @@ async function fetchDataset(datasetId: string, bodyToken?: string): Promise<unkn
   const token = bodyToken || process.env.APIFY_TOKEN
   if (!token) throw new Error('APIFY_TOKEN not set')
   const url = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=500`
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
+  })
   if (!res.ok) throw new Error(`apify dataset ${res.status}`)
   const json = await res.json()
   return Array.isArray(json) ? json : []
 }
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now()
   if (!authed(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   let parsed: unknown
@@ -157,13 +162,19 @@ export async function POST(req: NextRequest) {
   }
 
   const posts = items.map(normalise).filter((p): p is IncomingPost => p !== null)
-  const result = await queueCandidates(posts, 'threads-apify', {
-    datasetId: datasetId ?? null,
-    rawItems: items.length,
-    usable: posts.length,
-  })
+  // The drafting budget counts from the start of the request, so the dataset
+  // fetch above can't push the run past maxDuration.
+  const result = await queueCandidates(
+    posts,
+    'threads-apify',
+    { datasetId: datasetId ?? null, rawItems: items.length, usable: posts.length },
+    startedAt + EVAL_BUDGET_MS
+  )
   await recordRun(items.length, posts.length, result.found, result.inserted)
-  return NextResponse.json({ rawItems: items.length, usable: posts.length, ...result })
+  return NextResponse.json(
+    { rawItems: items.length, usable: posts.length, ...result },
+    { status: result.error ? 502 : 200 }
+  )
 }
 
 /**

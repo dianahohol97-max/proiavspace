@@ -1,3 +1,5 @@
+import { GEMINI_MODEL } from '@/lib/gemini'
+
 /**
  * The проЯв Threads voice: drafting helpers for the founder's own feed posts
  * and comments under other people's posts (incl. trending posts that have
@@ -5,7 +7,7 @@
  * appears when it is natural).
  */
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+const MODEL = GEMINI_MODEL
 
 export const BRAND_VOICE =
   `Ти — голос українського бренду проЯв (проЯв.space) — онлайн-галереї, якими фотографи ` +
@@ -30,13 +32,20 @@ async function gemini(apiKey: string, parts: GeminiPart[], temperature = 0.9): P
         body: JSON.stringify({ contents: [{ parts }], generationConfig: { temperature } }),
       }
     )
-    if (!res.ok) return null
+    if (!res.ok) {
+      const body = (await res.text().catch(() => '')).slice(0, 300)
+      console.error(`threads voice: gemini ${MODEL} ${res.status}:`, body)
+      return null
+    }
     const json = (await res.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
     }
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text
-    return typeof text === 'string' && text.trim() ? text.trim() : null
-  } catch {
+    if (typeof text === 'string' && text.trim()) return text.trim()
+    console.error(`threads voice: gemini ${MODEL} returned no text`)
+    return null
+  } catch (e) {
+    console.error(`threads voice: gemini ${MODEL} call failed:`, e)
     return null
   }
 }
