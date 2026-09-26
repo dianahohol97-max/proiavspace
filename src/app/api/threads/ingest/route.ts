@@ -163,7 +163,10 @@ export async function POST(req: NextRequest) {
     usable: posts.length,
   })
   await recordRun(items.length, posts.length, result.found, result.inserted)
-  return NextResponse.json({ rawItems: items.length, usable: posts.length, ...result })
+  return NextResponse.json(
+    { rawItems: items.length, usable: posts.length, ...result },
+    { status: result.error ? 502 : 200 }
+  )
 }
 
 /**

@@ -32,13 +32,20 @@ async function gemini(apiKey: string, parts: GeminiPart[], temperature = 0.9): P
         body: JSON.stringify({ contents: [{ parts }], generationConfig: { temperature } }),
       }
     )
-    if (!res.ok) return null
+    if (!res.ok) {
+      const body = (await res.text().catch(() => '')).slice(0, 300)
+      console.error(`threads voice: gemini ${MODEL} ${res.status}:`, body)
+      return null
+    }
     const json = (await res.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
     }
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text
-    return typeof text === 'string' && text.trim() ? text.trim() : null
-  } catch {
+    if (typeof text === 'string' && text.trim()) return text.trim()
+    console.error(`threads voice: gemini ${MODEL} returned no text`)
+    return null
+  } catch (e) {
+    console.error(`threads voice: gemini ${MODEL} call failed:`, e)
     return null
   }
 }

@@ -106,14 +106,21 @@ async function searchKeyword(token: string, q: string): Promise<SearchOutcome> {
  * Compose a проЯв reply to a Threads post via Gemini. With `gate: true` the
  * model may return exactly SKIP for off-topic posts (used by the auto-scan on
  * broad keywords); with `gate: false` it always drafts (used when the founder
- * hand-picks a post to reply to). Returns null on SKIP or any error.
+ * hand-picks a post to reply to). A SKIP (off-topic) and a failed call are
+ * different outcomes: failures must be counted and surfaced, never mistaken
+ * for "nothing relevant this week".
  */
+export type ComposeOutcome =
+  | { kind: 'reply'; text: string }
+  | { kind: 'skip' }
+  | { kind: 'error'; error: string }
+
 export async function composeReply(
   apiKey: string,
   text: string,
   author?: string | null,
   gate = true
-): Promise<string | null> {
+): Promise<ComposeOutcome> {
   const brand =
     `Ти — голос українського бренду проЯв: онлайн-галерея для фотографів, де клієнт ` +
     `отримує красиву галерею замість архіву в Google Drive (${GALLERY_PLANS.basic.storageGb} ГБ за ${GALLERY_PLANS.basic.priceUahMonth} грн, безкоштовний ` +
@@ -152,22 +159,27 @@ export async function composeReply(
         }),
       }
     )
-    if (!res.ok) return null
+    if (!res.ok) {
+      const body = (await res.text().catch(() => '')).slice(0, 300)
+      return { kind: 'error', error: `gemini ${MODEL} ${res.status}: ${body}` }
+    }
     const json = (await res.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
     }
     const out = json.candidates?.[0]?.content?.parts?.[0]?.text
-    if (typeof out !== 'string' || !out.trim()) return null
+    if (typeof out !== 'string' || !out.trim()) {
+      return { kind: 'error', error: `gemini ${MODEL}: empty response` }
+    }
     const clean = out.trim()
-    if (gate && (/^skip\b/i.test(clean) || clean.toUpperCase() === 'SKIP')) return null
-    return clean
-  } catch {
-    return null
+    if (gate && (/^skip\b/i.test(clean) || clean.toUpperCase() === 'SKIP')) return { kind: 'skip' }
+    return { kind: 'reply', text: clean }
+  } catch (e) {
+    return { kind: 'error', error: `gemini ${MODEL}: ${String(e).slice(0, 200)}` }
   }
 }
 
 /** Auto-scan drafting: relevance-gated compose over a found candidate. */
-async function draftReply(apiKey: string, post: Candidate): Promise<string | null> {
+async function draftReply(apiKey: string, post: Candidate): Promise<ComposeOutcome> {
   return composeReply(apiKey, post.text ?? '', post.username, true)
 }
 
@@ -204,6 +216,10 @@ export interface ScanResult {
   stale?: number
   /** The window itself, so a caller can tell which build answered it. */
   windowHours?: number
+  /** Gemini calls / inserts that failed (not SKIPs). */
+  errors?: number
+  /** Set when the run as a whole failed — callers answer 5xx so it's visible. */
+  error?: string
 }
 
 export type IncomingPost = FoundPost & { keyword?: string }
@@ -223,14 +239,12 @@ export async function queueCandidates(
   const apiKey = process.env.GEMINI_API_KEY
 
   const log = async (payload: Record<string, unknown>) => {
-    try {
-      await admin.from('scan_log').insert({ source, payload })
-    } catch {
-      /* diagnostics only */
-    }
+    const { error } = await admin.from('scan_log').insert({ source, payload })
+    if (error) console.error(`threads ${source}: scan_log insert failed:`, error.message)
   }
 
   if (!apiKey) {
+    console.error(`threads ${source}: GEMINI_API_KEY not set, nothing drafted`)
     await log({ ...extraLog, received: posts.length, skipped: 'GEMINI_API_KEY not set' })
     return { skipped: 'GEMINI_API_KEY not set', found: 0, inserted: 0 }
   }
@@ -252,6 +266,8 @@ export async function queueCandidates(
   let inserted = 0
   let evaluated = 0
   let skipped = 0
+  let errors = 0
+  let lastError: string | undefined
   if (found > 0) {
     const urls = [...fresh.keys()]
     const { data: existing } = await admin
@@ -271,26 +287,59 @@ export async function queueCandidates(
       if (evaluated >= MAX_EVAL_PER_RUN) break
       if (have.has(url)) continue
       evaluated++
-      const draft = await draftReply(apiKey, p) // null = irrelevant (SKIP) or error
-      if (!draft) {
+      const outcome = await draftReply(apiKey, p)
+      if (outcome.kind === 'skip') {
         skipped++
+        continue
+      }
+      if (outcome.kind === 'error') {
+        errors++
+        lastError = outcome.error
+        console.error(`threads ${source}: draft failed:`, outcome.error)
         continue
       }
       const { error } = await admin.from('threads_replies').insert({
         source_url: url,
         source_author: p.username ? `@${p.username}` : null,
         source_text: p.text ?? '',
-        draft_reply: draft,
+        draft_reply: outcome.text,
         keyword: p.keyword,
         source_created_at: p.timestamp ? new Date(p.timestamp).toISOString() : new Date().toISOString(),
         status: 'draft',
       })
-      if (!error) inserted++
+      if (error) {
+        errors++
+        lastError = `threads_replies insert: ${error.message}`
+        console.error(`threads ${source}: insert failed:`, error.message)
+      } else {
+        inserted++
+      }
     }
   }
 
-  await log({ ...extraLog, received: posts.length, stale, found, evaluated, skipped, inserted })
-  return { found, inserted, stale, windowHours: FRESH_MS / 3_600_000 }
+  // Every evaluation failed → the run failed (bad key, quota, retired model),
+  // which must not read as "0 inserted, quiet week".
+  const runError =
+    evaluated > 0 && errors >= evaluated ? `all ${evaluated} drafts failed: ${lastError}` : undefined
+  await log({
+    ...extraLog,
+    received: posts.length,
+    stale,
+    found,
+    evaluated,
+    skipped,
+    errors,
+    ...(lastError ? { lastError } : {}),
+    inserted,
+  })
+  return {
+    found,
+    inserted,
+    stale,
+    windowHours: FRESH_MS / 3_600_000,
+    errors,
+    ...(runError ? { error: runError } : {}),
+  }
 }
 
 export async function scanThreads(): Promise<ScanResult> {
@@ -300,17 +349,15 @@ export async function scanThreads(): Promise<ScanResult> {
   const apiKey = process.env.GEMINI_API_KEY
 
   const log = async (payload: Record<string, unknown>) => {
-    try {
-      await admin.from('scan_log').insert({ source: 'threads', payload })
-    } catch {
-      /* diagnostics only */
-    }
+    const { error } = await admin.from('scan_log').insert({ source: 'threads', payload })
+    if (error) console.error('threads scan: scan_log insert failed:', error.message)
   }
 
   if (!token || !apiKey) {
     const skipped = !token ? 'THREADS_SEARCH_TOKEN not set' : 'GEMINI_API_KEY not set'
+    console.error(`threads scan: ${skipped}, nothing searched`)
     await log({ tokenPresent: !!token, geminiPresent: !!apiKey, skipped })
-    return { skipped, found: 0, inserted: 0 }
+    return { skipped, found: 0, inserted: 0, error: skipped }
   }
 
   const collected: IncomingPost[] = []
@@ -319,6 +366,15 @@ export async function scanThreads(): Promise<ScanResult> {
     const r = await searchKeyword(token, keyword)
     diag.push({ kw: keyword, status: r.status, total: r.posts.length, ...(r.error ? { error: r.error } : {}) })
     for (const p of r.posts) collected.push({ ...p, keyword })
+  }
+
+  // Every keyword search failed (expired token, API change) → the run failed.
+  const failedSearches = diag.filter((d) => d.status !== 200)
+  if (failedSearches.length === KEYWORDS.length) {
+    const error = `all ${KEYWORDS.length} Threads searches failed: ${failedSearches[0]?.status} ${failedSearches[0]?.error ?? ''}`
+    console.error('threads scan:', error)
+    await log({ keywords: diag, error })
+    return { found: 0, inserted: 0, error }
   }
 
   return queueCandidates(collected, 'threads', { keywords: diag })
