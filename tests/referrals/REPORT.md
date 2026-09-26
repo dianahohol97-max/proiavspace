@@ -1,8 +1,7 @@
-# Реферальна система проЯв — аудит і тести (26.09.2026)
+# Реферальна система проЯв — аудит, тести і виправлення (26.09.2026)
 
-Код не змінювався. Автотести лише додані в `tests/referrals/`; баги нижче зафіксовані
-тестами з позначкою `todo: 'BUG-xx'`. Такий тест описує очікувану поведінку і зараз падає,
-але прогін при цьому не червоніє.
+Розділи 1–5 — аудит до виправлень (як було). Розділ 6 — що змінено в гілці
+`fix/referral-system`, розділ 7 — оновлений ручний чек-лист для проду.
 
 Запуск: `POSTGREST_BIN=/path/to/postgrest npm run test:referrals`. Скрипт піднімає локальний
 Postgres, накатує **всі** міграції з `supabase/migrations`, ставить перед базою PostgREST і
@@ -172,7 +171,121 @@ Monobank. Це в ручному чек-листі.
 | **BUG-13** | Дрібниця | Кредиту не видно на сторінці тарифів до оплати, знижка з'являється тільки в Monobank. `CopyLinkButton` не має fallback, якщо `navigator.clipboard` недоступний (in-app браузери Instagram / Telegram). | Показати «−X ₴ кредитом» на /dashboard/billing; обгорнути копіювання в try/catch із виділенням тексту. |
 
 Поза темою рефералів: таблиця `public.debug_events` створена на проді поза міграціями, тож
-міграція 0043 не накочується на чисту базу. У тестах вона підставлена заглушкою в `supabase-stub.sql`.
+міграція 0043 не накочувалась на чисту базу (виправлено міграцією `0042a`).
 
-Виправлення після твого підтвердження піде окремою гілкою. Пропонований порядок: BUG-01+02
-(один рефакторинг «наслідків paid»), BUG-03, BUG-05, BUG-04, далі решта.
+---
+
+## 6. Що змінено (гілка `fix/referral-system`)
+
+Правила, затверджені 26.09: запрошений бонусу не отримує; кредит без стелі; амбасадор —
+тільки з перших **12** оплат кожного реферала; refund сторнується від'ємним нарахуванням,
+баланс може піти в мінус; самореферал (user_id / email без регістру і +alias / той самий
+токен картки Monobank) не нараховується.
+
+### Міграції
+| Файл | Що робить |
+|---|---|
+| `0042a_debug_events_table.sql` | `debug_events` як на проді, `if not exists` — міграції знову накочуються на чисту базу. |
+| `0044_referrals_v3.sql` | Уся реферальна логіка v3 (нижче). Прибирає `pending_free_months`. Додає `payments.referral_processed_at`. |
+
+Функції в 0044: `normalize_email`, `user_card_tokens`, `is_self_referral`, `resolve_referrer`,
+новий `handle_new_user` (lower/trim, самореферал), `claim_referral(code)` (для authenticated:
+лише свіжий акаунт < 24 год без реферера), `accrue_referral_reward` v3 (самореферал, стеля
+амбасадора `p_max_payments`, повертає нараховану суму), `reverse_referral_reward`,
+`refund_credit`, `create_pending_payment` (резерв кредиту під блокуванням профілю),
+`get_referral_stats` (тільки підтверджені email). Unique-індекс на earnings тепер окремо
+для винагороди (`amount_kop > 0`) і сторно (`< 0`).
+
+### Код
+| Баг | Файли | Зміна |
+|---|---|---|
+| BUG-01, 02, 12 | `src/lib/billing/paid.ts` (новий), `api/billing/webhook`, `api/billing/renew` | Наслідки «paid» (списання кредиту, нарахування, converted, `referral_processed_at`) в одній функції `applyPaidSideEffects`. Cron викликає її для синхронного успіху та для розв'язання через statement; webhook — як і раніше. Cron створює платіж через `create_pending_payment`, тож картка списується зі знижкою на кредит. Щоденний `repairReferralRewards`: paid-платежі без `referral_processed_at` донараховуються (ідемпотентно). |
+| BUG-03 | `src/lib/referrals.ts` (новий), `middleware.ts`, `login/page.tsx`, `auth/callback/route.ts` | `?ref=` на будь-якій сторінці → cookie `proiav_ref` на 30 днів (перший реферер перемагає). Логін бере код з URL або cookie і передає в metadata для email+пароль та magic link. Callback після Google / magic link / підтвердження email викликає `claim_referral` і чистить cookie. |
+| BUG-04 | `paid.ts`, webhook | `canceled` після `paid` → `reverse_referral_reward` + `refund_credit` платнику. |
+| BUG-05 | `api/billing/checkout`, 0044 | Рядок платежу і резерв кредиту створюються однією функцією під `for update`; відкриті pending-платежі (< 48 год) зменшують доступний кредит. Failed/expired звільняє резерв автоматично. |
+| BUG-06 | 0044 | Код нормалізується (`lower(btrim())`) у тригері й у `normalizeRefCode` на клієнті. |
+| BUG-07 | 0044, `renew/route.ts`, `types.ts` | Гілка й колонка `pending_free_months` видалені. |
+| BUG-09 | 0044, `paid.ts` | `is_self_referral` на етапі прив'язки (id, email) і на етапі нарахування (id, email, токен картки з події або збережених підписок/платежів). |
+| BUG-10 | `lib/actions/referrals.ts` | Увімкнення амбасадора видаляє його `billing_subscriptions` і токени в Monobank. |
+| BUG-11 | 0044 | «Запрошено» рахує лише акаунти з `email_confirmed_at`. |
+| BUG-13 | `dashboard/billing/page.tsx`, словники uk/en, `CopyLinkButton.tsx` | Рядок «Ваш реферальний кредит: X ₴» на сторінці тарифів; копіювання з fallback через `execCommand`. |
+| константи | `src/lib/referrals.ts` | `REFERRAL_RATE = 0.1`, `AMBASSADOR_MAX_PAYMENTS_PER_REFERRAL = 12`, cookie 30 днів. SQL отримує стелю параметром — єдине джерело в TS. |
+
+**BUG-08 (листи Brevo) не реалізовано** — чекає на затвердження текстів (нижче).
+
+### Тести
+`npm run test:referrals` — **69 тестів, 69 ✔, 0 todo** (було 46: 40 ✔ + 6 todo).
+Нові: `capture.test.ts` (cookie в middleware, claim у callback), самореферал за email і
+токеном, стеля амбасадора, сторно з мінусовим балансом і погашенням, повернення кредиту
+при refund, паралельні checkout, звільнення резерву після failed, синхронне продовження,
+продовження через statement, repair-прохід, підтверджені email у статистиці, закриті
+нові service-функції.
+
+### Тексти листів для BUG-08 (на затвердження)
+
+**1. Рефереру — перше нарахування** (один раз на кожного реферала, при його першому платежі)
+
+> Тема: `+12,90 ₴ — твій перший реферальний кредит`
+>
+> Привіт!
+>
+> Фотограф, якого ти запросив(ла) у проЯв, щойно оформив платний тариф. Тобі нараховано
+> 12,90 ₴ кредитом — 10% від його оплати. І так буде з кожної його наступної оплати.
+>
+> Кредит спишеться автоматично з твого наступного рахунку. Баланс і посилання — у кабінеті:
+> https://proiav.space/uk/dashboard/referrals
+>
+> Дякуємо, що радиш нас колегам.
+>
+> — проЯв
+
+Для амбасадора замість «кредитом … спишеться з рахунку»: «…нараховано 12,90 ₴ до виплати.
+Вивести можна від 200 ₴ у кабінеті.»
+
+**2. Адміну — заявка на виведення** (на `request_withdrawal`)
+
+> Тема: `Заявка на виведення: 250 ₴ — Олена К.`
+>
+> Амбасадор Олена К. (olena@example.com) просить виплатити 250 ₴.
+> Реквізити: 5375 4141 0000 0000
+>
+> Обробити: https://proiav.space/uk/dashboard/stats
+
+Лист 1 пропоную слати з `applyPaidSideEffects` після успішного нарахування, коли
+`referrals.status` щойно став `converted`; лист 2 — з `requestWithdrawal` після успішного RPC.
+Обидва best-effort (помилка Brevo не ламає оплату / заявку).
+
+## 7. Ручний чек-лист для проду (після деплою гілки й міграцій 0042a, 0044)
+
+Потрібні: акаунт **A** (реферер), два нові email для **B** і **C**, інкогніто-вікно.
+
+1. **A** → `/uk/dashboard/referrals`: посилання `…/uk/login?ref=xxxxxxxx`, «Скопіювати» → «Скопійовано ✓».
+   Перевір копіювання з телефона в Instagram-браузері (fallback). `/en/…` — англійські тексти.
+2. **Cookie з лендингу:** в інкогніто відкрий `https://proiav.space/uk/tsiny?ref=<код A>` (не login!).
+   DevTools → Application → Cookies: `proiav_ref=<код>`, термін ≈ 30 днів. Походи по сайту, закрий вкладку.
+3. **B через Google:** у тому ж інкогніто відкрий `/uk/login` (без ref) → «Продовжити з Google» новим акаунтом.
+   Після редиректу cookie `proiav_ref` має зникнути. SQL:
+   `select p.referred_by, r.status from profiles p left join referrals r on r.referred_id=p.user_id join auth.users u on u.id=p.user_id where u.email='<B>';`
+   → referred_by = id акаунта A, status = pending. У A «Запрошено» = 1.
+4. **Самореферал:** в іншому інкогніто перейди за посиланням A і зареєструй `<email A>+test@…` через email+пароль.
+   Після підтвердження — той самий SQL → referred_by **null**. У A «Запрошено» лишається 1.
+5. **B** → Тарифи → «Базовий», місяць → Monobank **129 ₴** → оплати (збережи картку, якщо запитає).
+6. SQL:
+   `select status, amount, credit_applied_kop, referral_processed_at from payments where user_id=(select id from auth.users where email='<B>') order by created_at desc limit 1;`
+   → paid, 129, 0, **не null**.
+   `select amount_kop, kind from referral_earnings where referred_id=(select id from auth.users where email='<B>');` → 1 рядок: 1290, credit.
+   У A: «Стали платними» = 1, «Ваш кредит» = 12,90 ₴; на `/uk/dashboard/billing` рядок «Ваш реферальний кредит: 12,9 ₴».
+7. **Витрата кредиту A** (необов'язково, ~117 ₴): A → «Базовий» → Monobank **117 ₴**, опис «(кредит −12 ₴)».
+   Відкрий другу вкладку з тарифами й натисни «Базовий» ще раз, не оплачуючи першу → друга сторінка Monobank має показати **129 ₴** (резерв). Оплати одну, другу закрий.
+   Після оплати `credit_balance_kop` у A = 90.
+8. **Refund:** поверни платіж B у кабінеті Monobank. Через хвилину SQL із кроку 6: у earnings **два** рядки (1290 і −1290),
+   у A «Ваш кредит» = 0 ₴ (або мінус, якщо кредит уже витрачено в кроці 7 — це очікувано).
+9. **Синхронне продовження (за бажанням, чекати місяць не треба):** якщо B зберіг картку, у SQL
+   `update billing_subscriptions set next_charge_at = now() - interval '1 minute' where user_id=(select id from auth.users where email='<B>');`
+   і виклич cron вручну: `curl -H "Authorization: Bearer $CRON_SECRET" https://proiav.space/api/billing/renew`.
+   Відповідь містить `renewed: 1`; у earnings B новий рядок 1290; `referral_processed_at` не null.
+10. **Обов'язково — скасувати автопродовження в тестового акаунта B** (і в A, якщо робила крок 7):
+    у кабінеті B «Скасувати автопродовження», потім
+    `select status from billing_subscriptions where user_id=(select id from auth.users where email='<B>');` → canceled або порожньо.
+    Тестові акаунти B і C потім можна видалити в Supabase → Authentication.
+11. **Листи:** поки BUG-08 не реалізований — жодного реферального листа не приходить.

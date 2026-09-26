@@ -101,11 +101,16 @@ export function anonClient(url: string): SupabaseClient {
  * Sign up a user the way Supabase Auth does it: a row in auth.users with the
  * signUp() `data` as raw_user_meta_data — the handle_new_user trigger does the rest.
  */
-export function signUp(opts: { ref?: string | null; email?: string } = {}): string {
+export function signUp(
+  opts: { ref?: string | null; email?: string; confirmed?: boolean; createdAgo?: string } = {}
+): string {
   const email = opts.email ?? `${randomUUID().slice(0, 8)}@test.local`
   const meta = opts.ref === undefined || opts.ref === null ? '{}' : JSON.stringify({ ref: opts.ref })
+  const confirmed = opts.confirmed === false ? 'null' : 'now()'
+  const created = opts.createdAgo ? `now() - interval ${q(opts.createdAgo)}` : 'now()'
   return pg(
-    `insert into auth.users (email, raw_user_meta_data) values (${q(email)}, ${q(meta)}::jsonb) returning id`
+    `insert into auth.users (email, raw_user_meta_data, email_confirmed_at, created_at)
+     values (${q(email)}, ${q(meta)}::jsonb, ${confirmed}, ${created}) returning id`
   )
 }
 
@@ -175,6 +180,8 @@ export interface FakeProvider {
   charges: { orderId: string; amount: number }[]
   /** What the next chargeToken() call answers. */
   chargeResult: 'paid' | 'failed' | 'pending'
+  /** What lookupCharge() (statement) answers for a stuck pending renewal. */
+  lookupResult: 'paid' | 'failed' | 'unknown'
 }
 
 export const provider: FakeProvider = {
@@ -183,6 +190,7 @@ export const provider: FakeProvider = {
   checkouts: [],
   charges: [],
   chargeResult: 'paid',
+  lookupResult: 'unknown',
 }
 
 /** The signed-in user the mocked cookie-based server client acts as. */
@@ -215,7 +223,7 @@ export async function installMocks(): Promise<void> {
     },
     async deleteToken() {},
     async lookupCharge() {
-      return 'unknown' as const
+      return provider.lookupResult
     },
   }
 

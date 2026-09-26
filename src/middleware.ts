@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { defaultLocale, locales } from '@/lib/i18n/config'
+import { captureRefParam } from '@/lib/referrals'
 import { updateSession } from '@/lib/supabase/middleware'
 
 /**
@@ -24,10 +25,16 @@ export async function middleware(request: NextRequest) {
   if (!hasLocale) {
     const url = request.nextUrl.clone()
     url.pathname = `/${defaultLocale}${pathname === '/' ? '' : pathname}`
-    return NextResponse.redirect(url)
+    const redirect = NextResponse.redirect(url)
+    captureRefParam(request, redirect)
+    return redirect
   }
 
   const response = NextResponse.next({ request })
+
+  // Referral link (?ref=code) on any page → 30-day cookie, so the signup that
+  // happens later (Google, magic link, after a detour) still links the inviter.
+  captureRefParam(request, response)
 
   // Anonymous client identity for public galleries: an unguessable token in
   // an httpOnly cookie scopes favorites/retouch picks without registration.

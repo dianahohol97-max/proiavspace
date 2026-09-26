@@ -344,6 +344,7 @@ export const en: Dictionary = {
     promoActive: '🎁 Import promo: the «Basic» plan is free until {date}.',
     promoAutopayHint:
       'To keep the plan for {price} UAH/month after the promo, connect auto-payment: {price} UAH is charged now and the paid month starts on {date}. Without auto-payment the account returns to the Free plan — files are never deleted.',
+    creditNotice: 'Your referral credit: {amount} ₴ — applied to your next payment automatically.',
     promoAutopayButton: 'Connect auto-payment',
     promoAutopayDone:
       'Auto-payment connected: free until {date}, then «Basic» for {price} UAH/month.',

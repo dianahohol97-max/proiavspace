@@ -199,6 +199,14 @@ export default async function BillingPage({ params }: { params: { locale: string
           })()}
         </div>
       )}
+      {profile.credit_balance_kop > 0 && !promoRunning && (
+        <p className="mt-2 text-sm text-accent">
+          {dict.billing.creditNotice.replace(
+            '{amount}',
+            (profile.credit_balance_kop / 100).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB')
+          )}
+        </p>
+      )}
       {profile.grace_until && !promoRunning && (
         <p className="mt-2 text-sm text-accent">
           {dict.billing.graceNotice}{' '}

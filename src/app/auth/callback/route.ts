@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { REF_COOKIE, normalizeRefCode } from '@/lib/referrals'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -22,16 +23,29 @@ function safeNext(next: string | null): string {
   return next
 }
 
-/** Magic-link landing: exchange the auth code for a session, then continue. */
+/**
+ * Magic-link / OAuth / e-mail-confirmation landing: exchange the auth code for
+ * a session, then continue. With a referral cookie present, this is also
+ * where a Google or magic-link signup gets linked to its inviter
+ * (claim_referral: fresh accounts without a referrer only; no-op otherwise).
+ */
 export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
   const next = safeNext(url.searchParams.get('next'))
+  const supabase = createSupabaseServerClient()
 
   if (code) {
-    const supabase = createSupabaseServerClient()
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(new URL(next, request.url))
+  const response = NextResponse.redirect(new URL(next, request.url))
+  const ref = normalizeRefCode(request.cookies.get(REF_COOKIE)?.value)
+  if (ref) {
+    const { error } = await supabase.rpc('claim_referral', { p_code: ref })
+    // Consumed either way: the account is linked, was already linked, or is
+    // too old to link — none of which a retry would change.
+    if (!error) response.cookies.set(REF_COOKIE, '', { maxAge: 0, path: '/' })
+  }
+  return response
 }

@@ -3,8 +3,7 @@
  * reward accrual / credit consumption functions, dashboard stats and the
  * RLS / grant boundaries, all exercised through PostgREST with real JWTs.
  *
- * Tests marked `todo: 'BUG-…'` describe the EXPECTED behaviour and currently
- * fail; they are listed in tests/referrals/REPORT.md.
+ * Bug numbers in test names refer to tests/referrals/REPORT.md.
  */
 import assert from 'node:assert/strict'
 import { before, describe, test } from 'node:test'
@@ -73,13 +72,13 @@ describe('signup capture (handle_new_user)', { skip }, () => {
     }
   })
 
-  test('code typed in UPPERCASE still links (codes are lowercase hex)', { todo: 'BUG-06' }, () => {
+  test('code typed in UPPERCASE still links (BUG-06)', () => {
     const referrer = signUp()
     const invitee = signUp({ ref: codeOf(referrer).toUpperCase() })
     assert.equal(profile(invitee).referred_by, referrer)
   })
 
-  test('code with surrounding spaces still links (trigger does not trim)', { todo: 'BUG-06' }, () => {
+  test('code with surrounding spaces still links (BUG-06)', () => {
     const referrer = signUp()
     const invitee = signUp({ ref: ` ${codeOf(referrer)} ` })
     assert.equal(profile(invitee).referred_by, referrer)
@@ -102,6 +101,13 @@ describe('signup capture (handle_new_user)', { skip }, () => {
     assert.equal(profile(invitee).referred_by, r1)
   })
 
+  test('self-referral by e-mail (case / +alias) links nothing (BUG-09)', () => {
+    const referrer = signUp({ email: 'Diana.H@Example.com' })
+    const invitee = signUp({ ref: codeOf(referrer), email: 'diana.h+second@example.com' })
+    assert.equal(profile(invitee).referred_by, null)
+    assert.equal(referralStatus(invitee), 'none')
+  })
+
   test('user cannot set or change referred_by through the API', async () => {
     const r1 = signUp()
     const attacker = signUp()
@@ -111,6 +117,48 @@ describe('signup capture (handle_new_user)', { skip }, () => {
       .eq('user_id', attacker)
     assert.ok(error)
     assert.equal(profile(attacker).referred_by, null)
+  })
+})
+
+describe('claim_referral (cookie-based signup: Google / magic link)', { skip }, () => {
+  test('fresh account without referrer → linked once', async () => {
+    const referrer = signUp()
+    const me = signUp()
+    const client = userClient(url, me)
+    const first = await client.rpc('claim_referral', { p_code: codeOf(referrer).toUpperCase() })
+    assert.equal(first.error, null)
+    assert.equal(first.data, true)
+    assert.equal(profile(me).referred_by, referrer)
+    assert.equal(referralStatus(me), 'pending')
+    const again = await client.rpc('claim_referral', { p_code: codeOf(signUp()) })
+    assert.equal(again.data, false)
+    assert.equal(profile(me).referred_by, referrer)
+  })
+
+  test('account already linked at signup keeps its referrer', async () => {
+    const r1 = signUp()
+    const r2 = signUp()
+    const me = signUp({ ref: codeOf(r1) })
+    const { data } = await userClient(url, me).rpc('claim_referral', { p_code: codeOf(r2) })
+    assert.equal(data, false)
+    assert.equal(profile(me).referred_by, r1)
+  })
+
+  test('own code, unknown code, old account → no link', async () => {
+    const me = signUp()
+    assert.equal((await userClient(url, me).rpc('claim_referral', { p_code: codeOf(me) })).data, false)
+    assert.equal((await userClient(url, me).rpc('claim_referral', { p_code: 'nope' })).data, false)
+    const old = signUp({ createdAgo: '2 days' })
+    assert.equal(
+      (await userClient(url, old).rpc('claim_referral', { p_code: codeOf(signUp()) })).data,
+      false
+    )
+    assert.equal(profile(old).referred_by, null)
+  })
+
+  test('anon cannot call it', async () => {
+    const { error } = await anonClient(url).rpc('claim_referral', { p_code: 'abcdef12' })
+    assert.ok(error)
   })
 })
 
@@ -170,6 +218,74 @@ describe('accrue_referral_reward / consume_credit (service role)', { skip }, () 
     assert.equal(earnings(referrer)[0].kind, 'cash')
   })
 
+  test('ambassador cash stops after the Nth payment of one referral (cap)', async () => {
+    const referrer = signUp()
+    pg(`update public.profiles set is_ambassador = true where user_id = ${q(referrer)}`)
+    const invitee = signUp({ ref: codeOf(referrer) })
+    const results: number[] = []
+    for (let i = 0; i < 4; i++) {
+      const { data } = await svc().rpc('accrue_referral_reward', {
+        p_referrer: referrer, p_referred: invitee, p_payment: pg(`select gen_random_uuid()`),
+        p_amount: 1290, p_card_token: null, p_max_payments: 3,
+      })
+      results.push(data as number)
+    }
+    assert.deepEqual(results, [1290, 1290, 1290, 0])
+    assert.equal(profile(referrer).cash_balance_kop, 3 * 1290)
+  })
+
+  test('the cap does not apply to credit (regular referrer)', async () => {
+    const referrer = signUp()
+    const invitee = signUp({ ref: codeOf(referrer) })
+    for (let i = 0; i < 4; i++) {
+      await svc().rpc('accrue_referral_reward', {
+        p_referrer: referrer, p_referred: invitee, p_payment: pg(`select gen_random_uuid()`),
+        p_amount: 1290, p_card_token: null, p_max_payments: 3,
+      })
+    }
+    assert.equal(profile(referrer).credit_balance_kop, 4 * 1290)
+  })
+
+  test('self-referral by shared card token earns nothing (BUG-09)', async () => {
+    const referrer = signUp()
+    pg(
+      `insert into public.billing_subscriptions (user_id, product, plan, period, provider, card_token, next_charge_at)
+       values (${q(referrer)}, 'gallery', 'basic', 'month', 'monobank', 'tok_shared', now() + interval '20 days')`
+    )
+    const invitee = signUp({ ref: codeOf(referrer) })
+    const { data } = await svc().rpc('accrue_referral_reward', {
+      p_referrer: referrer, p_referred: invitee, p_payment: pg(`select gen_random_uuid()`),
+      p_amount: 1290, p_card_token: 'tok_shared', p_max_payments: null,
+    })
+    assert.equal(data, 0)
+    assert.equal(profile(referrer).credit_balance_kop, 0)
+  })
+
+  test('reverse_referral_reward: negative row, balance may go below zero, idempotent (BUG-04)', async () => {
+    const referrer = signUp()
+    pg(`update public.profiles set is_ambassador = true where user_id = ${q(referrer)}`)
+    const invitee = signUp({ ref: codeOf(referrer) })
+    const paymentId = pg(`select gen_random_uuid()`)
+    await svc().rpc('accrue_referral_reward', {
+      p_referrer: referrer, p_referred: invitee, p_payment: paymentId,
+      p_amount: 5190, p_card_token: null, p_max_payments: 12,
+    })
+    // The ambassador already withdrew everything.
+    pg(`update public.profiles set cash_balance_kop = 0 where user_id = ${q(referrer)}`)
+    const first = await svc().rpc('reverse_referral_reward', { p_payment: paymentId })
+    const second = await svc().rpc('reverse_referral_reward', { p_payment: paymentId })
+    assert.equal(first.data, 5190)
+    assert.equal(second.data, 0)
+    assert.equal(profile(referrer).cash_balance_kop, -5190)
+    assert.deepEqual(earnings(referrer).map((e) => e.amount_kop).sort(), [-5190, 5190])
+    // The next accrual pays the debt off.
+    await svc().rpc('accrue_referral_reward', {
+      p_referrer: referrer, p_referred: invitee, p_payment: pg(`select gen_random_uuid()`),
+      p_amount: 1290, p_card_token: null, p_max_payments: 12,
+    })
+    assert.equal(profile(referrer).cash_balance_kop, -5190 + 1290)
+  })
+
   test('consume_credit never goes negative', async () => {
     const u = signUp()
     pg(`update public.profiles set credit_balance_kop = 500 where user_id = ${q(u)}`)
@@ -193,6 +309,14 @@ describe('dashboard stats (get_referral_stats)', { skip }, () => {
     assert.deepEqual(data, [
       { invited: 2, converted: 1, credit_kop: 1290, cash_kop: 0, is_ambassador: false },
     ])
+  })
+
+  test('unconfirmed signups are not counted as invited (BUG-11)', async () => {
+    const referrer = signUp()
+    signUp({ ref: codeOf(referrer), confirmed: false })
+    signUp({ ref: codeOf(referrer) })
+    const { data } = await userClient(url, referrer).rpc('get_referral_stats')
+    assert.equal((data as { invited: number }[])[0].invited, 1)
   })
 
   test('anon cannot call it', async () => {
@@ -240,7 +364,7 @@ describe('RLS / privilege boundaries', { skip }, () => {
       { credit_balance_kop: 999999 },
       { cash_balance_kop: 999999 },
       { is_ambassador: true },
-      { pending_free_months: 12 },
+      { referral_code: 'aaaaaaaa' },
     ]) {
       const { error } = await client.from('profiles').update(patch).eq('user_id', u)
       assert.ok(error, JSON.stringify(patch))
@@ -259,6 +383,13 @@ describe('RLS / privilege boundaries', { skip }, () => {
       }),
       client.rpc('consume_credit', { p_user: u, p_amount: -100000 }),
       client.rpc('refund_cash', { p_user: u, p_amount: 100000 }),
+      client.rpc('refund_credit', { p_user: u, p_amount: 100000 }),
+      client.rpc('reverse_referral_reward', { p_payment: null }),
+      client.rpc('create_pending_payment', {
+        p_user: u, p_provider: 'monobank', p_order_id: 'x', p_plan: 'pro', p_period: 'year',
+        p_amount_uah: 1, p_purpose: null, p_subscription: null, p_apply_credit: false,
+      }),
+      client.rpc('is_self_referral', { p_referrer: u, p_referred: u, p_card_token: null }),
     ]
     for (const { error } of await Promise.all(calls)) assert.ok(error)
     assert.equal(profile(u).credit_balance_kop, 0)

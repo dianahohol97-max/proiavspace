@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
+import { canChargeTokens, getPayments } from '@/lib/payments'
 import { GALLERY_PLANS, planStorageBytes } from '@/lib/plans'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -63,6 +64,21 @@ export async function setAmbassador(locale: Locale, userId: string, on: boolean)
   }
   const { error } = await admin.from('profiles').update(patch).eq('user_id', userId)
   if (error) throw new Error(error.message)
+  if (on) {
+    // «Все безкоштовно» also means the saved card is never charged again:
+    // drop the auto-renewal rows (and the provider tokens) right away.
+    const { data: subs } = await admin
+      .from('billing_subscriptions')
+      .select('id, card_token')
+      .eq('user_id', userId)
+    const payments = getPayments()
+    for (const sub of (subs ?? []) as { id: string; card_token: string }[]) {
+      if (payments && canChargeTokens(payments)) {
+        await payments.deleteToken(sub.card_token).catch(() => undefined)
+      }
+      await admin.from('billing_subscriptions').delete().eq('id', sub.id)
+    }
+  }
   revalidatePath(`/${locale}/dashboard/stats`)
 }
 

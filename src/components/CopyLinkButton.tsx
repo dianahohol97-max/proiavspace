@@ -14,7 +14,24 @@ export function CopyLinkButton({
   const [copied, setCopied] = useState(false)
 
   async function copy() {
-    await navigator.clipboard.writeText(url)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // In-app browsers (Instagram, Telegram) may not expose the clipboard
+      // API: fall back to a hidden selected textarea + execCommand.
+      const area = document.createElement('textarea')
+      area.value = url
+      area.setAttribute('readonly', '')
+      area.style.position = 'fixed'
+      area.style.opacity = '0'
+      document.body.appendChild(area)
+      area.select()
+      try {
+        document.execCommand('copy')
+      } finally {
+        area.remove()
+      }
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

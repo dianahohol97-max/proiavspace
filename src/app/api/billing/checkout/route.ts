@@ -127,26 +127,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'plan_needs_no_checkout' }, { status: 400 })
   }
 
-  // Redeem проЯв credit earned from referrals: it discounts the charge (leaving
-  // at least 1 ₴ so there is no zero-amount checkout). The exact applied amount
-  // is recorded so the webhook deducts it from the balance once, on success.
-  let creditAppliedKop = 0
-  if (!promoRunning) {
-    const { data: creditProfile } = await supabase
-      .from('profiles')
-      .select('credit_balance_kop')
-      .eq('user_id', user.id)
-      .single()
-    const creditKop = (creditProfile?.credit_balance_kop as number | undefined) ?? 0
-    const maxDiscountUah = Math.max(0, amount - 1)
-    const discountUah = Math.min(Math.floor(creditKop / 100), maxDiscountUah)
-    if (discountUah > 0) {
-      creditAppliedKop = discountUah * 100
-      amount -= discountUah
-      description += ` (кредит −${discountUah} ₴)`
-    }
-  }
-
   const payments = getPayments()
   const admin = createSupabaseAdminClient()
   if (!payments || !admin) {
@@ -167,20 +147,30 @@ export async function POST(request: NextRequest) {
   const orderId = crypto.randomUUID()
   const locale = body.locale === 'en' ? 'en' : 'uk'
 
-  const { error } = await admin.from('payments').insert({
-    user_id: user.id,
-    provider: payments.name,
-    order_id: orderId,
-    plan: planId,
-    period,
-    amount,
-    currency: 'UAH',
-    status: 'pending',
-    credit_applied_kop: creditAppliedKop,
-    purpose,
+  // The pending row and the проЯв credit reserved against it are created in
+  // one locked DB call (create_pending_payment, migration 0044), so two open
+  // checkouts can never spend the same credit. The discount leaves at least
+  // 1 ₴ to pay; the webhook consumes the applied credit once, on success.
+  // During the import promo month credit is not redeemed — the promo and the
+  // referral bonus never land in the same month.
+  const { data: created, error } = await admin.rpc('create_pending_payment', {
+    p_user: user.id,
+    p_provider: payments.name,
+    p_order_id: orderId,
+    p_plan: planId,
+    p_period: period,
+    p_amount_uah: amount,
+    p_purpose: purpose,
+    p_subscription: null,
+    p_apply_credit: !promoRunning,
   })
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  const row = (created as { amount: number; credit_applied_kop: number }[] | null)?.[0]
+  if (error || !row) {
+    return NextResponse.json({ error: error?.message ?? 'payment_not_created' }, { status: 500 })
+  }
+  amount = row.amount
+  if (row.credit_applied_kop > 0) {
+    description += ` (кредит −${row.credit_applied_kop / 100} ₴)`
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
