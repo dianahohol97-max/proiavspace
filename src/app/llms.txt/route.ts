@@ -11,8 +11,8 @@ const tb = (gb: number) => (gb >= 1024 ? `${gb / 1024} ТБ` : `${gb} ГБ`)
 
 const pricing = [
   `- Безкоштовно: ${P.free.storageGb} ГБ сховища назавжди, необмежені галереї.`,
-  `- Базовий: ${P.basic.priceUahMonth} грн/міс (${P.basic.priceUahYear} грн/рік) — ${tb(P.basic.storageGb)}, без брендингу платформи, свій логотип.`,
-  `- Плюс: ${P.plus.priceUahMonth} грн/міс (${P.plus.priceUahYear} грн/рік) — ${tb(P.plus.storageGb)}, відео, статистика, чайові від клієнтів.`,
+  `- Базовий: ${P.basic.priceUahMonth} грн/міс (${P.basic.priceUahYear} грн/рік) — ${tb(P.basic.storageGb)}, без брендингу платформи, свій логотип, відео.`,
+  `- Плюс: ${P.plus.priceUahMonth} грн/міс (${P.plus.priceUahYear} грн/рік) — ${tb(P.plus.storageGb)}, статистика, чайові від клієнтів.`,
   `- Максимальний: ${P.pro.priceUahMonth} грн/міс (${P.pro.priceUahYear} грн/рік) — ${tb(P.pro.storageGb)}, пріоритетна підтримка.`,
   '- Річна оплата — два місяці в подарунок.',
 ].join('\n')
