@@ -319,6 +319,40 @@ const S = {
     ${gcard('s03', 'Весілля Марії та Андрія', `${pub} 312 фото · 96 переглядів`)}
     ${gcard('s09', 'Родина Мельників', `${pub} 64 фото · 41 перегляд`)}</div>`,
 
+  zipping: () => status() + cover('21', 'Серпень 2026', 'Весілля Ірини<br>та Тараса') +
+    bar({ dl: 'Готуємо архів: 142 / 248' }) + grid(['19', '20', '13', '24', '02', '05']),
+
+  settings: () => status() + `<div class="ph" style="height:190px;margin:0 8px;border-radius:var(--radius);${bg('07')}"></div>
+    <div class="dash"><span class="small muted" style="display:block;margin-top:14px">← Весілля Олі та Максима</span>
+    <h2 style="margin-top:6px">Пароль і термін дії</h2>
+    <div class="label">Пароль галереї</div><div class="field">••••••••</div>
+    <div class="small muted" style="margin-top:6px">Пароль встановлено — введіть новий, щоб змінити</div>
+    <div class="label">Діє до</div><div class="field">31.12.2026</div>
+    <div class="small muted" style="margin-top:6px">Після цієї дати галерея стане недоступною.</div>
+    <div class="row" style="margin-top:14px;align-items:flex-start"><span style="flex:none;width:18px;height:18px;border-radius:5px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800">✓</span>
+      <span class="small">Ставити моє імʼя на превʼю фотографій (watermark)</span></div>
+    <div class="btn-a" style="margin-top:16px">Зберегти</div></div>`,
+
+  collage: () => status() + bar({ sel: '8 обрано' }) + `<div class="grid" style="grid-template-columns:repeat(3,1fr);grid-auto-flow:dense">
+    ${['27', '28', '29', '25', '26', 's14', 's04', 's09', 's03', 's01', 's11', '21'].map((n, i) =>
+      `<div class="shot ph" style="aspect-ratio:1;${i === 0 || i === 6 ? 'grid-column:span 2;grid-row:span 2;' : ''}${bg(n)}"></div>`).join('')}</div>`,
+
+  booking: () => status() + `<div class="ph" style="height:170px;margin:0 8px;border-radius:var(--radius);${bg('s14')}"></div>
+    <div class="dash"><h2 style="margin-top:16px">Оберіть зручний час</h2>
+    <div class="row" style="margin-top:12px;gap:8px">${['Пт 10', 'Сб 11', 'Нд 12', 'Сб 18'].map((d, i) =>
+      `<span class="pill" style="padding:7px 12px;font-size:12px;${i === 1 ? 'background:var(--fg);color:var(--bg);border-color:var(--fg)' : ''}">${d}</span>`).join('')}</div>
+    ${[['10:00', 'Сімейна зйомка · 60 хв', '2 500 ₴'], ['13:00', 'Лав-сторі · 90 хв', '3 200 ₴', true], ['17:30', 'Портрет · 60 хв', '2 000 ₴']]
+      .map(([t, what, price, sel]) => `<div class="card plan ${sel ? 'sel' : ''}"><div><b>${t}</b><div class="small muted">${what}</div></div><div class="price">${price}</div></div>`).join('')}
+    <div class="label">Ваше імʼя</div><div class="field">Леся</div>
+    <div class="btn-a" style="margin-top:14px">Забронювати цей час</div>
+    <div class="small muted" style="margin-top:10px;text-align:center">Оплата: Monobank · WayForPay · реквізити</div></div>`,
+
+  site: () => status(true) + `<div style="position:relative;height:470px"><div class="full"><div class="ph" style="position:absolute;inset:0;${bg('s03')}"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.05) 40%,rgba(0,0,0,.5))"></div>
+    <div class="row" style="position:absolute;top:60px;left:0;right:0;justify-content:center;gap:18px;color:#f7f4ee;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase"><span>Портфоліо</span><span>Ціни</span><span>Контакти</span></div>
+    <div class="inner"><span class="caps">Весільний і сімейний фотограф</span><div class="g-title" style="font-size:40px">Твоє імʼя</div></div></div></div>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr)">${['s01', 's04', 's14', '27', 's09', '07'].map(n => `<div class="shot ph" style="aspect-ratio:3/4;${bg(n)}"></div>`).join('')}</div>`,
+
   onboarding: () => status() + `<div class="ph" style="height:280px;margin:0 8px;border-radius:var(--radius);${bg('s09')}"></div>
     <div class="dash"><h2 style="margin-top:18px">Ласкаво просимо у проЯв</h2>
     <p class="small muted" style="margin-top:6px">Три кроки — і клієнт отримає красиву галерею.</p>
@@ -374,11 +408,15 @@ const POSTS = [
     { h: 'Скільки разів <em>відкрили.</em>', p: 'Перегляди й завантаження кожної галереї — з тарифу «Плюс».', dark: true, s: S.statsList },
   ]],
   ['06', [
-    { h: '<em>Усе</em>, що вміє проЯв.', list: ['3 ГБ безкоштовно назавжди', '9 мов для клієнтів', 'Від 129 ₴ за 100 ГБ', 'Обране клієнта і статистика', 'Фото і відео в одній галереї', 'Пароль і термін дії галереї'], layout: 'photo', photo: 's14' },
-    { h: 'Перша галерея<br><em>за три кроки.</em>', p: 'Створи, завантаж, надішли клієнту посилання — за бажання під паролем.', stat: ['3', 'кроки до першої галереї'], layout: 'side', s: S.onboarding },
-    { h: 'Почни з <em>3 ГБ безкоштовно.</em>', p: 'Без картки. Посилання на реєстрацію — у профілі.', layout: 'photo', photo: 's04', ov: O.cta },
-  ]],
-]
+    { h: '<em>Усе</em>, що вміє<br>проЯв.', p: 'Шість можливостей для фотографа — в одній каруселі. Гортай →', layout: 'photo', photo: 's14' },
+    { h: 'Галерея <em>одним посиланням.</em>', p: 'Клієнт відкриває й завантажує сам — оригінали, усе одним zip. Без Google Drive.', s: S.gallery },
+    { h: 'Відбір<br><em>сердечком.</em>', p: 'Клієнт позначає кадри на ретуш, ти копіюєш список файлів одним натиском.', layout: 'photo', photo: '41', ov: O.fav },
+    { h: 'Пароль<br>і <em>термін дії.</em>', p: 'На кожну галерею окремо. Водяний знак на превʼю — за бажанням. Усе це є безкоштовно.', stat: ['31.12', 'і галерея закриється сама'], layout: 'side', s: S.settings },
+    { h: 'Відео —<br><em>з «Базового».</em>', p: 'Фільм і фото в одній галереї. Великі файли вантажаться частинами — обрив мережі не страшний.', layout: 'photo', photo: '29', ov: O.video },
+    { h: '<em>9 мов</em><br>для клієнтів.', p: 'Клієнт з-за кордону перемикає мову галереї сам.', layout: 'zoom', s: S.langOpen },
+    { h: 'Клієнт сам <em>бронює й платить.</em>', p: 'Monobank, WayForPay або реквізити — гроші йдуть напряму тобі. Неоплачений слот звільняється сам.', s: S.booking },
+    { h: 'Почни з <em>3 ГБ безкоштовно.</em>', p: 'Без картки. Більше місця — від 129 ₴ за 100 ГБ.<br>Посилання — у профілі.', layout: 'photo', photo: 's04', ov: O.cta },
+  ]],]
 
 document.getElementById('root').innerHTML = POSTS.map(([id, slides]) => `<div class="carousel">${slides.map((sl, i) => {
   const items = sl.list || sl.list3
