@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>проЯв — пости Instagram 1–7</title>
+<!--
+  Один шаблон на всі сім постів (4:5, 1080×1350):
+  заголовок — верхній лівий кут, телефон — по центру, логотип — нижній правий.
+  Фото — реальні зйомки з public/themes. Експорт PNG: node marketing/instagram/export.cjs
+-->
+<style>
+  @font-face { font-family: 'Unbounded'; font-weight: 300 900; src: url('../../public/fonts/unbounded-cyrillic.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: 'Unbounded'; font-weight: 300 900; src: url('../../public/fonts/unbounded-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+20B4, U+2191, U+2193, U+2212; }
+  @font-face { font-family: 'Manrope'; font-weight: 200 800; src: url('../../public/fonts/manrope-cyrillic.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: 'Manrope'; font-weight: 200 800; src: url('../../public/fonts/manrope-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+20B4, U+2191, U+2193, U+2212; }
+
+  :root {
+    --bg: #f4f4f1; --fg: #0d0c0a; --muted: #6f6d66;
+    --accent: #2f55ff; --accent-deep: #1f3fe0; --accent-soft: #8fa2ff;
+    --line: #e5e3dc; --coal: #12110e;
+    --radius: 12px;
+    --serif: Georgia, 'Liberation Serif', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #d9d8d2; font-family: 'Manrope', sans-serif; color: var(--fg);
+         display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px 0; }
+
+  /* ---------- шаблон поста ---------- */
+  .post { position: relative; width: 1080px; height: 1350px; background: var(--bg); overflow: hidden; flex: none; }
+  .head { position: absolute; left: 72px; top: 76px; right: 72px; }
+  .head h1 { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 64px; line-height: 1.08;
+             letter-spacing: -0.02em; max-width: 900px; text-wrap: balance; }
+  .head h1 em { font-style: normal; color: var(--accent); }
+  .head p { margin-top: 22px; font-size: 28px; line-height: 1.38; color: var(--muted); font-weight: 500; max-width: 860px; }
+  .logo { position: absolute; right: 72px; bottom: 62px; font-family: 'Unbounded', sans-serif;
+          font-weight: 600; font-size: 34px; letter-spacing: -0.02em; color: var(--fg); }
+
+  /* ---------- один телефон: фронтально, одна м'яка тінь ---------- */
+  .phone { position: absolute; left: 50%; top: 356px; width: 450px; height: 930px; margin-left: -225px;
+           background: var(--coal); border-radius: 66px; padding: 11px;
+           box-shadow: 0 44px 90px -24px rgba(13, 12, 10, 0.30); }
+  .screen { width: 428px; height: 908px; border-radius: 55px; overflow: hidden; background: var(--bg); position: relative; }
+  .ui { width: 390px; height: 827px; zoom: 1.0974; position: relative; overflow: hidden; }
+  .island { position: absolute; z-index: 20; top: 10px; left: 50%; margin-left: -56px; width: 112px; height: 32px;
+            border-radius: 20px; background: var(--coal); }
+  .status { height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 6px 30px 0 34px;
+            font-weight: 700; font-size: 15px; position: relative; z-index: 10; }
+  .status.on-photo { position: absolute; left: 0; right: 0; top: 0; color: #fff; }
+  .status .ic { display: flex; gap: 6px; align-items: center; }
+  .sig { display: flex; gap: 2px; align-items: flex-end; height: 11px; }
+  .sig i { width: 3px; background: currentColor; border-radius: 1px; }
+  .sig i:nth-child(1) { height: 4px; } .sig i:nth-child(2) { height: 6px; } .sig i:nth-child(3) { height: 8px; } .sig i:nth-child(4) { height: 11px; }
+  .bat { width: 24px; height: 12px; border: 1.5px solid currentColor; border-radius: 4px; padding: 1.5px; opacity: .9; }
+  .bat::before { content: ''; display: block; height: 100%; width: 78%; background: currentColor; border-radius: 1.5px; }
+
+  /* ---------- UI галереї (за GalleryExperience.module.css) ---------- */
+  .caps { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+  .ph { background-size: cover; background-position: center; }
+  .g-cover { position: relative; margin: 0 8px; height: 262px; border-radius: var(--radius); overflow: hidden; }
+  .g-cover .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.14), rgba(0,0,0,.38)); }
+  .g-cover .inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+                    justify-content: center; text-align: center; color: #f7f4ee; padding: 20px; }
+  .g-cover .caps { color: rgba(247,244,238,.88); }
+  .g-title { font-family: var(--serif); font-weight: 400; font-size: 31px; line-height: 1.1; margin-top: 12px;
+             text-shadow: 0 2px 40px rgba(0,0,0,.45); }
+  .g-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px;
+          padding: 6px 11px; font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .chip.on { border-color: var(--accent); color: var(--accent); }
+  .lang { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; position: relative; }
+  .lang svg { width: 10px; height: 7px; }
+  .dl { margin-left: auto; border-radius: 999px; background: var(--accent); color: #fff; padding: 10px 15px;
+        font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 14px; }
+  .shot { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 4 / 3; }
+  .shot.tall { aspect-ratio: 3 / 4; }
+  .shot.wide { grid-column: span 2; aspect-ratio: 16 / 9; }
+  .heart { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%;
+           background: rgba(244,244,241,.92); display: grid; place-items: center; box-shadow: 0 3px 12px rgba(0,0,0,.16); }
+  .heart svg { width: 14px; height: 14px; }
+  .heart.on { color: var(--accent); }
+  .play { position: absolute; top: 50%; left: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
+          background: rgba(0,0,0,.45); display: grid; place-items: center; }
+  .play::before { content: ''; margin-left: 4px; border-left: 16px solid #fff; border-top: 10px solid transparent; border-bottom: 10px solid transparent; }
+  .dur { position: absolute; left: 10px; bottom: 10px; color: #fff; font-size: 11px; font-weight: 700;
+         letter-spacing: .06em; text-shadow: 0 1px 8px rgba(0,0,0,.5); }
+
+  /* мовний перемикач (LangPicker) */
+  .menu { position: absolute; top: 26px; left: -14px; z-index: 30; width: 124px; background: #fff; border: 1px solid var(--line);
+          border-radius: var(--radius); padding: 4px 0; box-shadow: 0 12px 32px rgba(0,0,0,.12); }
+  .menu span { display: block; padding: 7px 16px; font-size: 13.5px; font-weight: 500; color: var(--fg); }
+  .menu span.cur { font-weight: 700; color: var(--accent); }
+
+  /* ---------- UI кабінету ---------- */
+  .dash { padding: 4px 18px 0; }
+  .dash h2 { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 21px; line-height: 1.2; letter-spacing: -0.01em; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12.5px; line-height: 1.45; }
+  .btn-o { display: inline-flex; border: 1px solid var(--fg); border-radius: 999px; padding: 8px 14px; font-size: 12px; font-weight: 700; }
+  .meter { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+  .gcard { margin-top: 12px; overflow: hidden; }
+  .gcard .ph { height: 150px; }
+  .gcard .meta { padding: 10px 12px 12px; }
+  .gcard b { display: block; font-size: 14px; font-weight: 700; }
+  .pill { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 10.5px; font-weight: 700; border: 1px solid var(--line); color: var(--muted); }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .tile { padding: 11px 10px; }
+  .tile p { font-size: 8.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .tile strong { display: block; margin-top: 6px; font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 22px; }
+  .fav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .fav .shot { aspect-ratio: 1; border-radius: 8px; }
+  .fav .heart { width: 22px; height: 22px; top: 5px; right: 5px; }
+  .fav .heart svg { width: 11px; height: 11px; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .thumb { width: 58px; height: 58px; border-radius: 8px; flex: none; }
+
+  /* пост 7 — перелік */
+  .list { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 40px; max-width: 936px; }
+  .list span { font-size: 25px; font-weight: 500; line-height: 1.3; color: var(--fg); padding-left: 22px; position: relative; }
+  .list span::before { content: ''; position: absolute; left: 0; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--fg); }
+  .post7 .phone { top: 392px; height: 894px; }
+  .post7 .screen { height: 872px; }
+  .post7 .ui { height: 795px; }
+</style>
+</head>
+<body>
+
+<!-- ============ ПОСТ 1 ============ -->
+<section class="post" id="post-01">
+  <div class="head">
+    <h1>3 ГБ безкоштовно. <em>Назавжди.</em></h1>
+    <p>Без картки. Галерей — скільки хочеш.</p>
+  </div>
+  <div class="phone"><div class="screen"><div class="ui">
+    <div class="island"></div>
+    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
+    <div class="g-cover"><div class="ph" style="position:absolute;inset:0;background-image:url('../../public/themes/07.jpg');background-position:55% 35%"></div><div class="shade"></div>
+      <div class="inner"><span class="caps">Серпень 2026</span><div class="g-title">Весілля Олі<br>та Максима</div></div></div>
+    <div class="g-bar">
+      <span class="chip"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>12 обрано</span>
+      <span class="lang">UA <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></span>
+      <span class="dl">Завантажити все</span>
+    </div>
+    <div class="grid">
+      <div class="shot ph" style="background-image:url('../../public/themes/15.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/18.jpg');background-position:50% 30%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/01.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/16.jpg');background-position:50% 40%"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/12.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/03.jpg')"></div>
+    </div>
+  </div></div></div>
+  <div class="logo">проЯв</div>
+</section>
+
+<!-- ============ ПОСТ 2 ============ -->
+<section class="post" id="post-02">
+  <div class="head">
+    <h1><em>129 ₴</em><br>за 100 ГБ.</h1>
+    <p>Тариф «Базовий» у гривні, оплата українською карткою.<br>Річна оплата — два місяці в подарунок.</p>
+  </div>
+  <div class="phone"><div class="screen"><div class="ui">
+    <div class="island"></div>
+    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
+    <div class="dash">
+      <div class="row" style="justify-content:space-between;margin-top:6px"><h2>Мої галереї</h2><span class="btn-o">Нова галерея</span></div>
+      <div class="card" style="padding:13px 14px;margin-top:14px">
+        <div class="row" style="justify-content:space-between"><span class="small muted">Використано сховища</span><span class="pill">Базовий</span></div>
+        <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:19px;margin:6px 0 10px">38,4 ГБ <span class="muted" style="font-size:14px">з 100 ГБ</span></div>
+        <div class="meter"><i style="width:38.4%"></i></div>
+      </div>
+      <div class="card gcard"><div class="ph" style="background-image:url('../../public/themes/07.jpg');background-position:55% 35%"></div>
+        <div class="meta"><b>Весілля Олі та Максима</b><span class="small muted"><span class="pill">Опубліковано</span> 248 фотографій</span></div></div>
+      <div class="card gcard"><div class="ph" style="background-image:url('../../public/themes/21.jpg');background-position:50% 55%"></div>
+        <div class="meta"><b>Весілля Ірини та Тараса</b><span class="small muted"><span class="pill">Опубліковано</span> 312 фотографій</span></div></div>
+      <div class="card gcard"><div class="ph" style="background-image:url('../../public/themes/13.jpg')"></div></div>
+    </div>
+  </div></div></div>
+  <div class="logo">проЯв</div>
+</section>
+
+<!-- ============ ПОСТ 3 ============ -->
+<section class="post" id="post-03">
+  <div class="head">
+    <h1>Фото і відео<br><em>в одній</em> галереї.</h1>
+    <p>Весільний ролик поруч із кадрами: клієнт дивиться й завантажує все з одного посилання. З тарифу «Плюс».</p>
+  </div>
+  <div class="phone"><div class="screen"><div class="ui">
+    <div class="island"></div>
+    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
+    <div class="g-bar" style="border-top:1px solid var(--line)">
+      <span class="chip"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>12 обрано</span>
+      <span class="lang">UA <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></span>
+      <span class="dl">Завантажити все</span>
+    </div>
+    <div class="grid">
+      <div class="shot wide ph" style="background-image:url('../../public/themes/15.jpg');background-position:50% 40%"><span class="play"></span><span class="dur">Фільм · 04:12</span></div>
+      <div class="shot tall ph" style="background-image:url('../../public/themes/18.jpg');background-position:50% 30%"></div>
+      <div class="shot tall ph" style="background-image:url('../../public/themes/04.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/16.jpg');background-position:50% 40%"><span class="play"></span><span class="dur">Тизер · 00:58</span></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/05.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/24.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/22.jpg')"></div>
+    </div>
+  </div></div></div>
+  <div class="logo">проЯв</div>
+</section>
+
+<!-- ============ ПОСТ 4 ============ -->
+<section class="post" id="post-04">
+  <div class="head">
+    <h1>Галерея мовою <em>твого клієнта.</em></h1>
+    <p>9 мов: клієнт з Польщі, Німеччини чи Італії перемикає галерею сам — одним натиском.</p>
+  </div>
+  <div class="phone"><div class="screen"><div class="ui">
+    <div class="island"></div>
+    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
+    <div class="g-cover"><div class="ph" style="position:absolute;inset:0;background-image:url('../../public/themes/01.jpg');background-position:50% 45%"></div><div class="shade"></div>
+      <div class="inner"><span class="caps">August 2026</span><div class="g-title">Olia &amp; Maksym</div></div></div>
+    <div class="g-bar" style="position:relative;z-index:25">
+      <span class="chip"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>12 ausgewählt</span>
+      <span class="lang">DE <svg viewBox="0 0 10 6" style="transform:rotate(180deg)"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="menu"><span>UA</span><span>EN</span><span>PL</span><span class="cur">DE</span><span>ES</span><span>FR</span><span>IT</span><span>RO</span><span>PT</span></span>
+      </span>
+      <span class="dl">Alle herunterladen</span>
+    </div>
+    <div class="grid">
+      <div class="shot ph" style="background-image:url('../../public/themes/07.jpg');background-position:55% 35%"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/19.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/13.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/21.jpg');background-position:50% 55%"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/12.jpg')"></div>
+      <div class="shot ph" style="background-image:url('../../public/themes/02.jpg')"></div>
+    </div>
+  </div></div></div>
+  <div class="logo">проЯв</div>
+</section>
+
+<!-- ============ ПОСТ 5 ============ -->
+<section class="post" id="post-05">
+  <div class="head">
+    <h1>Бачиш, що <em>обрав</em> клієнт.</h1>
+    <p>Обране клієнта — на всіх тарифах.<br>Перегляди й завантаження — з тарифу «Плюс».</p>
+  </div>
+  <div class="phone"><div class="screen"><div class="ui">
+    <div class="island"></div>
+    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
+    <div class="dash">
+      <span class="small muted">← Галереї</span>
+      <h2 style="margin-top:8px">Весілля Олі та Максима</h2>
+      <div class="ph" style="height:150px;border-radius:var(--radius);margin-top:12px;background-image:url('../../public/themes/07.jpg');background-position:55% 38%"></div>
+      <div class="tiles">
+        <div class="card tile"><p>Переглядів</p><strong>214</strong></div>
+        <div class="card tile"><p>Завантажень</p><strong>38</strong></div>
+        <div class="card tile"><p>В обраному</p><strong>57</strong></div>
+      </div>
+      <div class="row" style="justify-content:space-between;margin-top:18px">
+        <span style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:15px">Обране клієнта</span>
+        <span class="small muted">Клієнтів, що обирали: 3</span>
+      </div>
+      <div class="fav">
+        <div class="shot ph" style="background-image:url('../../public/themes/18.jpg');background-position:50% 30%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/15.jpg');background-position:55% 40%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/16.jpg');background-position:50% 40%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/03.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/21.jpg');background-position:50% 55%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/01.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/04.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/13.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/24.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
+      </div>
+      <div style="margin-top:14px"><span class="btn-o">Скопіювати список файлів</span></div>
+    </div>
+  </div></div></div>
+  <div class="logo">проЯв</div>
+</section>
+
+<!-- ============ ПОСТ 6 ============ -->
+<section class="post" id="post-06">
+  <div class="head">
+    <h1>Переїзд з Pixieset <em>без втрат.</em></h1>
+    <p>Завантаж zip з Pixieset чи Pic-Time — оригінали перенесемо без змін. І місяць «Базового» в подарунок.</p>
+  </div>
+  <div class="phone"><div class="screen"><div class="ui">
+    <div class="island"></div>
+    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
+    <div class="dash">
+      <h2 style="margin-top:6px">Імпорт галереї з zip</h2>
+      <p class="small muted" style="margin-top:6px">Кожна папка в zip стане окремою галереєю. Оригінали — без змін.</p>
+      <div class="card" style="padding:13px 14px;margin-top:14px">
+        <div class="row" style="justify-content:space-between"><b style="font-size:13px">oliamaksym-pixieset.zip</b><span class="small muted">3,2 ГБ</span></div>
+        <div class="small muted" style="margin:6px 0 9px">Переносимо: 186 з 248</div>
+        <div class="meter"><i style="width:75%"></i></div>
+      </div>
+      <div style="margin-top:16px;font-family:'Unbounded',sans-serif;font-weight:600;font-size:14px">Уже перенесено</div>
+      <div class="fav" style="grid-template-columns:repeat(3,1fr)">
+        <div class="shot ph" style="background-image:url('../../public/themes/18.jpg');background-position:50% 30%"></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/07.jpg');background-position:58% 35%"></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/15.jpg');background-position:55% 40%"></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/12.jpg')"></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/16.jpg');background-position:50% 40%"></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/01.jpg')"></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/05.jpg')"></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/19.jpg')"></div>
+        <div class="shot ph" style="background-image:url('../../public/themes/22.jpg')"></div>
+      </div>
+      <div class="card" style="margin-top:14px;padding:10px 12px">
+        <div class="row"><div class="thumb ph" style="background-image:url('../../public/themes/21.jpg');background-position:50% 55%"></div>
+          <div><b style="font-size:13px">Весілля Олі та Максима — Прогулянка</b><div class="small muted">124 фото · <span class="pill">Чернетка</span></div></div></div>
+      </div>
+      <p class="small" style="margin-top:12px">За імпорт нараховано місяць тарифу «Базовий» безкоштовно — до 28.10.2026.</p>
+    </div>
+  </div></div></div>
+  <div class="logo">проЯв</div>
+</section>
+
+<!-- ============ ПОСТ 7 (закріплений) ============ -->
+<section class="post post7" id="post-07">
+  <div class="head">
+    <h1><em>Усе</em>, що вміє проЯв.</h1>
+    <div class="list">
+      <span>3 ГБ безкоштовно назавжди</span>
+      <span>9 мов для клієнтів</span>
+      <span>Від 129 ₴ за 100 ГБ</span>
+      <span>Обране клієнта і статистика</span>
+      <span>Фото і відео в одній галереї</span>
+      <span>Імпорт з Pixieset і Pic-Time</span>
+    </div>
+  </div>
+  <div class="phone"><div class="screen"><div class="ui">
+    <div class="island"></div>
+    <div class="status on-photo"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
+    <div class="ph" style="position:absolute;inset:0;background-image:url('../../public/themes/18.jpg');background-position:50% 35%"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.08) 45%,rgba(0,0,0,.5))"></div>
+    <div style="position:absolute;left:0;right:0;bottom:70px;text-align:center;color:#f7f4ee">
+      <span class="caps" style="color:rgba(247,244,238,.88)">Серпень 2026</span>
+      <div class="g-title" style="font-size:36px">Весілля Олі<br>та Максима</div>
+      <span class="caps" style="display:block;margin-top:22px;color:rgba(247,244,238,.8)">гортайте ↓</span>
+    </div>
+  </div></div></div>
+  <div class="logo">проЯв</div>
+</section>
+
+</body>
+</html>
