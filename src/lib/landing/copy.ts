@@ -217,12 +217,12 @@ const uk: LandingCopy = {
       basic: {
         name: 'Базовий',
         note: 'Ваш бренд — і лише він',
-        bullets: ['Без нашого брендингу', 'Ваше лого в галереї', 'Все з безкоштовного'],
+        bullets: ['Без нашого брендингу', 'Ваше лого в галереї', 'Відео в галереях'],
       },
       plus: {
         name: 'Плюс',
         note: 'Для повного робочого сезону',
-        bullets: ['Відео в галереях', 'Статистика переглядів', 'Чайові від клієнтів'],
+        bullets: ['Все з Базового', 'Статистика переглядів', 'Чайові від клієнтів'],
       },
       pro: {
         name: 'Максимальний',
@@ -407,12 +407,12 @@ const en: LandingCopy = {
       basic: {
         name: 'Basic',
         note: 'Your brand — and only yours',
-        bullets: ['No our branding', 'Your logo in galleries', 'Everything in Free'],
+        bullets: ['No our branding', 'Your logo in galleries', 'Video in galleries'],
       },
       plus: {
         name: 'Plus',
         note: 'For a full working season',
-        bullets: ['Video in galleries', 'View statistics', 'Client tips'],
+        bullets: ['Everything in Basic', 'View statistics', 'Client tips'],
       },
       pro: {
         name: 'Maximum',
