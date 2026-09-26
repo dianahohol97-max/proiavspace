@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
 import { galleryPrefix, getStorage, isVariantName } from '@/lib/storage'
 import { MAX_FILE_BYTES } from '@/lib/upload/limits'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 /**
  * Shared server-side upload logic for the single-PUT (/api/uploads/*) and
@@ -134,9 +135,28 @@ export async function registerAsset(
     }
   }
 
+  // The gallery must be the caller's own: the key prefix alone would accept
+  // another user's gallery id.
+  const { data: gallery } = await supabase
+    .from('galleries')
+    .select('id')
+    .eq('id', input.galleryId)
+    .eq('owner_id', userId)
+    .maybeSingle()
+  if (!gallery) {
+    return { ok: false, status: 404, error: 'gallery_not_found' }
+  }
+
+  // Asset rows are written only here, server-side, after the checks above —
+  // the user's own client has no INSERT on assets (migration 0041).
+  const admin = createSupabaseAdminClient()
+  if (!admin) {
+    return { ok: false, status: 503, error: 'not_configured' }
+  }
+
   const kind = input.contentType.startsWith('video/') ? 'video' : 'photo'
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('assets')
     .insert({
       gallery_id: input.galleryId,

@@ -214,8 +214,11 @@ export async function deleteAsset(locale: Locale, assetId: string): Promise<void
     throw new Error('Asset not found')
   }
 
+  // Only objects under this user's own gallery prefix are ever deleted, so a
+  // tampered variants map can't point the delete at someone else's files.
+  const prefix = galleryPrefix(user.id, asset.gallery_id)
   const variantKeys = Object.values(asset.variants as Record<string, string>)
-  await getStorage().delete([asset.r2_key, ...variantKeys])
+  await getStorage().delete([asset.r2_key, ...variantKeys].filter((key) => key.startsWith(prefix)))
 
   const { error } = await supabase.from('assets').delete().eq('id', assetId)
   if (error) throw new Error(`Failed to delete asset: ${error.message}`)
