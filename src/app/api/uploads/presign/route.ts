@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
   const { url } = await getStorage().getUploadUrl({
     key,
     contentType: body.contentType,
+    sizeBytes: body.sizeBytes,
   })
 
   return NextResponse.json({ uploadUrl: url, key })

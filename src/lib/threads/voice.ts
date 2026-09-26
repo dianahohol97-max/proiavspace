@@ -1,4 +1,4 @@
-import { GEMINI_MODEL } from '@/lib/gemini'
+import { geminiModel } from '@/lib/gemini'
 
 /**
  * The проЯв Threads voice: drafting helpers for the founder's own feed posts
@@ -7,7 +7,6 @@ import { GEMINI_MODEL } from '@/lib/gemini'
  * appears when it is natural).
  */
 
-const MODEL = GEMINI_MODEL
 
 export const BRAND_VOICE =
   `Ти — голос українського бренду проЯв (проЯв.space) — онлайн-галереї, якими фотографи ` +
@@ -24,6 +23,7 @@ interface GeminiPart {
 
 async function gemini(apiKey: string, parts: GeminiPart[], temperature = 0.9): Promise<string | null> {
   try {
+    const MODEL = geminiModel()
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
       {
@@ -45,7 +45,7 @@ async function gemini(apiKey: string, parts: GeminiPart[], temperature = 0.9): P
     console.error(`threads voice: gemini ${MODEL} returned no text`)
     return null
   } catch (e) {
-    console.error(`threads voice: gemini ${MODEL} call failed:`, e)
+    console.error('threads voice: gemini call failed:', e)
     return null
   }
 }
