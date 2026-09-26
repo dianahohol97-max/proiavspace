@@ -474,7 +474,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
                 </Link>
               </>
             )}
-            <Link href={`/${locale}/blog`} style={{ color: 'inherit' }}>
+            <Link href="/uk/blog" style={{ color: 'inherit' }}>
               {t.footer.blog}
             </Link>
             <Link href={`/${locale}/oferta`} style={{ color: 'inherit' }}>

@@ -359,7 +359,10 @@ async function sendPromoReminders(
 ): Promise<number> {
   // Email not configured: send nothing and mark nothing, so reminders still go
   // out once it is (if the promo hasn't ended by then).
-  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return 0
+  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
+    console.warn('promo reminders skipped: RESEND_API_KEY/EMAIL_FROM not set')
+    return 0
+  }
   const now = Date.now()
   const { data: due } = await admin
     .from('promo_grants')

@@ -28,7 +28,7 @@ export function SiteFooter({ locale }: { locale: string }) {
           ))
         ) : (
           <nav className="flex flex-col gap-3 text-sm sm:col-span-3">
-            <Link href={`/${locale}/blog`} className="text-muted no-underline hover:text-fg">Blog</Link>
+            <Link href="/uk/blog" className="text-muted no-underline hover:text-fg">Blog</Link>
             <Link href={`/${locale}/oferta`} className="text-muted no-underline hover:text-fg">Terms</Link>
             <Link href={`/${locale}/privacy`} className="text-muted no-underline hover:text-fg">Privacy</Link>
           </nav>

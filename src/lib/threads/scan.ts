@@ -5,7 +5,8 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 /**
  * Threads engagement engine: search Threads for relevant fresh (<24h) posts,
  * draft an on-brand reply from проЯв for each, and queue them for the founder
- * to approve. Runs on a schedule (Vercel Cron). No posting happens here — the
+ * to approve. Not scheduled at the moment (manual mode, see AUTOMATION_SETUP.md
+ * §D); run by hand or put back on Vercel Cron. No posting happens here — the
  * founder replies manually, so the search token can be from ANY account.
  *
  * Env: THREADS_SEARCH_TOKEN (Threads API token with keyword search),
@@ -33,8 +34,9 @@ const GRAPH = 'https://graph.threads.net/v1.0'
 const MODEL = GEMINI_MODEL
 // A 24h window (sized for a twice-daily cron) threw away almost everything: a
 // real run saw 29 usable posts and kept 3. Three days still lands under
-// threads people are reading; with the daily Vercel Cron (vercel.json) plus
-// manual runs, the dedupe against threads_replies keeps overlaps out.
+// threads people are reading; overlapping runs are kept out by the dedupe
+// against threads_replies. (Not scheduled at the moment — see
+// AUTOMATION_SETUP.md §D for how to turn it back on.)
 const FRESH_MS = 72 * 60 * 60 * 1000
 const MAX_NEW_PER_RUN = 8
 // Cap Gemini calls per run: we evaluate at most this many fresh candidates

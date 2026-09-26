@@ -10,8 +10,9 @@ export const maxDuration = 60
  * Threads' own keyword_search stayed scoped to our own account (a probe run
  * returned 18 month-old posts from us and nothing else), so an Apify Threads
  * scraper does the finding on a schedule and calls this route. The native
- * sweep (/api/threads/scan) runs daily via Vercel Cron as well, and doubles as
- * a manual probe.
+ * sweep (/api/threads/scan) is not scheduled at the moment; it can be run by
+ * hand, doubles as a probe, and can be put back on Vercel Cron (see
+ * AUTOMATION_SETUP.md §D).
  *
  * Accepts any of these shapes:
  *   - a bare `[...]` array — the Apify run-sync-get-dataset-items response

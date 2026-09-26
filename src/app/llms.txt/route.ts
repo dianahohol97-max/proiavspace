@@ -59,7 +59,8 @@ ${pricing}
 - Тарифи: https://proiav.space/uk/tsiny
 - Галерея з паролем: https://proiav.space/uk/halereia-z-parolem
 - Для весільних фотографів: https://proiav.space/uk/dlia-vesilnykh-fotohrafiv
-- Порівняння з Pixieset, Pic-Time, Pixover, Gallery4you: https://proiav.space/uk/porivniannia/pixieset
+- Порівняння з Pixieset, Pic-Time, Pixover, Gallery4you: https://proiav.space/uk/porivniannia
+- Перехід з Pixieset: https://proiav.space/uk/mihratsiia
 - Демо клієнтської галереї: https://proiav.space/uk/gallery-demo
 - Блог із порадами для фотографів: https://proiav.space/uk/blog
 - English: https://proiav.space/en

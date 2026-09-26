@@ -128,11 +128,15 @@ export function planZip(
       continue
     }
 
+    // Trimmed on every side: the server trims titles, and a title that differs
+    // by a trailing space («Day 1 ») would no longer match its gallery, so all
+    // of its files would be silently dropped.
     const folder = dirOf(relative)
       .split('/')
+      .map((segment) => segment.trim())
       .filter(Boolean)
       .join(' / ')
-    const title = (folder ? `${base} — ${folder}` : base).slice(0, MAX_TITLE_LENGTH)
+    const title = (folder ? `${base} — ${folder}` : base).slice(0, MAX_TITLE_LENGTH).trim()
 
     const dedupeKey = `${title}\u0000${name}`
     if (seen.has(dedupeKey)) {

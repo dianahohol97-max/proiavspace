@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { articleFaq, getArticle, getArticles } from '@/lib/blog/articles'
 import { categoriesFor, relatedArticles } from '@/lib/blog/categories'
 import { withProductLinks } from '@/lib/blog/linking'
@@ -59,6 +59,9 @@ export default async function ArticlePage({
   params: { locale: string; slug: string }
 }) {
   if (!isLocale(params.locale)) notFound()
+  // Ukrainian-only content: other locales would serve it under the wrong
+  // <html lang> as an indexable duplicate, so they go to the /uk copy.
+  if (params.locale !== 'uk') permanentRedirect(`/uk/blog/${params.slug}`)
   const locale = params.locale
   const uk = locale === 'uk'
   const article = await getArticle(params.slug)
