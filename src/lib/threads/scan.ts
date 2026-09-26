@@ -33,8 +33,9 @@ const GRAPH = 'https://graph.threads.net/v1.0'
 const MODEL = GEMINI_MODEL
 // A 24h window (sized for a twice-daily cron) threw away almost everything: a
 // real run saw 29 usable posts and kept 3. Three days still lands under
-// threads people are reading; with the daily Vercel Cron (vercel.json) plus
-// manual runs, the dedupe against threads_replies keeps overlaps out.
+// threads people are reading; overlapping runs are kept out by the dedupe
+// against threads_replies. (Not scheduled at the moment — see
+// AUTOMATION_SETUP.md §D for how to turn it back on.)
 const FRESH_MS = 72 * 60 * 60 * 1000
 const MAX_NEW_PER_RUN = 8
 // Cap Gemini calls per run: we evaluate at most this many fresh candidates

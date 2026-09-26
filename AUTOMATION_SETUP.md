@@ -64,12 +64,18 @@ Vercel → proiavspace → Settings → Environment Variables → **Redeploy** �
 
 ---
 
-## D. Threads (пошук + ручні відповіді)
-1. Додати `THREADS_SEARCH_TOKEN` у Vercel (крок A).
-2. Пошук іде **щодня** автоматично (Vercel Cron). Для кожні 2–3 год — простий Make-сценарій:
-   - **HTTP → Make a request**: `GET https://proiav.space/api/threads/scan`, Header `Authorization: Bearer <MAKE_SECRET>`, розклад кожні 2–3 год.
-3. Драфти з'являться в адмінці → **Threads** (тільки пости < 24 год).
-4. Відповідаєш **вручну**: «Відкрити пост →» → вставити драфт у Threads.
+## D. Threads (зараз — вручну)
+Автоматичний пошук **вимкнено**: на проді нічого не запускається за розкладом.
+Threads ведемо вручну з адмінки → **Threads**:
+- «вставити пост» (посилання + текст) → Gemini пише чернетку відповіді;
+- «свій пост» (ідея) → чернетка поста для стрічки проЯв;
+- скріншот поста → чернетка коментаря.
+Відповідаєш **вручну**: «Відкрити пост →» → вставити драфт у Threads.
+
+Щоб колись увімкнути автоматичний пошук знову:
+1. `THREADS_SEARCH_TOKEN` у Vercel (крок A).
+2. Додати в `vercel.json` → `crons` рядок `{ "path": "/api/threads/scan", "schedule": "15 6 * * *" }` (щодня о 09:15 за Києвом), **або** Make-сценарій **HTTP → Make a request**: `GET https://proiav.space/api/threads/scan`, Header `Authorization: Bearer <MAKE_SECRET>`, з потрібним розкладом.
+3. Драфти з'являться в адмінці → **Threads** (пости не старші за 72 год).
 
 ---
 
