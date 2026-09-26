@@ -63,12 +63,15 @@ Environment Variables стоять оновлені значення (B2, Monoba
 ## 🟡 Емейл-розсилка (завтрашнє завдання)
 Щоб клієнти отримували лист «фото готові», а я — сповіщення про броні.
 
-1. Акаунт на [resend.com](https://resend.com) → **верифікувати домен**
-   (додати DNS-записи, які Resend покаже: SPF, DKIM).
-2. Vercel env: `RESEND_API_KEY` і `EMAIL_FROM`
-   (напр. `проЯв <hello@proiav.space>`).
+1. Акаунт на [brevo.com](https://www.brevo.com) → Senders, Domains & Dedicated IPs →
+   **автентифікувати домен** (додати DNS-записи, які Brevo покаже: код Brevo, DKIM, DMARC).
+2. Vercel env: `BREVO_API_KEY` (SMTP & API → API keys) і `EMAIL_FROM`
+   (напр. `проЯв <hello@proiav.space>`) → Redeploy.
+   Перевірка: під адмін-акаунтом `POST /api/admin/test-email` з `{"to": "твоя@пошта"}`.
 3. Supabase → Authentication → Emails → **Custom SMTP** — щоб листи
-   підтвердження пошти теж ішли з мого домену, а не з дефолтного Supabase.
+   підтвердження пошти теж ішли з мого домену, а не з дефолтного Supabase
+   (Brevo SMTP: `smtp-relay.brevo.com`, порт 587, логін і SMTP-ключ — з
+   Brevo → SMTP & API → SMTP; це окремий ключ, не `BREVO_API_KEY`).
 
 ---
 
