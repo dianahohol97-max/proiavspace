@@ -2,11 +2,12 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<title>проЯв — пости Instagram 1–7</title>
+<title>проЯв — каруселі Instagram 1–6</title>
 <!--
-  Один шаблон на всі сім постів (4:5, 1080×1350):
+  Шість каруселей по 3–4 слайди, один шаблон (4:5, 1080×1350):
   заголовок — верхній лівий кут, телефон — по центру, логотип — нижній правий.
-  Фото — реальні зйомки з public/themes. Експорт PNG: node marketing/instagram/export.cjs
+  Слайди збираються з масиву POSTS унизу. Фото — реальні зйомки з public/themes.
+  Експорт PNG: node marketing/instagram/export.cjs
 -->
 <style>
   @font-face { font-family: 'Unbounded'; font-weight: 300 900; src: url('../../public/fonts/unbounded-cyrillic.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
@@ -22,16 +23,16 @@
     --serif: Georgia, 'Liberation Serif', serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #d9d8d2; font-family: 'Manrope', sans-serif; color: var(--fg);
-         display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px 0; }
+  body { background: #d9d8d2; font-family: 'Manrope', sans-serif; color: var(--fg); padding: 40px; }
+  .carousel { display: flex; gap: 24px; margin-bottom: 60px; }
 
-  /* ---------- шаблон поста ---------- */
+  /* ---------- шаблон слайда ---------- */
   .post { position: relative; width: 1080px; height: 1350px; background: var(--bg); overflow: hidden; flex: none; }
   .head { position: absolute; left: 72px; top: 76px; right: 72px; }
   .head h1 { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 64px; line-height: 1.08;
-             letter-spacing: -0.02em; max-width: 900px; text-wrap: balance; }
-  .head h1 em { font-style: normal; color: var(--accent); }
-  .head p { margin-top: 22px; font-size: 28px; line-height: 1.38; color: var(--muted); font-weight: 500; max-width: 860px; }
+             letter-spacing: -0.02em; max-width: 936px; }
+  .head h1 em { font-style: normal; color: var(--accent); white-space: nowrap; }
+  .head p { margin-top: 22px; font-size: 28px; line-height: 1.38; color: var(--muted); font-weight: 500; max-width: 900px; }
   .logo { position: absolute; right: 72px; bottom: 62px; font-family: 'Unbounded', sans-serif;
           font-weight: 600; font-size: 34px; letter-spacing: -0.02em; color: var(--fg); }
 
@@ -41,17 +42,27 @@
            box-shadow: 0 44px 90px -24px rgba(13, 12, 10, 0.30); }
   .screen { width: 428px; height: 908px; border-radius: 55px; overflow: hidden; background: var(--bg); position: relative; }
   .ui { width: 390px; height: 827px; zoom: 1.0974; position: relative; overflow: hidden; }
-  .island { position: absolute; z-index: 20; top: 10px; left: 50%; margin-left: -56px; width: 112px; height: 32px;
+  .ui.dark { background: #0a090b; color: #f7f4ee; }
+  .island { position: absolute; z-index: 40; top: 10px; left: 50%; margin-left: -56px; width: 112px; height: 32px;
             border-radius: 20px; background: var(--coal); }
   .status { height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 6px 30px 0 34px;
-            font-weight: 700; font-size: 15px; position: relative; z-index: 10; }
-  .status.on-photo { position: absolute; left: 0; right: 0; top: 0; color: #fff; }
+            font-weight: 700; font-size: 15px; position: relative; z-index: 30; }
+  .status.light { position: absolute; left: 0; right: 0; top: 0; color: #fff; }
   .status .ic { display: flex; gap: 6px; align-items: center; }
   .sig { display: flex; gap: 2px; align-items: flex-end; height: 11px; }
   .sig i { width: 3px; background: currentColor; border-radius: 1px; }
   .sig i:nth-child(1) { height: 4px; } .sig i:nth-child(2) { height: 6px; } .sig i:nth-child(3) { height: 8px; } .sig i:nth-child(4) { height: 11px; }
   .bat { width: 24px; height: 12px; border: 1.5px solid currentColor; border-radius: 4px; padding: 1.5px; opacity: .9; }
   .bat::before { content: ''; display: block; height: 100%; width: 78%; background: currentColor; border-radius: 1.5px; }
+
+  /* слайд з переліком: телефон трохи нижче */
+  .tall-head .phone { top: 392px; height: 894px; }
+  .tall-head .screen { height: 872px; }
+  .tall-head .ui { height: 795px; }
+  .list { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 40px; max-width: 936px; }
+  .list.three { grid-template-columns: 1fr 1fr 1fr; }
+  .list span { font-size: 25px; font-weight: 500; line-height: 1.3; color: var(--fg); padding-left: 22px; position: relative; }
+  .list span::before { content: ''; position: absolute; left: 0; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--fg); }
 
   /* ---------- UI галереї (за GalleryExperience.module.css) ---------- */
   .caps { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
@@ -60,22 +71,26 @@
   .g-cover .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.14), rgba(0,0,0,.38)); }
   .g-cover .inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
                     justify-content: center; text-align: center; color: #f7f4ee; padding: 20px; }
-  .g-cover .caps { color: rgba(247,244,238,.88); }
+  .g-cover .caps, .full .caps { color: rgba(247,244,238,.88); }
   .g-title { font-family: var(--serif); font-weight: 400; font-size: 31px; line-height: 1.1; margin-top: 12px;
              text-shadow: 0 2px 40px rgba(0,0,0,.45); }
-  .g-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .full { position: absolute; inset: 0; }
+  .full .inner { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; color: #f7f4ee; }
+  .mark { font-weight: 800; font-size: 13px; letter-spacing: .32em; text-transform: uppercase; }
+  .g-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); position: relative; z-index: 25; }
   .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px;
           padding: 6px 11px; font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
   .chip.on { border-color: var(--accent); color: var(--accent); }
+  .chip svg { width: 12px; height: 12px; }
   .lang { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; position: relative; }
-  .lang svg { width: 10px; height: 7px; }
+  .lang > svg { width: 10px; height: 7px; }
   .dl { margin-left: auto; border-radius: 999px; background: var(--accent); color: #fff; padding: 10px 15px;
         font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 14px; }
   .shot { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 4 / 3; }
   .shot.tall { aspect-ratio: 3 / 4; }
   .shot.wide { grid-column: span 2; aspect-ratio: 16 / 9; }
-  .heart { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%;
+  .heart { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; color: var(--fg);
            background: rgba(244,244,241,.92); display: grid; place-items: center; box-shadow: 0 3px 12px rgba(0,0,0,.16); }
   .heart svg { width: 14px; height: 14px; }
   .heart.on { color: var(--accent); }
@@ -84,26 +99,45 @@
   .play::before { content: ''; margin-left: 4px; border-left: 16px solid #fff; border-top: 10px solid transparent; border-bottom: 10px solid transparent; }
   .dur { position: absolute; left: 10px; bottom: 10px; color: #fff; font-size: 11px; font-weight: 700;
          letter-spacing: .06em; text-shadow: 0 1px 8px rgba(0,0,0,.5); }
-
-  /* мовний перемикач (LangPicker) */
   .menu { position: absolute; top: 26px; left: -14px; z-index: 30; width: 124px; background: #fff; border: 1px solid var(--line);
           border-radius: var(--radius); padding: 4px 0; box-shadow: 0 12px 32px rgba(0,0,0,.12); }
   .menu span { display: block; padding: 7px 16px; font-size: 13.5px; font-weight: 500; color: var(--fg); }
   .menu span.cur { font-weight: 700; color: var(--accent); }
+  .foot { text-align: center; padding: 18px 0 0; }
+  .sig-name { font-family: var(--serif); font-size: 20px; }
+
+  /* лайтбокс */
+  .lb-media { position: absolute; left: 0; right: 0; top: 250px; height: 219px; }
+  .lb-ctrl { position: absolute; left: 14px; right: 14px; top: 486px; display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 700; color: rgba(247,244,238,.8); }
+  .lb-ctrl .track { flex: 1; height: 4px; border-radius: 4px; background: rgba(247,244,238,.2); }
+  .lb-ctrl .track i { display: block; width: 34%; height: 100%; border-radius: 4px; background: #f7f4ee; }
+  .lb-tools { position: absolute; top: 64px; right: 18px; display: flex; gap: 10px; }
+  .lb-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(250,249,247,.1); display: grid; place-items: center; font-size: 16px; }
+  .lb-foot { position: absolute; bottom: 40px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .lb-dl { border-radius: 999px; background: #f7f4ee; color: #17161a; padding: 12px 24px; font-weight: 800; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
 
   /* ---------- UI кабінету ---------- */
   .dash { padding: 4px 18px 0; }
   .dash h2 { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 21px; line-height: 1.2; letter-spacing: -0.01em; }
+  .h3 { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 15px; }
   .muted { color: var(--muted); }
   .small { font-size: 12.5px; line-height: 1.45; }
-  .btn-o { display: inline-flex; border: 1px solid var(--fg); border-radius: 999px; padding: 8px 14px; font-size: 12px; font-weight: 700; }
+  .btn-o { display: inline-flex; justify-content: center; border: 1px solid var(--fg); border-radius: 999px; padding: 8px 14px; font-size: 12px; font-weight: 700; }
+  .btn-o.a { border-color: var(--accent); color: var(--accent); }
+  .btn-a { display: flex; justify-content: center; border-radius: 999px; padding: 13px 16px; font-size: 13px; font-weight: 800; background: var(--accent); color: #fff; }
+  .btn-w { display: flex; justify-content: center; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 12px 16px; font-size: 13px; font-weight: 700; }
   .meter { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
   .meter i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
   .card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+  .card.sel { border-color: var(--accent); }
   .gcard { margin-top: 12px; overflow: hidden; }
   .gcard .ph { height: 150px; }
   .gcard .meta { padding: 10px 12px 12px; }
   .gcard b { display: block; font-size: 14px; font-weight: 700; }
+  .ggrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .ggrid .gcard { margin: 0; }
+  .ggrid .gcard .ph { height: 128px; }
+  .ggrid .gcard b { font-size: 12.5px; line-height: 1.3; margin-bottom: 4px; }
   .pill { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 10.5px; font-weight: 700; border: 1px solid var(--line); color: var(--muted); }
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
   .tile { padding: 11px 10px; }
@@ -114,234 +148,199 @@
   .fav .heart { width: 22px; height: 22px; top: 5px; right: 5px; }
   .fav .heart svg { width: 11px; height: 11px; }
   .row { display: flex; gap: 10px; align-items: center; }
-  .thumb { width: 58px; height: 58px; border-radius: 8px; flex: none; }
-
-  /* пост 7 — перелік */
-  .list { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 40px; max-width: 936px; }
-  .list span { font-size: 25px; font-weight: 500; line-height: 1.3; color: var(--fg); padding-left: 22px; position: relative; }
-  .list span::before { content: ''; position: absolute; left: 0; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--fg); }
-  .post7 .phone { top: 392px; height: 894px; }
-  .post7 .screen { height: 872px; }
-  .post7 .ui { height: 795px; }
+  .between { justify-content: space-between; }
+  .field { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+  .label { font-size: 12.5px; color: var(--muted); margin: 14px 0 6px; }
+  .tabs { display: flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-top: 16px; }
+  .tabs span { flex: 1; text-align: center; padding: 8px 0; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .tabs span.on { background: var(--fg); color: var(--bg); }
+  .plan { padding: 12px 14px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .plan b { font-size: 14px; }
+  .plan .price { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 16px; }
+  .files { font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: 11.5px; line-height: 1.75; padding: 10px 14px; }
 </style>
 </head>
 <body>
+<div id="root"></div>
+<script>
+const T = n => `../../public/themes/${n}.jpg`
+const HEART = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>'
+const CHEV = up => `<svg viewBox="0 0 10 6" ${up ? 'style="transform:rotate(180deg)"' : ''}><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>`
+// кадрування облич для конкретних фото
+const FOCUS = { '07': '55% 35%', '18': '50% 30%', '16': '50% 40%', '21': '50% 55%', '15': '52% 40%', '01': '50% 45%' }
+const bg = n => `background-image:url('${T(n)}');background-position:${FOCUS[n] || '50% 50%'}`
 
-<!-- ============ ПОСТ 1 ============ -->
-<section class="post" id="post-01">
-  <div class="head">
-    <h1>3 ГБ безкоштовно. <em>Назавжди.</em></h1>
-    <p>Без картки. Галерей — скільки хочеш.</p>
-  </div>
-  <div class="phone"><div class="screen"><div class="ui">
-    <div class="island"></div>
-    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
-    <div class="g-cover"><div class="ph" style="position:absolute;inset:0;background-image:url('../../public/themes/07.jpg');background-position:55% 35%"></div><div class="shade"></div>
-      <div class="inner"><span class="caps">Серпень 2026</span><div class="g-title">Весілля Олі<br>та Максима</div></div></div>
-    <div class="g-bar">
-      <span class="chip"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>12 обрано</span>
-      <span class="lang">UA <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></span>
-      <span class="dl">Завантажити все</span>
-    </div>
-    <div class="grid">
-      <div class="shot ph" style="background-image:url('../../public/themes/15.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/18.jpg');background-position:50% 30%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/01.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/16.jpg');background-position:50% 40%"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/12.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/03.jpg')"></div>
-    </div>
-  </div></div></div>
-  <div class="logo">проЯв</div>
-</section>
+const status = light => `<div class="status ${light ? 'light' : ''}"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>`
+const cover = (n, caps, title) => `<div class="g-cover"><div class="ph" style="position:absolute;inset:0;${bg(n)}"></div><div class="shade"></div>
+  <div class="inner"><span class="caps">${caps}</span><div class="g-title">${title}</div></div></div>`
+const fullCover = (n, caps, title, hint = 'гортайте ↓', extra = '') => `<div class="full"><div class="ph" style="position:absolute;inset:0;${bg(n)}"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.06) 45%,rgba(0,0,0,.5))"></div>${extra}
+  <div class="inner"><span class="caps">${caps}</span><div class="g-title" style="font-size:36px">${title}</div>
+  ${hint ? `<span class="caps" style="display:block;margin-top:22px">${hint}</span>` : ''}</div></div>`
+const bar = ({ sel = '12 обрано', on = false, lang = 'UA', dl = 'Завантажити все', menu = '' } = {}) => `<div class="g-bar">
+  <span class="chip ${on ? 'on' : ''}">${HEART}${sel}</span>
+  <span class="lang">${lang} ${CHEV(!!menu)}${menu}</span>
+  <span class="dl">${dl}</span></div>`
+const shot = (n, { cls = '', heart = false, play = '' } = {}) => `<div class="shot ${cls} ph" style="${bg(n)}">${heart ? `<span class="heart ${heart === 'on' ? 'on' : ''}">${HEART}</span>` : ''}${play ? `<span class="play"></span><span class="dur">${play}</span>` : ''}</div>`
+const grid = items => `<div class="grid">${items.map(i => typeof i === 'string' ? shot(i) : shot(i.n, i)).join('')}</div>`
+const favs = (ns, heart = true) => `<div class="fav">${ns.map(n => shot(n, { heart: heart && 'on' })).join('')}</div>`
+const langMenu = cur => `<span class="menu">${['UA', 'EN', 'PL', 'DE', 'ES', 'FR', 'IT', 'RO', 'PT'].map(l => `<span class="${l === cur ? 'cur' : ''}">${l}</span>`).join('')}</span>`
+const gcard = (n, title, meta) => `<div class="card gcard"><div class="ph" style="${bg(n)}"></div><div class="meta"><b>${title}</b><span class="small muted">${meta}</span></div></div>`
+const pub = '<span class="pill">Опубліковано</span>'
+const storage = (used, of, plan, pct) => `<div class="card" style="padding:13px 14px;margin-top:14px">
+  <div class="row between"><span class="small muted">Використано сховища</span><span class="pill">${plan}</span></div>
+  <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:19px;margin:6px 0 10px">${used} <span class="muted" style="font-size:14px">з ${of}</span></div>
+  <div class="meter"><i style="width:${pct}%"></i></div></div>`
 
-<!-- ============ ПОСТ 2 ============ -->
-<section class="post" id="post-02">
-  <div class="head">
-    <h1><em>129 ₴</em><br>за 100 ГБ.</h1>
-    <p>Тариф «Базовий» у гривні, оплата українською карткою.<br>Річна оплата — два місяці в подарунок.</p>
-  </div>
-  <div class="phone"><div class="screen"><div class="ui">
-    <div class="island"></div>
-    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
-    <div class="dash">
-      <div class="row" style="justify-content:space-between;margin-top:6px"><h2>Мої галереї</h2><span class="btn-o">Нова галерея</span></div>
-      <div class="card" style="padding:13px 14px;margin-top:14px">
-        <div class="row" style="justify-content:space-between"><span class="small muted">Використано сховища</span><span class="pill">Базовий</span></div>
-        <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:19px;margin:6px 0 10px">38,4 ГБ <span class="muted" style="font-size:14px">з 100 ГБ</span></div>
-        <div class="meter"><i style="width:38.4%"></i></div>
-      </div>
-      <div class="card gcard"><div class="ph" style="background-image:url('../../public/themes/07.jpg');background-position:55% 35%"></div>
-        <div class="meta"><b>Весілля Олі та Максима</b><span class="small muted"><span class="pill">Опубліковано</span> 248 фотографій</span></div></div>
-      <div class="card gcard"><div class="ph" style="background-image:url('../../public/themes/21.jpg');background-position:50% 55%"></div>
-        <div class="meta"><b>Весілля Ірини та Тараса</b><span class="small muted"><span class="pill">Опубліковано</span> 312 фотографій</span></div></div>
-      <div class="card gcard"><div class="ph" style="background-image:url('../../public/themes/13.jpg')"></div></div>
-    </div>
-  </div></div></div>
-  <div class="logo">проЯв</div>
-</section>
+/* ---------- екрани телефона (за реальним UI кабінету й галереї) ---------- */
+const S = {
+  gallery: () => status() + cover('07', 'Серпень 2026', 'Весілля Олі<br>та Максима') + bar() +
+    grid(['15', { n: '18', heart: 'on' }, '01', '16', '12', '03']),
 
-<!-- ============ ПОСТ 3 ============ -->
-<section class="post" id="post-03">
-  <div class="head">
-    <h1>Фото і відео<br><em>в одній</em> галереї.</h1>
-    <p>Весільний ролик поруч із кадрами: клієнт дивиться й завантажує все з одного посилання. З тарифу «Плюс».</p>
-  </div>
-  <div class="phone"><div class="screen"><div class="ui">
-    <div class="island"></div>
-    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
-    <div class="g-bar" style="border-top:1px solid var(--line)">
-      <span class="chip"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>12 обрано</span>
-      <span class="lang">UA <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></span>
-      <span class="dl">Завантажити все</span>
-    </div>
-    <div class="grid">
-      <div class="shot wide ph" style="background-image:url('../../public/themes/15.jpg');background-position:50% 40%"><span class="play"></span><span class="dur">Фільм · 04:12</span></div>
-      <div class="shot tall ph" style="background-image:url('../../public/themes/18.jpg');background-position:50% 30%"></div>
-      <div class="shot tall ph" style="background-image:url('../../public/themes/04.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/16.jpg');background-position:50% 40%"><span class="play"></span><span class="dur">Тизер · 00:58</span></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/05.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/24.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/22.jpg')"></div>
-    </div>
-  </div></div></div>
-  <div class="logo">проЯв</div>
-</section>
+  galleries: (used, of, plan, pct) => status() + `<div class="dash">
+    <div class="row between" style="margin-top:6px"><h2>Мої галереї</h2><span class="btn-o">Нова галерея</span></div>
+    ${storage(used, of, plan, pct)}
+    <div class="ggrid">
+      ${gcard('07', 'Весілля Олі та Максима', pub)}${gcard('21', 'Весілля Ірини та Тараса', pub)}
+      ${gcard('13', 'Заручини Каті та Олега', pub)}${gcard('19', 'Лав-сторі Ані та Дмитра', pub)}
+      ${gcard('05', 'Весілля Софії та Назара', pub)}${gcard('22', 'Прогулянка після розпису', '<span class="pill">Чернетка</span>')}
+    </div></div>`,
 
-<!-- ============ ПОСТ 4 ============ -->
-<section class="post" id="post-04">
-  <div class="head">
-    <h1>Галерея мовою <em>твого клієнта.</em></h1>
-    <p>9 мов: клієнт з Польщі, Німеччини чи Італії перемикає галерею сам — одним натиском.</p>
-  </div>
-  <div class="phone"><div class="screen"><div class="ui">
-    <div class="island"></div>
-    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
-    <div class="g-cover"><div class="ph" style="position:absolute;inset:0;background-image:url('../../public/themes/01.jpg');background-position:50% 45%"></div><div class="shade"></div>
-      <div class="inner"><span class="caps">August 2026</span><div class="g-title">Olia &amp; Maksym</div></div></div>
-    <div class="g-bar" style="position:relative;z-index:25">
-      <span class="chip"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>12 ausgewählt</span>
-      <span class="lang">DE <svg viewBox="0 0 10 6" style="transform:rotate(180deg)"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-        <span class="menu"><span>UA</span><span>EN</span><span>PL</span><span class="cur">DE</span><span>ES</span><span>FR</span><span>IT</span><span>RO</span><span>PT</span></span>
-      </span>
-      <span class="dl">Alle herunterladen</span>
-    </div>
-    <div class="grid">
-      <div class="shot ph" style="background-image:url('../../public/themes/07.jpg');background-position:55% 35%"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/19.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/13.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/21.jpg');background-position:50% 55%"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/12.jpg')"></div>
-      <div class="shot ph" style="background-image:url('../../public/themes/02.jpg')"></div>
-    </div>
-  </div></div></div>
-  <div class="logo">проЯв</div>
-</section>
+  signup: () => status() + `<div class="ph" style="height:250px;margin:0 8px;border-radius:var(--radius);${bg('15')}"></div>
+    <div class="dash"><h2 style="margin-top:18px">Вхід до кабінету</h2>
+    <div class="tabs"><span>Вхід</span><span class="on">Реєстрація</span><span>Лінк на пошту</span></div>
+    <div class="label">Електронна пошта</div><div class="field">olena.photo@gmail.com</div>
+    <div class="label">Пароль</div><div class="field">••••••••••</div>
+    <div class="small muted" style="margin-top:6px">Мінімум 8 символів</div>
+    <div class="btn-a" style="margin-top:18px">Зареєструватися</div>
+    <div class="btn-w" style="margin-top:10px">Продовжити з Google</div></div>`,
 
-<!-- ============ ПОСТ 5 ============ -->
-<section class="post" id="post-05">
-  <div class="head">
-    <h1>Бачиш, що <em>обрав</em> клієнт.</h1>
-    <p>Обране клієнта — на всіх тарифах.<br>Перегляди й завантаження — з тарифу «Плюс».</p>
-  </div>
-  <div class="phone"><div class="screen"><div class="ui">
-    <div class="island"></div>
-    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
-    <div class="dash">
-      <span class="small muted">← Галереї</span>
-      <h2 style="margin-top:8px">Весілля Олі та Максима</h2>
-      <div class="ph" style="height:150px;border-radius:var(--radius);margin-top:12px;background-image:url('../../public/themes/07.jpg');background-position:55% 38%"></div>
-      <div class="tiles">
-        <div class="card tile"><p>Переглядів</p><strong>214</strong></div>
-        <div class="card tile"><p>Завантажень</p><strong>38</strong></div>
-        <div class="card tile"><p>В обраному</p><strong>57</strong></div>
-      </div>
-      <div class="row" style="justify-content:space-between;margin-top:18px">
-        <span style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:15px">Обране клієнта</span>
-        <span class="small muted">Клієнтів, що обирали: 3</span>
-      </div>
-      <div class="fav">
-        <div class="shot ph" style="background-image:url('../../public/themes/18.jpg');background-position:50% 30%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/15.jpg');background-position:55% 40%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/16.jpg');background-position:50% 40%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/03.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/21.jpg');background-position:50% 55%"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/01.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/04.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/13.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/24.jpg')"><span class="heart on"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg></span></div>
-      </div>
-      <div style="margin-top:14px"><span class="btn-o">Скопіювати список файлів</span></div>
-    </div>
-  </div></div></div>
-  <div class="logo">проЯв</div>
-</section>
+  coverFull: (n, t = 'Весілля Олі<br>та Максима') => status(true) + fullCover(n, 'Серпень 2026', t),
 
-<!-- ============ ПОСТ 6 ============ -->
-<section class="post" id="post-06">
-  <div class="head">
-    <h1>Переїзд з Pixieset <em>без втрат.</em></h1>
-    <p>Завантаж zip з Pixieset чи Pic-Time — оригінали перенесемо без змін. І місяць «Базового» в подарунок.</p>
-  </div>
-  <div class="phone"><div class="screen"><div class="ui">
-    <div class="island"></div>
-    <div class="status"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
-    <div class="dash">
-      <h2 style="margin-top:6px">Імпорт галереї з zip</h2>
-      <p class="small muted" style="margin-top:6px">Кожна папка в zip стане окремою галереєю. Оригінали — без змін.</p>
-      <div class="card" style="padding:13px 14px;margin-top:14px">
-        <div class="row" style="justify-content:space-between"><b style="font-size:13px">oliamaksym-pixieset.zip</b><span class="small muted">3,2 ГБ</span></div>
-        <div class="small muted" style="margin:6px 0 9px">Переносимо: 186 з 248</div>
-        <div class="meter"><i style="width:75%"></i></div>
-      </div>
-      <div style="margin-top:16px;font-family:'Unbounded',sans-serif;font-weight:600;font-size:14px">Уже перенесено</div>
-      <div class="fav" style="grid-template-columns:repeat(3,1fr)">
-        <div class="shot ph" style="background-image:url('../../public/themes/18.jpg');background-position:50% 30%"></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/07.jpg');background-position:58% 35%"></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/15.jpg');background-position:55% 40%"></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/12.jpg')"></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/16.jpg');background-position:50% 40%"></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/01.jpg')"></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/05.jpg')"></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/19.jpg')"></div>
-        <div class="shot ph" style="background-image:url('../../public/themes/22.jpg')"></div>
-      </div>
-      <div class="card" style="margin-top:14px;padding:10px 12px">
-        <div class="row"><div class="thumb ph" style="background-image:url('../../public/themes/21.jpg');background-position:50% 55%"></div>
-          <div><b style="font-size:13px">Весілля Олі та Максима — Прогулянка</b><div class="small muted">124 фото · <span class="pill">Чернетка</span></div></div></div>
-      </div>
-      <p class="small" style="margin-top:12px">За імпорт нараховано місяць тарифу «Базовий» безкоштовно — до 28.10.2026.</p>
+  plans: year => status() + `<div class="dash"><h2 style="margin-top:6px">Тарифи і сховище</h2>
+    <div class="tabs"><span class="${year ? '' : 'on'}">Щомісяця</span><span class="${year ? 'on' : ''}">Щороку</span></div>
+    ${[['Безкоштовний', '3 ГБ', '0 ₴', '0 ₴'], ['Базовий', '100 ГБ', '129 ₴', '1 290 ₴'], ['Плюс', '500 ГБ', '519 ₴', '5 190 ₴'], ['Максимальний', '1 ТБ', '899 ₴', '8 990 ₴']]
+      .map(([n, gb, m, y]) => `<div class="card plan ${n === 'Базовий' ? 'sel' : ''}"><div><b>${n}</b><div class="small muted">${gb} · галерей без ліміту</div></div>
+        <div style="text-align:right"><div class="price">${year ? y : m}</div><div class="small muted">${year ? 'на рік' : 'на місяць'}</div></div></div>`).join('')}
+    ${year ? `<div class="card" style="padding:12px 14px;margin-top:14px"><div class="small">Базовий за рік: <b>1 290 ₴</b> замість 1 548 ₴ — два місяці в подарунок.</div></div>
+      <div class="btn-a" style="margin-top:14px">Оплатити 1 290 ₴</div>` : ''}
     </div>
-  </div></div></div>
-  <div class="logo">проЯв</div>
-</section>
+    <div class="grid" style="padding-top:16px">${year ? shot('07') + shot('21') : shot('18') + shot('16') + shot('01') + shot('12')}</div>`,
 
-<!-- ============ ПОСТ 7 (закріплений) ============ -->
-<section class="post post7" id="post-07">
-  <div class="head">
-    <h1><em>Усе</em>, що вміє проЯв.</h1>
-    <div class="list">
-      <span>3 ГБ безкоштовно назавжди</span>
-      <span>9 мов для клієнтів</span>
-      <span>Від 129 ₴ за 100 ГБ</span>
-      <span>Обране клієнта і статистика</span>
-      <span>Фото і відео в одній галереї</span>
-      <span>Імпорт з Pixieset і Pic-Time</span>
-    </div>
-  </div>
-  <div class="phone"><div class="screen"><div class="ui">
-    <div class="island"></div>
-    <div class="status on-photo"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>
-    <div class="ph" style="position:absolute;inset:0;background-image:url('../../public/themes/18.jpg');background-position:50% 35%"></div>
-    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.08) 45%,rgba(0,0,0,.5))"></div>
-    <div style="position:absolute;left:0;right:0;bottom:70px;text-align:center;color:#f7f4ee">
-      <span class="caps" style="color:rgba(247,244,238,.88)">Серпень 2026</span>
-      <div class="g-title" style="font-size:36px">Весілля Олі<br>та Максима</div>
-      <span class="caps" style="display:block;margin-top:22px;color:rgba(247,244,238,.8)">гортайте ↓</span>
-    </div>
-  </div></div></div>
-  <div class="logo">проЯв</div>
-</section>
+  branded: () => status(true) + `<div style="position:relative;height:430px">${fullCover('21', 'Серпень 2026', 'Весілля Ірини<br>та Тараса', 'гортайте ↓',
+      '<div class="mark" style="position:absolute;top:66px;left:0;right:0;text-align:center;color:#f7f4ee">Твій логотип</div>')}</div>` +
+    grid(['04', '13', '24', '02']) +
+    `<div class="foot"><div class="sig-name">Твоє імʼя · фотограф</div><div class="small muted" style="margin-top:6px">без підпису «Створено на проЯв»</div></div>`,
 
+  galleryVideo: () => status() + bar() + grid([{ n: '15', cls: 'wide', play: 'Фільм · 04:12' }, { n: '18', cls: 'tall' }, { n: '04', cls: 'tall' },
+    { n: '16', play: 'Тизер · 00:58' }, '05', '24', '22']),
+
+  lightbox: () => `<div class="ui dark"><div class="island"></div>${status()}
+    <div class="lb-tools"><span class="lb-btn" style="color:var(--accent-soft)"><span style="width:16px;height:16px;display:block">${HEART}</span></span><span class="lb-btn">✕</span></div>
+    <div class="lb-media ph" style="${bg('15')}"></div>
+    <div class="lb-ctrl"><span>01:24</span><span class="track"><i></i></span><span>04:12</span></div>
+    <div class="lb-foot"><span class="lb-dl">↓ Завантажити оригінал</span><span class="caps" style="color:rgba(247,244,238,.6)">Фільм · 1 / 248</span></div></div>`,
+
+  videoGrid: () => status() + bar() + grid([{ n: '15', play: 'Фільм · 04:12' }, { n: '16', play: 'Тизер · 00:58' },
+    { n: '07', play: 'Перший танець' }, { n: '21', play: 'Промови · 06:40' }, '18', '04', '12', '01']),
+
+  langOpen: () => status() + cover('01', 'August 2026', 'Olia &amp; Maksym') +
+    bar({ sel: '12 ausgewählt', lang: 'DE', dl: 'Alle herunterladen', menu: langMenu('DE') }) + grid(['07', '19', '13', '21', '12', '02']),
+
+  passwordPl: () => status(true) + `<div style="position:relative;height:420px">${fullCover('07', 'Sierpień 2026', 'Olia &amp; Maksym', '')}</div>
+    <div class="dash" style="text-align:center"><h2 style="margin-top:26px;font-size:19px">Ta galeria jest chroniona hasłem</h2>
+    <div class="label" style="text-align:left;margin-top:22px">Hasło</div><div class="field" style="text-align:left">••••••••</div>
+    <div class="btn-a" style="margin-top:14px">Otwórz galerię</div>
+    <div class="row" style="justify-content:center;margin-top:18px;gap:14px;font-size:13px;font-weight:600"><span class="muted">UA</span><span class="muted">EN</span><span style="color:var(--accent)">PL</span><span class="muted">DE</span><span class="muted">…</span></div></div>`,
+
+  copyLinks: () => status() + `<div class="dash"><span class="small muted">← Галереї</span>
+    <h2 style="margin-top:8px">Весілля Олі та Максима</h2>
+    <div class="ph" style="height:170px;border-radius:var(--radius);margin-top:12px;${bg('07')}"></div>
+    <div class="row" style="margin-top:14px;flex-wrap:wrap;gap:8px"><span class="btn-o">Скопіювати посилання · UA</span><span class="btn-o a">Посилання скопійовано</span></div>
+    <p class="small muted" style="margin-top:10px">Публічне посилання: proiav.com/en/g/olia-maksym</p>
+    ${favs(['18', '15', '16', '03', '21', '01', '04', '13', '24'], false)}</div>`,
+
+  galleryFr: () => status() + cover('13', 'Août 2026', 'Olia &amp; Maksym') + bar({ sel: '12 sélectionnées', lang: 'FR', dl: 'Tout télécharger' }) +
+    grid(['18', '15', '01', '16', '12', '03']),
+
+  favClient: () => status() + bar({ sel: '24 обрано', on: true }) + grid([{ n: '18', cls: 'tall', heart: 'on' }, { n: '07', cls: 'tall', heart: 'on' },
+    { n: '15', heart: 'on' }, { n: '01', heart: true }, { n: '16', heart: 'on' }, { n: '12', heart: true }, { n: '21', heart: 'on' }, { n: '03', heart: true }]),
+
+  favList: () => status() + `<div class="dash"><span class="small muted">← Весілля Олі та Максима</span>
+    <div class="row between" style="margin-top:10px"><h2>Обране клієнта</h2><span class="small muted">24 фото</span></div>
+    ${favs(['18', '15', '16', '07', '21', '01', '04', '13', '24', '12', '03', '05'])}
+    <div class="card" style="margin-top:12px"><div class="files">OM_0142.jpg, OM_0187.jpg, OM_0203.jpg,<br>OM_0231.jpg, OM_0266.jpg, OM_0290.jpg,<br>OM_0314.jpg, OM_0352.jpg, OM_0377.jpg …</div></div>
+    <div class="row between" style="margin-top:12px"><span class="btn-o a">Список скопійовано</span><span class="small muted">Клієнтів, що обирали: 3</span></div></div>`,
+
+  stats: () => status() + `<div class="dash"><span class="small muted">← Галереї</span>
+    <h2 style="margin-top:8px">Весілля Олі та Максима</h2>
+    <div class="ph" style="height:150px;border-radius:var(--radius);margin-top:12px;${bg('07')}"></div>
+    <div class="tiles"><div class="card tile"><p>Переглядів</p><strong>214</strong></div><div class="card tile"><p>Завантажень</p><strong>38</strong></div><div class="card tile"><p>В обраному</p><strong>57</strong></div></div>
+    <div class="row between" style="margin-top:18px"><span class="h3">Обране клієнта</span><span class="small muted">Клієнтів, що обирали: 3</span></div>
+    ${favs(['18', '15', '16', '03', '21', '01', '04', '13', '24'])}
+    <div style="margin-top:14px"><span class="btn-o">Скопіювати список файлів</span></div></div>`,
+
+  statsList: () => status() + `<div class="dash"><div class="row between" style="margin-top:6px"><h2>Мої галереї</h2><span class="pill">Плюс</span></div>
+    ${gcard('07', 'Весілля Олі та Максима', `${pub} 248 фото · 214 переглядів`)}
+    ${gcard('21', 'Весілля Ірини та Тараса', `${pub} 312 фото · 96 переглядів`)}
+    ${gcard('13', 'Заручини Каті та Олега', `${pub} 84 фото · 41 перегляд`)}</div>`,
+
+  onboarding: () => status() + `<div class="ph" style="height:280px;margin:0 8px;border-radius:var(--radius);${bg('18')}"></div>
+    <div class="dash"><h2 style="margin-top:18px">Ласкаво просимо у проЯв</h2>
+    <p class="small muted" style="margin-top:6px">Три кроки — і клієнт отримає красиву галерею.</p>
+    ${['Створіть галерею й додайте назву зйомки', 'Завантажте фото — вони одразу в захищеному сховищі', 'Надішліть клієнту лінк — за бажання під паролем']
+      .map((t, i) => `<div class="card row" style="padding:12px 14px;margin-top:8px"><span class="h3" style="color:var(--accent)">${i + 1}</span><span class="small">${t}</span></div>`).join('')}
+    <div class="btn-a" style="margin-top:16px">Створити першу галерею</div></div>`,
+}
+
+/* ---------- каруселі: [номер, слайди] ---------- */
+const POSTS = [
+  ['01', [
+    { h: '3 ГБ безкоштовно. <em>Назавжди.</em>', p: 'Без картки. Галерей — скільки хочеш.', s: S.gallery },
+    { h: 'Галерей — <em>скільки хочеш.</em>', p: 'Ліміт тільки на обсяг сховища, а не на кількість галерей чи клієнтів.', s: () => S.galleries('2,1 ГБ', '3 ГБ', 'Безкоштовний', 70) },
+    { h: 'Без картки. <em>Без пробного.</em>', p: 'Реєстрація через пошту або Google. Через 14 днів нічого не спишеться — нема з чого.', s: S.signup },
+    { h: 'Що є <em>безкоштовно.</em>', list: ['Пароль на галерею', 'Обране клієнта', 'Оригінали в повній якості', '9 мов для клієнтів', 'Термін дії галереї', 'Водяний знак на превʼю'], s: () => S.coverFull('21', 'Весілля Ірини<br>та Тараса') },
+  ]],
+  ['02', [
+    { h: '<em>129 ₴</em><br>за 100 ГБ.', p: 'Тариф «Базовий» у гривні, оплата українською карткою.<br>Річна оплата — два місяці в подарунок.', s: () => S.galleries('38,4 ГБ', '100 ГБ', 'Базовий', 38) },
+    { h: 'Усі тарифи —<br><em>у гривні.</em>', p: 'Від 0 до 899 ₴ на місяць.<br>Галерей — без ліміту на кожному тарифі.', s: () => S.plans(false) },
+    { h: 'Твій логотип, <em>не наш.</em>', p: 'З «Базового» підпис «Створено на проЯв» зникає, а на обкладинці — твій логотип.', s: S.branded },
+    { h: 'Рік — це<br><em>10 місяців.</em>', p: 'Базовий за рік — 1 290 ₴ замість 1 548 ₴.<br>Посилання на реєстрацію — у профілі.', s: () => S.plans(true) },
+  ]],
+  ['03', [
+    { h: 'Фото і відео<br><em>в одній</em> галереї.', p: 'Весільний ролик поруч із кадрами: клієнт дивиться й завантажує все з одного посилання. З тарифу «Плюс».', s: S.galleryVideo },
+    { h: 'Ролик грає<br><em>у галереї.</em>', p: 'Без окремих посилань на YouTube чи хмару. Клієнт дивиться й завантажує оригінал.', s: S.lightbox },
+    { h: 'Фільм, тизер, <em>перший танець.</em>', p: 'Скільки завгодно роликів у галереї. Тариф «Плюс»: 500 ГБ, відео й статистика — 519 ₴ на місяць.', s: S.videoGrid },
+  ]],
+  ['04', [
+    { h: 'Галерея мовою <em>твого клієнта.</em>', p: '9 мов: клієнт з Польщі, Німеччини чи Італії перемикає галерею сам — одним натиском.', s: S.langOpen },
+    { h: 'Навіть пароль — <em>його мовою.</em>', p: 'Кнопки, підказки й захист галереї перекладені на всі 9 мов.', s: S.passwordPl },
+    { h: 'Мова — <em>вже в посиланні.</em>', p: 'У кабінеті є готові посилання українською та англійською. Далі клієнт перемикає сам.', s: S.copyLinks },
+    { h: '<em>9 мов</em> у кожній галереї.', list3: ['Українська', 'English', 'Polski', 'Deutsch', 'Español', 'Français', 'Italiano', 'Română', 'Português'], s: S.galleryFr },
+  ]],
+  ['05', [
+    { h: 'Бачиш, що <em>обрав</em> клієнт.', p: 'Обране клієнта — на всіх тарифах.<br>Перегляди й завантаження — з тарифу «Плюс».', s: S.stats },
+    { h: 'Клієнт ставить <em>сердечко.</em>', p: 'Відбір на альбом чи ретуш — прямо в галереї, без таблиць і переписок.', s: S.favClient },
+    { h: 'Список файлів — <em>одним натиском.</em>', p: 'Копіюєш назви обраних кадрів і відбираєш їх у себе для ретуші.', s: S.favList },
+    { h: 'Скільки разів <em>відкрили.</em>', p: 'Перегляди й завантаження кожної галереї — з тарифу «Плюс».', s: S.statsList },
+  ]],
+  ['06', [
+    { h: '<em>Усе</em>, що вміє проЯв.', list: ['3 ГБ безкоштовно назавжди', '9 мов для клієнтів', 'Від 129 ₴ за 100 ГБ', 'Обране клієнта і статистика', 'Фото і відео в одній галереї', 'Пароль і термін дії галереї'], s: () => S.coverFull('18') },
+    { h: 'Перша галерея — <em>за три кроки.</em>', p: 'Створи, завантаж, надішли клієнту посилання — за бажання під паролем.', s: S.onboarding },
+    { h: 'Почни з <em>3 ГБ безкоштовно.</em>', p: 'Без картки. Посилання на реєстрацію — у профілі.', s: () => S.coverFull('15') },
+  ]],
+]
+
+document.getElementById('root').innerHTML = POSTS.map(([id, slides]) => `<div class="carousel">${slides.map((sl, i) => {
+  const items = sl.list || sl.list3
+  const list = items ? `<div class="list ${sl.list3 ? 'three' : ''}">${items.map(t => `<span>${t}</span>`).join('')}</div>` : ''
+  const inner = sl.s()
+  const ui = inner.startsWith('<div class="ui') ? inner : `<div class="ui"><div class="island"></div>${inner}</div>`
+  return `<section class="post ${list ? 'tall-head' : ''}" id="post-${id}-${i + 1}">
+    <div class="head"><h1>${sl.h}</h1>${sl.p ? `<p>${sl.p}</p>` : ''}${list}</div>
+    <div class="phone"><div class="screen">${ui}</div></div>
+    <div class="logo">проЯв</div></section>`
+}).join('')}</div>`).join('')
+</script>
 </body>
 </html>
