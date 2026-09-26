@@ -1,0 +1,110 @@
+name: DB — nightly backup to B2
+
+# Supabase Free keeps no backups at all (audit BK-01). Every night: pg_dump of
+# the public + auth schemas → gzip → a SEPARATE B2 bucket (never the media
+# bucket), then a restore check: the dump is restored into a throwaway
+# Postgres in this job and a few row counts are compared with production.
+# A dump that cannot be restored fails the workflow, so a broken backup never
+# sits unnoticed for months.
+#
+# Repository secrets:
+#   SUPABASE_DB_URL          — Supabase → Connect → Session pooler URI (IPv4 works
+#                              from GitHub runners; direct db.* host is IPv6-only)
+#   B2_BACKUP_KEY_ID / B2_BACKUP_APPLICATION_KEY — a B2 key scoped to the backup
+#                              bucket only (writeFiles + listFiles + readFiles)
+#   B2_BACKUP_BUCKET         — e.g. proiav-db-backups (Object Lock on, see
+#                              docs/AUDIT_STORAGE_LIFECYCLE.md § PR 1)
+#   B2_BACKUP_REGION         — e.g. eu-central-003
+# Retention is the bucket's lifecycle rule (30 days), not this workflow.
+
+on:
+  schedule:
+    - cron: '17 2 * * *' # 02:17 UTC daily (04:17/05:17 Kyiv)
+  workflow_dispatch: {}
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      restore:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: restore
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.B2_BACKUP_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_BACKUP_APPLICATION_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.B2_BACKUP_REGION }}
+      AWS_EC2_METADATA_DISABLED: 'true'
+      B2_ENDPOINT: https://s3.${{ secrets.B2_BACKUP_REGION }}.backblazeb2.com
+      BUCKET: ${{ secrets.B2_BACKUP_BUCKET }}
+      RESTORE_URL: postgres://postgres:restore@localhost:5432/restore_check
+    steps:
+      - name: Install Postgres 17 client (matches the Supabase server)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-17 >/dev/null
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      - name: Dump
+        run: |
+          set -euo pipefail
+          STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" \
+            --format=custom --compress=6 --no-owner --no-privileges \
+            --schema=public --schema=auth \
+            --file "proiav-$STAMP.dump"
+          ls -l "proiav-$STAMP.dump"
+          # Row counts of the tables that matter, compared after the restore.
+          psql "$SUPABASE_DB_URL" -At -c \
+            "select 'profiles',count(*) from public.profiles union all
+             select 'galleries',count(*) from public.galleries union all
+             select 'assets',count(*) from public.assets union all
+             select 'payments',count(*) from public.payments union all
+             select 'auth_users',count(*) from auth.users order by 1" > counts.prod
+          cat counts.prod
+
+      - name: Restore check (throwaway Postgres)
+        run: |
+          set -euo pipefail
+          psql postgres://postgres:restore@localhost:5432/postgres -q -c "create database restore_check"
+          # The auth schema references Supabase-only roles/extensions; those
+          # objects are skipped (exit code 1 = warnings), tables still restore.
+          /usr/lib/postgresql/17/bin/pg_restore --dbname "$RESTORE_URL" \
+            --no-owner --no-privileges --jobs 2 "proiav-$STAMP.dump" || true
+          psql "$RESTORE_URL" -At -c \
+            "select 'profiles',count(*) from public.profiles union all
+             select 'galleries',count(*) from public.galleries union all
+             select 'assets',count(*) from public.assets union all
+             select 'payments',count(*) from public.payments union all
+             select 'auth_users',count(*) from auth.users order by 1" > counts.restored
+          echo "--- production"; cat counts.prod
+          echo "--- restored";  cat counts.restored
+          diff counts.prod counts.restored
+
+      - name: Upload to B2
+        run: |
+          set -euo pipefail
+          aws --endpoint-url "$B2_ENDPOINT" s3 cp "proiav-$STAMP.dump" \
+            "s3://$BUCKET/db/proiav-$STAMP.dump" --no-progress
+          aws --endpoint-url "$B2_ENDPOINT" s3 ls "s3://$BUCKET/db/" | tail -n 5
+
+      - name: Verify the upload
+        run: |
+          set -euo pipefail
+          LOCAL=$(stat -c %s "proiav-$STAMP.dump")
+          REMOTE=$(aws --endpoint-url "$B2_ENDPOINT" s3api head-object \
+            --bucket "$BUCKET" --key "db/proiav-$STAMP.dump" --query ContentLength --output text)
+          echo "local=$LOCAL remote=$REMOTE"
+          test "$LOCAL" = "$REMOTE"

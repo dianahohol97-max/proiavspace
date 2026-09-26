@@ -6,7 +6,7 @@
  *  write():    a call WITHOUT tools, JSON output
  */
 
-import { GEMINI_MODEL } from '@/lib/gemini'
+import { geminiModel } from '@/lib/gemini'
 
 export interface LlmProvider {
   name: string
@@ -21,7 +21,7 @@ export class ProviderError extends Error {}
 function gemini(): LlmProvider {
   const key = process.env.GEMINI_API_KEY
   if (!key) throw new ProviderError('Ключ GEMINI_API_KEY не додано. Додай його в змінні середовища й повтори.')
-  const model = GEMINI_MODEL
+  const model = geminiModel()
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`
 
   async function call(body: unknown) {

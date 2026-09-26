@@ -6,7 +6,8 @@ name: Blog — generate article
 # live automatically.
 #
 # Requires repo secrets: GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
-# Optional repo variables: BLOG_LLM_PROVIDER (gemini | anthropic), GEMINI_MODEL.
+# Requires repo variable: GEMINI_MODEL (no default — the model name lives only in
+# the environment, same as on Vercel). Optional: BLOG_LLM_PROVIDER (gemini | anthropic).
 
 on:
   # PAUSED until generator v2 is merged and migration 0035 is applied —
@@ -32,5 +33,5 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BLOG_LLM_PROVIDER: ${{ vars.BLOG_LLM_PROVIDER || 'gemini' }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.6-flash' }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
         run: npm run blog:generate

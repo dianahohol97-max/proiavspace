@@ -118,6 +118,22 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
         headers: { 'content-type': 'application/json' },
       })
     }
+    // enforce_storage_quota (migration 0045): the check and the insert are one
+    // atomic step under the profile's row lock — nothing interleaves here.
+    const profile = db.profiles.find((p) => p.user_id === row.owner_id)
+    if (profile) {
+      const graceOver =
+        typeof profile.grace_until === 'string' && new Date(profile.grace_until).getTime() < Date.now()
+      const limit = graceOver
+        ? Math.min(profile.storage_limit_bytes as number, 3 * GB)
+        : (profile.storage_limit_bytes as number)
+      if ((profile.storage_used_bytes as number) + (row.size_bytes as number) > limit) {
+        return new Response(JSON.stringify({ code: 'P0001', message: 'storage_quota_exceeded' }), {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+    }
     const inserted = { id: crypto.randomUUID(), ...row }
     db.assets.push(inserted)
     applyStorageDelta(inserted, 1)

@@ -4,7 +4,7 @@
  * binaries (initdb/pg_ctl/psql, any version ≥ 15); without them the SQL
  * tests are skipped, not failed. Never touches the Supabase project.
  */
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFile, execFileSync, spawnSync } from 'node:child_process'
 import { chmodSync, existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -30,6 +30,8 @@ export interface LocalPg {
   sql(query: string): string
   /** Like sql(), but returns the error text instead of throwing. */
   trySql(query: string): { ok: boolean; out: string }
+  /** trySql in a separate process, for concurrency tests. */
+  trySqlAsync(query: string): Promise<{ ok: boolean; out: string }>
   stop(): void
   /** Migrations that failed to apply (file name → first error line). */
   failedMigrations: Record<string, string>
@@ -78,9 +80,16 @@ export function startLocalPg(): LocalPg | null {
     const r = run(['-At', '-c', query])
     return { ok: r.status === 0, out: (r.status === 0 ? r.stdout : r.stderr).trim() }
   }
+  const psqlArgs = (query: string) => ['-h', dir, '-p', port, '-U', 'postgres', '-v', 'ON_ERROR_STOP=1', '-X', '-q', '-At', '-c', query]
   return {
     failedMigrations,
     trySql,
+    trySqlAsync: (query) =>
+      new Promise((resolve) =>
+        execFile(psql, psqlArgs(query), { encoding: 'utf8' }, (error, stdout, stderr) =>
+          resolve({ ok: !error, out: (error ? stderr : stdout).trim() })
+        )
+      ),
     sql(query: string) {
       const r = trySql(query)
       if (!r.ok) throw new Error(`SQL failed: ${r.out}\n${query}`)

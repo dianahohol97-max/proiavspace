@@ -251,7 +251,7 @@ describe('1.1 complete: розмір беремо з B2, а не від кліє
     assert.equal(bucket.size, 1)
   })
 
-  test('[ST-01] паралельні complete з кількох вкладок не мають разом перевищити 100 ГБ', async () => {
+  test('ST-01: паралельні complete з кількох вкладок не перевищують 100 ГБ; зайві об’єкти прибрано', async () => {
     const { userId, galleryId } = seedAccount({
       plan: 'basic',
       usedBytes: 99.9 * GB,
@@ -260,7 +260,7 @@ describe('1.1 complete: розмір беремо з B2, а не від кліє
     // 99,9 ГБ + 5 × 60 МБ = 100,19 ГБ: влізти може лише один-єдиний файл (60 МБ < 102,4 МБ).
     const keys = Array.from({ length: 5 }, (_, i) => keyFor(userId, galleryId, `tab${i}.jpg`))
     for (const key of keys) putObject(key, 60 * MB)
-    await Promise.all(
+    const results = await Promise.all(
       keys.map((key) =>
         registerAsset(client(), userId, { galleryId, key, contentType: 'image/jpeg', sizeBytes: 60 * MB })
       )
@@ -270,5 +270,13 @@ describe('1.1 complete: розмір беремо з B2, а не від кліє
       `використано ${(usedBytes(userId) / GB).toFixed(3)} ГБ при ліміті 100 ГБ — ` +
         'перевірка ліміту (читання) і вставка asset (тригер) не атомарні'
     )
+    assert.equal(results.filter((r) => r.ok).length, 1)
+    assert.equal(
+      results.filter((r) => !r.ok && r.status === 403 && r.error === 'storage_quota_exceeded').length,
+      4
+    )
+    // The four refused files are gone from the bucket, the winner stays.
+    assert.equal(bucket.size, 1)
+    assert.equal(db.assets.length, 1)
   })
 })

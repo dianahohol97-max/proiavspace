@@ -11,7 +11,7 @@
  *                                            hand-written article (nothing is saved to the DB)
  *
  * Env: BLOG_LLM_PROVIDER (gemini | anthropic, default gemini), GEMINI_API_KEY,
- * GEMINI_MODEL (fallback in src/lib/gemini.ts), NEXT_PUBLIC_SUPABASE_URL (or
+ * GEMINI_MODEL (required, see src/lib/gemini.ts), NEXT_PUBLIC_SUPABASE_URL (or
  * SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY.
  */
 import { readFileSync, writeFileSync } from 'node:fs'

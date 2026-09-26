@@ -5,6 +5,7 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListMultipartUploadsCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -16,6 +17,7 @@ import type {
   SignedReadUrlOptions,
   StorageObject,
   StorageProvider,
+  UnfinishedMultipartUpload,
   UploadedPart,
   UploadUrlOptions,
 } from './StorageProvider'
@@ -61,9 +63,14 @@ export class S3CompatProvider implements StorageProvider {
       Bucket: this.bucket,
       Key: options.key,
       ContentType: options.contentType,
+      ContentLength: options.sizeBytes,
     })
+    // content-length is part of the signature: the quota gate ran on this
+    // exact size, and a PUT of any other size is refused by the storage with
+    // 403 instead of landing uncounted in the bucket.
     const url = await getSignedUrl(this.client, command, {
       expiresIn: options.expiresInSeconds ?? DEFAULT_UPLOAD_TTL_SECONDS,
+      signableHeaders: options.sizeBytes !== undefined ? new Set(['content-length']) : undefined,
     })
     return { url, key: options.key }
   }
@@ -177,6 +184,29 @@ export class S3CompatProvider implements StorageProvider {
     await this.client.send(
       new AbortMultipartUploadCommand({ Bucket: this.bucket, Key: key, UploadId: uploadId })
     )
+  }
+
+  async listMultipartUploads(prefix: string): Promise<UnfinishedMultipartUpload[]> {
+    const uploads: UnfinishedMultipartUpload[] = []
+    let keyMarker: string | undefined
+    let uploadIdMarker: string | undefined
+    do {
+      const response = await this.client.send(
+        new ListMultipartUploadsCommand({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          KeyMarker: keyMarker,
+          UploadIdMarker: uploadIdMarker,
+        })
+      )
+      for (const item of response.Uploads ?? []) {
+        if (!item.Key || !item.UploadId) continue
+        uploads.push({ key: item.Key, uploadId: item.UploadId, initiated: item.Initiated ?? null })
+      }
+      keyMarker = response.IsTruncated ? response.NextKeyMarker : undefined
+      uploadIdMarker = response.IsTruncated ? response.NextUploadIdMarker : undefined
+    } while (keyMarker)
+    return uploads
   }
 
   async list(prefix: string): Promise<StorageObject[]> {

@@ -21,9 +21,9 @@ function isAbortBody(value: unknown): value is AbortBody {
 }
 
 /**
- * Multipart cleanup on client-side failure. R2 also expires unfinished
- * multipart uploads on its own after a while, so a missed abort (closed tab)
- * does not leak storage forever.
+ * Multipart cleanup on client-side failure. A missed abort (closed tab) is
+ * not lost either: B2 keeps — and bills — the parts until aborted, so the
+ * daily /api/cron/storage-cleanup sweeps uploads left open for over a day.
  */
 export async function POST(request: NextRequest) {
   const supabase = createSupabaseServerClient()

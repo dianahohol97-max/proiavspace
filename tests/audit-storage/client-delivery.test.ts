@@ -25,14 +25,20 @@ function provider() {
 }
 
 describe('presigned URL (B2, S3 SigV4)', () => {
-  test('[ST-02] presigned PUT має підписувати розмір (content-length), інакше залити можна будь-скільки', async () => {
-    const { url } = await provider().getUploadUrl({ key: 'u/a/g/b/o/x.jpg', contentType: 'image/jpeg' })
+  test('ST-02: presigned PUT підписує розмір (content-length) — PUT іншого розміру B2 відхилить', async () => {
+    const { url } = await provider().getUploadUrl({
+      key: 'u/a/g/b/o/x.jpg',
+      contentType: 'image/jpeg',
+      sizeBytes: 1024 * 1024,
+    })
     const signed = new URL(url).searchParams.get('X-Amz-SignedHeaders') ?? ''
-    assert.match(
-      signed,
-      /content-length/,
-      `SignedHeaders=${signed}: presign на 1 МБ приймає PUT на 5 ГБ; поки не викликано complete, об’єкт у B2 не рахується й не прибирається`
-    )
+    assert.match(signed, /content-length/, `SignedHeaders=${signed}`)
+  })
+
+  test('ST-02: обидва presign-роути передають sizeBytes у getUploadUrl', () => {
+    for (const route of ['src/app/api/uploads/presign/route.ts', 'src/app/api/portfolio/presign/route.ts']) {
+      assert.match(source(route), /getUploadUrl\(\{[^}]*sizeBytes: body\.sizeBytes/, route)
+    }
   })
 
   test('presigned PUT живе 10 хв', async () => {

@@ -44,9 +44,8 @@ function grant(userId: string, importId: string, maxGrants = 30, deadline = DEAD
 }
 
 describe('міграції', () => {
-  test('0001–0042 накочуються на чисту БД; 0043 посилається на таблицю, якої нема в міграціях', { skip: skip() }, () => {
-    const failed = Object.keys(pg!.failedMigrations)
-    assert.deepEqual(failed, ['0043_debug_events_no_public_insert.sql'], JSON.stringify(pg!.failedMigrations))
+  test('усі міграції накочуються на чисту БД', { skip: skip() }, () => {
+    assert.deepEqual(pg!.failedMigrations, {})
   })
 })
 
@@ -62,11 +61,46 @@ describe('1.1 облік місця в БД', () => {
     assert.equal(pg!.sql(`select storage_used_bytes from profiles where user_id='${userId}'`), '500')
   })
 
-  test('[ST-01] БД не страхує ліміт: вставка asset понад storage_limit_bytes має відхилятися', { skip: skip() }, () => {
+  test('ST-01: тригер 0045 відхиляє вставку понад storage_limit_bytes (assets і portfolio_assets)', { skip: skip() }, () => {
     const { userId, galleryId } = newAccount({ plan: 'basic', limit: BASIC, used: BASIC - 1 })
     const r = pg!.trySql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes)
              values ('${galleryId}', '${userId}', 'k-over', 'photo', 'image/jpeg', ${200 * 1024 ** 2})`)
-    assert.equal(r.ok, false, 'вставка пройшла — used > limit, єдиний захист — неатомарна перевірка в API')
+    assert.equal(r.ok, false)
+    assert.match(r.out, /storage_quota_exceeded/)
+    const p = pg!.trySql(`insert into public.portfolio_assets (owner_id, r2_key, content_type, size_bytes)
+             values ('${userId}', 'p-over', 'image/jpeg', 2)`)
+    assert.match(p.out, /storage_quota_exceeded/)
+    // Exactly to the limit is still fine.
+    pg!.sql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes)
+             values ('${galleryId}', '${userId}', 'k-fit', 'photo', 'image/jpeg', 1)`)
+    assert.equal(pg!.sql(`select storage_used_bytes from profiles where user_id='${userId}'`), String(BASIC))
+  })
+
+  test('ST-01: після grace ліміт у БД = Free (3 ГБ), навіть якщо storage_limit_bytes = 100 ГБ', { skip: skip() }, () => {
+    const lapsed = newAccount({ plan: 'basic', limit: BASIC, used: 3 * GB, grace: new Date(Date.now() - 60e3).toISOString() })
+    const r = pg!.trySql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes)
+             values ('${lapsed.galleryId}', '${lapsed.userId}', 'k-lapsed', 'photo', 'image/jpeg', 1)`)
+    assert.match(r.out, /storage_quota_exceeded/)
+    const inGrace = newAccount({ plan: 'basic', limit: BASIC, used: 3 * GB, grace: new Date(Date.now() + 60e3).toISOString() })
+    pg!.sql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes)
+             values ('${inGrace.galleryId}', '${inGrace.userId}', 'k-grace', 'photo', 'image/jpeg', 1)`)
+  })
+
+  test('ST-01: два одночасних insert — другий чекає на лок і бачить байти першого', { skip: skip() }, async () => {
+    const { userId, galleryId } = newAccount({ plan: 'basic', limit: BASIC, used: BASIC - 100 })
+    const insert = (key: string) =>
+      `insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes)
+       values ('${galleryId}', '${userId}', '${key}', 'photo', 'image/jpeg', 60)`
+    // Session A holds the lock inside an open transaction while B tries.
+    const results = await Promise.all([
+      pg!.trySqlAsync(`begin; ${insert('a')}; select pg_sleep(1); commit;`),
+      new Promise<{ ok: boolean; out: string }>((resolve) =>
+        setTimeout(() => resolve(pg!.trySql(insert('b'))), 200)
+      ),
+    ])
+    assert.equal(results[0].ok, true, results[0].out)
+    assert.match(results[1].out, /storage_quota_exceeded/)
+    assert.equal(pg!.sql(`select storage_used_bytes from profiles where user_id='${userId}'`), String(BASIC - 40))
   })
 })
 
@@ -168,7 +202,7 @@ describe('4.1 видалення акаунта через Supabase Auth', () =>
     assert.notEqual(queue, '0', 'після каскаду r2_key зникають з БД; об’єкти в B2 лишаються назавжди, знайти їх можна лише list-ом бакета')
   })
 
-  test('[LC-03] Auth-видалення реферала не має падати на FK referrals.referred_id', { skip: skip() }, () => {
+  test('LC-03: Auth-видалення реферала й реферера проходить (FK 0046)', { skip: skip() }, () => {
     const referrer = newAccount()
     const code = pg!.sql(`select referral_code from profiles where user_id='${referrer.userId}'`)
     const referred = pg!.sql(`insert into auth.users (email, raw_user_meta_data)
@@ -177,5 +211,17 @@ describe('4.1 видалення акаунта через Supabase Auth', () =>
     assert.equal(r.ok, true, r.out)
     const r2 = pg!.trySql(`delete from auth.users where id='${referrer.userId}'`)
     assert.equal(r2.ok, true, r2.out)
+  })
+
+  test('LC-03: видалення реферера лишає ledger referral_earnings з null, а профіль реферала — з referred_by = null', { skip: skip() }, () => {
+    const referrer = newAccount()
+    const code = pg!.sql(`select referral_code from profiles where user_id='${referrer.userId}'`)
+    const referred = pg!.sql(`insert into auth.users (email, raw_user_meta_data)
+      values ('e' || gen_random_uuid() || '@t.test', '{"ref":"${code}"}') returning id`)
+    pg!.sql(`insert into public.referral_earnings (referrer_id, referred_id, amount_kop, kind)
+             values ('${referrer.userId}', '${referred}', 1290, 'credit')`)
+    pg!.sql(`delete from auth.users where id='${referrer.userId}'`)
+    assert.equal(pg!.sql(`select referred_by is null from profiles where user_id='${referred}'`), 't')
+    assert.equal(pg!.sql(`select referrer_id is null from referral_earnings where referred_id='${referred}'`), 't')
   })
 })

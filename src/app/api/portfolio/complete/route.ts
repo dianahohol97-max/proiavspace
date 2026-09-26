@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { isVariantName } from '@/lib/storage'
+import { getStorage, isVariantName } from '@/lib/storage'
+import { isQuotaError } from '@/lib/uploads'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -79,6 +80,11 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single()
 
+  if (isQuotaError(error)) {
+    // Refused by the quota trigger (0045): the objects must not stay uncounted.
+    await getStorage().delete(allKeys).catch(() => {})
+    return NextResponse.json({ error: 'storage_quota_exceeded' }, { status: 403 })
+  }
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

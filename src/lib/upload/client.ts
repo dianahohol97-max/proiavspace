@@ -184,7 +184,7 @@ async function uploadMultipart(
       ...extra,
     })
   } catch (error) {
-    // Best-effort cleanup; R2 expires stale multipart uploads anyway.
+    // Best-effort cleanup; the storage-cleanup cron aborts what this misses.
     void postJson('/api/uploads/multipart/abort', { galleryId, key, uploadId }).catch(() => {})
     throw error
   }

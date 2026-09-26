@@ -9,7 +9,77 @@
 
 До B2 у мене доступу немає, тому для нього нижче є команди й чек-лист.
 
-`tests/referrals/REPORT.md`, на який посилається бриф, у цьому репозиторії й у `main` відсутній. Реферали я не тестувала. Їх зачіпають лише пункти про промо й видалення акаунта.
+Реферали окремо не тестувала (див. `tests/referrals/REPORT.md`, злито в `main` після цього аудиту). Їх зачіпають лише пункти про промо й видалення акаунта.
+
+**Рішення власниці (26.09.2026), від яких далі рахуються виправлення:**
+- LC-01: після кінця платного тарифу або промо-місяця — 14 днів grace з повним доступом; далі галереї закриті для клієнтів, фотограф бачить усе й може завантажити або оплатити; листи за 30, 7 і 1 день до видалення; через 60 днів після закриття файли видаляються з B2 кроном. Free — без строку, лише ліміт. Тексти «файли не видаляються» → «файли зберігаються 60 днів після закінчення тарифу».
+- CP-03: Free = 3 ГБ скрізь.
+- PR-02: промо імпорту — один раз на акаунт назавжди, незалежно від історії оплат.
+- B2: `ContentLength` і крон на сироти — незалежно від результату `bucket get`.
+- EM-02 (Custom SMTP) і план Vercel — **ще не підтверджено** (у відповіді лишились плейсхолдери). Якщо Hobby — rate limit через Upstash.
+
+Виправлення йдуть трьома PR від `main`: **PR 1** «швидкі й дешеві» (нижче, зроблено), **PR 2** «життєвий цикл і листи», **PR 3** «архів».
+
+---
+
+## PR 1 — «швидкі й дешеві» (гілка `fix/audit-pr1-storage-gate`)
+
+### Що змінено
+
+| ID | Виправлення | Файли |
+|---|---|---|
+| **ST-02** | Presigned PUT тепер підписує `content-length`: URL, виданий на N байт, приймає лише PUT рівно на N байт (B2 відповість 403 на інший розмір). Сам розмір той, на якому пройшов гейт квоти | `src/lib/storage/StorageProvider.ts` (`UploadUrlOptions.sizeBytes`), `src/lib/storage/R2Provider.ts` (`ContentLength` + `signableHeaders`), `src/app/api/uploads/presign/route.ts`, `src/app/api/portfolio/presign/route.ts` |
+| **ST-02 / ST-03** | Щоденний крон `/api/cron/storage-cleanup` (04:30 UTC): видаляє об'єкти під `u/*/g/*/` і `u/*/portfolio/` без рядка в `assets`/`portfolio_assets` (оригінал + варіанти), старші за 24 год; скасовує незавершені multipart, старші за 24 год. Лого, social-відео та все інше не чіпає. Захищено `CRON_SECRET`. При помилці читання БД — зупиняється, нічого не видаляє. До 2000 видалень за запуск | `src/lib/storage/cleanup.ts` (чисті правила), `src/app/api/cron/storage-cleanup/route.ts`, `vercel.json`, `listMultipartUploads` у `StorageProvider.ts`/`R2Provider.ts` |
+| **ST-01** | Ліміт сховища в БД: `BEFORE INSERT` тригер `enforce_storage_quota` на `assets` і `portfolio_assets` бере `profiles` `FOR UPDATE`, рахує ефективний ліміт (після `grace_until` — Free 3 ГБ) і кидає `storage_quota_exceeded`. Паралельні вставки серіалізуються. API ловить помилку, видаляє об'єкт з B2 і відповідає 403 | `supabase/migrations/0045_storage_quota_guard.sql`, `src/lib/uploads.ts` (`isQuotaError`, discard), `src/app/api/portfolio/complete/route.ts` |
+| **LC-03** | FK реферальних таблиць отримали `on delete`: `referrals`, `withdrawals` — cascade; `referral_earnings.referrer_id/referred_id` і `profiles.referred_by` — set null (ledger лишається). Видалення користувача з Supabase Auth більше не падає | `supabase/migrations/0046_referral_fks_on_delete.sql` |
+| **CP-01** | «Плюс і Максимальний» → «на всіх платних тарифах, від Базового» у весільній сторінці й у `PROIAV_FACTS.video` (усі таблиці порівняння) | `src/lib/landing/product-pages.ts` |
+| **CP-02** | На сторінці оплати Monobank: «Максимальний» замість «Про», «1 ТБ» замість «1024 ГБ» | `src/app/api/billing/checkout/route.ts` |
+| **GM-01** | Назва моделі Gemini — лише з `GEMINI_MODEL`, без дефолту в коді й у workflow. Читається при виклику (`geminiModel()`), тож без змінної падає лише функція Gemini з чітким повідомленням, а не весь роут | `src/lib/gemini.ts`, `src/lib/threads/scan.ts`, `src/lib/threads/voice.ts`, `src/lib/blog/generator/providers.ts`, `.github/workflows/blog-generate.yml`, `scripts/blog.ts`, `.env.example` |
+| **EM-04** | Код не змінюється — DNS. Точні записи в розділі 2.2; у чек-листі нижче | — |
+| **BK-01** | Нічний `pg_dump` (public + auth) у окремий бакет B2 з GitHub Actions, з перевіркою відновлення: дамп відновлюється в Postgres 17 у тому ж job, порівнюються кількості рядків `profiles`, `galleries`, `assets`, `payments`, `auth.users`; далі upload і звірка розміру | `.github/workflows/db-backup.yml` |
+| CP-03 | Рішення «3 ГБ скрізь»: код і тексти вже так; тест тепер стежить, щоб не розійшлись | `tests/audit-storage/plans-and-copy.test.ts` |
+
+**Тести PR 1:** `npx tsx --test tests/audit-storage/*.test.ts` — 75 тестів, **65 ✅ / 10 ❌**; червоні лише PR 2/3: CL-01…CL-05, RL-01, LC-01 (retention), LC-02, PR-01, EM-01. Нові/позеленілі: ST-01 (паралельні вкладки → рівно один файл, чотири 403, зайві об'єкти прибрано; у БД — два конкурентні `insert` з `pg_sleep` під локом; після grace ліміт 3 ГБ), ST-02 (підпис `content-length`, обидва presign-роути), крон сиріт (`tests/audit-storage/storage-cleanup.test.ts`), LC-03 (два сценарії), CP-01, CP-02, GM-01, усі 46 міграцій на чистій БД. `npx tsc --noEmit` чистий.
+
+**Що свідомо не ввійшло:** `api/portfolio/complete` досі бере розмір із тіла запиту (без HEAD) — сайт-візитка йде з продукту, а тригер 0045 тепер страхує ліміт і там. Multipart-частини не підписані за розміром (розмір частин відомий лише браузеру); межа — `complete` з HEAD і крон на незавершені.
+
+### Міграції на прод — у такому порядку
+
+```bash
+# 0. Перед деплоєм коду. Обидві міграції безпечні для роботи застосунку старої версії.
+# 1. Тригер квоти (кілька мс, нічого не переписує)
+psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0045_storage_quota_guard.sql
+# 2. FK рефералів (drop/add constraint — коротке блокування таблиць referrals, referral_earnings, withdrawals, profiles)
+psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0046_referral_fks_on_delete.sql
+# 3. Перевірка
+psql "$SUPABASE_DB_URL" -At -c "select tgname from pg_trigger where tgname in ('assets_storage_quota','portfolio_storage_quota')"
+psql "$SUPABASE_DB_URL" -At -c "select conname, confdeltype from pg_constraint where conname like 'referral%' or conname in ('withdrawals_user_id_fkey','profiles_referred_by_fkey')"
+# очікую: 2 тригери; confdeltype = c (cascade) для referrals_*, withdrawals; n (set null) для referral_earnings_*, profiles_referred_by
+```
+Через MCP/Studio: ті самі два файли через SQL Editor, у тому ж порядку.
+
+### Env і сервіси перед деплоєм
+
+1. **Vercel → `dianatracker-dtks` → Environment Variables:** додати `GEMINI_MODEL` (production + preview) з поточною назвою моделі. **Без цього після деплою чернетки Threads і генератор блогу перестануть працювати** (помилка `GEMINI_MODEL is not set` у логах, решта застосунку не зачеплена).
+2. **GitHub → Settings → Secrets and variables → Actions → Variables:** `GEMINI_MODEL` (те саме значення).
+3. **B2:** новий бакет `proiav-db-backups` (Private, **Object Lock: увімкнено** при створенні, default retention governance 30 днів, lifecycle «keep only last version»); окремий application key лише на цей бакет (`listFiles, readFiles, writeFiles`).
+4. **GitHub Secrets:** `SUPABASE_DB_URL` (Supabase → Connect → Session pooler, порт 5432, IPv4), `B2_BACKUP_KEY_ID`, `B2_BACKUP_APPLICATION_KEY`, `B2_BACKUP_BUCKET`, `B2_BACKUP_REGION`.
+5. **Vercel:** переконатися, що `CRON_SECRET` є (він є — крон білінгу працює на ньому). Hobby дозволяє 2 cron-задачі — рівно стільки й стало.
+6. **Namecheap DNS (EM-04):** замінити існуючий SPF-запис на `v=spf1 include:spf.efwd.registrar-servers.com include:spf.brevo.com ~all`; через 2–4 тижні чистих DMARC-звітів — `_dmarc` на `v=DMARC1; p=quarantine; rua=mailto:rua@dmarc.brevo.com`.
+
+### Ручний чек-лист після деплою PR 1
+
+1. **ST-02:** у DevTools скопіювати `uploadUrl` з відповіді `/api/uploads/presign` для файлу на 1 МБ і зробити `curl -X PUT -H 'Content-Type: image/jpeg' --data-binary @z50m "<url>"` (50 МБ). Очікую **403** (`SignatureDoesNotMatch`). Звичайне завантаження через кабінет — працює.
+2. **ST-01:** акаунт із запасом ~100 МБ, три вкладки, у кожній файл на 60 МБ одночасно. Очікую: один файл у галереї, у двох інших — помилка «місце закінчилось», `storage_used_bytes ≤ storage_limit_bytes`, у B2 (`b2 ls`) лише один новий об'єкт.
+3. **Крон сиріт:** `curl -H "Authorization: Bearer $CRON_SECRET" https://proiav.space/api/cron/storage-cleanup` → JSON `{scanned, referenced, deletedOrphans, deletedBytes, abortedMultipart, truncated}`. Перший запуск покаже, скільки сиріт назбиралось. Vercel → Cron Jobs — задача видна, наступний запуск 04:30 UTC.
+4. **LC-03:** у Supabase → Auth → Users видалити тестового користувача, який реєструвався за `?ref=` — має пройти без «Database error deleting user».
+5. **CP-01/CP-02:** `/uk/dlia-vesilnykh-fotohrafiv` — абзац про відео; `/uk/porivniannia/pixieset` — рядок «Відео»; оплата «Максимальний» — на сторінці Monobank «тариф «Максимальний» (1 ТБ)».
+6. **GM-01:** Кабінет → Threads → сканування (або `POST /api/threads/scan`) — чернетки генеруються; у логах Vercel немає `GEMINI_MODEL is not set`.
+7. **Бекап:** GitHub → Actions → «DB — nightly backup to B2» → Run workflow. Очікую зелений прогін, у логах кроку «Restore check» — однакові кількості рядків, у B2 — `db/proiav-<дата>.dump`. Раз на квартал: завантажити дамп і відновити локально (`pg_restore --no-owner -d …`).
+8. **DNS:** `dig +short TXT proiav.space` містить `include:spf.brevo.com`; Brevo → Domains — усі три пункти зелені.
+
+---
+
 
 ---
 
@@ -392,13 +462,13 @@ npx tsx --test tests/audit-storage/*.test.ts
 | ID | Сер. | 💰 | Що | Пропозиція виправлення |
 |---|---|---|---|---|
 | **LC-01** | блокер | 💰 | Файли неоплачених, понижених і промо-акаунтів лежать у B2 безстроково; тексти обіцяють «не видаляються» | 1) Рішення про політику: наприклад, після grace ще 30 днів «лише перегляд», листи на D0/D14/D25, потім видалення галерей від найновіших, поки `used ≤ ліміт Free`. 2) Колонка `profiles.over_limit_since` і щоденний крон `/api/cron/storage-retention` (у `vercel.json`). 3) Оновити оферту, `copy.ts:210, 272`, `product-pages.ts:273-293`, лист промо |
-| **ST-02** | блокер | 💰 | Presigned PUT не обмежує розмір; об'єкти без `complete` не рахуються й не прибираються | 1) `PutObjectCommand({ …, ContentLength: sizeBytes })` у `getUploadUrl` — SigV4 підпише `content-length`, і PUT іншого розміру отримає 403 (браузер надсилає точний розмір). 2) Таблиця `pending_uploads(key, declared_bytes, expires_at)`: резерв квоти на presign, зняття на `complete`. 3) Щоденний крон-сирота: `list('u/')` мінус ключі з `assets`/`portfolio_assets` (з варіантами), старше 24 год → `delete`. 4) Ліміт частоти presign |
+| **ST-02** ✅ PR 1 | блокер | 💰 | Presigned PUT не обмежує розмір; об'єкти без `complete` не рахуються й не прибираються | 1) `PutObjectCommand({ …, ContentLength: sizeBytes })` у `getUploadUrl` — SigV4 підпише `content-length`, і PUT іншого розміру отримає 403 (браузер надсилає точний розмір). 2) Таблиця `pending_uploads(key, declared_bytes, expires_at)`: резерв квоти на presign, зняття на `complete`. 3) Щоденний крон-сирота: `list('u/')` мінус ключі з `assets`/`portfolio_assets` (з варіантами), старше 24 год → `delete`. 4) Ліміт частоти presign |
 | **ST-04** | блокер* | 💰 | *Перевірити:* без lifecycle-правила B2 зберігає приховані версії всього «видаленого» | Правило на бакет: `[{"fileNamePrefix":"","daysFromHidingToDeleting":7,"daysFromUploadingToHiding":null}]`. 7 днів — «кошик» на випадок помилкового видалення. *Блокер, якщо `b2 bucket get` покаже порожні `lifecycleRules`* |
-| **BK-01** | блокер | | Supabase Free: бекапів БД немає зовсім | Мінімум (≈ $0): нічний `pg_dump` з GitHub Actions у **окремий** бакет B2 з Object Lock на 30 днів. Надійніше: Supabase Pro $25/міс (щоденні бекапи 7 днів). PITR (+$100/міс) зараз зайвий |
+| **BK-01** ✅ PR 1 | блокер | | Supabase Free: бекапів БД немає зовсім | Мінімум (≈ $0): нічний `pg_dump` з GitHub Actions у **окремий** бакет B2 з Object Lock на 30 днів. Надійніше: Supabase Pro $25/міс (щоденні бекапи 7 днів). PITR (+$100/міс) зараз зайвий |
 | **CL-01** | блокер | | Архів > 4 ГБ битий — fflate не пише ZIP64. Типове весілля — 10–30 ГБ | Перейти на `@zip.js/zip.js` (вже в `dependencies`): `ZipWriter` зі `zip64: true`, стрім у `WritableStream` |
 | **EM-02** | блокер* | | *Перевірити:* листи Auth (підтвердження, magic link) ідуть вбудованим SMTP Supabase — він для тестів, з лімітом листів на годину | Supabase → Authentication → Emails → SMTP: `smtp-relay.brevo.com:587`, SMTP-ключ Brevo, відправник `@proiav.space`. *Блокер, якщо Custom SMTP вимкнено* |
-| **ST-01** | важливо | 💰 | Паралельні `complete` перевищують ліміт; БД не страхує | `BEFORE INSERT` тригер на `assets`/`portfolio_assets`: `select … for update` профілю, ефективний ліміт (з урахуванням `grace_until`), `raise exception` → `registerAsset` видаляє об'єкт |
-| **ST-03** | важливо | 💰 | Незавершені multipart у B2 висять і тарифікуються | Крон: `ListMultipartUploads` + `AbortMultipartUpload` для старших за 24 год. Виправити коментар про «R2 сам прибирає» |
+| **ST-01** ✅ PR 1 | важливо | 💰 | Паралельні `complete` перевищують ліміт; БД не страхує | `BEFORE INSERT` тригер на `assets`/`portfolio_assets`: `select … for update` профілю, ефективний ліміт (з урахуванням `grace_until`), `raise exception` → `registerAsset` видаляє об'єкт |
+| **ST-03** ✅ PR 1 | важливо | 💰 | Незавершені multipart у B2 висять і тарифікуються | Крон: `ListMultipartUploads` + `AbortMultipartUpload` для старших за 24 год. Виправити коментар про «R2 сам прибирає» |
 | **LC-02** | важливо | 💰 | Немає видалення акаунта; видалення з Auth лишає сироти в B2 | Дія «Видалити акаунт»: скасувати підписку й видалити токен → `list('u/<id>/')` + `delete` → `auth.admin.deleteUser`. Сироти від ручних видалень прибере крон з ST-02 |
 | **CL-04** | важливо | 💰 | З `MEDIA_CDN_URL` архів роздає оригінали вічними публічними CDN-посиланнями; бакет стає Public; трафік через платний CDN | У `archive-urls` передавати `downloadFileName` (завжди presigned). Бакет **не** робити Public: для Bunny — Origin з S3-автентифікацією на приватний бакет + Token Authentication. Виправити `MANUAL_TASKS.md:44-47` |
 | **RL-01** | важливо | 💰 | Жодного rate limit у застосунку; `/unlock` — scrypt без ліміту (перебір + CPU Vercel) | Див. «Rate limit» нижче |
@@ -408,19 +478,19 @@ npx tsx --test tests/audit-storage/*.test.ts
 | **CL-06** | важливо | | 2–3 тис. фото рендеряться одразу: HTML і RSC 2–4 МБ, DOM на 3 тис. вузлів | Пагінація «по 200» або віртуалізований грід; підписувати URL лише для видимої порції |
 | **EM-01** | важливо | | Немає скидання пароля | Посилання «Забули пароль?» → `resetPasswordForEmail` → сторінка `updateUser({ password })` |
 | **EM-03** | важливо | | Немає листів: чек, невдале списання, нагадування перед продовженням (особливо річним), кінець grace, заявка на виведення | Шаблони в `email.ts`; виклики з webhook і `renew` (невдале списання, D-7 до річного продовження, D-2 до кінця grace) і з `requestWithdrawal` |
-| **LC-03** | важливо | | Видалення з Auth користувача з рефералом падає на FK | Міграція: `referrals.referrer_id/referred_id`, `profiles.referred_by`, `referral_earnings.*` → `on delete set null` (або cascade для `referrals`) |
-| **CP-01** | важливо | | Сайт каже «відео на Плюс і Максимальному» | `product-pages.ts:486` → «на всіх платних тарифах, від Базового»; `:565` → `'так, з Базового'` |
-| **CP-03** | важливо | | Free 3 ГБ у коді й текстах проти 4 ГБ у брифі | Рішення за тобою. Якщо 4 ГБ: `plans.ts:57`, дефолт БД новою міграцією (+ `update` для тих, хто має 3 ГБ), 11 захардкоджених «3 ГБ» (1.3) |
+| **LC-03** ✅ PR 1 | важливо | | Видалення з Auth користувача з рефералом падає на FK | Міграція: `referrals.referrer_id/referred_id`, `profiles.referred_by`, `referral_earnings.*` → `on delete set null` (або cascade для `referrals`) |
+| **CP-01** ✅ PR 1 | важливо | | Сайт каже «відео на Плюс і Максимальному» | `product-pages.ts:486` → «на всіх платних тарифах, від Базового»; `:565` → `'так, з Базового'` |
+| **CP-03** ✅ рішення: 3 ГБ | важливо | | Free 3 ГБ у коді й текстах проти 4 ГБ у брифі | Рішення за тобою. Якщо 4 ГБ: `plans.ts:57`, дефолт БД новою міграцією (+ `update` для тих, хто має 3 ГБ), 11 захардкоджених «3 ГБ» (1.3) |
 | **CP-04** | важливо | | Оферта не описує Free, промо й долю файлів після тарифу; «зберігаються ще 7 днів» читається як «потім видалимо» | Переписати `legal/copy.ts:65-75` разом з LC-01 |
-| **GM-01** | важливо | | `GEMINI_MODEL` не задано в `dianatracker-dtks`; дефолт захардкоджено у 2 місцях | Додати змінну у Vercel (production + preview) і в GitHub → Variables; дефолт у workflow прибрати або брати з одного місця |
+| **GM-01** ✅ PR 1 | важливо | | `GEMINI_MODEL` не задано в `dianatracker-dtks`; дефолт захардкоджено у 2 місцях | Додати змінну у Vercel (production + preview) і в GitHub → Variables; дефолт у workflow прибрати або брати з одного місця |
 | **PR-02** | питання | | Колишній платник після grace знову отримує промо | Якщо ні: у `grant_import_promo` додати `not exists (select 1 from payments where user_id = p_user and status = 'paid')` |
-| **CP-02** | дрібниця | | «Про» і «1024 ГБ» на сторінці оплати Monobank | `planNameUk.pro = 'Максимальний'`, формат ТБ як у `billing/page.tsx` |
+| **CP-02** ✅ PR 1 | дрібниця | | «Про» і «1024 ГБ» на сторінці оплати Monobank | `planNameUk.pro = 'Максимальний'`, формат ТБ як у `billing/page.tsx` |
 | **CP-05** | дрібниця | | Банер невдалого списання не каже про 7 днів grace | Додати дату з `grace_until` у `uk.ts:371`, `en.ts` |
 | **PR-01** | дрібниця | | Слот «перших 30» звільняється при видаленні акаунта | Рахувати за окремим лічильником або не каскадити: `promo_grants.user_id … on delete set null` + `unique` лише для not null |
 | **PR-03** | дрібниця | | Купівля звичайного тарифу під час промо стартує від сьогодні, залишок промо згорає; кредит ≥ 128 ₴ після промо робить другий місяць майже безкоштовним | Для першої оплати під час промо брати `periodStart = ends_at`; ліміт знижки кредитом (напр. ≤ 50%), якщо не хочеш «два місяці підряд» |
 | **LC-04** | дрібниця | | `past_due` не має повторних спроб; `renew` обробляє ≤ 25 підписок на добу; `next_charge_at` відраховується від «зараз», а не від дати списання | 1–2 повторні спроби в grace; пагінація в `renew`; `nextChargeAt(sub.next_charge_at)` |
 | **EM-04** | дрібниця | | DMARC `p=none`; SPF без Brevo | Див. таблицю DNS у 2.2 |
-| **DB-01** | дрібниця | | Таблиця `debug_events` існує в проді, але не в міграціях — `0043` падає на чистій БД | Додати міграцію `create table if not exists public.debug_events …` перед `0043` |
+| **DB-01** ✅ у main (0042a) | дрібниця | | Таблиця `debug_events` існує в проді, але не в міграціях — `0043` падає на чистій БД | Додати міграцію `create table if not exists public.debug_events …` перед `0043` |
 
 ### 💰 Окремо: що може коштувати грошей
 

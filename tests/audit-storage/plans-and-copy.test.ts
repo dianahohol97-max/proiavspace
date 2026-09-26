@@ -8,6 +8,7 @@ import { join, relative } from 'node:path'
 import { describe, test } from 'node:test'
 import { GALLERY_PLANS, GRACE_PERIOD_DAYS, effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
 import { IMPORT_PROMO, isPromoRunning } from '@/lib/promo'
+import { geminiModel } from '@/lib/gemini'
 
 const ROOT = join(__dirname, '..', '..')
 const source = (path: string) => readFileSync(join(ROOT, path), 'utf8')
@@ -39,8 +40,14 @@ describe('тарифи (plans.ts — єдине джерело)', () => {
     }
   })
 
-  test('[CP-03] Free = 4 ГБ, як у брифі (у коді, на сайті і в БД зараз 3 ГБ)', () => {
-    assert.equal(GALLERY_PLANS.free.storageGb, 4)
+  test('CP-03: Free = 3 ГБ скрізь (рішення 26.09) — plans.ts, дефолт БД і захардкоджені тексти', () => {
+    assert.equal(GALLERY_PLANS.free.storageGb, 3)
+    assert.match(source('supabase/migrations/0001_phase1_galleries.sql'), /default 3221225472/)
+    // Місця, де «3 ГБ» прописано текстом, а не з plans.ts — мають збігатися.
+    for (const f of ['src/app/[locale]/page.tsx', 'src/lib/landing/copy.ts', 'src/lib/blog/linking.ts']) {
+      assert.match(source(f), /3 (ГБ|GB)/, f)
+      assert.equal(/4 (ГБ|GB)/.test(source(f)), false, f)
+    }
   })
 
   test('відео: Free — ні, Базовий/Плюс/Максимальний — так', () => {
@@ -84,12 +91,19 @@ describe('життєвий цикл тарифу (effectiveGalleryPlan)', () => 
     assert.equal(isPromoRunning({ ends_at: new Date(Date.now() - day).toISOString(), autopay_at: null }), false)
   })
 
-  test('[LC-01] є крон, що прибирає файли акаунтів без оплати / сироти в B2', () => {
+  test('ST-02/ST-03: крон прибирання сиріт і незавершених multipart у vercel.json', () => {
+    const vercel = JSON.parse(source('vercel.json')) as { crons?: { path: string }[] }
+    const paths = (vercel.crons ?? []).map((c) => c.path)
+    assert.ok(paths.includes('/api/cron/storage-cleanup'), paths.join(', '))
+    assert.ok(paths.length <= 2, 'Vercel Hobby дозволяє не більше 2 cron-задач')
+  })
+
+  test('[LC-01] є крон retention, що видаляє файли акаунтів після закінчення тарифу', () => {
     const vercel = JSON.parse(source('vercel.json')) as { crons?: { path: string }[] }
     const paths = (vercel.crons ?? []).map((c) => c.path)
     assert.ok(
-      paths.some((p) => /storage|retention|cleanup|orphan|purge/i.test(p)),
-      `крони: ${paths.join(', ')} — жоден не видаляє файли з B2; неоплачені акаунти зберігаються безстроково`
+      paths.some((p) => /retention/i.test(p)),
+      `крони: ${paths.join(', ')} — жоден не видаляє файли неплатників; політика 14 + 60 днів ще не реалізована (PR 2)`
     )
   })
 })
@@ -100,7 +114,7 @@ describe('залишки старої логіки й тексти, що роз�
     assert.deepEqual(hits.map((f) => relative(ROOT, f)), [])
   })
 
-  test('[CP-01] тексти про відео не обмежують його Плюсом і Максимальним', () => {
+  test('CP-01: тексти про відео не обмежують його Плюсом і Максимальним', () => {
     const pages = source('src/lib/landing/product-pages.ts')
     const stale = pages
       .split('\n')
@@ -110,18 +124,28 @@ describe('залишки старої логіки й тексти, що роз�
     assert.deepEqual(stale, [], 'сайт каже «відео з Плюс», код дає відео з Базового')
   })
 
-  test('[CP-02] сторінка оплати Monobank не показує стару назву «Про» і «1024 ГБ»', () => {
+  test('CP-02: сторінка оплати Monobank не показує стару назву «Про» і «1024 ГБ»', () => {
     const checkout = source('src/app/api/billing/checkout/route.ts')
     assert.equal(/pro:\s*'Про'/.test(checkout), false, "planNameUk: pro: 'Про' замість «Максимальний»")
+    assert.match(checkout, /pro:\s*'Максимальний'/)
+    assert.equal(/\$\{plan\.storageGb\} ГБ/.test(checkout), false, '«1024 ГБ» замість «1 ТБ»')
   })
 
-  test('GEMINI_MODEL: усі виклики Gemini читають одну змінну через lib/gemini.ts', () => {
-    const offenders = srcFiles
-      .filter((f) => !f.endsWith(join('lib', 'gemini.ts')))
+  test('GM-01: назва моделі Gemini лише з env — без захардкодженого дефолту ніде', () => {
+    const offenders = [...srcFiles, join(ROOT, '.github/workflows/blog-generate.yml'), join(ROOT, 'scripts/blog.ts')]
       .filter((f) => /['"`]gemini-\d/.test(readFileSync(f, 'utf8')))
       .map((f) => relative(ROOT, f))
     assert.deepEqual(offenders, [])
-    assert.match(source('src/lib/gemini.ts'), /process\.env\.GEMINI_MODEL \|\| '/)
+    const saved = process.env.GEMINI_MODEL
+    try {
+      process.env.GEMINI_MODEL = 'gemini-test'
+      assert.equal(geminiModel(), 'gemini-test')
+      delete process.env.GEMINI_MODEL
+      assert.throws(() => geminiModel(), /GEMINI_MODEL is not set/)
+    } finally {
+      if (saved !== undefined) process.env.GEMINI_MODEL = saved
+    }
+    assert.match(source('.env.example'), /^GEMINI_MODEL=/m)
   })
 
   test('Resend ніде не лишився (код, залежності, env-приклад, доки)', () => {
