@@ -315,6 +315,9 @@ export default async function ManageGalleryPage({
             galleryId={gallery.id}
             dropHint={dict.galleryManage.dropHint}
             watermarkText={watermarkText}
+            videoPlanNotice={dict.galleryManage.videoPlanNotice}
+            videoPlanLink={dict.galleryManage.videoPlanLink}
+            billingHref={`/${locale}/dashboard/billing`}
           />
         </div>
       </section>

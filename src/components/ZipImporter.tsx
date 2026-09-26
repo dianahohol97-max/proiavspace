@@ -49,6 +49,7 @@ export type ImporterStrings = Record<
   | 'reportDuplicate'
   | 'reportUnsupported'
   | 'reportVideo'
+  | 'videoPlanLink'
   | 'reportFailed'
   | 'reportGalleries'
   | 'another'
@@ -483,7 +484,10 @@ export function ZipImporter({
               <li>{fill(t.reportUnsupported, { n: phase.report.skippedUnsupported })}</li>
             )}
             {phase.report.skippedVideo > 0 && (
-              <li>{fill(t.reportVideo, { n: phase.report.skippedVideo })}</li>
+              <li>
+                {fill(t.reportVideo, { n: phase.report.skippedVideo })}{' '}
+                <Link href={`/${locale}/dashboard/billing`}>{t.videoPlanLink}</Link>
+              </li>
             )}
             {phase.report.failed > 0 && (
               <li className="text-accent">{fill(t.reportFailed, { n: phase.report.failed })}</li>

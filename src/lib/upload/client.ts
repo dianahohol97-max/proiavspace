@@ -19,6 +19,16 @@ import { generateVideoPoster } from '@/lib/images/videoPoster'
 /** Thrown when the server refuses the asset because the name already exists. */
 export class DuplicateAssetError extends Error {}
 
+/** The server refused a video because the plan has no video (Free). */
+export class PlanVideoRequiredError extends Error {}
+
+/** Turn a 403 plan_video_required answer into PlanVideoRequiredError. */
+async function throwIfVideoNotInPlan(response: Response): Promise<void> {
+  if (response.status !== 403) return
+  const body = (await response.clone().json().catch(() => null)) as { error?: string } | null
+  if (body?.error === 'plan_video_required') throw new PlanVideoRequiredError()
+}
+
 // Files above the threshold (large videos) go through S3 multipart: parts
 // upload in parallel with per-part retries, so one dropped packet no longer
 // restarts a 1.5 GB transfer from zero.
@@ -57,6 +67,7 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
   if (response.status === 409) throw new DuplicateAssetError(url)
+  await throwIfVideoNotInPlan(response)
   if (!response.ok) throw new Error(`${url} ${response.status}`)
   return (await response.json()) as T
 }
@@ -198,6 +209,7 @@ async function presign(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ galleryId, fileName, contentType, sizeBytes, variant }),
   })
+  await throwIfVideoNotInPlan(response)
   if (!response.ok) throw new Error(`presign ${response.status}`)
   return (await response.json()) as { uploadUrl: string; key: string }
 }
@@ -303,5 +315,6 @@ export async function uploadFileToGallery(options: {
     }),
   })
   if (completeResponse.status === 409) throw new DuplicateAssetError(file.name)
+  await throwIfVideoNotInPlan(completeResponse)
   if (!completeResponse.ok) throw new Error(`complete ${completeResponse.status}`)
 }

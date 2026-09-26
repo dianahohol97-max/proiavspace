@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { uploadFileToGallery } from '@/lib/upload/client'
+import { PlanVideoRequiredError, uploadFileToGallery } from '@/lib/upload/client'
 
 /**
  * Direct-to-storage uploader. The per-file pipeline (presign → PUT → in-browser
@@ -19,15 +20,24 @@ interface UploadItem {
   file: File
   status: FileStatus
   progress: number // 0..100
+  /** Rejected because the plan has no video (Free). */
+  videoPlan?: boolean
 }
 
 export function Uploader({
   galleryId,
   dropHint,
   watermarkText,
+  videoPlanNotice,
+  videoPlanLink,
+  billingHref,
 }: {
   galleryId: string
   dropHint: string
+  /** Shown when a video is refused on a plan without video, with a link to billing. */
+  videoPlanNotice: string
+  videoPlanLink: string
+  billingHref: string
   /** When set, previews get the photographer's name stamped bottom-right. */
   watermarkText?: string
 }) {
@@ -51,8 +61,8 @@ export function Uploader({
           onProgress: (progress) => updateItem(item.id, { progress }),
         })
         updateItem(item.id, { status: 'done', progress: 100 })
-      } catch {
-        updateItem(item.id, { status: 'error' })
+      } catch (error) {
+        updateItem(item.id, { status: 'error', videoPlan: error instanceof PlanVideoRequiredError })
       }
     },
     [galleryId, updateItem, watermarkText]
@@ -126,6 +136,12 @@ export function Uploader({
           if (files.length > 0) void startUploads(files)
         }}
       />
+
+      {items.some((item) => item.videoPlan) && (
+        <p className="mt-6 text-sm text-accent">
+          {videoPlanNotice} <Link href={billingHref}>{videoPlanLink}</Link>
+        </p>
+      )}
 
       {items.length > 0 && (
         <ul className="mt-6 flex flex-col gap-2">
