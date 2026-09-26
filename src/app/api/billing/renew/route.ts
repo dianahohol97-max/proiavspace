@@ -13,7 +13,7 @@ import {
   sitePlanPriceUah,
 } from '@/lib/plans'
 import { IMPORT_PROMO } from '@/lib/promo'
-import { sendEmail } from '@/lib/email'
+import { isEmailConfigured, sendEmail } from '@/lib/email'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -359,8 +359,8 @@ async function sendPromoReminders(
 ): Promise<number> {
   // Email not configured: send nothing and mark nothing, so reminders still go
   // out once it is (if the promo hasn't ended by then).
-  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
-    console.warn('promo reminders skipped: RESEND_API_KEY/EMAIL_FROM not set')
+  if (!isEmailConfigured()) {
+    console.warn('promo reminders skipped: BREVO_API_KEY/EMAIL_FROM not set')
     return 0
   }
   const now = Date.now()
@@ -429,7 +429,7 @@ async function sendPromoReminders(
                 ].join('\n'),
               }
         )
-        // Not delivered (Resend down): leave it unmarked, tomorrow retries.
+        // Not delivered (Brevo down or refused): leave it unmarked, tomorrow retries.
         if (!delivered) continue
         sent += 1
       }
