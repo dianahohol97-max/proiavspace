@@ -158,6 +158,36 @@
   .plan { padding: 12px 14px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; }
   .plan b { font-size: 14px; }
   .plan .price { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 16px; }
+  /* ---------- варіанти макета (заголовок і логотип завжди на своїх місцях) ---------- */
+  /* «фото»: велике фото замість телефона + справжній елемент інтерфейсу поверх */
+  .big { position: absolute; left: 72px; right: 72px; top: 356px; bottom: 124px; border-radius: var(--radius); overflow: hidden; }
+  .tall-head .big { top: 400px; }
+  .big .ph { position: absolute; inset: 0; }
+  .big .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,0) 40%, rgba(0,0,0,.42)); }
+  .ov { position: absolute; zoom: 1.6; }
+  .ov-title { position: absolute; left: 0; right: 0; bottom: 64px; text-align: center; color: #f7f4ee; }
+  .ov-title .g-title { font-size: 58px; }
+  .ov-title .caps { font-size: 15px; color: rgba(247,244,238,.88); }
+  /* «збоку»: текст ліворуч, телефон праворуч */
+  .L-side .head { right: 548px; }
+  .L-side .head h1 { font-size: 50px; }
+  .L-side .head h1 em { white-space: normal; }
+  .L-side .head p { font-size: 26px; }
+  .L-side .phone { left: auto; right: 72px; margin: 0; top: 290px; height: 920px; }
+  .L-side .screen { height: 898px; }
+  .L-side .ui { height: 818px; }
+  .stat { position: absolute; left: 72px; bottom: 150px; width: 440px; }
+  .stat b { display: block; font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 116px; line-height: 1; letter-spacing: -0.03em; }
+  .stat span { display: block; margin-top: 14px; font-size: 24px; line-height: 1.35; color: var(--muted); }
+  /* «крупно»: телефон збільшений і обрізаний низом кадру */
+  .L-zoom .phone { transform: scale(1.42); transform-origin: 50% 0; top: 372px; margin-left: -272px; }
+  /* «темний» (≤20 % слайдів): вугільний фон */
+  .L-dark { background: var(--coal); }
+  .L-dark .head h1, .L-dark .logo, .L-dark .list span { color: var(--bg); }
+  .L-dark .head h1 em { color: var(--accent-soft); }
+  .L-dark .head p { color: rgba(244,244,241,.62); }
+  .L-dark .list span::before { background: var(--bg); }
+  .L-dark .phone { box-shadow: 0 0 0 2px rgba(244,244,241,.14), 0 44px 90px -24px rgba(0,0,0,.6); }
   .files { font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: 11.5px; line-height: 1.75; padding: 10px 14px; }
 </style>
 </head>
@@ -169,7 +199,7 @@ const T = n => n[0] === 's' ? `../../public/showcase/${n.slice(1)}.jpg` : `../..
 const HEART = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.7 1.3 5.2 3 1.5-1.7 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>'
 const CHEV = up => `<svg viewBox="0 0 10 6" ${up ? 'style="transform:rotate(180deg)"' : ''}><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>`
 // кадрування облич для конкретних фото
-const FOCUS = { 's01': '50% 60%', 's03': '55% 45%', 's04': '55% 40%', 's14': '50% 35%', 's09': '50% 30%', '27': '50% 40%', '28': '45% 35%', '29': '50% 40%', '07': '55% 35%', '18': '50% 30%', '16': '50% 40%', '21': '50% 55%', '15': '52% 40%', '01': '50% 45%' }
+const FOCUS = { '40': '50% 30%', '41': '50% 25%', '43': '50% 25%', '47': '50% 25%', '48': '50% 25%', '49': '50% 30%', '42': '50% 25%', '44': '50% 25%', '45': '50% 25%', '46': '50% 25%', '25': '50% 45%', '26': '50% 50%', 's11': '50% 60%', 's01': '50% 60%', 's03': '55% 45%', 's04': '55% 40%', 's14': '50% 35%', 's09': '50% 30%', '27': '50% 40%', '28': '45% 35%', '29': '50% 40%', '07': '55% 35%', '18': '50% 30%', '16': '50% 40%', '21': '50% 55%', '15': '52% 40%', '01': '50% 45%' }
 const bg = n => `background-image:url('${T(n)}');background-position:${FOCUS[n] || '50% 50%'}`
 
 const status = light => `<div class="status ${light ? 'light' : ''}"><span>9:41</span><span class="ic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"></span></span></div>`
@@ -229,24 +259,24 @@ const S = {
     ${year ? `<div class="card" style="padding:12px 14px;margin-top:14px"><div class="small">Базовий за рік: <b>1 290 ₴</b> замість 1 548 ₴ — два місяці в подарунок.</div></div>
       <div class="btn-a" style="margin-top:14px">Оплатити 1 290 ₴</div>` : ''}
     </div>
-    <div class="grid" style="padding-top:16px">${year ? shot('29') + shot('s03') : shot('s01') + shot('28') + shot('s14') + shot('s04')}</div>`,
+    <div class="grid" style="padding-top:16px">${year ? shot('s14') + shot('s03') : shot('s01') + shot('s09') + shot('s14') + shot('s04')}</div>`,
 
   branded: () => status(true) + `<div class="low-title" style="position:relative;height:430px">${fullCover('27', 'Липень 2026', 'Весілля Юлі та Романа', '',
       '<div class="mark" style="position:absolute;top:66px;left:0;right:0;text-align:center;color:#f7f4ee">Твій логотип</div>')}</div>` +
     grid(['28', '25', '29', '26']) +
     `<div class="foot"><div class="sig-name">Твоє імʼя · фотограф</div><div class="small muted" style="margin-top:6px">без підпису «Створено на проЯв»</div></div>`,
 
-  galleryVideo: () => status() + bar() + grid([{ n: '15', cls: 'wide', play: 'Фільм · 04:12' }, { n: '18', cls: 'tall' }, { n: '04', cls: 'tall' },
-    { n: '16', play: 'Тизер · 00:58' }, '05', '24', '22']),
+  galleryVideo: () => status() + bar() + grid([{ n: '26', cls: 'wide', play: 'Фільм · 04:12' }, { n: '29', cls: 'tall' }, { n: '28', cls: 'tall' },
+    { n: '25', cls: 'wide', play: 'Тизер · 00:58' }]),
 
   lightbox: () => `<div class="ui dark"><div class="island"></div>${status()}
     <div class="lb-tools"><span class="lb-btn" style="color:var(--accent-soft)"><span style="width:16px;height:16px;display:block">${HEART}</span></span><span class="lb-btn">✕</span></div>
-    <div class="lb-media ph" style="${bg('15')}"></div>
+    <div class="lb-media ph" style="${bg('25')}"></div>
     <div class="lb-ctrl"><span>01:24</span><span class="track"><i></i></span><span>04:12</span></div>
     <div class="lb-foot"><span class="lb-dl">↓ Завантажити оригінал</span><span class="caps" style="color:rgba(247,244,238,.6)">Фільм · 1 / 248</span></div></div>`,
 
-  videoGrid: () => status() + bar() + grid([{ n: '15', play: 'Фільм · 04:12' }, { n: '16', play: 'Тизер · 00:58' },
-    { n: '07', play: 'Перший танець' }, { n: '21', play: 'Промови · 06:40' }, '18', '04', '12', '01']),
+  videoGrid: () => status() + bar() + grid([{ n: '25', play: 'Фільм · 04:12' }, { n: '26', play: 'Тизер · 00:58' },
+    { n: '27', cls: 'tall', play: 'Перший танець' }, { n: '28', cls: 'tall', play: 'Вихід' }, '29']),
 
   langOpen: () => status() + cover('01', 'August 2026', 'Olia &amp; Maksym') +
     bar({ sel: '12 ausgewählt', lang: 'DE', dl: 'Alle herunterladen', menu: langMenu('DE') }) + grid(['07', '19', '13', '21', '12', '02']),
@@ -267,29 +297,29 @@ const S = {
   galleryFr: () => status() + cover('13', 'Août 2026', 'Olia &amp; Maksym') + bar({ sel: '12 sélectionnées', lang: 'FR', dl: 'Tout télécharger' }) +
     grid(['18', '15', '01', '16', '12', '03']),
 
-  favClient: () => status() + bar({ sel: '24 обрано', on: true }) + grid([{ n: '18', cls: 'tall', heart: 'on' }, { n: '07', cls: 'tall', heart: 'on' },
-    { n: '15', heart: 'on' }, { n: '01', heart: true }, { n: '16', heart: 'on' }, { n: '12', heart: true }, { n: '21', heart: 'on' }, { n: '03', heart: true }]),
+  favClient: () => status() + bar({ sel: '24 обрано', on: true }) + grid([{ n: '43', cls: 'tall', heart: 'on' }, { n: '42', cls: 'tall', heart: 'on' },
+    { n: '47', cls: 'tall', heart: true }, { n: '45', cls: 'tall', heart: 'on' }, { n: '49', heart: 'on' }, { n: '41', heart: true }]),
 
-  favList: () => status() + `<div class="dash"><span class="small muted">← Весілля Олі та Максима</span>
+  favList: () => status() + `<div class="dash"><span class="small muted">← Портрет Олени</span>
     <div class="row between" style="margin-top:10px"><h2>Обране клієнта</h2><span class="small muted">24 фото</span></div>
-    ${favs(['18', '15', '16', '07', '21', '01', '04', '13', '24', '12', '03', '05'])}
-    <div class="card" style="margin-top:12px"><div class="files">OM_0142.jpg, OM_0187.jpg, OM_0203.jpg,<br>OM_0231.jpg, OM_0266.jpg, OM_0290.jpg,<br>OM_0314.jpg, OM_0352.jpg, OM_0377.jpg …</div></div>
+    ${favs(['43', '42', '47', '45', '49', '41', '48', '44', '40', '46', '43', '47'].slice(0, 9))}
+    <div class="card" style="margin-top:12px"><div class="files">OL_0142.jpg, OL_0187.jpg, OL_0203.jpg,<br>OL_0231.jpg, OL_0266.jpg, OL_0290.jpg,<br>OL_0314.jpg, OL_0352.jpg, OL_0377.jpg …</div></div>
     <div class="row between" style="margin-top:12px"><span class="btn-o a">Список скопійовано</span><span class="small muted">Клієнтів, що обирали: 3</span></div></div>`,
 
   stats: () => status() + `<div class="dash"><span class="small muted">← Галереї</span>
-    <h2 style="margin-top:8px">Весілля Олі та Максима</h2>
-    <div class="ph" style="height:150px;border-radius:var(--radius);margin-top:12px;${bg('07')}"></div>
+    <h2 style="margin-top:8px">Портрет Олени</h2>
+    <div class="ph" style="height:150px;border-radius:var(--radius);margin-top:12px;${bg('40')}"></div>
     <div class="tiles"><div class="card tile"><p>Переглядів</p><strong>214</strong></div><div class="card tile"><p>Завантажень</p><strong>38</strong></div><div class="card tile"><p>В обраному</p><strong>57</strong></div></div>
     <div class="row between" style="margin-top:18px"><span class="h3">Обране клієнта</span><span class="small muted">Клієнтів, що обирали: 3</span></div>
-    ${favs(['18', '15', '16', '03', '21', '01', '04', '13', '24'])}
+    ${favs(['43', '42', '47', '45', '49', '41', '48', '44', '46'])}
     <div style="margin-top:14px"><span class="btn-o">Скопіювати список файлів</span></div></div>`,
 
   statsList: () => status() + `<div class="dash"><div class="row between" style="margin-top:6px"><h2>Мої галереї</h2><span class="pill">Плюс</span></div>
-    ${gcard('07', 'Весілля Олі та Максима', `${pub} 248 фото · 214 переглядів`)}
-    ${gcard('21', 'Весілля Ірини та Тараса', `${pub} 312 фото · 96 переглядів`)}
-    ${gcard('13', 'Заручини Каті та Олега', `${pub} 84 фото · 41 перегляд`)}</div>`,
+    ${gcard('41', 'Портрет Олени', `${pub} 86 фото · 214 переглядів`)}
+    ${gcard('s03', 'Весілля Марії та Андрія', `${pub} 312 фото · 96 переглядів`)}
+    ${gcard('s09', 'Родина Мельників', `${pub} 64 фото · 41 перегляд`)}</div>`,
 
-  onboarding: () => status() + `<div class="ph" style="height:280px;margin:0 8px;border-radius:var(--radius);${bg('18')}"></div>
+  onboarding: () => status() + `<div class="ph" style="height:280px;margin:0 8px;border-radius:var(--radius);${bg('s09')}"></div>
     <div class="dash"><h2 style="margin-top:18px">Ласкаво просимо у проЯв</h2>
     <p class="small muted" style="margin-top:6px">Три кроки — і клієнт отримає красиву галерею.</p>
     ${['Створіть галерею й додайте назву зйомки', 'Завантажте фото — вони одразу в захищеному сховищі', 'Надішліть клієнту лінк — за бажання під паролем']
@@ -297,52 +327,74 @@ const S = {
     <div class="btn-a" style="margin-top:16px">Створити першу галерею</div></div>`,
 }
 
-/* ---------- каруселі: [номер, слайди] ---------- */
+const HEART_BIG = `<span class="heart on" style="position:static;width:40px;height:40px">${HEART}</span>`
+const O = {
+  storage: `<div class="ov" style="left:22px;bottom:22px;width:300px">${storage('0,8 ГБ', '3 ГБ', 'Безкоштовний', 27).replace('margin-top:14px', 'margin:0')}</div>`,
+  cover: (caps, title, top = '') => `<div class="veil"></div>${top}<div class="ov-title"><span class="caps">${caps}</span><div class="g-title">${title}</div></div>`,
+  logoMark: '<div class="mark" style="position:absolute;top:54px;left:0;right:0;text-align:center;color:#f7f4ee;font-size:19px">Твій логотип</div>',
+  video: `<div class="veil"></div><span class="play" style="zoom:1.9"></span>
+    <div class="lb-ctrl" style="zoom:1.6;top:auto;bottom:20px;left:22px;right:22px"><span>01:24</span><span class="track"><i></i></span><span>04:12</span></div>
+    <div class="ov" style="left:14px;top:14px"><span class="pill" style="background:rgba(244,244,241,.92);border:0;color:var(--fg)">Фільм · 04:12</span></div>`,
+  fav: `<div class="ov" style="right:16px;top:16px">${HEART_BIG}</div>
+    <div class="ov" style="left:16px;bottom:16px"><span class="chip on" style="background:var(--bg)">${HEART}24 обрано</span></div>`,
+  cta: `<div class="veil"></div><div class="ov" style="left:0;right:0;bottom:30px;display:flex;justify-content:center"><span class="btn-a" style="padding:13px 26px">Створити першу галерею</span></div>`,
+}
+
+/* ---------- каруселі: [номер, слайди] ----------
+   layout: phone (за замовчуванням) · photo · side · zoom; dark — темний фон */
+
 const POSTS = [
   ['01', [
-    { h: '3 ГБ безкоштовно. <em>Назавжди.</em>', p: 'Без картки. Галерей — скільки хочеш.', s: S.gallery },
-    { h: 'Галерей — <em>скільки хочеш.</em>', p: 'Ліміт тільки на обсяг сховища, а не на кількість галерей чи клієнтів.', s: () => S.galleries('2,1 ГБ', '3 ГБ', 'Безкоштовний', 70) },
-    { h: 'Без картки. <em>Без пробного.</em>', p: 'Реєстрація через пошту або Google. Через 14 днів нічого не спишеться — нема з чого.', s: S.signup },
+    { h: '3 ГБ безкоштовно. <em>Назавжди.</em>', p: 'Без картки. Галерей — скільки хочеш.', layout: 'photo', photo: '18', ov: O.storage },
+    { h: 'Галерей — <em>скільки хочеш.</em>', p: 'Ліміт тільки на обсяг сховища, а не на кількість галерей чи клієнтів.', stat: ['∞', 'галерей на будь-якому тарифі'], layout: 'side', s: () => S.galleries('2,1 ГБ', '3 ГБ', 'Безкоштовний', 70) },
+    { h: 'Без картки. <em>Без пробного.</em>', p: 'Реєстрація через пошту або Google. Через 14 днів нічого не спишеться — нема з чого.', dark: true, s: S.signup },
     { h: 'Що є <em>безкоштовно.</em>', list: ['Пароль на галерею', 'Обране клієнта', 'Оригінали в повній якості', '9 мов для клієнтів', 'Термін дії галереї', 'Водяний знак на превʼю'], s: () => S.coverFull('21', 'Весілля Ірини<br>та Тараса') },
   ]],
   ['02', [
-    { h: '<em>129 ₴</em><br>за 100 ГБ.', p: 'Тариф «Базовий» у гривні, оплата українською карткою.<br>Річна оплата — два місяці в подарунок.', s: () => S.galleries('38,4 ГБ', '100 ГБ', 'Базовий', 38, GALLERIES_MIXED) },
-    { h: 'Усі тарифи —<br><em>у гривні.</em>', p: 'Від 0 до 899 ₴ на місяць.<br>Галерей — без ліміту на кожному тарифі.', s: () => S.plans(false) },
-    { h: 'Твій логотип,<br><em>не наш.</em>', p: 'З «Базового» підпис «Створено на проЯв» зникає,<br>а на обкладинці — твій логотип.', s: S.branded },
-    { h: 'Рік — це<br><em>10 місяців.</em>', p: 'Базовий за рік — 1 290 ₴ замість 1 548 ₴.<br>Посилання на реєстрацію — у профілі.', s: () => S.plans(true) },
+    { h: '<em>129 ₴</em><br>за 100 ГБ.', p: 'Тариф «Базовий» у гривні, оплата українською карткою.<br>Річна оплата — два місяці в подарунок.', dark: true, s: () => S.galleries('38,4 ГБ', '100 ГБ', 'Базовий', 38, GALLERIES_MIXED) },
+    { h: 'Усі тарифи — <em>у гривні.</em>', p: 'Від 0 до 899 ₴ на місяць. Галерей — без ліміту на кожному тарифі.', stat: ['0 ₴', 'стартовий тариф — 3 ГБ назавжди'], layout: 'side', s: () => S.plans(false) },
+    { h: 'Твій логотип,<br><em>не наш.</em>', p: 'З «Базового» підпис «Створено на проЯв» зникає,<br>а на обкладинці — твій логотип.', layout: 'photo', photo: 's01', ov: O.cover('Червень 2026', 'Весілля Марії та Андрія', O.logoMark) },
+    { h: 'Рік — це<br><em>10 місяців.</em>', p: 'Базовий за рік — 1 290 ₴ замість 1 548 ₴.<br>Посилання на реєстрацію — у профілі.', layout: 'zoom', s: () => S.plans(true) },
   ]],
   ['03', [
-    { h: 'Фото і відео<br><em>в одній</em> галереї.', p: 'Весільний ролик поруч із кадрами: клієнт дивиться й завантажує все з одного посилання. З тарифу «Плюс».', s: S.galleryVideo },
-    { h: 'Ролик грає<br><em>у галереї.</em>', p: 'Без окремих посилань на YouTube чи хмару. Клієнт дивиться й завантажує оригінал.', s: S.lightbox },
-    { h: 'Фільм, тизер, <em>перший танець.</em>', p: 'Скільки завгодно роликів у галереї. Тариф «Плюс»: 500 ГБ, відео й статистика — 519 ₴ на місяць.', s: S.videoGrid },
+    { h: 'Фото і відео<br><em>в одній</em> галереї.', p: 'Весільний ролик поруч із кадрами: клієнт дивиться й завантажує все з одного посилання. З тарифу «Плюс».', layout: 'photo', photo: '29', ov: O.video },
+    { h: 'Ролик грає<br><em>у галереї.</em>', p: 'Без окремих посилань на YouTube чи хмару. Клієнт дивиться й завантажує оригінал.', stat: ['1', 'посилання на фото й відео'], layout: 'side', s: S.lightbox },
+    { h: 'Фільм, тизер, <em>перший танець.</em>', p: 'Скільки завгодно роликів у галереї. Тариф «Плюс»: 500 ГБ, відео й статистика — 519 ₴ на місяць.', s: S.galleryVideo },
   ]],
   ['04', [
-    { h: 'Галерея мовою <em>твого клієнта.</em>', p: '9 мов: клієнт з Польщі, Німеччини чи Італії перемикає галерею сам — одним натиском.', s: S.langOpen },
+    { h: 'Галерея мовою <em>твого клієнта.</em>', p: '9 мов: клієнт з Польщі, Німеччини чи Італії перемикає галерею сам — одним натиском.', layout: 'zoom', s: S.langOpen },
     { h: 'Навіть пароль — <em>його мовою.</em>', p: 'Кнопки, підказки й захист галереї перекладені на всі 9 мов.', s: S.passwordPl },
-    { h: 'Мова — <em>вже в посиланні.</em>', p: 'У кабінеті є готові посилання українською та англійською. Далі клієнт перемикає сам.', s: S.copyLinks },
-    { h: '<em>9 мов</em> у кожній галереї.', list3: ['Українська', 'English', 'Polski', 'Deutsch', 'Español', 'Français', 'Italiano', 'Română', 'Português'], s: S.galleryFr },
+    { h: 'Мова —<br><em>вже в посиланні.</em>', p: 'У кабінеті є готові посилання українською та англійською. Далі клієнт перемикає сам.', stat: ['UA·EN', 'готові посилання в кабінеті'], layout: 'side', s: S.copyLinks },
+    { h: '<em>9 мов</em> у кожній галереї.', list3: ['Українська', 'English', 'Polski', 'Deutsch', 'Español', 'Français', 'Italiano', 'Română', 'Português'], dark: true, s: S.galleryFr },
   ]],
   ['05', [
-    { h: 'Бачиш, що <em>обрав</em> клієнт.', p: 'Обране клієнта — на всіх тарифах.<br>Перегляди й завантаження — з тарифу «Плюс».', s: S.stats },
-    { h: 'Клієнт ставить <em>сердечко.</em>', p: 'Відбір на альбом чи ретуш — прямо в галереї, без таблиць і переписок.', s: S.favClient },
+    { h: 'Бачиш, що <em>обрав</em> клієнт.', p: 'Обране клієнта — на всіх тарифах. Перегляди й завантаження — з «Плюс».', stat: ['214', 'переглядів галереї — видно з «Плюс»'], layout: 'side', s: S.stats },
+    { h: 'Клієнт ставить <em>сердечко.</em>', p: 'Відбір на альбом чи ретуш — прямо в галереї, без таблиць і переписок.', layout: 'photo', photo: '43', ov: O.fav },
     { h: 'Список файлів — <em>одним натиском.</em>', p: 'Копіюєш назви обраних кадрів і відбираєш їх у себе для ретуші.', s: S.favList },
-    { h: 'Скільки разів <em>відкрили.</em>', p: 'Перегляди й завантаження кожної галереї — з тарифу «Плюс».', s: S.statsList },
+    { h: 'Скільки разів <em>відкрили.</em>', p: 'Перегляди й завантаження кожної галереї — з тарифу «Плюс».', dark: true, s: S.statsList },
   ]],
   ['06', [
-    { h: '<em>Усе</em>, що вміє проЯв.', list: ['3 ГБ безкоштовно назавжди', '9 мов для клієнтів', 'Від 129 ₴ за 100 ГБ', 'Обране клієнта і статистика', 'Фото і відео в одній галереї', 'Пароль і термін дії галереї'], s: () => S.coverFull('18') },
-    { h: 'Перша галерея — <em>за три кроки.</em>', p: 'Створи, завантаж, надішли клієнту посилання — за бажання під паролем.', s: S.onboarding },
-    { h: 'Почни з <em>3 ГБ безкоштовно.</em>', p: 'Без картки. Посилання на реєстрацію — у профілі.', s: () => S.coverFull('15') },
+    { h: '<em>Усе</em>, що вміє проЯв.', list: ['3 ГБ безкоштовно назавжди', '9 мов для клієнтів', 'Від 129 ₴ за 100 ГБ', 'Обране клієнта і статистика', 'Фото і відео в одній галереї', 'Пароль і термін дії галереї'], layout: 'photo', photo: 's14' },
+    { h: 'Перша галерея<br><em>за три кроки.</em>', p: 'Створи, завантаж, надішли клієнту посилання — за бажання під паролем.', stat: ['3', 'кроки до першої галереї'], layout: 'side', s: S.onboarding },
+    { h: 'Почни з <em>3 ГБ безкоштовно.</em>', p: 'Без картки. Посилання на реєстрацію — у профілі.', layout: 'photo', photo: 's04', ov: O.cta },
   ]],
 ]
 
 document.getElementById('root').innerHTML = POSTS.map(([id, slides]) => `<div class="carousel">${slides.map((sl, i) => {
   const items = sl.list || sl.list3
   const list = items ? `<div class="list ${sl.list3 ? 'three' : ''}">${items.map(t => `<span>${t}</span>`).join('')}</div>` : ''
-  const inner = sl.s()
-  const ui = inner.startsWith('<div class="ui') ? inner : `<div class="ui"><div class="island"></div>${inner}</div>`
-  return `<section class="post ${list ? 'tall-head' : ''}" id="post-${id}-${i + 1}">
+  let media
+  if (sl.layout === 'photo') {
+    media = `<div class="big"><div class="ph" style="${bg(sl.photo)}"></div>${sl.ov || ''}</div>`
+  } else {
+    const inner = sl.s()
+    const ui = inner.startsWith('<div class="ui') ? inner : `<div class="ui"><div class="island"></div>${inner}</div>`
+    media = `<div class="phone"><div class="screen">${ui}</div></div>`
+  }
+  const cls = [list && 'tall-head', sl.layout && `L-${sl.layout}`, sl.dark && 'L-dark'].filter(Boolean).join(' ')
+  return `<section class="post ${cls}" id="post-${id}-${i + 1}">
     <div class="head"><h1>${sl.h}</h1>${sl.p ? `<p>${sl.p}</p>` : ''}${list}</div>
-    <div class="phone"><div class="screen">${ui}</div></div>
+    ${media}${sl.stat ? `<div class="stat"><b>${sl.stat[0]}</b><span>${sl.stat[1]}</span></div>` : ''}
     <div class="logo">проЯв</div></section>`
 }).join('')}</div>`).join('')
 </script>
