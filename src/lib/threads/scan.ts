@@ -43,6 +43,14 @@ const MAX_NEW_PER_RUN = 8
 const MAX_EVAL_PER_RUN = 30
 // Permalinks per dedupe query (keeps the PostgREST request URL short).
 const DEDUPE_CHUNK = 50
+// Time budget: the routes run with maxDuration = 60 s. Drafts are made
+// DRAFT_CONCURRENCY at a time, no new batch starts after the deadline, and
+// every outbound call has its own timeout — so the run always finishes and
+// writes its scan_log row instead of being killed mid-way.
+const DRAFT_CONCURRENCY = 5
+const SEARCH_TIMEOUT_MS = 8_000
+const GEMINI_TIMEOUT_MS = 12_000
+export const EVAL_BUDGET_MS = 35_000
 
 interface FoundPost {
   id: string
@@ -93,7 +101,7 @@ async function searchKeyword(token: string, q: string): Promise<SearchOutcome> {
     `${GRAPH}/keyword_search?q=${encodeURIComponent(q)}&search_type=RECENT` +
     `&fields=id,text,username,timestamp,permalink&access_token=${token}`
   try {
-    const res = await fetch(url)
+    const res = await fetch(url, { signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS) })
     const json = (await res.json().catch(() => null)) as { data?: FoundPost[]; error?: unknown } | null
     if (!res.ok) {
       return { posts: [], status: res.status, error: JSON.stringify(json?.error ?? json ?? {}).slice(0, 300) }
@@ -159,6 +167,7 @@ export async function composeReply(
           contents: [{ parts: [{ text: brand + ask }] }],
           generationConfig: { temperature: 0.8 },
         }),
+        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
       }
     )
     if (!res.ok) {
@@ -234,7 +243,9 @@ export type IncomingPost = FoundPost & { keyword?: string }
 export async function queueCandidates(
   posts: IncomingPost[],
   source: string,
-  extraLog: Record<string, unknown> = {}
+  extraLog: Record<string, unknown> = {},
+  /** No new draft batch starts after this (epoch ms). */
+  deadline = Date.now() + EVAL_BUDGET_MS
 ): Promise<ScanResult> {
   const admin = createSupabaseAdminClient()
   if (!admin) return { skipped: 'service role not configured', found: 0, inserted: 0 }
@@ -270,6 +281,7 @@ export async function queueCandidates(
   let skipped = 0
   let errors = 0
   let lastError: string | undefined
+  let outOfTime = false
   if (found > 0) {
     // Dedupe against the queue. Chunked: an Apify batch can bring hundreds of
     // permalinks and one huge IN list overflows the request URL. If the lookup
@@ -296,39 +308,54 @@ export async function queueCandidates(
     // проЯв actually solves are the ones that make the cut.
     const ranked = [...fresh].sort((a, b) => onTopicScore(b[1].text) - onTopicScore(a[1].text))
 
-    for (const [url, p] of ranked) {
-      if (inserted >= MAX_NEW_PER_RUN) break
-      if (evaluated >= MAX_EVAL_PER_RUN) break
-      if (have.has(url)) continue
-      evaluated++
-      const outcome = await draftReply(apiKey, p)
-      if (outcome.kind === 'skip') {
-        skipped++
-        continue
+    const todo = ranked.filter(([url]) => !have.has(url))
+    let next = 0
+    while (next < todo.length && inserted < MAX_NEW_PER_RUN && evaluated < MAX_EVAL_PER_RUN) {
+      if (Date.now() > deadline) {
+        outOfTime = true
+        break
       }
-      if (outcome.kind === 'error') {
-        errors++
-        lastError = outcome.error
-        console.error(`threads ${source}: draft failed:`, outcome.error)
-        continue
-      }
-      const { error } = await admin.from('threads_replies').insert({
-        source_url: url,
-        source_author: p.username ? `@${p.username}` : null,
-        source_text: p.text ?? '',
-        draft_reply: outcome.text,
-        keyword: p.keyword,
-        source_created_at: p.timestamp ? new Date(p.timestamp).toISOString() : new Date().toISOString(),
-        status: 'draft',
-      })
-      if (error) {
-        errors++
-        lastError = `threads_replies insert: ${error.message}`
-        console.error(`threads ${source}: insert failed:`, error.message)
-      } else {
-        inserted++
+      const batch = todo.slice(next, next + Math.min(DRAFT_CONCURRENCY, MAX_EVAL_PER_RUN - evaluated))
+      next += batch.length
+      evaluated += batch.length
+      // composeReply never throws (errors come back as outcomes), so one bad
+      // call can't sink the batch.
+      const outcomes = await Promise.all(batch.map(([, p]) => draftReply(apiKey, p)))
+
+      for (let i = 0; i < batch.length; i++) {
+        const [url, p] = batch[i]
+        const outcome = outcomes[i]
+        if (outcome.kind === 'skip') {
+          skipped++
+          continue
+        }
+        if (outcome.kind === 'error') {
+          errors++
+          lastError = outcome.error
+          console.error(`threads ${source}: draft failed:`, outcome.error)
+          continue
+        }
+        // Batches can overshoot the cap; the extra drafts are simply dropped.
+        if (inserted >= MAX_NEW_PER_RUN) continue
+        const { error } = await admin.from('threads_replies').insert({
+          source_url: url,
+          source_author: p.username ? `@${p.username}` : null,
+          source_text: p.text ?? '',
+          draft_reply: outcome.text,
+          keyword: p.keyword,
+          source_created_at: p.timestamp ? new Date(p.timestamp).toISOString() : new Date().toISOString(),
+          status: 'draft',
+        })
+        if (error) {
+          errors++
+          lastError = `threads_replies insert: ${error.message}`
+          console.error(`threads ${source}: insert failed:`, error.message)
+        } else {
+          inserted++
+        }
       }
     }
+    if (outOfTime) console.error(`threads ${source}: time budget reached after ${evaluated} drafts`)
   }
 
   // Every evaluation failed → the run failed (bad key, quota, retired model),
@@ -344,6 +371,7 @@ export async function queueCandidates(
     skipped,
     errors,
     ...(lastError ? { lastError } : {}),
+    ...(outOfTime ? { outOfTime } : {}),
     inserted,
   })
   return {
@@ -374,13 +402,16 @@ export async function scanThreads(): Promise<ScanResult> {
     return { skipped, found: 0, inserted: 0, error: skipped }
   }
 
+  const runStart = Date.now()
   const collected: IncomingPost[] = []
   const diag: Array<{ kw: string; status: number; total: number; error?: string }> = []
-  for (const keyword of KEYWORDS) {
-    const r = await searchKeyword(token, keyword)
+  // All keywords at once (each with its own timeout); searchKeyword never throws.
+  const results = await Promise.all(KEYWORDS.map((keyword) => searchKeyword(token, keyword)))
+  KEYWORDS.forEach((keyword, i) => {
+    const r = results[i]
     diag.push({ kw: keyword, status: r.status, total: r.posts.length, ...(r.error ? { error: r.error } : {}) })
     for (const p of r.posts) collected.push({ ...p, keyword })
-  }
+  })
 
   // Every keyword search failed (expired token, API change) → the run failed.
   const failedSearches = diag.filter((d) => d.status !== 200)
@@ -391,5 +422,5 @@ export async function scanThreads(): Promise<ScanResult> {
     return { found: 0, inserted: 0, error }
   }
 
-  return queueCandidates(collected, 'threads', { keywords: diag })
+  return queueCandidates(collected, 'threads', { keywords: diag }, runStart + EVAL_BUDGET_MS)
 }
