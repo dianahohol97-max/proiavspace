@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
 import { galleryPrefix, getStorage, isVariantName } from '@/lib/storage'
 import { MAX_FILE_BYTES } from '@/lib/upload/limits'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 /**
  * Shared server-side upload logic for the single-PUT (/api/uploads/*) and
@@ -10,6 +11,9 @@ import { MAX_FILE_BYTES } from '@/lib/upload/limits'
  */
 
 export { MAX_FILE_BYTES }
+
+/** Browser-made preview/thumb/poster JPEGs are far below this. */
+const MAX_VARIANT_BYTES = 25 * 1024 * 1024
 
 export type UploadCheck = { ok: true } | { ok: false; status: number; error: string }
 
@@ -134,21 +138,58 @@ export async function registerAsset(
     }
   }
 
-  const kind = input.contentType.startsWith('video/') ? 'video' : 'photo'
+  // Never trust the client's own size/type: read what storage actually holds
+  // and run the full upload gate (gallery ownership, type, per-file cap, video
+  // on «Плюс»+, quota) against those real values. Anything that fails is
+  // removed from storage so it can't sit there uncounted.
+  const storage = getStorage()
+  const discard = () => storage.delete(allKeys).catch(() => {})
+  const stored = await storage.head(input.key)
+  if (!stored) {
+    return { ok: false, status: 400, error: 'upload_missing' }
+  }
+  const contentType = stored.contentType ?? input.contentType
+  const gate = await authorizeUpload(supabase, userId, {
+    galleryId: input.galleryId,
+    contentType,
+    sizeBytes: stored.sizeBytes,
+  })
+  if (!gate.ok) {
+    await discard()
+    return gate
+  }
+  // Variants (preview/thumb/poster) are small JPEGs made in the browser; they
+  // aren't counted against the quota, so a "variant" can't be a big file.
+  for (const variantKey of Object.values(input.variants ?? {})) {
+    const variant = await storage.head(variantKey)
+    if (!variant || variant.sizeBytes > MAX_VARIANT_BYTES) {
+      await discard()
+      return { ok: false, status: 400, error: 'invalid_variant' }
+    }
+  }
 
-  const { data, error } = await supabase
+  // Asset rows are written only here, server-side, after the checks above —
+  // the user's own client has no INSERT on assets (migration 0041).
+  const admin = createSupabaseAdminClient()
+  if (!admin) {
+    return { ok: false, status: 503, error: 'not_configured' }
+  }
+
+  const kind = contentType.startsWith('video/') ? 'video' : 'photo'
+
+  const { data, error } = await admin
     .from('assets')
     .insert({
       gallery_id: input.galleryId,
       owner_id: userId,
       r2_key: input.key,
       kind,
-      content_type: input.contentType,
+      content_type: contentType,
       width: input.width ?? null,
       height: input.height ?? null,
       // Original size only; variant overhead (~5-10%) is deliberately not
       // counted against the quota to keep accounting simple for now.
-      size_bytes: input.sizeBytes,
+      size_bytes: stored.sizeBytes,
       variants: input.variants ?? {},
       ...(input.importId
         ? {
@@ -164,9 +205,7 @@ export async function registerAsset(
   if (error?.code === '23505' && input.importId) {
     // Same file name already in this gallery (two tabs importing one zip):
     // drop the objects we just uploaded so they don't sit unaccounted.
-    await getStorage()
-      .delete(allKeys)
-      .catch(() => {})
+    await discard()
     return { ok: false, status: 409, error: 'duplicate' }
   }
   if (error) {

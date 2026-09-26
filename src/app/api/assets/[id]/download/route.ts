@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { isGalleryUnlocked } from '@/lib/gallery-access'
 import { getStorage } from '@/lib/storage'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -13,9 +14,11 @@ export const runtime = 'nodejs'
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient()
 
-  // RLS gates visibility: the owner sees their assets; anon sees assets of
-  // published, non-expired galleries only.
-  const { data: asset } = await supabase
+  // The asset row itself is looked up with the service role: anon RLS hides
+  // assets of password galleries (migration 0042). Visibility is still
+  // decided below — the gallery read goes through RLS (owner, or published
+  // and not expired) and a password gallery needs the unlock cookie.
+  const { data: asset } = await (createSupabaseAdminClient() ?? supabase)
     .from('assets')
     .select('id, r2_key, gallery_id, owner_id')
     .eq('id', params.id)

@@ -4,6 +4,7 @@ import {
   CreateMultipartUploadCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -104,6 +105,23 @@ export class S3CompatProvider implements StorageProvider {
           Delete: { Objects: chunk.map((key) => ({ Key: key })), Quiet: true },
         })
       )
+    }
+  }
+
+  async head(key: string): Promise<{ sizeBytes: number; contentType: string | null } | null> {
+    try {
+      const response = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key })
+      )
+      return {
+        sizeBytes: response.ContentLength ?? 0,
+        contentType: response.ContentType ?? null,
+      }
+    } catch (cause) {
+      const status = (cause as { $metadata?: { httpStatusCode?: number } }).$metadata
+        ?.httpStatusCode
+      if (status === 404) return null
+      throw cause
     }
   }
 

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { isGalleryUnlocked } from '@/lib/gallery-access'
+import { galleryAssetsClient, isGalleryUnlocked } from '@/lib/gallery-access'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Asset } from '@/lib/types'
@@ -27,7 +27,7 @@ export async function GET(_request: NextRequest, { params }: { params: { slug: s
     return NextResponse.json({ error: 'locked' }, { status: 403 })
   }
 
-  const { data: assets } = await supabase
+  const { data: assets } = await galleryAssetsClient(supabase, gallery)
     .from('assets')
     .select('*')
     .eq('gallery_id', gallery.id)
