@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { unlockCookieName, unlockCookieValue } from '@/lib/gallery-access'
+import { defaultLocale, isLocale } from '@/lib/i18n/config'
 import { verifyPassword } from '@/lib/password'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -15,7 +16,10 @@ export const runtime = 'nodejs'
 export async function POST(request: NextRequest, { params }: { params: { slug: string } }) {
   const formData = await request.formData()
   const password = String(formData.get('password') ?? '')
-  const locale = String(formData.get('locale') ?? 'uk')
+  // Only a known locale may go into the redirect path — `/evil.com` here would
+  // turn the gallery URL into `//evil.com/...`, an open redirect.
+  const rawLocale = String(formData.get('locale') ?? 'uk')
+  const locale = isLocale(rawLocale) ? rawLocale : defaultLocale
   const galleryUrl = new URL(`/${locale}/g/${params.slug}`, request.url)
 
   const admin = createSupabaseAdminClient()
