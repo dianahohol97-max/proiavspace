@@ -19,7 +19,8 @@ export function primaryNav(locale: string): NavLink[] {
   return [
     { label: 'Galleries', href: `/${locale}#galleries` },
     { label: 'Pricing', href: `/${locale}#pricing` },
-    { label: 'Blog', href: `/${locale}/blog` },
+    // The blog is Ukrainian-only; /en/blog redirects there anyway.
+    { label: 'Blog', href: '/uk/blog' },
   ]
 }
 

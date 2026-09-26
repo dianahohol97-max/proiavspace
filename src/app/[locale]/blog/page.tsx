@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { getArticles, type Article } from '@/lib/blog/articles'
 import { CATEGORIES, articlesIn } from '@/lib/blog/categories'
 import { isLocale } from '@/lib/i18n/config'
@@ -38,6 +38,9 @@ function fmtDate(date: string, uk: boolean): string {
 
 export default async function BlogHubPage({ params }: { params: { locale: string } }) {
   if (!isLocale(params.locale)) notFound()
+  // Ukrainian-only content: other locales would serve it under the wrong
+  // <html lang> as an indexable duplicate, so they go to the /uk copy.
+  if (params.locale !== 'uk') permanentRedirect('/uk/blog')
   const locale = params.locale
   const uk = locale === 'uk'
   const articles = await getArticles()
