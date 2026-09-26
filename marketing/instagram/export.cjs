@@ -13,7 +13,7 @@ const { chromium } = require('playwright')
   await page.goto('file://' + path.join(__dirname, 'posts.html'))
   await page.evaluate(() => document.fonts.ready)
   await page.waitForLoadState('networkidle')
-  for (const post of await page.$$('section.post')) {
+  for (const post of await page.$$('section.post, section.story')) {
     const id = await post.getAttribute('id')
     await post.screenshot({ path: path.join(outDir, `${id}.png`) })
     console.log('✓', id)
