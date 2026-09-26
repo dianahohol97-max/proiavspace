@@ -204,6 +204,27 @@
   .story.full-photo .head h1 em { color: var(--accent-soft); }
   .story.full-photo .head p { color: rgba(244,244,241,.8); }
   .huge { position: absolute; left: 72px; top: 330px; font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 250px; line-height: 1; letter-spacing: -0.04em; color: var(--accent-soft); }
+  .story .caps-l { font-size: 22px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+  .L-dark .caps-l { color: rgba(244,244,241,.55); }
+  .price-big { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 170px; line-height: 1; letter-spacing: -0.04em; margin-top: 26px; }
+  .price-big small { font-size: 44px; letter-spacing: 0; color: var(--muted); margin-left: 12px; }
+  .gb { display: inline-block; margin-top: 22px; border: 2px solid var(--fg); border-radius: 999px; padding: 10px 26px; font-size: 32px; font-weight: 700; }
+  .checks { margin-top: 44px; display: flex; flex-direction: column; gap: 18px; }
+  .checks span { font-size: 36px; font-weight: 500; line-height: 1.3; padding-left: 56px; position: relative; }
+  .checks span::before { content: '✓'; position: absolute; left: 0; top: 0; color: var(--accent); font-weight: 800; }
+  .checks span.minus { color: var(--muted); }
+  .checks span.minus::before { content: '—'; color: var(--muted); }
+  .who { margin-top: 40px; font-size: 32px; line-height: 1.4; color: var(--muted); }
+  .who b { color: var(--fg); font-weight: 700; }
+  .strip { position: absolute; left: 72px; right: 72px; bottom: 440px; height: 300px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .strip div { border-radius: var(--radius); }
+  .ex { position: absolute; left: 72px; right: 72px; top: 560px; border-left: 4px solid var(--accent); padding: 4px 0 4px 30px; }
+  .L-dark .ex { border-color: var(--accent-soft); }
+  .ex .caps-l { margin-bottom: 10px; }
+  .ex p { font-size: 33px; line-height: 1.42; color: var(--fg); font-weight: 500; }
+  .L-dark .ex p { color: var(--bg); }
+  .story .phone.ex-phone { top: 930px; transform: scale(1.08); }
+  .story .big.ex-big { top: 930px; bottom: 420px; }
   .files { font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: 11.5px; line-height: 1.75; padding: 10px 14px; }
 </style>
 </head>
@@ -434,33 +455,60 @@ const POSTS = [
     { h: 'Почни з <em>3 ГБ безкоштовно.</em>', p: 'Без картки. Більше місця — від 129 ₴ за 100 ГБ.<br>Посилання — у профілі.', layout: 'photo', photo: 's04', ov: O.cta },
   ]],]
 
-/* ---------- сторіс: [номер, опис] ---------- */
-const STORIES = [
-  { h: 'Онлайн-галереї<br><em>для фотографів.</em>', p: 'Передай зйомку клієнту одним посиланням.<br>3 ГБ — безкоштовно назавжди.', dark: true, photo: '18' },
-  // місце під стікер «Опитування» — між фото і логотипом
-  { h: 'Як ти зараз передаєш фото <em>клієнтам?</em>', photo: 's03', short: true },
-  { h: 'Клієнт ставить <em>сердечко</em> — ти бачиш список.', p: 'Відбір на ретуш без таблиць і переписок.', s: S.favClient },
-  { h: 'Галерея<br><em>9 мовами.</em>', p: 'Клієнт з-за кордону перемикає мову сам.', dark: true, s: S.langOpen, zoom: true },
-  // місце під стікер «Питання» — по центру
-  { h: 'Що дратує<br>у передачі <em>фото клієнтам?</em>', full: '29' },
-  { h: '', huge: '129 ₴', p: '', dark: true, photo: '27', photoTop: 1060, after: '<div class="head" style="top:650px"><h1 style="font-size:84px">за 100 ГБ<br>на місяць.</h1><p>У гривні, українською карткою.<br>Відео — вже з «Базового».</p></div>' },
-  // місце під стікер «Посилання» — під фото
-  { h: 'Почни з <em>3 ГБ безкоштовно.</em>', p: 'Без картки. Посилання ↓', photo: 's04', short: true },
-]
+/* ---------- сторіс: два набори — тарифи і переваги на прикладах ---------- */
+const plan = (name, price, per, gb, items, who, photos) => ({ custom: `
+  <div class="head"><div class="caps-l">Тариф</div><h1>${name}</h1>
+    <div class="price-big">${price}<small>${per}</small></div><span class="gb">${gb}</span>
+    <div class="checks">${items.map(t => t[0] === '-' ? `<span class="minus">${t.slice(1)}</span>` : `<span>${t}</span>`).join('')}</div>
+    <div class="who">${who}</div></div>
+  <div class="strip">${photos.map(n => `<div class="ph" style="${bg(n)}"></div>`).join('')}</div>` })
 
-const renderStory = (st, i) => {
+const STORY_SETS = [
+  ['tarify', [
+    { h: 'Тарифи проЯв:<br><em>що входить.</em>', p: 'Усе в гривні, оплата українською карткою.<br>Галерей — без ліміту на кожному тарифі.', dark: true, photo: 's03' },
+    plan('Безкоштовний', '0 ₴', 'назавжди', '3 ГБ', ['Галерей скільки хочеш', 'Пароль і термін дії', 'Обране клієнта', '9 мов для клієнтів', 'Оригінали і zip', '-Внизу підпис «Створено на проЯв»'],
+      '<b>Кому:</b> спробувати на перших зйомках, без картки.', ['18', '15', '01']),
+    plan('Базовий', '129 ₴', '/міс', '100 ГБ', ['Усе з Безкоштовного', 'Твій логотип у галереї', 'Без підпису проЯв', 'Відео в галереях'],
+      '<b>Кому:</b> портретисту — приблизно 8 зйомок на місяць, галереї онлайн пів року.', ['s03', 's01', 's11']),
+    plan('Плюс', '519 ₴', '/міс', '500 ГБ', ['Усе з Базового', 'Скільки разів відкрили галерею', 'Скільки разів завантажили'],
+      '<b>Кому:</b> весільному фотографу на повний сезон — з відео й великими віддачами.', ['27', '28', '29']),
+    plan('Максимальний', '899 ₴', '/міс', '1 ТБ', ['Усе з Плюса', 'Пріоритетна підтримка', 'Найбільший архів'],
+      '<b>Кому:</b> студіям і тим, хто тримає галереї роками.', ['s04', 's09', 's14']),
+    { custom: `<div class="head"><div class="caps-l">Важливо знати</div><h1>Без <em>сюрпризів.</em></h1>
+      <div class="checks"><span>За рік — 2 місяці в подарунок: Базовий 1 290 ₴ замість 1 548 ₴</span>
+      <span>Скасувати можна будь-коли — файли не видаляються</span>
+      <span>Сайт-портфоліо — окремо, від 99 ₴, 7 днів безкоштовно</span></div>
+      <div class="who">Почни з 3 ГБ безкоштовно ↓</div></div>
+      <div class="phone ex-phone" style="top:960px"><div class="screen"><div class="ui"><div class="island"></div>${S.plans(true)}</div></div></div>` },
+  ]],
+  ['perevahy', [
+    { h: 'Переваги проЯв<br><em>на прикладах.</em>', p: 'Не «зручно і красиво», а що саме змінюється у твоїй роботі.', dark: true, photo: '07' },
+    { h: 'Відбір<br><em>сердечком.</em>', ex: 'Наречена позначає 40 кадрів для альбому просто в галереї. Ти копіюєш список файлів одним натиском — без таблиць, скриншотів і «а це який номер?».', s: S.favList },
+    { h: 'Пароль<br>і <em>термін дії.</em>', ex: 'Корпоратив для компанії: ставиш пароль, щоб фото не розлетілися мережею, і дату 31.12 — галерея закриється сама. Навіть на безкоштовному.', s: S.settings },
+    { h: 'Клієнт<br><em>з-за кордону.</em>', ex: 'Пара з Польщі, гості з Німеччини. Ти надсилаєш одне посилання — кожен перемикає галерею на свою мову. Усього 9 мов.', s: S.langOpen },
+    { h: 'Відео<br><em>поруч із фото.</em>', ex: 'Фільм на 4 хвилини й тизер лежать у тій самій галереї, що й 400 кадрів. Клієнт не шукає окреме посилання на хмару. З «Базового».', photo: '29', ov: O.video },
+    { h: 'Твій бренд,<br><em>не наш.</em>', ex: 'Клієнтка пересилає галерею подрузі — та бачить твій логотип і твоє імʼя. Без «Створено на проЯв». З «Базового».', photo: 's01', ov: O.cover('Червень 2026', 'Весілля Марії та Андрія', O.logoMark) },
+    { h: 'Бронювання<br><em>з оплатою.</em>', ex: 'Клієнтка обирає суботу, 13:00, і одразу платить через Monobank — слот твій. Не заплатила — слот звільняється сам, без твоїх нагадувань.', s: S.booking },
+    { h: 'Почни з<br><em>3 ГБ безкоштовно.</em>', p: 'Без картки. Посилання ↓', photo: 's04', short: true },
+  ]],
+]
+const renderStory = (set) => (st, i) => {
   let media = ''
-  if (st.full) media = `<div class="big"><div class="ph" style="${bg(st.full)}"></div><div class="veil2"></div></div>`
+  if (st.custom) media = ''
+  else if (st.ex && st.s) media = `<div class="phone ex-phone"><div class="screen"><div class="ui"><div class="island"></div>${st.s()}</div></div></div>`
+  else if (st.ex && st.photo) media = `<div class="big ex-big"><div class="ph" style="${bg(st.photo)}"></div>${st.ov || ''}</div>`
+  else if (st.full) media = `<div class="big"><div class="ph" style="${bg(st.full)}"></div><div class="veil2"></div></div>`
   else if (st.photo) media = `<div class="big" style="${st.short ? 'bottom:760px;' : ''}${st.photoTop ? `top:${st.photoTop}px;` : ''}"><div class="ph" style="${bg(st.photo)}"></div></div>`
   else if (st.s) media = `<div class="phone ${st.zoom ? 'zoom' : ''}"><div class="screen"><div class="ui"><div class="island"></div>${st.s()}</div></div></div>`
   const cls = ['story', st.dark && 'L-dark', st.full && 'full-photo'].filter(Boolean).join(' ')
-  return `<section class="${cls}" id="story-${String(i + 1).padStart(2, '0')}">${media}
+  return `<section class="${cls}" id="story-${set}-${String(i + 1).padStart(2, '0')}">${media}${st.custom || ''}
+    ${st.ex ? `<div class="ex"><div class="caps-l">Приклад</div><p>${st.ex}</p></div>` : ''}
     ${st.huge ? `<div class="huge">${st.huge}</div>` : ''}
     ${st.h ? `<div class="head"><h1>${st.h}</h1>${st.p ? `<p>${st.p}</p>` : ''}</div>` : ''}${st.after || ''}
     <div class="logo">проЯв</div></section>`
 }
 
-document.getElementById('root').innerHTML = `<div class="carousel">${STORIES.map(renderStory).join('')}</div>` + POSTS.map(([id, slides]) => `<div class="carousel">${slides.map((sl, i) => {
+document.getElementById('root').innerHTML = STORY_SETS.map(([set, list]) => `<div class="carousel">${list.map(renderStory(set)).join('')}</div>`).join('') + POSTS.map(([id, slides]) => `<div class="carousel">${slides.map((sl, i) => {
   const items = sl.list || sl.list3
   const list = items ? `<div class="list ${sl.list3 ? 'three' : ''}">${items.map(t => `<span>${t}</span>`).join('')}</div>` : ''
   let media
