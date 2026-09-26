@@ -50,6 +50,17 @@ as $$
   end;
 $$;
 
+-- E-mail of a user for server-side notifications (service role only; avoids a
+-- GoTrue admin call per e-mail).
+create or replace function public.user_email(p_user uuid)
+returns text
+language sql stable security definer set search_path = public
+as $$
+  select email from auth.users where id = p_user;
+$$;
+revoke execute on function public.user_email(uuid) from public, anon, authenticated;
+grant execute on function public.user_email(uuid) to service_role;
+
 -- Card tokens a user has ever paid with: saved subscriptions plus the
 -- walletData of their Monobank payments.
 create or replace function public.user_card_tokens(p_user uuid)

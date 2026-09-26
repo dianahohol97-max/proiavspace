@@ -13,6 +13,7 @@ import {
   deliverWebhook,
   earnings,
   installMocks,
+  outbox,
   pendingPayment,
   pg,
   profile,
@@ -33,6 +34,7 @@ beforeEach(() => {
   provider.charges.length = 0
   provider.chargeResult = 'paid'
   provider.lookupResult = 'unknown'
+  outbox.length = 0
   session.userId = null
 })
 
@@ -279,6 +281,27 @@ describe('checkout: spending the credit', { skip }, () => {
     assert.deepEqual(amounts, [79, 129])
     for (const c of provider.checkouts) await deliverWebhook({ orderId: c.orderId, status: 'paid' })
     assert.equal(profile(u).credit_balance_kop, 0)
+  })
+
+  test('an abandoned invoice (no webhook for `expired`) is closed by the cron after 25 h', async () => {
+    const u = signUp()
+    pg(`update public.profiles set credit_balance_kop = 5000 where user_id = ${q(u)}`)
+    const a = await checkout(u)
+    pg(`update public.payments set created_at = now() - interval '26 hours' where order_id = ${q(a.last!.orderId)}`)
+    const result = await runRenewCron()
+    assert.ok(result.expiredCheckouts >= 1)
+    assert.equal(pg(`select status from public.payments where order_id = ${q(a.last!.orderId)}`), 'failed')
+    const b = await checkout(u)
+    assert.equal(b.last?.amount, 79)
+  })
+
+  test('the cron never touches pending renewal charges', async () => {
+    const u = signUp()
+    const subId = dueSubscription(u)
+    const pay = pendingPayment({ userId: u, amount: 129, subscriptionId: subId })
+    pg(`update public.payments set created_at = now() - interval '26 hours' where id = ${q(pay.id)}`)
+    await runRenewCron()
+    assert.equal(pg(`select status from public.payments where id = ${q(pay.id)}`), 'pending')
   })
 
   test('a failed checkout frees the credit for the next one', async () => {

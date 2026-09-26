@@ -5,11 +5,15 @@
  */
 const DEFAULT_ADMINS = 'dianahohol97@gmail.com'
 
-export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false
-  const list = (process.env.ADMIN_EMAILS ?? DEFAULT_ADMINS)
+/** The allowlist itself — also where admin notifications go. */
+export function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? DEFAULT_ADMINS)
     .split(',')
     .map((entry) => entry.trim().toLowerCase())
     .filter(Boolean)
-  return list.includes(email.toLowerCase())
+}
+
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  return adminEmails().includes(email.toLowerCase())
 }

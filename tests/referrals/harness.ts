@@ -196,6 +196,9 @@ export const provider: FakeProvider = {
 /** The signed-in user the mocked cookie-based server client acts as. */
 export const session: { userId: string | null } = { userId: null }
 
+/** Every e-mail the app tried to send through the (mocked) Brevo client. */
+export const outbox: { to: string; subject: string; text: string }[] = []
+
 let mocked = false
 export async function installMocks(): Promise<void> {
   if (mocked) return
@@ -205,6 +208,7 @@ export async function installMocks(): Promise<void> {
   process.env.SUPABASE_SERVICE_ROLE_KEY = serviceKey()
   process.env.NEXT_PUBLIC_APP_URL = 'https://proiav.test'
   process.env.CRON_SECRET = 'cron-test'
+  process.env.ADMIN_EMAILS = 'admin@proiav.test'
   delete process.env.BREVO_API_KEY
 
   const fake = {
@@ -234,13 +238,29 @@ export async function installMocks(): Promise<void> {
       canChargeTokens: (p: { chargeToken?: unknown }) => typeof p.chargeToken === 'function',
     },
   })
+  mock.module(modUrl('src/lib/email.ts'), {
+    namedExports: {
+      isEmailConfigured: () => true,
+      sendEmail: async (input: { to: string; subject: string; text: string }) => {
+        outbox.push(input)
+        return true
+      },
+      sendEmailDetailed: async (input: { to: string; subject: string; text: string }) => {
+        outbox.push(input)
+        return { ok: true, status: 201, body: '' }
+      },
+    },
+  })
+  // Server actions call revalidatePath, which needs a Next request scope.
+  mock.module('next/cache', { namedExports: { revalidatePath: () => undefined } })
   mock.module(modUrl('src/lib/supabase/server.ts'), {
     namedExports: {
       createSupabaseServerClient: () => {
         if (!session.userId) return anonClient(url)
         // No GoTrue in the local stack: the cookie session resolves to this user.
         const client = userClient(url, session.userId)
-        const user = { id: session.userId, email: `${session.userId}@test.local` }
+        const email = pg(`select email from auth.users where id = ${q(session.userId)}`)
+        const user = { id: session.userId, email }
         client.auth.getUser = (async () => ({ data: { user }, error: null })) as never
         return client
       },
