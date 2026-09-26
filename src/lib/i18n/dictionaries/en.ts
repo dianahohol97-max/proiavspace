@@ -123,6 +123,8 @@ export const en: Dictionary = {
     draftHint: 'The gallery is hidden for now. Publish it so your client can view the photos.',
     uploadTitle: 'Upload photos',
     dropHint: 'Drag files here or click to choose. Photos upload directly to storage.',
+    videoPlanNotice: 'Video is available from the Basic plan.',
+    videoPlanLink: 'Choose a plan',
     deleteGallery: 'Delete gallery',
     deleteConfirm: 'The gallery and all photos will be deleted forever. This cannot be undone.',
     settingsTitle: 'Password and expiry',
@@ -421,6 +423,7 @@ export const en: Dictionary = {
     reportDuplicate: 'Duplicates skipped (a file with this name is already in the gallery): {n}',
     reportUnsupported: 'Skipped — not a photo or video: {n}',
     reportVideo: 'Videos skipped (video starts on the Basic plan): {n}',
+    videoPlanLink: 'Choose a plan',
     reportFailed:
       'Failed to upload: {n}. Pick the same zip again — the import only uploads what is missing.',
     reportGalleries: 'Galleries (drafts) — review and publish:',
