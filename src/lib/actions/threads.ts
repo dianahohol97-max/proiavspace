@@ -46,6 +46,8 @@ export async function draftReplyFromInput(locale: Locale, formData: FormData): P
   if (!text) return
 
   const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) console.error('threads: GEMINI_API_KEY not set, saving the post with an empty draft')
+  // null (Gemini failed, logged in voice.ts) keeps the post with an empty draft to write by hand.
   const draft = apiKey ? await composeComment(apiKey, text, author || null) : null
 
   const { error } = await admin.from('threads_replies').insert({
@@ -80,6 +82,8 @@ export async function createOwnPost(locale: Locale, formData: FormData): Promise
   if (!idea) return
 
   const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) console.error('threads: GEMINI_API_KEY not set, saving the idea with an empty draft')
+  // null (Gemini failed, logged in voice.ts) keeps the idea with an empty draft to write by hand.
   const draft = apiKey ? await composeOwnPost(apiKey, idea) : null
 
   const { error } = await admin.from('threads_posts').insert({
