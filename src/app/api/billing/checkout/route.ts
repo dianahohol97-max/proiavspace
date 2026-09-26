@@ -39,7 +39,9 @@ function isCheckoutBody(value: unknown): value is CheckoutBody {
 /**
  * Starts an upgrade for either product: gallery storage tiers or site plans.
  * Records a pending payment row and returns the provider's checkout form.
- * Requires LIQPAY_* and SUPABASE_SERVICE_ROLE_KEY env — 503 until configured.
+ * Requires the selected payment provider's keys (MONOBANK_TOKEN in production,
+ * or LIQPAY_* with PAYMENT_PROVIDER=liqpay) and SUPABASE_SERVICE_ROLE_KEY —
+ * 503 until configured.
  */
 export async function POST(request: NextRequest) {
   const supabase = createSupabaseServerClient()
@@ -196,8 +198,10 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json(form)
   } catch (cause) {
-    // Monobank creates the invoice via a server call that can fail.
+    // Monobank creates the invoice via a server call that can fail. No invoice
+    // exists, so the attempt is closed as failed rather than left pending forever.
     console.error('billing checkout: provider error', cause)
+    await admin.from('payments').update({ status: 'failed' }).eq('order_id', orderId)
     return NextResponse.json({ error: 'provider_error' }, { status: 502 })
   }
 }

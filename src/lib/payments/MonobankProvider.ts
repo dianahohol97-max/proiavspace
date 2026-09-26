@@ -176,6 +176,28 @@ export class MonobankProvider implements RecurringChargeProvider {
     return 'pending'
   }
 
+  async lookupCharge(
+    orderId: string,
+    createdAtIso: string
+  ): Promise<'paid' | 'failed' | 'unknown'> {
+    // The merchant statement lists payments with our reference; start a minute
+    // before the payment row so clock skew can't hide it.
+    const from = Math.floor(new Date(createdAtIso).getTime() / 1000) - 60
+    const response = await fetch(`${API_BASE}/statement?from=${from}`, {
+      headers: { 'X-Token': this.token },
+    })
+    if (!response.ok) {
+      throw new Error(`monobank statement: ${response.status} ${await response.text()}`)
+    }
+    const payload = (await response.json()) as {
+      list?: { reference?: string; status?: string }[]
+    }
+    const item = (payload.list ?? []).find((entry) => entry.reference === orderId)
+    if (item?.status === 'success') return 'paid'
+    if (item?.status === 'failure' || item?.status === 'reversed') return 'failed'
+    return 'unknown'
+  }
+
   async deleteToken(cardToken: string): Promise<void> {
     // Best-effort: a leftover token cannot be charged once the subscription
     // row is gone, so failures here are logged by the caller and ignored.
