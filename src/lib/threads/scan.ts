@@ -41,6 +41,8 @@ const MAX_NEW_PER_RUN = 8
 // Cap Gemini calls per run: we evaluate at most this many fresh candidates
 // (relevance + draft in one call) to find up to MAX_NEW_PER_RUN good replies.
 const MAX_EVAL_PER_RUN = 30
+// Permalinks per dedupe query (keeps the PostgREST request URL short).
+const DEDUPE_CHUNK = 50
 
 interface FoundPost {
   id: string
@@ -269,12 +271,24 @@ export async function queueCandidates(
   let errors = 0
   let lastError: string | undefined
   if (found > 0) {
+    // Dedupe against the queue. Chunked: an Apify batch can bring hundreds of
+    // permalinks and one huge IN list overflows the request URL. If the lookup
+    // fails the run stops — drafting blind would queue duplicates.
     const urls = [...fresh.keys()]
-    const { data: existing } = await admin
-      .from('threads_replies')
-      .select('source_url')
-      .in('source_url', urls)
-    const have = new Set((existing ?? []).map((r) => (r as { source_url: string }).source_url))
+    const have = new Set<string>()
+    for (let i = 0; i < urls.length; i += DEDUPE_CHUNK) {
+      const { data: existing, error: dedupeError } = await admin
+        .from('threads_replies')
+        .select('source_url')
+        .in('source_url', urls.slice(i, i + DEDUPE_CHUNK))
+      if (dedupeError) {
+        const error = `dedupe lookup failed: ${dedupeError.message}`
+        console.error(`threads ${source}:`, error)
+        await log({ ...extraLog, received: posts.length, stale, found, error })
+        return { found, inserted: 0, stale, windowHours: FRESH_MS / 3_600_000, error }
+      }
+      for (const r of existing ?? []) have.add((r as { source_url: string }).source_url)
+    }
 
     // Both caps below bite when a sweep brings back dozens of candidates, so
     // the order they are visited decides which posts get a draft at all.
