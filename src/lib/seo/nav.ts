@@ -38,11 +38,11 @@ export const FOOTER_UK: { title: string; links: NavLink[] }[] = [
   },
   {
     title: 'Порівняння',
+    // The per-service comparisons are still drafts (noindex); link the indexed
+    // hub and the migration page until they are published.
     links: [
-      { label: 'проЯв vs Pixieset', href: '/uk/porivniannia/pixieset' },
-      { label: 'проЯв vs Pic-Time', href: '/uk/porivniannia/pic-time' },
-      { label: 'проЯв vs Pixover', href: '/uk/porivniannia/pixover' },
-      { label: 'проЯв vs Gallery4you', href: '/uk/porivniannia/gallery4you' },
+      { label: 'Порівняння', href: '/uk/porivniannia' },
+      { label: 'Перехід з Pixieset', href: '/uk/mihratsiia' },
     ],
   },
   {
