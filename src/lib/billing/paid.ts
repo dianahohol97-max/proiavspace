@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { sendRewardEmail } from '@/lib/referral-emails'
 import { AMBASSADOR_MAX_PAYMENTS_PER_REFERRAL, referralRewardKop } from '@/lib/referrals'
 
 /**
@@ -57,7 +58,7 @@ export async function rewardReferrer(
 
   if (payer?.referred_by) {
     const rewardKop = referralRewardKop(Number(payment.amount ?? 0))
-    const { error } = await admin.rpc('accrue_referral_reward', {
+    const { data: accrued, error } = await admin.rpc('accrue_referral_reward', {
       p_referrer: payer.referred_by as string,
       p_referred: payment.user_id,
       p_payment: payment.id,
@@ -70,11 +71,29 @@ export async function rewardReferrer(
       console.error('billing: referral accrual failed', payment.id, error.message)
       return
     }
-    await admin
+    const { data: converted } = await admin
       .from('referrals')
       .update({ status: 'converted', converted_at: new Date().toISOString() })
       .eq('referred_id', payment.user_id)
       .eq('status', 'pending')
+      .select('id')
+
+    // «Вам нараховано …» — only when money actually moved (not for a
+    // self-referral, a capped ambassador or a repeated webhook).
+    const amountKop = typeof accrued === 'number' ? accrued : 0
+    if (amountKop > 0) {
+      const { data: referrer } = await admin
+        .from('profiles')
+        .select('is_ambassador')
+        .eq('user_id', payer.referred_by as string)
+        .maybeSingle()
+      await sendRewardEmail(admin, {
+        referrerId: payer.referred_by as string,
+        amountKop,
+        isAmbassador: referrer?.is_ambassador === true,
+        first: (converted?.length ?? 0) > 0,
+      }).catch((cause: unknown) => console.error('billing: reward e-mail failed', cause))
+    }
   }
 
   await admin

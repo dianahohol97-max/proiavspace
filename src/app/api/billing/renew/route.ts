@@ -353,6 +353,7 @@ export async function GET(request: NextRequest) {
     // 'pending' — the webhook finishes the job.
   }
 
+  const expiredCheckouts = await expireAbandonedCheckouts(admin)
   const referralRepairs = await repairReferralRewards(admin)
 
   return NextResponse.json({
@@ -362,8 +363,29 @@ export async function GET(request: NextRequest) {
     stuck,
     expiredSites,
     promoReminders,
+    expiredCheckouts,
     referralRepairs,
   })
+}
+
+/**
+ * Monobank sends a webhook for every status change EXCEPT `expired`
+ * (invoice/create → webHookUrl), so an abandoned checkout would stay
+ * 'pending' forever and keep the credit reserved against it
+ * (create_pending_payment counts pending rows for 48 h as a fallback).
+ * Invoices are created with a 24 h validity: anything still pending after
+ * 25 h can no longer be paid and is closed as failed. Renewal charges
+ * (subscription_id set) are settled by the statement lookup above, never here.
+ */
+async function expireAbandonedCheckouts(admin: AdminClient): Promise<number> {
+  const { data } = await admin
+    .from('payments')
+    .update({ status: 'failed' })
+    .eq('status', 'pending')
+    .is('subscription_id', null)
+    .lt('created_at', new Date(Date.now() - 25 * 3600 * 1000).toISOString())
+    .select('id')
+  return data?.length ?? 0
 }
 
 /**

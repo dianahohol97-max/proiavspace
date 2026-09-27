@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
 import { canChargeTokens, getPayments } from '@/lib/payments'
 import { GALLERY_PLANS, planStorageBytes } from '@/lib/plans'
+import { sendWithdrawalEmail } from '@/lib/referral-emails'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
@@ -22,7 +23,22 @@ export async function requestWithdrawal(locale: Locale, formData: FormData): Pro
   if (!user) redirect(`/${locale}/login`)
 
   const details = String(formData.get('details') ?? '').trim().slice(0, 500)
-  const { error } = await supabase.rpc('request_withdrawal', { p_details: details })
+  const { data: withdrawalId, error } = await supabase.rpc('request_withdrawal', {
+    p_details: details,
+  })
+  if (!error && withdrawalId) {
+    // Tell the admin (best-effort; the request itself is already saved).
+    const [{ data: row }, { data: profile }] = await Promise.all([
+      supabase.from('withdrawals').select('amount_kop').eq('id', withdrawalId).maybeSingle(),
+      supabase.from('profiles').select('display_name').eq('user_id', user.id).maybeSingle(),
+    ])
+    await sendWithdrawalEmail({
+      name: profile?.display_name || user.email || user.id,
+      email: user.email ?? '',
+      amountKop: row?.amount_kop ?? 0,
+      details,
+    }).catch((cause: unknown) => console.error('withdrawal e-mail failed', cause))
+  }
   if (error) {
     // Surface the RPC's guard reasons as a query flag the page can show.
     const reason = /below_minimum/.test(error.message)
