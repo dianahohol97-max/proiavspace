@@ -1,7 +1,7 @@
 /**
  * PR 2 — the plan lifecycle end to end (audit LC-01): /api/cron/storage-retention
  * against the real database behind PostgREST (tests/referrals/run.sh), with a
- * fake bucket and Brevo intercepted at the HTTP level.
+ * fake bucket and the harness's mocked Brevo client (outbox / mailer.down).
  *
  *   grace e-mail → closure (clients locked out, owner not) → 30/7/1 reminders
  *   → deletion (bucket + rows) — plus payment reopening, failed charge,
@@ -15,8 +15,20 @@ import { before, beforeEach, describe, mock, test } from 'node:test'
 import { pathToFileURL } from 'node:url'
 import * as harness from '../referrals/harness'
 
-const { anonClient, dbAvailable, deliverWebhook, installMocks, pendingPayment, pg, q, signUp, startProxy, userClient } =
-  harness
+const {
+  anonClient,
+  dbAvailable,
+  deliverWebhook,
+  installMocks,
+  mailer,
+  outbox,
+  pendingPayment,
+  pg,
+  q,
+  signUp,
+  startProxy,
+  userClient,
+} = harness
 const skip = !dbAvailable && 'run via tests/referrals/run.sh (needs local Postgres + PostgREST)'
 
 // --- fake bucket -----------------------------------------------------------
@@ -24,12 +36,7 @@ const bucket = new Map<string, number>()
 const storageUrl = pathToFileURL(path.resolve(__dirname, '../../src/lib/storage/index.ts')).href
 let storageDown = false
 
-// --- Brevo, intercepted at fetch -------------------------------------------
-const brevo: { to: string; subject: string; text: string }[] = []
-let brevoDown = false
-/** After #170 the harness mocks lib/email itself; read its outbox then. */
-const sent = () =>
-  ((harness as unknown as { outbox?: typeof brevo }).outbox ?? brevo) as typeof brevo
+const sent = () => outbox
 
 let url = ''
 before(async () => {
@@ -51,27 +58,13 @@ before(async () => {
       galleryPrefix: (o: string, g: string) => `u/${o}/g/${g}/`,
     },
   })
-  const realFetch = globalThis.fetch
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const target = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-    if (target.startsWith('https://api.brevo.com/')) {
-      if (brevoDown) return new Response('{"message":"down"}', { status: 503 })
-      const body = JSON.parse(String(init?.body)) as { to: { email: string }[]; subject: string; textContent: string }
-      brevo.push({ to: body.to[0].email, subject: body.subject, text: body.textContent })
-      return new Response('{"messageId":"x"}', { status: 201 })
-    }
-    return realFetch(input, init)
-  }) as typeof fetch
   await installMocks()
-  // After installMocks — it clears BREVO_API_KEY for the referral tests.
-  process.env.BREVO_API_KEY = 'test-brevo'
-  process.env.EMAIL_FROM = 'проЯв <hello@proiav.space>'
   url = await startProxy()
 })
 
 beforeEach(() => {
-  sent().length = 0
-  brevoDown = false
+  outbox.length = 0
+  mailer.down = false
   storageDown = false
   process.env.RETENTION_MODE = 'notify'
 })
@@ -281,17 +274,13 @@ describe('окремі стани', { skip }, () => {
     assert.equal(sent().length, 0)
   })
 
-  test('Brevo лежить → лист не записано, галереї не закриваються', async (t) => {
-    if ((harness as unknown as { outbox?: unknown }).outbox) {
-      t.skip('lib/email is mocked by the harness — Brevo is not on the wire')
-      return
-    }
+  test('Brevo лежить → лист не записано, галереї не закриваються', async () => {
     const a = lapsedAccount({ endedDaysAgo: 14 })
     pg(`insert into public.lifecycle_notices (user_id, cycle, kind, sent_at)
         select user_id, grace_until, 'grace_start', now() - interval '15 days' from public.profiles where user_id = ${q(a.userId)}`)
     pg(`update public.profiles set grace_until = now() - interval '1 minute' where user_id = ${q(a.userId)}`)
     pg(`update public.lifecycle_notices set cycle = (select grace_until from public.profiles where user_id = ${q(a.userId)}) where user_id = ${q(a.userId)}`)
-    brevoDown = true
+    mailer.down = true
     const res = await cron()
     assert.ok((res.body.emailFailures as number) >= 1)
     assert.equal(closedAt(a.userId), '')
