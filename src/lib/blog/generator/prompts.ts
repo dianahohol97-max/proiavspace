@@ -9,7 +9,7 @@ import type { Fact, Issue, Topic } from './types'
  * What proiav really does — checked against src (plans.ts, gallery, booking).
  * Anything not listed here must not be claimed.
  */
-export const PRODUCT_FACTS = `- Freemium: безкоштовно ${P.free.storageGb} ГБ назавжди, без картки; тарифи Базовий ${P.basic.priceUahMonth}₴/міс (${P.basic.storageGb} ГБ), Плюс ${P.plus.priceUahMonth}₴ (${P.plus.storageGb} ГБ), Максимальний ${P.pro.priceUahMonth}₴ (1 ТБ). Річна оплата = 2 місяці безкоштовно. Кількість галерей не обмежена.
+export const PRODUCT_FACTS = `- Freemium: безкоштовно ${P.free.storageGb} ГБ назавжди, без картки; тарифи Базовий ${P.basic.priceUahMonth}₴/міс (${P.basic.storageGb} ГБ), Плюс ${P.plus.priceUahMonth}₴ (${P.plus.storageGb} ГБ), Максимальний ${P.pro.priceUahMonth}₴ (1 ТБ). Річна оплата = 2 місяці безкоштовно. Кількість галерей не обмежена. Після кінця платного тарифу: 14 днів повний доступ; далі, якщо файли понад безкоштовні ${P.free.storageGb} ГБ, галереї закриваються для клієнтів, а файли зберігаються 60 днів і видаляються (з листами за 30/7/1 день). Ніколи не пиши, що файли «не видаляються» чи зберігаються «назавжди» після кінця тарифу.
 - Клієнтські галереї: пароль і термін дії (на всіх тарифах), відбір фото сердечками без реєстрації клієнта, оригінали без стискання, zip одним кліком, слайдшоу, водяний знак з іменем на превʼю.
 - Без підпису платформи, зі своїм логотипом і з відео в галереях — з Базового тарифу. Статистика — на Плюс і Максимальному.
 - Сторінка бронювання зйомки з оплатою напряму фотографу (Monobank, WayForPay, банка, реквізити).

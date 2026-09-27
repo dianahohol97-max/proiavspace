@@ -12,6 +12,7 @@ import {
   type SitePlanId,
 } from '@/lib/plans'
 import { IMPORT_PROMO, isPromoRunning, type PromoGrant } from '@/lib/promo'
+import { RETENTION_DAYS } from '@/lib/retention'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BillingPlans } from '@/components/BillingPlans'
 import { PromoAutopay } from '@/components/PromoAutopay'
@@ -207,7 +208,17 @@ export default async function BillingPage({ params }: { params: { locale: string
           )}
         </p>
       )}
-      {profile.grace_until && !promoRunning && (
+      {profile.gallery_closed_at && (
+        <p className="mt-4 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm leading-relaxed">
+          {dict.billing.closedNotice.replace(
+            '{date}',
+            new Date(
+              new Date(profile.gallery_closed_at).getTime() + RETENTION_DAYS * 24 * 3600 * 1000
+            ).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB')
+          )}
+        </p>
+      )}
+      {profile.grace_until && !promoRunning && !profile.gallery_closed_at && (
         <p className="mt-2 text-sm text-accent">
           {dict.billing.graceNotice}{' '}
           {new Date(profile.grace_until).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB')}

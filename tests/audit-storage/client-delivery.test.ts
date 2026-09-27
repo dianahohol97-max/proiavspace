@@ -104,9 +104,43 @@ describe('галерея з паролем', () => {
     assert.match(route, /password_hash[^\n]*unlockCookieValue|unlockCookieValue\([^)]*hash/, 'cookie не прив’язане до хешу пароля')
   })
 
-  test('[RL-01] перебір пароля: /unlock має обмеження частоти', () => {
-    const route = source('src/app/api/galleries/[slug]/unlock/route.ts')
-    assert.match(route, /rate|limit|attempt/i, 'кожна спроба — повний scrypt (~50 мс CPU) без ліміту')
+  test('[RL-01] перебір пароля: /unlock має обмеження частоти (Vercel Firewall)', () => {
+    // Рішення: rate limit на рівні Vercel Firewall (план Pro), не в коді.
+    // Правила лежать у ops/vercel-firewall-rules.json; що вони застосовані в
+    // проді — у ручному чек-листі PR 2.
+    const { rules } = JSON.parse(source('ops/vercel-firewall-rules.json')) as {
+      rules: {
+        active: boolean
+        conditionGroup: { conditions: { type: string; op: string; value: string }[] }[]
+        action: { mitigate: { action: string; rateLimit: { limit: number; window: number; keys: string[] } } }
+      }[]
+    }
+    const limitFor = (path: string, method = 'POST') =>
+      rules.find(
+        (r) =>
+          r.active &&
+          r.action.mitigate.action === 'rate_limit' &&
+          r.action.mitigate.rateLimit.keys.includes('ip') &&
+          r.conditionGroup.some((g) =>
+            g.conditions.every((c) =>
+              c.type === 'path'
+                ? c.op === 're'
+                  ? new RegExp(c.value).test(path)
+                  : c.op === 'pre'
+                    ? path.startsWith(c.value)
+                    : c.op === 'eq' && path === c.value
+                : c.type === 'method'
+                  ? c.value === method
+                  : false
+            )
+          )
+      )?.action.mitigate.rateLimit
+    const unlock = limitFor('/api/galleries/vesillia-2026/unlock')
+    assert.ok(unlock, 'немає правила для /unlock')
+    assert.ok(unlock.limit / unlock.window <= 20 / 60, 'ліміт для /unlock завеликий')
+    assert.ok(limitFor('/api/uploads/presign'), 'немає правила для /api/uploads/*')
+    assert.ok(limitFor('/api/booking/book'), 'немає правила для форми бронювання')
+    assert.ok(limitFor('/api/sites/lead'), 'немає правила для форми сайту')
   })
 })
 

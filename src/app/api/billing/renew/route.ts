@@ -15,6 +15,8 @@ import {
 import { IMPORT_PROMO } from '@/lib/promo'
 import { isEmailConfigured, sendEmail } from '@/lib/email'
 import { applyPaidSideEffects, rewardReferrer, type PaidPayment } from '@/lib/billing/paid'
+import { promoEndingEmail } from '@/lib/lifecycle-emails'
+import { contactOf, send, sendFailedCharge, sendReceipt } from '@/lib/lifecycle-notify'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -64,26 +66,33 @@ async function applyRenewalPaid(
         plan: plan.id,
         storage_limit_bytes: planStorageBytes(plan),
         grace_until: null,
+        gallery_closed_at: null,
       })
       .eq('user_id', sub.user_id)
   }
+  await sendReceipt(admin, payment.id)
 }
 
-/** A renewal charge bounced: past_due + the grace window (sites drop to trial). */
-async function applyRenewalFailed(admin: AdminClient, sub: SubscriptionRow): Promise<void> {
+/**
+ * A renewal charge bounced: past_due + the 14-day grace window (sites drop to
+ * trial) and the «не вдалося списати» e-mail for galleries.
+ */
+async function applyRenewalFailed(
+  admin: AdminClient,
+  sub: SubscriptionRow,
+  amountUah: number
+): Promise<void> {
   await admin
     .from('billing_subscriptions')
     .update({ status: 'past_due' })
     .eq('id', sub.id)
   if (sub.product === 'gallery') {
+    const graceUntil = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 3600 * 1000).toISOString()
     await admin
       .from('profiles')
-      .update({
-        grace_until: new Date(
-          Date.now() + GRACE_PERIOD_DAYS * 24 * 3600 * 1000
-        ).toISOString(),
-      })
+      .update({ grace_until: graceUntil })
       .eq('user_id', sub.user_id)
+    await sendFailedCharge(admin, { userId: sub.user_id, plan: sub.plan, amountUah, graceUntil })
   } else {
     await admin
       .from('profiles')
@@ -239,7 +248,7 @@ export async function GET(request: NextRequest) {
         await applyRenewalPaid(admin, sub, pendingPayment)
         renewed += 1
       } else if (outcome === 'failed' && settled) {
-        await applyRenewalFailed(admin, sub)
+        await applyRenewalFailed(admin, sub, Number(pendingPayment.amount))
         failed += 1
       } else {
         if (Date.now() - new Date(pendingPayment.created_at).getTime() > 48 * 3600 * 1000) {
@@ -347,7 +356,7 @@ export async function GET(request: NextRequest) {
         .from('payments')
         .update({ status: 'failed' })
         .eq('order_id', orderId)
-      await applyRenewalFailed(admin, sub)
+      await applyRenewalFailed(admin, sub, amount)
       failed += 1
     }
     // 'pending' — the webhook finishes the job.
@@ -424,49 +433,18 @@ async function sendPromoReminders(
       .maybeSingle()
 
     if (!activeSub) {
-      const [{ data: account }, { data: profile }] = await Promise.all([
-        admin.auth.admin.getUserById(grant.user_id),
-        admin.from('profiles').select('locale').eq('user_id', grant.user_id).single(),
-      ])
-      const email = account?.user?.email
-      if (email) {
-        const en = profile?.locale === 'en'
-        const locale = en ? 'en' : 'uk'
-        const date = new Date(grant.ends_at).toLocaleDateString(en ? 'en-GB' : 'uk-UA', {
-          timeZone: 'Europe/Kyiv',
-        })
-        const price = IMPORT_PROMO.plan.priceUahMonth
-        const link = `${appUrl}/${locale}/dashboard/billing`
-        const delivered = await sendEmail(
-          en
-            ? {
-                to: email,
-                subject: `Your free «Basic» month ends on ${date}`,
-                text: [
-                  `Hi! The free month of the «Basic» plan you got for importing a gallery ends on ${date}.`,
-                  '',
-                  `To keep «Basic» (${IMPORT_PROMO.plan.storageGb} GB, ${price} UAH/month), connect auto-payment: ${price} UAH is charged now and the paid month starts on ${date}.`,
-                  link,
-                  '',
-                  'Without auto-payment the account returns to the Free plan. Your files are not deleted; new uploads above the free limit pause.',
-                  '',
-                  '— proiav.space',
-                ].join('\n'),
-              }
-            : {
-                to: email,
-                subject: `Безкоштовний місяць «Базового» закінчується ${date}`,
-                text: [
-                  `Привіт! Безкоштовний місяць тарифу «Базовий» за імпорт галереї закінчується ${date}.`,
-                  '',
-                  `Щоб лишитися на «Базовому» (${IMPORT_PROMO.plan.storageGb} ГБ, ${price} ₴/міс), підключи автоплатіж: ${price} ₴ спишемо зараз, а оплачений місяць почнеться ${date}.`,
-                  link,
-                  '',
-                  'Без автоплатежу акаунт повернеться на Безкоштовний тариф. Файли не видаляються — лише нові завантаження понад безкоштовний ліміт стануть на паузу.',
-                  '',
-                  '— проЯв',
-                ].join('\n'),
-              }
+      const contact = await contactOf(admin, grant.user_id)
+      if (contact) {
+        // Approved text (audit PR 2, letter 7): «ви», 14 days of grace, then
+        // closure and deletion after 60 days — no more «файли не видаляються».
+        const delivered = await send(
+          contact,
+          promoEndingEmail({
+            name: contact.name,
+            endsAt: new Date(grant.ends_at),
+            priceUah: IMPORT_PROMO.plan.priceUahMonth,
+            storageGb: IMPORT_PROMO.plan.storageGb,
+          })
         )
         // Not delivered (Brevo down or refused): leave it unmarked, tomorrow retries.
         if (!delivered) continue

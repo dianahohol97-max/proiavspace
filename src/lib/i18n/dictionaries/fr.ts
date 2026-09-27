@@ -25,6 +25,7 @@ export const fr: PartialDictionary = {
     scrollHint: 'défiler ↓',
     madeOn: 'Créé avec Proiav',
     tip: 'Remercier le photographe',
+    unavailable: 'Cette galerie est temporairement indisponible. Veuillez contacter votre photographe.',
     notFound:
       'Galerie introuvable. Le lien a peut-être expiré ou la galerie n’est pas encore publiée.',
   },

@@ -3,7 +3,7 @@
  * ефективний тариф після grace, і тексти, що розходяться з кодом.
  */
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, test } from 'node:test'
 import { GALLERY_PLANS, GRACE_PERIOD_DAYS, effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
@@ -80,8 +80,8 @@ describe('життєвий цикл тарифу (effectiveGalleryPlan)', () => 
   test('невідомий id тарифу (наприклад старий «start») → Free', () => {
     assert.equal(effectiveGalleryPlan('start', null).id, 'free')
   })
-  test('grace після скасування/невдалого списання — 7 днів', () => {
-    assert.equal(GRACE_PERIOD_DAYS, 7)
+  test('LC-01: grace після кінця тарифу, скасування чи невдалого списання — 14 днів', () => {
+    assert.equal(GRACE_PERIOD_DAYS, 14)
   })
   test('промо: «перші 30 або до 31.12.2026 (Київ)», нагадування за 7 днів', () => {
     assert.equal(IMPORT_PROMO.maxGrants, 30)
@@ -95,7 +95,10 @@ describe('життєвий цикл тарифу (effectiveGalleryPlan)', () => 
     const vercel = JSON.parse(source('vercel.json')) as { crons?: { path: string }[] }
     const paths = (vercel.crons ?? []).map((c) => c.path)
     assert.ok(paths.includes('/api/cron/storage-cleanup'), paths.join(', '))
-    assert.ok(paths.length <= 2, 'Vercel Hobby дозволяє не більше 2 cron-задач')
+    // Vercel Pro: кронів не два. Але кожен має існувати як маршрут.
+    for (const path of paths) {
+      assert.ok(existsSync(join(ROOT, 'src/app', path, 'route.ts')), `немає маршруту для крону ${path}`)
+    }
   })
 
   test('[LC-01] є крон retention, що видаляє файли акаунтів після закінчення тарифу', () => {
