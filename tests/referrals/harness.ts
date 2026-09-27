@@ -198,6 +198,8 @@ export const session: { userId: string | null } = { userId: null }
 
 /** Every e-mail the app tried to send through the (mocked) Brevo client. */
 export const outbox: { to: string; subject: string; text: string }[] = []
+/** Simulate Brevo being down: sendEmail answers false and nothing is sent. */
+export const mailer = { down: false }
 
 let mocked = false
 export async function installMocks(): Promise<void> {
@@ -242,10 +244,12 @@ export async function installMocks(): Promise<void> {
     namedExports: {
       isEmailConfigured: () => true,
       sendEmail: async (input: { to: string; subject: string; text: string }) => {
+        if (mailer.down) return false
         outbox.push(input)
         return true
       },
       sendEmailDetailed: async (input: { to: string; subject: string; text: string }) => {
+        if (mailer.down) return { ok: false, status: 503, body: 'down' }
         outbox.push(input)
         return { ok: true, status: 201, body: '' }
       },

@@ -26,6 +26,8 @@ export interface Profile {
   credit_balance_kop: number
   cash_balance_kop: number
   is_ambassador: boolean
+  /** Set by the retention cron when galleries are closed to clients (LC-01). */
+  gallery_closed_at: string | null
   created_at: string
   updated_at: string
 }

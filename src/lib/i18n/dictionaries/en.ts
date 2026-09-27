@@ -33,8 +33,22 @@ export const en: Dictionary = {
       'Almost there! We sent a confirmation email — open it and follow the link.',
     error: 'Could not send the link. Check the address and try again.',
     passwordError: 'Could not sign in. Check your email and password, or use the email link.',
-    signupError:
-      'Could not create the account. This email may already be in use — try signing in or use another.',
+    signupError: 'Could not create the account. Please try again a bit later.',
+    signupExists: 'This email is already registered. Sign in or reset your password via “Forgot password?”.',
+    emailSendError: 'We could not send the email — please try again in a minute.',
+    forgotLink: 'Forgot password?',
+    resetTitle: 'Reset your password',
+    resetLede: 'Enter your account email — we will send a link to set a new password.',
+    resetButton: 'Send link',
+    resetSent:
+      'If an account with this email exists, we have sent a link to set a new password. The link is valid for 1 hour.',
+    backToSignin: '← Back to sign in',
+    newPasswordTitle: 'New password',
+    newPasswordLabel: 'New password',
+    newPasswordButton: 'Save password',
+    newPasswordDone: 'Password changed. Taking you to your studio…',
+    newPasswordError: 'Could not change the password. Please try again.',
+    resetLinkInvalid: 'This link is invalid or has already been used. Request a new one on the sign-in page.',
   },
   dashboard: {
     title: 'My galleries',
@@ -343,12 +357,14 @@ export const en: Dictionary = {
     bundleNote: 'Gallery + Site bundle: 15% off the site while both subscriptions are active.',
     promoActive: '🎁 Import promo: the «Basic» plan is free until {date}.',
     promoAutopayHint:
-      'To keep the plan for {price} UAH/month after the promo, connect auto-payment: {price} UAH is charged now and the paid month starts on {date}. Without auto-payment the account returns to the Free plan — files are never deleted.',
+      'To keep the plan for {price} UAH/month after the promo, connect auto-payment: {price} UAH is charged now and the paid month starts on {date}. Without auto-payment everything keeps working for 14 more days; then, if you are over the free 3 GB, galleries close to clients and files are kept for 60 days.',
     creditNotice: 'Your referral credit: {amount} ₴ — applied to your next payment automatically.',
     promoAutopayButton: 'Connect auto-payment',
     promoAutopayDone:
       'Auto-payment connected: free until {date}, then «Basic» for {price} UAH/month.',
-    graceNotice: 'Your paid plan is active until the date below, then the storage limit drops to free:',
+    graceNotice: 'Full access until the date below. After that, if you are over the free 3 GB, galleries close to clients and files are kept for 60 more days:',
+    closedNotice:
+      'Your galleries are closed to clients — they see “This gallery is temporarily unavailable”. Files are kept until {date}; renew a plan to reopen the galleries at the same links, or download what you need.',
     autoRenewTitle: 'Auto-renewal',
     autoRenewNextCharge: 'next charge',
     autoRenewActiveUntil: 'active until',
@@ -356,7 +372,7 @@ export const en: Dictionary = {
     autoRenewCancel: 'Cancel',
     autoRenewCanceled: 'canceled',
     autoRenewConfirm:
-      'Turn off auto-renewal? Your plan stays active until the paid period ends, then limits drop to free. Files are never deleted.',
+      'Turn off auto-renewal? Your plan stays active until the paid period ends and 14 days more. Then, if you are over the free 3 GB, galleries close to clients and files are kept for 60 days.',
     periodMonth: 'Monthly',
     periodYear: 'Yearly',
     planFree: 'Free',
@@ -451,6 +467,7 @@ export const en: Dictionary = {
     scrollHint: 'scroll ↓',
     madeOn: 'Made with Proiav',
     tip: 'Thank the photographer',
+    unavailable: 'This gallery is temporarily unavailable. Please contact your photographer.',
     notFound: 'Gallery not found. The link may have expired or the gallery is not published yet.',
   },
 }

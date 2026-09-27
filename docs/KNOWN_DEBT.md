@@ -5,6 +5,28 @@
 
 ---
 
+## Brevo: «Authorized IPs» має бути вимкнено для SMTP
+
+*Записано 27.09.2026 · статус: налаштування, стежити*
+
+**Що трапляється** Supabase Auth шле листи (підтвердження, magic link, скидання
+пароля) через Custom SMTP Brevo з динамічних IP Supabase. Якщо в Brevo →
+**Security → Authorized IPs** увімкнено обмеження, Brevo відповідає
+`525 Unauthorized IP`, Supabase — 500 «Error sending confirmation email», і
+реєстрація «мовчки» падає: акаунт у `auth.users` створюється, листа немає.
+До PR 2 сторінка `/login` ще й показувала на це «пошта вже зайнята».
+
+**Що зроблено** Authorized IPs вимкнено для SMTP. `/login` тепер розрізняє
+«пошта зареєстрована» / «не вдалося надіслати лист» / інше
+(`src/lib/auth-errors.ts`).
+
+**Як перевірити** Supabase → Logs → Auth: немає `525`; реєстрація нової
+пошти → лист приходить. Якщо колись знадобиться allowlist IP у Brevo для API
+(`BREVO_API_KEY` з Vercel), — **не** поширювати його на SMTP: IP Supabase не
+фіксовані.
+
+---
+
 ## Покинутий інвойс Monobank: webhook для `expired` не приходить
 
 *Записано 26.09.2026 · статус: закрито обхідним шляхом, стежити*

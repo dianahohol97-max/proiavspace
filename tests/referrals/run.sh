@@ -3,7 +3,7 @@
 #
 # Brings up a local Postgres, applies supabase-stub.sql + every migration in
 # supabase/migrations, puts PostgREST in front of it (so supabase-js and RLS
-# behave as on Supabase), runs tests/referrals/*.test.ts, then tears it down.
+# behave as on Supabase), runs tests/referrals/*.test.ts and tests/lifecycle/*.test.ts, then tears it down.
 #
 # Needs: Postgres binaries (PG_BIN, default /usr/lib/postgresql/16/bin) and a
 # PostgREST binary (POSTGREST_BIN, https://github.com/PostgREST/postgrest/releases).
@@ -62,4 +62,4 @@ export REF_TEST_JWT_SECRET="$JWT_SECRET"
 cd "$ROOT"
 node --experimental-test-module-mocks --no-warnings --import tsx \
   --test --test-concurrency=1 --test-reporter="${REF_TEST_REPORTER:-spec}" \
-  tests/referrals/*.test.ts
+  tests/referrals/*.test.ts tests/lifecycle/*.test.ts

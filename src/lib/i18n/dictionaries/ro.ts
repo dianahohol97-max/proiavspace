@@ -25,6 +25,7 @@ export const ro: PartialDictionary = {
     scrollHint: 'derulează ↓',
     madeOn: 'Creat cu Proiav',
     tip: 'Mulțumește fotografului',
+    unavailable: 'Această galerie este temporar indisponibilă. Te rugăm să contactezi fotograful.',
     notFound:
       'Galeria nu a fost găsită. Linkul poate să fi expirat sau galeria nu este încă publicată.',
   },

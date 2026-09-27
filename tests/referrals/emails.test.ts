@@ -78,22 +78,26 @@ describe('sending (mocked Brevo)', { skip }, () => {
     session.userId = null
   })
 
+  // Since PR 2 every paid webhook also sends the payer a receipt; these tests
+  // are about the referral letters only.
+  const referral = () => outbox.filter((m) => !m.subject.startsWith('проЯв · оплата'))
+
   test('first payment → one e-mail to the referrer; repeat payment → the repeat text; re-delivery → nothing', async () => {
     const referrer = signUp({ email: 'ref@test.local' })
     const invitee = signUp({ ref: codeOf(referrer) })
     const first = pendingPayment({ userId: invitee, amount: 129 })
     await deliverWebhook({ orderId: first.orderId, status: 'paid' })
-    assert.equal(outbox.length, 1)
-    assert.equal(outbox[0].to, 'ref@test.local')
-    assert.equal(outbox[0].subject, '+12,90 ₴ — ваш перший реферальний кредит')
+    assert.equal(referral().length, 1)
+    assert.equal(referral()[0].to, 'ref@test.local')
+    assert.equal(referral()[0].subject, '+12,90 ₴ — ваш перший реферальний кредит')
 
     await deliverWebhook({ orderId: first.orderId, status: 'paid' })
-    assert.equal(outbox.length, 1)
+    assert.equal(referral().length, 1)
 
     const second = pendingPayment({ userId: invitee, amount: 519, plan: 'plus' })
     await deliverWebhook({ orderId: second.orderId, status: 'paid' })
-    assert.equal(outbox.length, 2)
-    assert.equal(outbox[1].subject, '+51,90 ₴ — реферальний кредит')
+    assert.equal(referral().length, 2)
+    assert.equal(referral()[1].subject, '+51,90 ₴ — реферальний кредит')
   })
 
   test('ambassador gets the cash wording; English profile gets English', async () => {
@@ -102,8 +106,8 @@ describe('sending (mocked Brevo)', { skip }, () => {
     const invitee = signUp({ ref: codeOf(amb) })
     const pay = pendingPayment({ userId: invitee, amount: 129 })
     await deliverWebhook({ orderId: pay.orderId, status: 'paid' })
-    assert.equal(outbox.length, 1)
-    assert.equal(outbox[0].subject, '+12,90 ₴ — your first referral reward')
+    assert.equal(referral().length, 1)
+    assert.equal(referral()[0].subject, '+12,90 ₴ — your first referral reward')
   })
 
   test('no e-mail when nothing was accrued (self-referral / no referrer / failed payment)', async () => {
@@ -117,7 +121,9 @@ describe('sending (mocked Brevo)', { skip }, () => {
     const invitee = signUp({ ref: codeOf(referrer) })
     const pay3 = pendingPayment({ userId: invitee, amount: 129 })
     await deliverWebhook({ orderId: pay3.orderId, status: 'failed' })
-    assert.equal(outbox.length, 0)
+    assert.equal(referral().length, 0)
+    // …while every successful payment still got its receipt.
+    assert.equal(outbox.filter((m) => m.subject.startsWith('проЯв · оплата')).length, 2)
   })
 
   test('withdrawal request → admin e-mail with masked details', async () => {
