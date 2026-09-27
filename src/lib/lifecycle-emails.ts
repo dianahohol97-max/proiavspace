@@ -53,6 +53,11 @@ function uah(amount: number): string {
 
 const hello = (name: string | null) => (name ? `Привіт, ${name}!` : 'Привіт!')
 
+/** «Вміститися в безкоштовні 3 ГБ» — the third way out, in letters 3–5. */
+const FREE_GB = GALLERY_PLANS.free.storageGb
+const fitIntoFree = (then: string) =>
+  `Або видаліть зайве в кабінеті, щоб уміститися в безкоштовні ${FREE_GB} ГБ, — тоді нічого не зникне: ${then}`
+
 /** Ukrainian plural: 1 галерея, 2 галереї, 5 галерей. */
 export function plural(n: number, one: string, few: string, many: string): string {
   const mod10 = n % 10
@@ -185,6 +190,7 @@ export function graceStartEmail(input: GraceStartInput): EmailMessage {
       billingUrl(),
       '',
       `Не плануєте платити? Завантажте потрібні галереї до ${kyivDate(deletesAt)} — це безкоштовно.`,
+      fitIntoFree('акаунт стане безкоштовним, галереї лишаться відкритими для клієнтів.'),
       '',
       '— проЯв',
     ].join('\n'),
@@ -221,6 +227,9 @@ export function closedEmail(input: ClosedInput): EmailMessage {
       'посиланнями, паролі й вибрані клієнтами фото збережуться:',
       billingUrl(),
       '',
+      fitIntoFree('решта файлів лишиться, акаунт стане безкоштовним, а галереї знову відкриються для клієнтів.'),
+      dashboardUrl(),
+      '',
       '— проЯв',
     ].join('\n'),
   }
@@ -256,10 +265,12 @@ export function deletionWarningEmail(input: DeletionWarningInput): EmailMessage 
       '',
       'Це остаточно — після видалення відновити файли неможливо.',
       '',
-      'Два способи все зберегти:',
+      'Три способи нічого не втратити:',
       '1. Оплатити тариф — галереї одразу відкриються для клієнтів, файли лишаться:',
       `   ${billingUrl()}`,
       `2. Завантажити галереї архівом до ${date} — безкоштовно, з кабінету:`,
+      `   ${dashboardUrl()}`,
+      `3. ${fitIntoFree('решта файлів лишиться, а галереї знову відкриються для клієнтів.').replace(/^Або в/, 'В')}`,
       `   ${dashboardUrl()}`,
       '',
       'Якщо ці файли вам більше не потрібні — нічого робити не треба.',
