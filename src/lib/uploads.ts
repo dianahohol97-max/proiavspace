@@ -208,8 +208,19 @@ export async function registerAsset(
     await discard()
     return { ok: false, status: 409, error: 'duplicate' }
   }
+  if (isQuotaError(error)) {
+    // Lost the race against another upload of this account (migration 0045
+    // locks the profile row, so the second insert sees the first one's bytes).
+    await discard()
+    return { ok: false, status: 403, error: 'storage_quota_exceeded' }
+  }
   if (error) {
     return { ok: false, status: 500, error: error.message }
   }
   return { ok: true, assetId: data.id }
+}
+
+/** The enforce_storage_quota trigger (0045) refused the insert. */
+export function isQuotaError(error: { message?: string } | null | undefined): boolean {
+  return !!error?.message?.includes('storage_quota_exceeded')
 }

@@ -1,4 +1,4 @@
-import { GEMINI_MODEL } from '@/lib/gemini'
+import { geminiModel } from '@/lib/gemini'
 import { GALLERY_PLANS } from '@/lib/plans'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -31,7 +31,6 @@ const KEYWORDS = [
 ]
 
 const GRAPH = 'https://graph.threads.net/v1.0'
-const MODEL = GEMINI_MODEL
 // A 24h window (sized for a twice-daily cron) threw away almost everything: a
 // real run saw 29 usable posts and kept 3. Three days still lands under
 // threads people are reading; overlapping runs are kept out by the dedupe
@@ -159,6 +158,7 @@ export async function composeReply(
     `Спершу цінність, без спаму й прямої реклами; проЯв згадай ненав'язливо лише якщо доречно. ` +
     `Без хештегів, без лапок навколо відповіді.`
   try {
+    const MODEL = geminiModel()
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
       {
@@ -186,7 +186,7 @@ export async function composeReply(
     if (gate && (/^skip\b/i.test(clean) || clean.toUpperCase() === 'SKIP')) return { kind: 'skip' }
     return { kind: 'reply', text: clean }
   } catch (e) {
-    return { kind: 'error', error: `gemini ${MODEL}: ${String(e).slice(0, 200)}` }
+    return { kind: 'error', error: `gemini: ${String(e).slice(0, 200)}` }
   }
 }
 

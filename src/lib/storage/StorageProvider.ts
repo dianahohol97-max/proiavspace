@@ -18,6 +18,12 @@ export interface StorageObject {
 export interface UploadUrlOptions {
   key: string
   contentType: string
+  /**
+   * Exact byte size of the object the browser is about to PUT. Signed into the
+   * URL (content-length), so the URL minted for a 1 MB file cannot be used to
+   * upload 5 GB. Required for single PUTs; multipart uploads are sized per part.
+   */
+  sizeBytes?: number
   /** Presigned URL lifetime; keep short. Default is provider-defined (~10 min). */
   expiresInSeconds?: number
 }
@@ -40,6 +46,12 @@ export interface MultipartUpload {
 export interface UploadedPart {
   partNumber: number
   etag: string
+}
+
+export interface UnfinishedMultipartUpload {
+  key: string
+  uploadId: string
+  initiated: Date | null
 }
 
 export interface StorageProvider {
@@ -78,4 +90,11 @@ export interface StorageProvider {
   completeMultipartUpload(key: string, uploadId: string, parts: UploadedPart[]): Promise<void>
 
   abortMultipartUpload(key: string, uploadId: string): Promise<void>
+
+  /**
+   * Multipart uploads that were started but never completed or aborted (a
+   * closed tab mid-video). Their parts are stored — and billed — until
+   * aborted; the storage-cleanup cron sweeps the stale ones.
+   */
+  listMultipartUploads(prefix: string): Promise<UnfinishedMultipartUpload[]>
 }

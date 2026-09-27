@@ -66,10 +66,12 @@ export async function POST(request: NextRequest) {
   // Ukrainian, branded «проЯв» (the big merchant name above it comes from the
   // acquiring profile and cannot be set via the API).
   const periodUk = body.period === 'year' ? 'оплата за рік' : 'оплата за місяць'
+  // «1 ТБ», not «1024 ГБ», on the payment page — same rule as the billing page.
+  const storageUk = (gb: number) => (gb >= 1024 ? `${gb / 1024} ТБ` : `${gb} ГБ`)
   const planNameUk: Record<string, string> = {
     basic: 'Базовий',
     plus: 'Плюс',
-    pro: 'Про',
+    pro: 'Максимальний',
     site_basic: 'Сайт Базовий',
     site_plus: 'Сайт Плюс',
   }
@@ -96,12 +98,12 @@ export async function POST(request: NextRequest) {
     const plan = IMPORT_PROMO.plan
     amount = galleryPlanPriceUah(plan, 'month')
     const startsOn = new Date(promoGrant.ends_at).toLocaleDateString('uk-UA')
-    description = `проЯв · тариф «${planNameUk[plan.id]}» (${plan.storageGb} ГБ), автоплатіж: перший оплачений місяць з ${startsOn}`
+    description = `проЯв · тариф «${planNameUk[plan.id]}» (${storageUk(plan.storageGb)}), автоплатіж: перший оплачений місяць з ${startsOn}`
     purpose = 'promo_autopay'
   } else if (isGalleryPlanId(body.plan) && body.plan !== 'free') {
     const plan = GALLERY_PLANS[body.plan]
     amount = galleryPlanPriceUah(plan, body.period)
-    description = `проЯв · тариф «${planNameUk[plan.id] ?? plan.id}» (${plan.storageGb} ГБ), ${periodUk}`
+    description = `проЯв · тариф «${planNameUk[plan.id] ?? plan.id}» (${storageUk(plan.storageGb)}), ${periodUk}`
   } else if (isSitePlanId(body.plan) && body.plan !== 'site_trial') {
     const plan = SITE_PLANS[body.plan]
     amount = sitePlanPriceUah(plan, body.period)

@@ -67,7 +67,11 @@ export async function POST(request: NextRequest) {
   const key = body.variant
     ? `u/${user.id}/portfolio/v/${crypto.randomUUID()}-${body.variant}.jpg`
     : `u/${user.id}/portfolio/${crypto.randomUUID()}-${safeName}`
-  const { url } = await getStorage().getUploadUrl({ key, contentType: body.contentType })
+  const { url } = await getStorage().getUploadUrl({
+    key,
+    contentType: body.contentType,
+    sizeBytes: body.sizeBytes,
+  })
 
   return NextResponse.json({ uploadUrl: url, key })
 }
