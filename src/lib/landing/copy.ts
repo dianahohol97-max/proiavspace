@@ -207,7 +207,7 @@ const uk: LandingCopy = {
     storage: (gb) => (gb >= 1024 ? `${gb / 1024} ТБ сховища` : `${gb} ГБ сховища`),
     popular: 'Найпопулярніший',
     fineprint:
-      'Оплата карткою будь-якого українського банку. Скасувати можна будь-коли — файли лишаються ще 7 днів на повному ліміті, далі просто зупиняється завантаження нових, поки ви над безкоштовним лімітом.',
+      'Оплата карткою будь-якого українського банку. Скасувати можна будь-коли — ще 14 днів усе працює на повному ліміті. Далі, якщо ви понад безкоштовні 3 ГБ, галереї закриваються для клієнтів, а файли зберігаються ще 60 днів.',
     plans: {
       free: {
         name: 'Безкоштовний',
@@ -269,7 +269,7 @@ const uk: LandingCopy = {
       },
       {
         q: 'Що станеться з файлами, якщо я скасую підписку?',
-        a: 'Нічого страшного. Файли не видаляються — знижується лише ліміт, тож нові завантаження зупиняться, поки ви над ним. Завантажити своє ви можете завжди.',
+        a: '14 днів усе працює як раніше. Якщо ви вміщаєтеся в безкоштовні 3 ГБ — акаунт просто стає безкоштовним. Якщо ні — галереї закриваються для клієнтів, а файли зберігаються ще 60 днів: ви бачите все в кабінеті, можете завантажити архівом або продовжити тариф. Перед видаленням попередимо листами за 30, 7 і 1 день.',
       },
       {
         q: 'Чи стискаються мої фотографії?',
@@ -397,7 +397,7 @@ const en: LandingCopy = {
     storage: (gb) => (gb >= 1024 ? `${gb / 1024} TB of storage` : `${gb} GB of storage`),
     popular: 'Most popular',
     fineprint:
-      'Pay with any Ukrainian bank card. Cancel anytime — files keep full limits for 7 more days, then new uploads pause while you are over the free limit.',
+      'Pay with any Ukrainian bank card. Cancel anytime — everything keeps working for 14 more days. After that, if you are over the free 3 GB, galleries close to clients and files are kept for 60 more days.',
     plans: {
       free: {
         name: 'Free',
@@ -458,7 +458,7 @@ const en: LandingCopy = {
       },
       {
         q: 'What happens to files if I cancel?',
-        a: 'Nothing scary. Files are not deleted — only the limit drops, so new uploads pause while you are over it. You can always download what is yours.',
+        a: 'Everything keeps working for 14 days. If you fit into the free 3 GB, the account simply becomes free. If not, galleries close to clients and files are kept for 60 more days: you still see everything, can download it or renew the plan. We email you 30, 7 and 1 day before deletion.',
       },
       {
         q: 'Are my photos compressed?',

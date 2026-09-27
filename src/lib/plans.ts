@@ -118,8 +118,12 @@ export const SITE_PLANS: Record<SitePlanId, SitePlan> = {
 /** Бандл «Галерея + Сайт»: знижка на сайт при активних обох підписках. */
 export const BUNDLE_SITE_DISCOUNT = 0.15
 
-/** Grace period after cancellation before limits drop to free (Pixover-style). */
-export const GRACE_PERIOD_DAYS = 7
+/**
+ * Grace after a paid plan or the import promo ends: full access for this many
+ * days, then (over the Free allowance) galleries close to clients and files
+ * are deleted 60 days later — src/lib/retention.ts (audit LC-01, 26.09.2026).
+ */
+export const GRACE_PERIOD_DAYS = 14
 
 /** Free site trial: publish one site for this many days, then upgrade to keep it live. */
 export const SITE_TRIAL_DAYS = 7
@@ -174,7 +178,8 @@ export function sitePlanPriceUah(plan: SitePlan, period: BillingPeriod): number 
 /**
  * The plan whose limits/features actually apply right now: after the grace
  * period of a canceled subscription runs out, the account behaves as free
- * (files are never deleted — uploads just stop while over the free limit).
+ * (uploads stop while over the free limit; what then happens to the files is
+ * src/lib/retention.ts — closure after grace, deletion 60 days later).
  */
 export function effectiveGalleryPlan(
   plan: string,

@@ -9,6 +9,7 @@ import {
   planStorageBytes,
 } from '@/lib/plans'
 import { applyPaidSideEffects, reversePaidSideEffects } from '@/lib/billing/paid'
+import { sendFailedCharge, sendReceipt } from '@/lib/lifecycle-notify'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -203,6 +204,8 @@ export async function POST(request: NextRequest) {
           plan: plan.id,
           storage_limit_bytes: planStorageBytes(plan),
           grace_until: autoRenews ? null : paidUntil(payment.period, periodStart),
+          // Paying again reopens galleries closed by the retention cron.
+          gallery_closed_at: null,
         })
         .eq('user_id', payment.user_id)
       if (error) return retryLater('plan update', error.message)
@@ -218,22 +221,27 @@ export async function POST(request: NextRequest) {
     // a re-delivery would find the payment already 'paid' and stop at the claim.
     // Credit consumption + referral reward + 'converted' (lib/billing/paid).
     await applyPaidSideEffects(admin, payment, { cardToken: event.cardToken })
+    // «Оплата пройшла» (EM-03).
+    await sendReceipt(admin, payment.id)
   } else if (event.status === 'failed' && payment.subscription_id) {
     // A renewal charge bounced: stop the cron retries, start the grace
-    // window so the user has a week to update the card / re-subscribe.
+    // window so the user has 14 days to update the card / re-subscribe.
     await admin
       .from('billing_subscriptions')
       .update({ status: 'past_due' })
       .eq('id', payment.subscription_id)
     if (product === 'gallery') {
+      const graceUntil = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 3600 * 1000).toISOString()
       await admin
         .from('profiles')
-        .update({
-          grace_until: new Date(
-            Date.now() + GRACE_PERIOD_DAYS * 24 * 3600 * 1000
-          ).toISOString(),
-        })
+        .update({ grace_until: graceUntil })
         .eq('user_id', payment.user_id)
+      await sendFailedCharge(admin, {
+        userId: payment.user_id,
+        plan: payment.plan,
+        amountUah: Number(payment.amount),
+        graceUntil,
+      })
     } else {
       await admin
         .from('profiles')
