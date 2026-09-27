@@ -105,11 +105,11 @@ describe('1.1 облік місця в БД', () => {
 })
 
 describe('1.5 промо імпорту (grant_import_promo)', () => {
-  test('Free + завершений імпорт → Базовий на місяць через grace_until, без запису в payments', { skip: skip() }, () => {
+  test('Free + завершений імпорт → Базовий на місяць (+14 днів grace), без запису в payments', { skip: skip() }, () => {
     const { userId } = newAccount()
     const ends = grant(userId, completedImport(userId))
     assert.notEqual(ends, '')
-    const row = pg!.sql(`select plan || '|' || storage_limit_bytes || '|' || (grace_until = '${ends}'::timestamptz)
+    const row = pg!.sql(`select plan || '|' || storage_limit_bytes || '|' || (grace_until = '${ends}'::timestamptz + interval '14 days')
                          from profiles where user_id='${userId}'`)
     assert.equal(row, `basic|${BASIC}|true`)
     assert.equal(pg!.sql(`select count(*) from payments where user_id='${userId}'`), '0')
@@ -154,9 +154,25 @@ describe('1.5 промо імпорту (grant_import_promo)', () => {
     assert.equal(grant(inGrace.userId, completedImport(inGrace.userId)), '')
   })
 
-  test('колишній платний, grace уже минув → промо ДАЄТЬСЯ (PR-02: так задумано?)', { skip: skip() }, () => {
+  test('PR-02: колишній платний, grace уже минув → промо дається (раз на акаунт, незалежно від оплат)', { skip: skip() }, () => {
     const lapsed = newAccount({ plan: 'basic', limit: BASIC, grace: new Date(Date.now() - 86400e3).toISOString() })
     assert.notEqual(grant(lapsed.userId, completedImport(lapsed.userId)), '')
+  })
+
+  test('PR-02: промо — один раз на акаунт назавжди, навіть після оплат і нового grace', { skip: skip() }, () => {
+    const { userId } = newAccount()
+    assert.notEqual(grant(userId, completedImport(userId)), '')
+    pg!.sql(`update public.profiles set plan = 'free', grace_until = now() - interval '1 day' where user_id = '${userId}'`)
+    assert.equal(grant(userId, completedImport(userId)), '')
+  })
+
+  test('LC-01: промо дає 14 днів grace після безкоштовного місяця', { skip: skip() }, () => {
+    const { userId } = newAccount()
+    const ends = grant(userId, completedImport(userId))
+    const days = pg!.sql(
+      `select extract(epoch from (grace_until - '${ends}'::timestamptz)) / 86400 from public.profiles where user_id = '${userId}'`
+    )
+    assert.equal(Math.round(Number(days)), 14)
   })
 
   test('після дедлайну → промо нема', { skip: skip() }, () => {

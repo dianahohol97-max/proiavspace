@@ -11,6 +11,7 @@ import type { Block } from '@/lib/blog/articles'
 import type { Locale } from '@/lib/i18n/config'
 import { NBU_SOURCE_URL } from '@/lib/fx/nbu'
 import { GALLERY_PLANS, GRACE_PERIOD_DAYS } from '@/lib/plans'
+import { RETENTION_DAYS } from '@/lib/retention'
 import type { Crumb } from '@/lib/seo/structured-data'
 
 export interface ProductPageContent {
@@ -274,7 +275,7 @@ const tsiny: ProductPageContent = {
     },
     {
       type: 'p',
-      text: 'Файли при цьому не видаляються автоматично — ні ваші, ні галереї клієнтів. Видалити галерею чи фото можете лише ви самі.',
+      text: `Якщо після цих ${GRACE_PERIOD_DAYS} днів файли не вміщаються в безкоштовні ${P.free.storageGb} ГБ, галереї закриваються для клієнтів, а файли зберігаються ще ${RETENTION_DAYS} днів — ви бачите все в кабінеті й можете завантажити архівом або продовжити тариф. Перед видаленням попередимо листами за 30, 7 і 1 день.`,
     },
     { type: 'h2', text: 'Запросіть колегу — отримуйте 10%' },
     {
@@ -290,7 +291,7 @@ const tsiny: ProductPageContent = {
     },
     {
       q: 'Що буде з файлами, якщо я не продовжу підписку?',
-      a: `Нічого не видаляється. ${GRACE_PERIOD_DAYS} днів діє повний ліміт, потім акаунт стає безкоштовним: нові завантаження зупиняються, поки ви понад ${P.free.storageGb} ГБ, а наш підпис повертається в галереї.`,
+      a: `${GRACE_PERIOD_DAYS} днів усе працює як раніше. Якщо ви вміщаєтеся в ${P.free.storageGb} ГБ — акаунт стає безкоштовним, і наш підпис повертається в галереї. Якщо ні — галереї закриваються для клієнтів, а файли зберігаються ще ${RETENTION_DAYS} днів, потім видаляються; ми попередимо листами за 30, 7 і 1 день.`,
     },
     {
       q: 'Як оплатити?',
@@ -953,7 +954,7 @@ const mihratsiiaEn: ProductPageCopy = {
         'Credited automatically after your first successful zip import, once per account.',
         `Valid for the first ${PROMO_ACCOUNTS} accounts or until ${PROMO_UNTIL}, whichever comes first. After that, import keeps working; the promo just isn’t credited.`,
         `After the free month, Basic is ${P.basic.priceUahMonth} UAH a month if you turn on auto-payment during the promo month. We email you 7 days before it ends.`,
-        'Without auto-payment, the account goes back to Free. Your files are not deleted.',
+        `Without auto-payment, everything keeps working for ${GRACE_PERIOD_DAYS} more days; then, if you are over the free ${P.free.storageGb} GB, galleries close to clients and files are kept for ${RETENTION_DAYS} days before deletion.`,
         'Can’t be combined with the referral bonus in the same month: the bonus moves to the next month.',
       ],
     },
@@ -1085,8 +1086,8 @@ const mihratsiia: ProductPageContent = {
         'Для акаунтів на Безкоштовному тарифі.',
         'Нараховується автоматично після першого успішного zip-імпорту, один раз на акаунт.',
         `Діє для перших ${PROMO_ACCOUNTS} акаунтів або до ${PROMO_UNTIL} — що настане раніше. Після цього імпорт працює, просто промо не нараховується.`,
-        `Після безкоштовного місяця — Базовий за ${uah(P.basic.priceUahMonth)} на місяць, якщо в промо-місяці підключиш автоплатіж. За 7 днів до кінця надішлемо лист.`,
-        'Без автоплатежу акаунт повертається на Безкоштовний тариф. Файли не видаляються.',
+        `Після безкоштовного місяця — Базовий за ${uah(P.basic.priceUahMonth)} на місяць, якщо в промо-місяці підключите автоплатіж. За 7 днів до кінця надішлемо лист.`,
+        `Без автоплатежу ще ${GRACE_PERIOD_DAYS} днів усе працює як раніше; далі, якщо ви понад безкоштовні ${P.free.storageGb} ГБ, галереї закриваються для клієнтів, а файли зберігаються ${RETENTION_DAYS} днів і потім видаляються.`,
         'Не поєднується з реферальним бонусом у тому ж місяці — бонус переноситься на наступний.',
       ],
     },

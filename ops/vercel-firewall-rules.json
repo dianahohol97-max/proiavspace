@@ -1,0 +1,134 @@
+{
+  "_comment": "Vercel Firewall custom rules for audit RL-01 (Pro plan). Add them in Vercel → dianatracker-dtks → Firewall → Configure → Custom Rules, or via the API (PUT /v1/security/firewall/config — it REPLACES the whole config, so merge with the existing rules first). See docs/AUDIT_STORAGE_LIFECYCLE.md, PR 2.",
+  "rules": [
+    {
+      "name": "RL-01 gallery unlock",
+      "description": "Password brute force on client galleries: 10 attempts per IP per minute (each attempt is a full scrypt on Vercel).",
+      "active": true,
+      "conditionGroup": [
+        {
+          "conditions": [
+            {
+              "type": "path",
+              "op": "re",
+              "value": "^/api/galleries/[^/]+/unlock$"
+            },
+            {
+              "type": "method",
+              "op": "eq",
+              "value": "POST"
+            }
+          ]
+        }
+      ],
+      "action": {
+        "mitigate": {
+          "action": "rate_limit",
+          "rateLimit": {
+            "algo": "fixed_window",
+            "window": 60,
+            "limit": 10,
+            "keys": [
+              "ip"
+            ],
+            "action": "deny"
+          },
+          "actionDuration": null
+        }
+      }
+    },
+    {
+      "name": "RL-01 uploads",
+      "description": "Presign / multipart / complete: 300 per IP per minute — generous for real uploads, stops scripted abuse.",
+      "active": true,
+      "conditionGroup": [
+        {
+          "conditions": [
+            {
+              "type": "path",
+              "op": "pre",
+              "value": "/api/uploads/"
+            }
+          ]
+        }
+      ],
+      "action": {
+        "mitigate": {
+          "action": "rate_limit",
+          "rateLimit": {
+            "algo": "fixed_window",
+            "window": 60,
+            "limit": 300,
+            "keys": [
+              "ip"
+            ],
+            "action": "deny"
+          },
+          "actionDuration": null
+        }
+      }
+    },
+    {
+      "name": "RL-01 booking form",
+      "description": "Public booking form: 5 per IP per minute.",
+      "active": true,
+      "conditionGroup": [
+        {
+          "conditions": [
+            {
+              "type": "path",
+              "op": "eq",
+              "value": "/api/booking/book"
+            }
+          ]
+        }
+      ],
+      "action": {
+        "mitigate": {
+          "action": "rate_limit",
+          "rateLimit": {
+            "algo": "fixed_window",
+            "window": 60,
+            "limit": 5,
+            "keys": [
+              "ip"
+            ],
+            "action": "deny"
+          },
+          "actionDuration": null
+        }
+      }
+    },
+    {
+      "name": "RL-01 site lead form",
+      "description": "Public site contact form: 5 per IP per minute.",
+      "active": true,
+      "conditionGroup": [
+        {
+          "conditions": [
+            {
+              "type": "path",
+              "op": "eq",
+              "value": "/api/sites/lead"
+            }
+          ]
+        }
+      ],
+      "action": {
+        "mitigate": {
+          "action": "rate_limit",
+          "rateLimit": {
+            "algo": "fixed_window",
+            "window": 60,
+            "limit": 5,
+            "keys": [
+              "ip"
+            ],
+            "action": "deny"
+          },
+          "actionDuration": null
+        }
+      }
+    }
+  ]
+}

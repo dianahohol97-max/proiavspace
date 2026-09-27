@@ -6,9 +6,10 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { defaultLocale, isLocale, type Locale } from '@/lib/i18n/config'
 import { getDictionary, type Dictionary } from '@/lib/i18n'
 import { normalizeRefCode, readRefCookie } from '@/lib/referrals'
+import { classifyAuthError, isExistingUserSignup, type AuthFailure } from '@/lib/auth-errors'
 
-type Mode = 'signin' | 'signup' | 'magic'
-type Status = 'idle' | 'busy' | 'magicSent' | 'confirmSent' | 'error'
+type Mode = 'signin' | 'signup' | 'magic' | 'reset'
+type Status = 'idle' | 'busy' | 'magicSent' | 'confirmSent' | 'resetSent' | 'error'
 
 export default function LoginPage() {
   const params = useParams<{ locale: string }>()
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<Status>('idle')
+  const [failure, setFailure] = useState<AuthFailure>('other')
 
   useEffect(() => {
     void getDictionary(locale).then(setDict)
@@ -39,6 +41,11 @@ export default function LoginPage() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
   const callbackUrl = `${appUrl}/auth/callback?next=/${locale}/dashboard`
 
+  function fail(error: Parameters<typeof classifyAuthError>[0]) {
+    setFailure(classifyAuthError(error))
+    setStatus('error')
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setStatus('busy')
@@ -55,7 +62,19 @@ export default function LoginPage() {
         email,
         options: { emailRedirectTo: callbackUrl, data: ref ? { ref } : undefined },
       })
-      setStatus(error ? 'error' : 'magicSent')
+      if (error) fail(error)
+      else setStatus('magicSent')
+      return
+    }
+
+    if (mode === 'reset') {
+      // «Забули пароль?» (audit EM-01): the link lands on /auth/callback, which
+      // exchanges the code for a session and forwards to /reset-password.
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${appUrl}/auth/callback?next=/${locale}/reset-password`,
+      })
+      if (error) fail(error)
+      else setStatus('resetSent')
       return
     }
 
@@ -69,6 +88,9 @@ export default function LoginPage() {
         },
       })
       if (error) {
+        fail(error)
+      } else if (isExistingUserSignup(data.user)) {
+        setFailure('exists')
         setStatus('error')
       } else if (data.session) {
         // Email confirmation disabled in Supabase → session is live already.
@@ -81,6 +103,7 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
+      setFailure('other')
       setStatus('error')
     } else {
       window.location.assign(`/${locale}/dashboard`)
@@ -109,7 +132,9 @@ export default function LoginPage() {
       ? dict.auth.magicLinkSent
       : status === 'confirmSent'
         ? dict.auth.confirmSent
-        : null
+        : status === 'resetSent'
+          ? dict.auth.resetSent
+          : null
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
@@ -180,7 +205,8 @@ export default function LoginPage() {
               placeholder="you@example.com"
             />
 
-            {mode !== 'magic' && (
+            {mode === 'reset' && <p className="text-sm text-muted">{dict.auth.resetLede}</p>}
+            {mode !== 'magic' && mode !== 'reset' && (
               <>
                 <label className="text-sm text-muted" htmlFor="password">
                   {dict.auth.passwordLabel}
@@ -211,16 +237,46 @@ export default function LoginPage() {
                 ? dict.auth.signinButton
                 : mode === 'signup'
                   ? dict.auth.signupButton
-                  : dict.auth.magicLinkButton}
+                  : mode === 'reset'
+                    ? dict.auth.resetButton
+                    : dict.auth.magicLinkButton}
             </button>
             {status === 'error' && (
               <p className="text-sm text-accent">
-                {mode === 'magic'
-                  ? dict.auth.error
+                {failure === 'email_send'
+                  ? dict.auth.emailSendError
                   : mode === 'signup'
-                    ? dict.auth.signupError
-                    : dict.auth.passwordError}
+                    ? failure === 'exists'
+                      ? dict.auth.signupExists
+                      : dict.auth.signupError
+                    : mode === 'magic' || mode === 'reset'
+                      ? dict.auth.error
+                      : dict.auth.passwordError}
               </p>
+            )}
+            {mode === 'signin' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('reset')
+                  setStatus('idle')
+                }}
+                className="self-start text-sm text-muted underline-offset-4 hover:text-fg hover:underline"
+              >
+                {dict.auth.forgotLink}
+              </button>
+            )}
+            {mode === 'reset' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signin')
+                  setStatus('idle')
+                }}
+                className="self-start text-sm text-muted hover:text-fg"
+              >
+                {dict.auth.backToSignin}
+              </button>
             )}
           </form>
         </>
