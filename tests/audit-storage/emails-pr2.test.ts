@@ -50,9 +50,10 @@ describe('тексти листів', () => {
 
   test('чек: рядок про рахунок для ФОП і кредит', () => {
     const m = all()[0]
-    assert.match(m.text, /рахунок для ФОП — відповідайте на цей лист/)
-    assert.match(m.text, /з них 12 ₴ покрито реферальним кредитом/)
-    assert.match(m.subject, /оплата 117 ₴ — тариф «Базовий»/)
+    // Receipt layout of 29.09.2026: the ФОП invoice line is in the footer.
+    assert.match(m.text, /Питання й рахунок для ФОП: hello@proiav\.space/)
+    assert.match(m.text, /з них 12 ₴ — реферальний кредит/)
+    assert.match(m.subject, /^Квитанція: 117 ₴ — тариф «Базовий»/)
   })
 
   test('лист 3 і промо-лист: 14 днів, потім закриття, 60 днів до видалення — без «не видаляються»', () => {

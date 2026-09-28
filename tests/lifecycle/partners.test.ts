@@ -238,7 +238,7 @@ describe('партнерські акаунти: адмінка, крон, кі�
   test('оплата під час періоду: оплачений тариф замінює партнерський', async () => {
     const p = photographer()
     await save(p.userId, { plan: 'plus', starts_at: kyivToday(), months: '3' })
-    const { orderId } = pendingPayment({ userId: p.userId, plan: 'plus', amount: 519 })
+    const { orderId } = pendingPayment({ userId: p.userId, plan: 'plus', amount: 519, autopayConsent: true })
     assert.equal(await deliverWebhook({ orderId, status: 'paid', cardToken: 'card-p' }), 200)
     assert.equal(prof(p.userId), 'plus|536870912000|-')
     assert.equal(pg(`select finish_reason from public.partner_periods where user_id = ${q(p.userId)}`), 'paid')

@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   const { data: payment, error: lookupError } = await admin
     .from('payments')
     .select(
-      'id, user_id, plan, period, status, subscription_id, amount, credit_applied_kop, purpose'
+      'id, user_id, plan, period, status, subscription_id, amount, credit_applied_kop, purpose, autopay_consent'
     )
     .eq('order_id', event.orderId)
     .maybeSingle()
@@ -165,7 +165,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Auto-renewal bookkeeping decides whether the plan needs an expiry date.
-    let autoRenews = payments.recurring
+    // Only a payment with the payer's auto-renewal consent (0052) may turn
+    // into a subscription.
+    const consented = payment.autopay_consent === true
+    let autoRenews = payments.recurring && consented
     if (payment.subscription_id) {
       // A cron-initiated renewal: push the next charge one period out.
       const { error } = await admin
@@ -174,6 +177,14 @@ export async function POST(request: NextRequest) {
         .eq('id', payment.subscription_id)
       if (error) return retryLater('subscription advance', error.message)
       autoRenews = true
+    } else if (event.cardToken && !consented) {
+      // A card token without consent (e.g. an invoice created before 0052):
+      // never kept, never charged.
+      if (canChargeTokens(payments)) {
+        await payments
+          .deleteToken(event.cardToken)
+          .catch((cause: unknown) => console.error('billing webhook: token delete failed', cause))
+      }
     } else if (event.cardToken) {
       // First checkout with a saved card: start (or replace) the subscription.
       const { error } = await admin.from('billing_subscriptions').upsert(

@@ -15,7 +15,7 @@ import {
 import { IMPORT_PROMO } from '@/lib/promo'
 import { isEmailConfigured, sendEmail } from '@/lib/email'
 import { applyPaidSideEffects, rewardReferrer, type PaidPayment } from '@/lib/billing/paid'
-import { promoEndingEmail } from '@/lib/lifecycle-emails'
+import { RENEWAL_NOTICE_DAYS, promoEndingEmail, renewalNoticeEmail } from '@/lib/lifecycle-emails'
 import { contactOf, send, sendFailedCharge, sendReceipt } from '@/lib/lifecycle-notify'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -139,11 +139,20 @@ export async function GET(request: NextRequest) {
     // Best-effort; tomorrow's run retries whatever wasn't marked as sent.
   }
 
+  // «Через 3 дні спишемо …» before every auto-charge (29.09.2026).
+  let renewalNotices = 0
+  try {
+    renewalNotices = await sendRenewalNotices(admin)
+  } catch (cause) {
+    console.error('billing renew: renewal notices failed', cause)
+  }
+
   const payments = getPayments()
   if (!payments) {
     return NextResponse.json({
       expiredSites,
       promoReminders,
+      renewalNotices,
       charges: 'billing_not_configured',
     })
   }
@@ -187,6 +196,7 @@ export async function GET(request: NextRequest) {
       swept,
       expiredSites,
       promoReminders,
+      renewalNotices,
       charges: 'unsupported',
     })
   }
@@ -372,9 +382,87 @@ export async function GET(request: NextRequest) {
     stuck,
     expiredSites,
     promoReminders,
+    renewalNotices,
     expiredCheckouts,
     referralRepairs,
   })
+}
+
+/**
+ * One letter per active subscription and charge date, RENEWAL_NOTICE_DAYS
+ * before next_charge_at, with a «Скасувати автопродовження» button. Journal
+ * first (renewal_notices, 0052) so overlapping runs can't both send; a failed
+ * send removes the row and tomorrow retries (while still before the charge).
+ */
+async function sendRenewalNotices(admin: AdminClient): Promise<number> {
+  if (!isEmailConfigured()) return 0
+  const now = Date.now()
+  const { data: subs, error } = await admin
+    .from('billing_subscriptions')
+    .select('id, user_id, product, plan, period, next_charge_at')
+    .eq('status', 'active')
+    .gt('next_charge_at', new Date(now).toISOString())
+    .lte('next_charge_at', new Date(now + RENEWAL_NOTICE_DAYS * 24 * 3600 * 1000).toISOString())
+    .limit(100)
+  if (error) throw new Error(error.message)
+
+  let sent = 0
+  for (const sub of (subs ?? []) as Pick<SubscriptionRow, 'id' | 'user_id' | 'product' | 'plan' | 'period' | 'next_charge_at'>[]) {
+    if (!isBillingPeriod(sub.period)) continue
+    let amount: number
+    if (isGalleryPlanId(sub.plan) && sub.plan !== 'free') {
+      amount = galleryPlanPriceUah(GALLERY_PLANS[sub.plan], sub.period)
+    } else if (isSitePlanId(sub.plan) && sub.plan !== 'site_trial') {
+      amount = sitePlanPriceUah(SITE_PLANS[sub.plan], sub.period)
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('plan, grace_until')
+        .eq('user_id', sub.user_id)
+        .single()
+      const paidGallery =
+        profile &&
+        isGalleryPlanId(profile.plan) &&
+        profile.plan !== 'free' &&
+        (!profile.grace_until || new Date(profile.grace_until).getTime() > Date.now())
+      if (paidGallery) amount = Math.round(amount * (1 - BUNDLE_SITE_DISCOUNT))
+    } else {
+      continue
+    }
+
+    const { data: fresh, error: journalError } = await admin
+      .from('renewal_notices')
+      .upsert(
+        { subscription_id: sub.id, charge_at: sub.next_charge_at },
+        { onConflict: 'subscription_id,charge_at', ignoreDuplicates: true }
+      )
+      .select('subscription_id')
+    if (journalError) throw new Error(`renewal_notices: ${journalError.message}`)
+    if (!fresh || fresh.length === 0) continue
+
+    const contact = await contactOf(admin, sub.user_id)
+    const delivered =
+      !!contact &&
+      (await send(
+        contact,
+        renewalNoticeEmail({
+          name: contact.name,
+          plan: sub.plan,
+          period: sub.period,
+          amountUah: amount,
+          chargeAt: new Date(sub.next_charge_at),
+        })
+      ))
+    if (!delivered) {
+      await admin
+        .from('renewal_notices')
+        .delete()
+        .eq('subscription_id', sub.id)
+        .eq('charge_at', sub.next_charge_at)
+      continue
+    }
+    sent += 1
+  }
+  return sent
 }
 
 /**

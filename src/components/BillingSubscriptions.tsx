@@ -58,7 +58,7 @@ export function BillingSubscriptions({
   }
 
   return (
-    <section className="mt-14">
+    <section id="autopay" className="mt-14">
       <h2 className="mb-6 font-brand text-xl">{labels.title}</h2>
       <ul className="divide-y divide-line border border-line">
         {subscriptions.map((sub) => {

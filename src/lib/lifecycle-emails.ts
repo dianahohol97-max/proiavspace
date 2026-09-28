@@ -1,11 +1,13 @@
-import { GALLERY_PLANS, GRACE_PERIOD_DAYS } from '@/lib/plans'
+import { GALLERY_PLANS, GRACE_PERIOD_DAYS, SITE_PLANS } from '@/lib/plans'
+import { hello, renderHtml, renderText, type EmailDoc } from '@/lib/email-layout'
 import { FREE_GALLERY_DAYS, FREE_PURGE_AFTER_DAYS } from '@/lib/free-expiry'
 import { RETENTION_DAYS } from '@/lib/retention'
 
 /**
  * Billing and plan-lifecycle e-mails (audit EM-03 / LC-01). Texts approved
  * 26.09.2026 (docs/EMAILS_PR2_DRAFT.md), «ви» like the site. Plain text —
- * lib/email turns it into HTML. Ukrainian only for now: the approved set has
+ * lib/email wraps it in the проЯв layout (lib/email-layout); the receipt and
+ * the renewal notice are structured (EmailDoc → text + HTML). Ukrainian only for now: the approved set has
  * no English version yet.
  */
 
@@ -16,6 +18,12 @@ const dashboardUrl = () => `${APP_URL()}/uk/dashboard`
 export interface EmailMessage {
   subject: string
   text: string
+  /** Own HTML part; otherwise lib/email wraps the text. */
+  html?: string
+}
+
+function fromDoc(subject: string, doc: EmailDoc): EmailMessage {
+  return { subject, text: renderText(doc), html: renderHtml(doc, subject) }
 }
 
 const PLAN_NAMES: Record<string, string> = {
@@ -52,7 +60,6 @@ function uah(amount: number): string {
   return Number.isInteger(amount) ? String(amount) : amount.toFixed(2).replace('.', ',')
 }
 
-const hello = (name: string | null) => (name ? `Привіт, ${name}!` : 'Привіт!')
 
 /** «Вміститися в безкоштовні 3 ГБ» — the third way out, in letters 3–5. */
 const FREE_GB = GALLERY_PLANS.free.storageGb
@@ -77,43 +84,120 @@ export interface ReceiptInput {
   name: string | null
   plan: string
   period: 'month' | 'year'
+  /** When the payment went through (default: now). */
+  paidAt?: Date
   periodStart: Date
   periodEnd: Date
   amountUah: number
   creditUah: number
   provider: string
   orderId: string
-  /** Next auto-charge, when auto-payment is on. */
+  /** Next auto-charge, when auto-renewal is on. */
   nextChargeAt: Date | null
   nextChargeUah: number | null
+  /** The payer ticked «Автопродовження» (payments.autopay_consent). */
+  autopayConsent?: boolean
+  /** Provider's payment method: 'pan', 'google', 'apple', … */
+  paymentMethod?: string | null
 }
 
-export function receiptEmail(input: ReceiptInput): EmailMessage {
-  const provider = input.provider === 'monobank' ? 'Monobank' : input.provider === 'liqpay' ? 'LiqPay' : input.provider
-  const volume = planVolume(input.plan)
-  const credit = input.creditUah > 0 ? `, з них ${uah(input.creditUah)} ₴ покрито реферальним кредитом` : ''
-  return {
-    subject: `проЯв · оплата ${uah(input.amountUah)} ₴ — тариф «${planName(input.plan)}»`,
-    text: [
-      hello(input.name),
-      '',
-      'Оплата пройшла. Дякуємо, що з нами.',
-      '',
-      `Тариф: «${planName(input.plan)}»${volume ? ` — ${volume} сховища` : ''}`,
-      `Період: ${input.period === 'year' ? 'рік' : 'місяць'}, ${kyivDate(input.periodStart)} – ${kyivDate(input.periodEnd)}`,
-      `Сума: ${uah(input.amountUah)} ₴${credit}`,
-      `Спосіб: картка ${provider}, замовлення № ${input.orderId}`,
-      '',
-      input.nextChargeAt
-        ? `Автоплатіж підключено: наступне списання ${kyivDate(input.nextChargeAt)}, ${uah(input.nextChargeUah ?? input.amountUah)} ₴. Вимкнути можна в кабінеті будь-коли.`
-        : `Автоплатіж не підключено: тариф діє до ${kyivDate(input.periodEnd)}, далі — ${GRACE_PERIOD_DAYS} днів на повному ліміті, а потім акаунт стає безкоштовним.`,
-      '',
-      `Кабінет і тарифи: ${billingUrl()}`,
-      `Квитанцію банку надсилає ${provider} окремо. Якщо потрібен рахунок для ФОП — відповідайте на цей лист.`,
-      '',
-      '— проЯв',
-    ].join('\n'),
+/** What the plan gives, for the receipt («Що входить»). */
+export function planIncludes(plan: string): string[] {
+  const gallery = GALLERY_PLANS[plan as keyof typeof GALLERY_PLANS]
+  if (gallery) {
+    const f = gallery.features
+    return [
+      `${planVolume(plan)} сховища для галерей`,
+      'Галереї для клієнтів з паролем, вибором фото й завантаженням архівом',
+      ...(f.video ? ['Відео в галереях'] : []),
+      ...(f.brandingRemoval ? ['Без позначки «проЯв» у галереях'] : []),
+      ...(f.photographerLogo ? ['Ваш логотип у галереях'] : []),
+      ...(f.stats ? ['Статистика переглядів і завантажень'] : []),
+      ...(f.prioritySupport ? ['Пріоритетна підтримка'] : []),
+      'Без строку життя галерей, поки діє тариф',
+    ]
   }
+  const site = SITE_PLANS[plan as keyof typeof SITE_PLANS]
+  if (site) {
+    return [
+      site.sites > 1 ? `${site.sites} сайти-портфоліо` : 'Сайт-портфоліо',
+      ...(site.customDomain ? ['Власний домен'] : []),
+    ]
+  }
+  return []
+}
+
+const providerName = (p: string) => (p === 'monobank' ? 'Monobank' : p === 'liqpay' ? 'LiqPay' : p)
+const walletName = (m: string | null | undefined) =>
+  m === 'google' ? 'Google Pay' : m === 'apple' ? 'Apple Pay' : null
+
+export function receiptEmail(input: ReceiptInput): EmailMessage {
+  const provider = providerName(input.provider)
+  const volume = planVolume(input.plan)
+  const wallet = walletName(input.paymentMethod)
+  const credit = input.creditUah > 0 ? ` (з них ${uah(input.creditUah)} ₴ — реферальний кредит)` : ''
+
+  let renewal: string
+  if (input.nextChargeAt) {
+    renewal = `Автопродовження увімкнене: наступне списання ${kyivDate(input.nextChargeAt)}, ${uah(input.nextChargeUah ?? input.amountUah)} ₴. За 3 дні до нього надішлемо нагадування. Скасувати можна будь-коли в кабінеті — оплачений період при цьому діє до кінця.`
+  } else if (input.autopayConsent && wallet) {
+    renewal = `Автопродовження не підключилося: оплата через ${wallet} не зберігає картку. Тариф діє до ${kyivDate(input.periodEnd)}. Щоб наступного разу продовжувати автоматично — оплатіть карткою з позначкою «Автопродовження».`
+  } else {
+    renewal = `Автопродовження вимкнене: тариф діє до ${kyivDate(input.periodEnd)}, далі — ще ${GRACE_PERIOD_DAYS} днів повного доступу, а потім акаунт стає безкоштовним.`
+  }
+
+  const subject = `Квитанція: ${uah(input.amountUah)} ₴ — тариф «${planName(input.plan)}», проЯв`
+  return fromDoc(subject, {
+    greeting: hello(input.name),
+    lead: ['Оплату отримано. Дякуємо, що з нами!'],
+    rows: [
+      ['Тариф', `«${planName(input.plan)}»${volume ? `, ${volume}` : ''}`],
+      ['Сума', `${uah(input.amountUah)} ₴${credit}`],
+      ['Дата оплати', kyivDate(input.paidAt ?? new Date())],
+      ['Період', `${input.period === 'year' ? 'рік' : 'місяць'}, ${kyivDate(input.periodStart)} – ${kyivDate(input.periodEnd)}`],
+      ['Діє до', kyivDate(input.periodEnd)],
+      ['Спосіб оплати', wallet ? `${wallet} (${provider})` : `картка, ${provider}`],
+      ['Замовлення', input.orderId],
+    ],
+    list: { title: 'Що входить', items: planIncludes(input.plan) },
+    after: [renewal, `Банківську квитанцію ${provider} надсилає окремо.`],
+    button: { label: 'Відкрити кабінет', url: billingUrl() },
+  })
+}
+
+// ---------------------------------------------------------------------------
+// 1b. Auto-renewal in 3 days (sent by the renewal cron)
+// ---------------------------------------------------------------------------
+export interface RenewalNoticeInput {
+  name: string | null
+  plan: string
+  period: 'month' | 'year'
+  amountUah: number
+  chargeAt: Date
+}
+
+export const RENEWAL_NOTICE_DAYS = 3
+
+export function renewalNoticeEmail(input: RenewalNoticeInput): EmailMessage {
+  const volume = planVolume(input.plan)
+  const subject = `Через ${RENEWAL_NOTICE_DAYS} дні — автопродовження тарифу «${planName(input.plan)}», ${uah(input.amountUah)} ₴`
+  return fromDoc(subject, {
+    greeting: hello(input.name),
+    lead: [
+      `${kyivDate(input.chargeAt)} спишемо ${uah(input.amountUah)} ₴ зі збереженої картки — автопродовження тарифу «${planName(input.plan)}»${volume ? ` (${volume})` : ''} на ${input.period === 'year' ? 'рік' : 'місяць'}.`,
+    ],
+    rows: [
+      ['Тариф', `«${planName(input.plan)}»`],
+      ['Сума', `${uah(input.amountUah)} ₴`],
+      ['Дата списання', kyivDate(input.chargeAt)],
+    ],
+    after: [
+      'Якщо на балансі є реферальний кредит, його врахуємо — спишеться менше.',
+      'Не хочете продовжувати? Скасуйте автопродовження до дати списання: оплачений період діє до кінця, картку більше не списуємо.',
+    ],
+    button: { label: 'Скасувати автопродовження', url: `${billingUrl()}#autopay` },
+    link: { label: 'Кабінет і тарифи', url: billingUrl() },
+  })
 }
 
 // ---------------------------------------------------------------------------

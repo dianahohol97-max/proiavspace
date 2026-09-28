@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { adminEmails } from '@/lib/admin'
 import { sendEmail } from '@/lib/email'
+import { greetingName, hello } from '@/lib/email-layout'
 import { AMBASSADOR_MAX_PAYMENTS_PER_REFERRAL } from '@/lib/referrals'
 
 /**
@@ -21,6 +22,8 @@ export function formatUah(kop: number): string {
 export interface RewardEmailInput {
   to: string
   locale: 'uk' | 'en'
+  /** Real name from the profile, or null (never the e-mail's local part). */
+  name?: string | null
   amountKop: number
   isAmbassador: boolean
   /** The referred photographer's first payment (the referral just converted). */
@@ -37,7 +40,9 @@ export function rewardEmail(input: RewardEmailInput): { subject: string; text: s
     return {
       subject: `+${sum} — your ${input.first ? `first ${what}` : what}`,
       text: [
-        `Hi! A photographer who came through your link has just ${input.first ? 'taken a paid plan' : 'paid for their plan again'}.`,
+        hello(input.name ?? null, 'en'),
+        '',
+        `A photographer who came through your link has just ${input.first ? 'taken a paid plan' : 'paid for their plan again'}.`,
         input.isAmbassador
           ? `You've earned ${sum} to withdraw — 10% of their payment. The same for each of their first ${cap} payments.`
           : `You've earned ${sum} in credit — 10% of their payment. And so with every payment they make.`,
@@ -58,7 +63,9 @@ export function rewardEmail(input: RewardEmailInput): { subject: string; text: s
       ? `+${sum} — ${input.isAmbassador ? 'ваша перша' : 'ваш перший'} ${what}`
       : `+${sum} — ${what}`,
     text: [
-      `Привіт! Фотограф, який прийшов за вашим посиланням, щойно ${input.first ? 'оформив платний тариф' : 'оплатив свій тариф знову'}.`,
+      hello(input.name ?? null),
+      '',
+      `Фотограф, який прийшов за вашим посиланням, щойно ${input.first ? 'оформив платний тариф' : 'оплатив свій тариф знову'}.`,
       input.isAmbassador
         ? `Вам нараховано ${sum} до виплати — 10% від його оплати. І так з кожної з перших ${cap} його оплат.`
         : `Вам нараховано ${sum} кредитом — 10% від його оплати. І так буде з кожної його наступної оплати.`,
@@ -77,13 +84,17 @@ export function rewardEmail(input: RewardEmailInput): { subject: string; text: s
 async function referrerContact(
   admin: SupabaseClient,
   userId: string
-): Promise<{ email: string; locale: 'uk' | 'en' } | null> {
+): Promise<{ email: string; locale: 'uk' | 'en'; name: string | null } | null> {
   const [{ data: email }, { data: profile }] = await Promise.all([
     admin.rpc('user_email', { p_user: userId }),
-    admin.from('profiles').select('locale').eq('user_id', userId).maybeSingle(),
+    admin.from('profiles').select('locale, display_name').eq('user_id', userId).maybeSingle(),
   ])
   if (typeof email !== 'string' || !email) return null
-  return { email, locale: profile?.locale === 'en' ? 'en' : 'uk' }
+  return {
+    email,
+    locale: profile?.locale === 'en' ? 'en' : 'uk',
+    name: greetingName(profile?.display_name as string | null | undefined, email),
+  }
 }
 
 export async function sendRewardEmail(
@@ -94,7 +105,7 @@ export async function sendRewardEmail(
   if (!contact) return false
   return sendEmail({
     to: contact.email,
-    ...rewardEmail({ to: contact.email, locale: contact.locale, ...input }),
+    ...rewardEmail({ to: contact.email, locale: contact.locale, name: contact.name, ...input }),
   })
 }
 

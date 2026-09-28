@@ -18,6 +18,11 @@ interface Labels {
   freePrice: string
   notConfigured: string
   checkoutError: string
+  /** «Автопродовження: {price} ₴ {every}, можна скасувати будь-коли в кабінеті» */
+  autopayLabel: string
+  autopayMonth: string
+  autopayYear: string
+  autopayWalletNote: string
 }
 
 /** Shared plan grid for both products with a month/year toggle. */
@@ -35,6 +40,10 @@ export function BillingPlans({
   const [period, setPeriod] = useState<BillingPeriod>('month')
   const [notice, setNotice] = useState<string | null>(null)
   const [busyPlan, setBusyPlan] = useState<string | null>(null)
+  // Auto-renewal consent per plan card: on by default (decision 29.09.2026),
+  // always visible next to the pay button with the price and how to cancel.
+  // Unticked → the provider is not asked to save the card (checkout route).
+  const [autopayOff, setAutopayOff] = useState<Record<string, boolean>>({})
   const busy = busyPlan !== null
 
   async function upgrade(planId: string) {
@@ -44,7 +53,7 @@ export function BillingPlans({
       const response = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId, period, locale }),
+        body: JSON.stringify({ plan: planId, period, locale, autopay: !autopayOff[planId] }),
       })
       if (response.status === 503) {
         setNotice(labels.notConfigured)
@@ -124,6 +133,25 @@ export function BillingPlans({
                     {labels.currentBadge}
                   </span>
                 ) : card.isFree ? null : (
+                  <>
+                  <label className="mb-4 flex items-start gap-2 text-xs leading-relaxed text-muted">
+                    <input
+                      type="checkbox"
+                      name={`autopay-${card.id}`}
+                      checked={!autopayOff[card.id]}
+                      disabled={busy}
+                      onChange={(e) => setAutopayOff((prev) => ({ ...prev, [card.id]: !e.target.checked }))}
+                      className="mt-0.5 h-4 w-4 flex-none accent-[currentColor]"
+                    />
+                    <span>
+                      {labels.autopayLabel
+                        .replace('{price}', String(price))
+                        .replace('{every}', period === 'month' ? labels.autopayMonth : labels.autopayYear)}
+                      {!autopayOff[card.id] && (
+                        <span className="mt-1 block text-[11px] opacity-80">{labels.autopayWalletNote}</span>
+                      )}
+                    </span>
+                  </label>
                   <button
                     type="button"
                     disabled={busy}
@@ -132,6 +160,7 @@ export function BillingPlans({
                   >
                     {busyPlan === card.id ? '…' : labels.upgrade}
                   </button>
+                  </>
                 )}
               </div>
             </div>

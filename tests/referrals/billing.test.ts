@@ -185,11 +185,11 @@ describe('webhook: reward on the invitee’s payment', { skip }, () => {
 
   test('self-referral via the same saved card earns nothing (BUG-09)', async () => {
     const referrer = signUp()
-    // The referrer paid earlier with a card Monobank tokenised as tok_me.
-    const own = pendingPayment({ userId: referrer, amount: 129 })
+    // The referrer paid earlier with auto-renewal on; Monobank tokenised the card as tok_me.
+    const own = pendingPayment({ userId: referrer, amount: 129, autopayConsent: true })
     await deliverWebhook({ orderId: own.orderId, status: 'paid', cardToken: 'tok_me' })
     const invitee = signUp({ ref: codeOf(referrer) })
-    const pay = pendingPayment({ userId: invitee, amount: 129 })
+    const pay = pendingPayment({ userId: invitee, amount: 129, autopayConsent: true })
     await deliverWebhook({ orderId: pay.orderId, status: 'paid', cardToken: 'tok_me' })
     assert.equal(profile(referrer).credit_balance_kop, 0)
     assert.equal(earnings(referrer).length, 0)
