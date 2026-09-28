@@ -7,12 +7,17 @@
  * retry.
  */
 
+import { supportEmail, wrapText } from '@/lib/email-layout'
+
 const BREVO_URL = 'https://api.brevo.com/v3/smtp/email'
 
 export interface EmailInput {
   to: string
   subject: string
+  /** The plain-text part — always sent. */
   text: string
+  /** The HTML part; by default the text wrapped in the проЯв layout. */
+  html?: string
 }
 
 export interface EmailResult {
@@ -34,16 +39,6 @@ function parseSender(from: string): { name?: string; email: string } {
   if (!match) return { email: from.trim() }
   const name = match[1].replace(/^"(.*)"$/, '$1').trim()
   return name ? { name, email: match[2] } : { email: match[2] }
-}
-
-/** The plain-text body as minimal HTML: escaped, line breaks kept. */
-function textToHtml(text: string): string {
-  const escaped = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-  return `<div style="font-family:sans-serif;font-size:15px;line-height:1.5">${escaped.replace(/\n/g, '<br>')}</div>`
 }
 
 /** Same as sendEmail, but returns Brevo's status and response body. */
@@ -68,8 +63,11 @@ export async function sendEmailDetailed(input: EmailInput): Promise<EmailResult>
         sender: parseSender(from),
         to: [{ email: input.to }],
         subject: input.subject,
-        htmlContent: textToHtml(input.text),
+        // Both parts, same content (lib/email-layout), and replies go to the
+        // support address rather than bouncing off a no-reply.
+        htmlContent: input.html ?? wrapText(input.text, input.subject),
         textContent: input.text,
+        replyTo: { email: supportEmail() },
       }),
     })
     const body = (await response.text().catch(() => '')).slice(0, 500)

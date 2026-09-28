@@ -122,6 +122,10 @@ export default async function BillingPage({ params }: { params: { locale: string
     freePrice: dict.billing.freePrice,
     notConfigured: dict.billing.notConfigured,
     checkoutError: dict.billing.checkoutError,
+    autopayLabel: dict.billing.autopayLabel,
+    autopayMonth: dict.billing.autopayMonth,
+    autopayYear: dict.billing.autopayYear,
+    autopayWalletNote: dict.billing.autopayWalletNote,
   }
 
   const subscriptions: SubscriptionView[] = (subRows ?? [])

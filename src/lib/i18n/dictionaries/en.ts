@@ -409,6 +409,11 @@ export const en: Dictionary = {
     notePro: 'Priority support',
     storage: 'of storage',
     upgrade: 'Switch to this plan',
+    autopayLabel: 'Auto-renewal: {price} UAH {every}, cancel any time in your dashboard',
+    autopayMonth: 'every month',
+    autopayYear: 'every year',
+    autopayWalletNote:
+      'Auto-renewal is not available with Google Pay / Apple Pay — pay by card to turn it on. Without it the plan runs for the paid period.',
     currentBadge: 'Current',
     perMonth: 'UAH/mo',
     perYear: 'UAH/yr',

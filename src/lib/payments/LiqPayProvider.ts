@@ -32,13 +32,20 @@ export class LiqPayProvider implements PaymentProvider {
   }
 
   async createCheckoutForm(request: CheckoutRequest): Promise<CheckoutForm> {
+    // A LiqPay subscription only with the payer's auto-renewal consent;
+    // otherwise a one-off payment.
+    const recurring = request.autopay
+      ? {
+          action: 'subscribe',
+          subscribe: '1',
+          subscribe_date_start: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          subscribe_periodicity: request.period,
+        }
+      : { action: 'pay' }
     const params = {
       version: 3,
       public_key: this.publicKey,
-      action: 'subscribe',
-      subscribe: '1',
-      subscribe_date_start: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      subscribe_periodicity: request.period,
+      ...recurring,
       amount: request.amount,
       currency: request.currency,
       description: request.description,

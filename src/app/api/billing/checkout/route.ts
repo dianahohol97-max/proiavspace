@@ -23,6 +23,8 @@ interface CheckoutBody {
   locale?: string
   /** 'import_autopay': connect auto-payment during the free promo month. */
   promo?: string
+  /** The «Автопродовження» checkbox next to the pay button. Absent = off. */
+  autopay?: boolean
 }
 
 function isCheckoutBody(value: unknown): value is CheckoutBody {
@@ -32,7 +34,8 @@ function isCheckoutBody(value: unknown): value is CheckoutBody {
     typeof v.plan === 'string' &&
     typeof v.period === 'string' &&
     (v.locale === undefined || typeof v.locale === 'string') &&
-    (v.promo === undefined || v.promo === 'import_autopay')
+    (v.promo === undefined || v.promo === 'import_autopay') &&
+    (v.autopay === undefined || typeof v.autopay === 'boolean')
   )
 }
 
@@ -59,6 +62,9 @@ export async function POST(request: NextRequest) {
 
   // The promo checkout always buys Базовий per month, whatever was sent.
   const isPromoAutopay = body.promo === 'import_autopay'
+  // Consent to auto-renewal: the checkbox, or the promo's «Підключити
+  // автоплатіж» button (that is the whole point of that checkout).
+  const autopayConsent = isPromoAutopay || body.autopay === true
   const planId: string = isPromoAutopay ? IMPORT_PROMO.plan.id : body.plan
   const period: BillingPeriod = isPromoAutopay ? 'month' : body.period
 
@@ -171,6 +177,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message ?? 'payment_not_created' }, { status: 500 })
   }
   amount = row.amount
+  if (autopayConsent) {
+    // Recorded before the invoice exists: the webhook creates a subscription
+    // only for a payment that carries this consent (migration 0052).
+    const { error: consentError } = await admin
+      .from('payments')
+      .update({ autopay_consent: true })
+      .eq('order_id', orderId)
+    if (consentError) {
+      console.error('billing checkout: consent not recorded', consentError.message)
+      await admin.from('payments').update({ status: 'failed' }).eq('order_id', orderId)
+      return NextResponse.json({ error: 'payment_not_created' }, { status: 500 })
+    }
+  }
   if (row.credit_applied_kop > 0) {
     description += ` (кредит −${row.credit_applied_kop / 100} ₴)`
   }
@@ -186,7 +205,9 @@ export async function POST(request: NextRequest) {
       resultUrl: `${appUrl}/${locale}/dashboard/billing`,
       serverUrl: `${appUrl}/api/billing/webhook`,
       language: locale,
-      customerId: user.id,
+      // The card is saved (and later charged) only with consent.
+      customerId: autopayConsent ? user.id : undefined,
+      autopay: autopayConsent,
     })
     return NextResponse.json(form)
   } catch (cause) {

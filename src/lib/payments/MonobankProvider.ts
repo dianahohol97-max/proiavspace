@@ -12,9 +12,12 @@ const API_BASE = 'https://api.monobank.ua/api/merchant'
 
 /**
  * Monobank acquiring — invoices via their hosted payment page. There are no
- * native subscriptions, so auto-renewal is built on card tokenization: the
- * first checkout saves the card (saveCardData), the webhook stores the
- * cardToken, and the renewal cron charges it via /wallet/payment.
+ * native subscriptions, so auto-renewal is built on card tokenization: a
+ * checkout with the payer's auto-renewal consent (customerId set) saves the
+ * card (saveCardData), the webhook stores the cardToken, and the renewal cron
+ * charges it via /wallet/payment. Without consent no saveCardData is sent.
+ * Tokenization must be enabled for the merchant by monobank support, and a
+ * payment through Google Pay / Apple Pay comes back without walletData.
  * Webhook trust model: the X-Sign header is a base64 ECDSA-SHA256 signature
  * of the raw body, verified against the merchant public key from
  * GET /merchant/pubkey. Anything unverifiable is dropped.
@@ -43,7 +46,7 @@ export class MonobankProvider implements RecurringChargeProvider {
         webHookUrl: request.serverUrl,
         validity: 24 * 3600,
         paymentType: 'debit',
-        // Tokenize the card so the renewal cron can auto-charge it later.
+        // Tokenize the card — only with auto-renewal consent (see above).
         ...(request.customerId
           ? { saveCardData: { saveCard: true, walletId: request.customerId } }
           : {}),

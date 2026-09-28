@@ -31,7 +31,7 @@ export interface LegalCopy {
 
 const SUPPORT_EMAIL = 'dianahohol97@gmail.com'
 const ENTITY = 'ФОП Гоголь Діана Іванівна'
-const UPDATED = '23.07.2026'
+const UPDATED = '29.09.2026'
 
 const uk: LegalCopy = {
   backToHome: '← На головну',
@@ -63,6 +63,9 @@ const uk: LegalCopy = {
         paragraphs: [
           'Актуальні ціни вказані на сторінці тарифів у гривнях (₴). Оплата здійснюється карткою українського банку через платіжного провайдера (Monobank / LiqPay); Виконавець не зберігає повних даних платіжної картки.',
           'Підписка діє протягом оплаченого періоду (місяць або рік) і, за наявності авто-продовження, поновлюється автоматично, доки Користувач її не скасує.',
+          'Автопродовження вмикається позначкою «Автопродовження» біля кнопки оплати на сторінці тарифів: поруч вказано суму й періодичність списання. Якщо позначку залишено, платіжний провайдер (Monobank) зберігає токен картки, і кожного наступного періоду з неї автоматично списується та сама сума за обраний тариф (за вирахуванням реферального кредиту, якщо він є). Якщо позначку знято, картка не зберігається й тариф діє лише оплачений період.',
+          'За 3 дні до кожного автоматичного списання Сервіс надсилає на пошту Користувача лист із сумою, датою списання та посиланням для скасування. Скасувати автопродовження можна будь-коли в кабінеті (розділ «Тариф») — після цього картку більше не списують, а збережений токен видаляється.',
+          'Оплата через Google Pay або Apple Pay не зберігає картку, тому для такої оплати автопродовження недоступне: тариф діє оплачений період.',
           'Річна оплата надається за ціною десяти місяців (два місяці — у подарунок).',
         ],
       },
@@ -209,6 +212,9 @@ const en: LegalCopy = {
         paragraphs: [
           'Prices are shown on the pricing page in Ukrainian hryvnia (₴). Payment is made by card via a payment provider (Monobank / LiqPay); the Provider does not store full card details.',
           'A subscription runs for the paid period and, with auto-renewal on, renews automatically until canceled. Annual billing is priced at ten months (two months free).',
+          'Auto-renewal is turned on with the «Auto-renewal» checkbox next to the pay button on the plans page, which states the amount and how often it is charged. With it ticked, the payment provider (Monobank) keeps a card token and the same amount for the chosen plan is charged automatically every period (less any referral credit). With it unticked, no card is saved and the plan runs for the paid period only.',
+          'Three days before every automatic charge the Service e-mails the User the amount, the charge date and a link to cancel. Auto-renewal can be canceled at any time in the dashboard («Plan»); the card is then no longer charged and the saved token is deleted.',
+          'Payments through Google Pay or Apple Pay do not save the card, so auto-renewal is not available for them: the plan runs for the paid period.',
         ],
       },
       {

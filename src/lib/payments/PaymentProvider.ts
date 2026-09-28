@@ -21,9 +21,13 @@ export interface CheckoutRequest {
   language: 'uk' | 'en'
   /**
    * Stable customer id (our user_id). Providers that tokenize cards use it
-   * as the wallet key so the saved card can be charged on renewal.
+   * as the wallet key so the saved card can be charged on renewal. Passed
+   * ONLY when the payer ticked «Автопродовження» (payments.autopay_consent):
+   * without it no card is saved.
    */
   customerId?: string
+  /** The payer agreed to auto-renewal (providers with native subscriptions). */
+  autopay?: boolean
 }
 
 /**

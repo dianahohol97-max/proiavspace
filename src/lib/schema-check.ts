@@ -27,6 +27,7 @@ export const SCHEMA_PROBES: SchemaProbe[] = [
   { migration: '0048_retention_lifecycle', what: 'profiles.gallery_closed_at — вебхук оплати пише її', run: column('profiles', 'gallery_closed_at') },
   { migration: '0048_retention_lifecycle', what: 'lifecycle_notices', run: column('lifecycle_notices', 'kind') },
   { migration: '0049_free_gallery_expiry', what: 'galleries.free_expires_at (30 днів Free)', run: column('galleries', 'free_expires_at') },
+  { migration: '0052_autopay_consent', what: 'payments.autopay_consent (згода на автопродовження)', run: column('payments', 'autopay_consent') },
   { migration: '0051_partner_periods', what: 'partner_periods (партнерські акаунти)', run: column('partner_periods', 'ends_at') },
 ]
 

@@ -428,6 +428,11 @@ export const uk = {
     notePro: 'Пріоритетна підтримка',
     storage: 'сховища',
     upgrade: 'Перейти на цей тариф',
+    autopayLabel: 'Автопродовження: {price} ₴ {every}, можна скасувати будь-коли в кабінеті',
+    autopayMonth: 'щомісяця',
+    autopayYear: 'щороку',
+    autopayWalletNote:
+      'Автопродовження недоступне для Google Pay / Apple Pay — щоб його увімкнути, оплатіть карткою. Без нього тариф діє оплачений період.',
     currentBadge: 'Поточний',
     perMonth: 'грн/міс',
     perYear: 'грн/рік',
