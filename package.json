@@ -11,7 +11,8 @@
     "seo:submit": "node scripts/seo-submit.mjs",
     "blog": "tsx scripts/blog.ts",
     "blog:generate": "tsx scripts/blog.ts generate",
-    "test:referrals": "bash tests/referrals/run.sh"
+    "test:referrals": "bash tests/referrals/run.sh",
+    "test:audit": "node --experimental-test-module-mocks --no-warnings --import tsx --test --test-concurrency=1 tests/audit-storage/*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.620.0",
