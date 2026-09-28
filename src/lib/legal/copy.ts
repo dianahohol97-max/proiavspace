@@ -10,6 +10,8 @@
  * advice; a lawyer review before launch is still recommended.
  */
 
+import { SUPPORT_EMAIL } from '@/lib/email-layout'
+
 export interface LegalSection {
   heading: string
   paragraphs: string[]
@@ -29,7 +31,6 @@ export interface LegalCopy {
   reviewNote: string
 }
 
-const SUPPORT_EMAIL = 'dianahohol97@gmail.com'
 const ENTITY = 'ФОП Гоголь Діана Іванівна'
 const UPDATED = '29.09.2026'
 

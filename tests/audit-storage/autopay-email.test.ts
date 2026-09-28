@@ -165,6 +165,16 @@ describe('тексти: квитанція, «через 3 дні», оферт�
     assert.match(en, /Three days before every automatic charge/)
   })
 
+  test('пошта підтримки всюди hello@proiav.space: листи, оферта, політика конфіденційності (uk/en)', () => {
+    assert.equal(supportEmail(), 'hello@proiav.space')
+    for (const locale of ['uk', 'en']) {
+      const copy = getLegalCopy(locale)
+      const all = [copy.oferta, copy.privacy].flatMap((doc) => doc.sections.flatMap((s) => s.paragraphs)).join('\n')
+      assert.match(all, /hello@proiav\.space/)
+      assert.doesNotMatch(all, /gmail\.com/)
+    }
+  })
+
   test('HTML-шаблон екранує текст', () => {
     const html = renderHtml({ greeting: 'Привіт!', lead: ['<script>x</script>'] }, 'T')
     assert.doesNotMatch(html, /<script>/)

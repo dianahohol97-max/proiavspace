@@ -15,9 +15,15 @@ export const BUSINESS = {
   site: 'proiav.space',
 }
 
+/**
+ * The one support address: letters (footer, Reply-To), the offer and the
+ * privacy policy (lib/legal/copy).
+ */
+export const SUPPORT_EMAIL = 'hello@proiav.space'
+
 /** Where replies and questions go; also the Reply-To of every letter. */
 export function supportEmail(): string {
-  return process.env.SUPPORT_EMAIL || 'hello@proiav.space'
+  return SUPPORT_EMAIL
 }
 
 /** The footer lines, same in the text and the HTML part. */
