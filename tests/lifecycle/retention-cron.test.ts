@@ -163,7 +163,7 @@ describe('повний цикл: grace → закриття → нагадува
     // Clients are locked out, with the «тимчасово недоступна» state; the owner is not.
     assert.equal(await anonSees(a.galleries[0].slug), 0)
     assert.equal(await stateOf(a.galleries[0].slug), 'closed')
-    const own = await userClient(url, a.userId).from('galleries').select('id')
+    const own = await userClient(url, a.userId).from('galleries').select('id').eq('owner_id', a.userId)
     assert.equal(own.data?.length, 2)
     const assetsForAnon = await anonClient(url).from('assets').select('id').eq('owner_id', a.userId)
     assert.equal(assetsForAnon.data?.length ?? 0, 0)

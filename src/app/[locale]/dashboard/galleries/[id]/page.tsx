@@ -19,6 +19,7 @@ import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
+import { daysLeft, purgeDate } from '@/lib/free-expiry'
 import type { Asset, Gallery } from '@/lib/types'
 
 /** Original filename as the client knows it: r2 basename minus the uuid- prefix. */
@@ -46,7 +47,7 @@ export default async function ManageGalleryPage({
   const { data: gallery } = await supabase
     .from('galleries')
     .select(
-      'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, is_published, view_count, created_at, updated_at, theme, style'
+      'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme, style'
     )
     .eq('id', params.id)
     .eq('owner_id', user.id)
@@ -250,6 +251,32 @@ export default async function ManageGalleryPage({
         />
       </header>
 
+      {(gallery.free_expires_at || gallery.free_expired_at) && (
+        <section className="mt-8 rounded-2xl border border-line bg-white p-5 text-sm leading-relaxed">
+          <p className="font-extrabold text-fg">
+            {gallery.free_purged_at
+              ? dict.dashboard.freePurged
+              : gallery.free_expired_at
+                ? `${dict.dashboard.freeClosed} · ${dict.dashboard.freePurgeOn.replace(
+                    '{date}',
+                    purgeDate(gallery.free_expired_at).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+                      timeZone: 'Europe/Kyiv',
+                    })
+                  )}`
+                : daysLeft(gallery.free_expires_at!) === 0
+                  ? dict.dashboard.freeClosesToday
+                  : dict.dashboard.freeClosesIn.replace('{n}', String(daysLeft(gallery.free_expires_at!)))}
+          </p>
+          <p className="mt-2 text-muted">{dict.dashboard.freeExplain}</p>
+          <Link
+            href={`/${locale}/dashboard/billing`}
+            className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-sm font-bold text-white no-underline hover:bg-accent-deep"
+          >
+            {dict.dashboard.freeExtend}
+          </Link>
+        </section>
+      )}
+
       <section className="mt-12">
         <h2 className="font-display text-2xl">{dict.galleryManage.settingsTitle}</h2>
         <form action={settingsAction} className="mt-6 flex max-w-md flex-col gap-5">
@@ -311,6 +338,9 @@ export default async function ManageGalleryPage({
       <section className="mt-12">
         <h2 className="font-display text-2xl">{dict.galleryManage.uploadTitle}</h2>
         <div className="mt-6">
+          {gallery.free_expired_at ? (
+            <p className="text-sm text-muted">{dict.dashboard.freeUploadClosed}</p>
+          ) : (
           <Uploader
             galleryId={gallery.id}
             dropHint={dict.galleryManage.dropHint}
@@ -319,6 +349,7 @@ export default async function ManageGalleryPage({
             videoPlanLink={dict.galleryManage.videoPlanLink}
             billingHref={`/${locale}/dashboard/billing`}
           />
+          )}
         </div>
       </section>
 

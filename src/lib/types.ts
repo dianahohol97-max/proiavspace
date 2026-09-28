@@ -44,6 +44,12 @@ export interface Gallery {
    *  the anon/authenticated key — only the service role reads it (unlock route). */
   has_password: boolean
   expires_at: string | null
+  /** Free plan's 30-day deadline (migration 0049); null on paid plans. */
+  free_expires_at?: string | null
+  /** Set by the cron when the deadline passed: closed to clients. */
+  free_expired_at?: string | null
+  /** Files deleted 7 days after closure. */
+  free_purged_at?: string | null
   is_published: boolean
   view_count: number
   /** Style override (theme-catalog value); null = inherit from the site. */

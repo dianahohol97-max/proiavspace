@@ -104,8 +104,25 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Partner accounts (0051) carry grace_until = end of the period; their end
+  // is handled by the partner sync (back to Free + 30 days for galleries), not
+  // by this 14 + 60 road.
+  const partnerUsers = new Set<string>()
+  if (ids.length > 0) {
+    const { data: partnerRows, error: partnerError } = await admin
+      .from('partner_periods')
+      .select('user_id')
+      .in('user_id', ids)
+      .is('finished_at', null)
+    if (partnerError) {
+      console.error('retention: partner_periods read failed', partnerError.message)
+      return NextResponse.json({ error: 'db_read_failed', table: 'partner_periods' }, { status: 500 })
+    }
+    for (const row of (partnerRows ?? []) as { user_id: string }[]) partnerUsers.add(row.user_id)
+  }
+
   const plans = accounts
-    .filter((a) => !a.is_ambassador)
+    .filter((a) => !a.is_ambassador && !partnerUsers.has(a.user_id))
     .map((a) => {
       const account: RetentionAccount = {
         userId: a.user_id,

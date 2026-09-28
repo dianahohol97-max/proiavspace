@@ -63,13 +63,15 @@ export default async function PublicGalleryPage({
     // Closed by the plan lifecycle (LC-01): «тимчасово недоступна» in the
     // visitor's language instead of «не знайдено».
     const { data: state } = await supabase.rpc('public_gallery_state', { p_slug: params.slug })
-    if (state === 'closed') {
+    if (state === 'closed' || state === 'expired') {
       return (
         <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-6 text-center">
           <div className="absolute right-6 top-6">
             <LangPicker current={locale} />
           </div>
-          <p className="leading-relaxed text-muted">{dict.publicGallery.unavailable}</p>
+          <p className="leading-relaxed text-muted">
+            {state === 'expired' ? dict.publicGallery.expired : dict.publicGallery.unavailable}
+          </p>
         </main>
       )
     }

@@ -9,6 +9,10 @@
       "schedule": "30 4 * * *"
     },
     {
+      "path": "/api/cron/free-expiry",
+      "schedule": "0 3 * * *"
+    },
+    {
       "path": "/api/cron/storage-retention",
       "schedule": "15 5 * * *"
     }

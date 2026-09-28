@@ -48,11 +48,22 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser()
   if (!user) redirect(`/${locale}/login`)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', user.id)
-    .single<Profile>()
+  const [{ data: profile }, { data: partnerUntil }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('user_id', user.id).single<Profile>(),
+    // «Партнер до DD.MM» (migration 0051); null when not a partner.
+    supabase.rpc('my_partner_until'),
+  ])
+  const partnerBadge =
+    typeof partnerUntil === 'string'
+      ? dict.dashboard.partnerUntil.replace(
+          '{date}',
+          new Date(partnerUntil).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+            timeZone: 'Europe/Kyiv',
+            day: '2-digit',
+            month: '2-digit',
+          })
+        )
+      : null
 
   const items: NavItem[] = [
     { href: `/${locale}/dashboard`, label: dict.billing.galleryPlansTitle, prefix: true },
@@ -121,6 +132,11 @@ export default async function DashboardLayout({
               <p className="text-xs font-semibold text-muted">
                 {formatGb(profile.storage_used_bytes)} / {formatGb(effectiveLimit)}
               </p>
+              {partnerBadge && (
+                <p className="mt-2 inline-block rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-extrabold text-white">
+                  {partnerBadge}
+                </p>
+              )}
             </div>
           )}
           <form action={signOutAction} className="px-3 pb-1">
@@ -152,6 +168,11 @@ export default async function DashboardLayout({
                   <p className="text-xs font-semibold text-muted">
                     {formatGb(profile.storage_used_bytes)} / {formatGb(effectiveLimit)}
                   </p>
+                  {partnerBadge && (
+                    <p className="mt-2 inline-block rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-extrabold text-white">
+                      {partnerBadge}
+                    </p>
+                  )}
                 </div>
               )}
               <form action={signOutAction} className="px-2 pb-1">

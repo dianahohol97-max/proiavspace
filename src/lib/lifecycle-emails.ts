@@ -1,4 +1,5 @@
 import { GALLERY_PLANS, GRACE_PERIOD_DAYS } from '@/lib/plans'
+import { FREE_GALLERY_DAYS, FREE_PURGE_AFTER_DAYS } from '@/lib/free-expiry'
 import { RETENTION_DAYS } from '@/lib/retention'
 
 /**
@@ -306,6 +307,70 @@ export function promoEndingEmail(input: PromoEndingInput): EmailMessage {
       `Без автоплатежу після ${date} ще ${GRACE_PERIOD_DAYS} днів усе працює як раніше, потім галереї`,
       `закриваються для клієнтів, а через ${RETENTION_DAYS} днів файли видаляються зі сховища.`,
       'Ми нагадаємо заздалегідь.',
+      '',
+      '— проЯв',
+    ].join('\n'),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8. Free plan: a gallery closes after 30 days — 7 days / 1 day before
+// ---------------------------------------------------------------------------
+export interface FreeExpiryInput {
+  name: string | null
+  daysLeft: 7 | 1
+  galleries: { title: string; closesAt: Date }[]
+}
+
+export function freeExpiryWarningEmail(input: FreeExpiryInput): EmailMessage {
+  const basic = GALLERY_PLANS.basic
+  const many = input.galleries.length > 1
+  const when = input.daysLeft === 1 ? 'завтра' : `через ${input.daysLeft} днів`
+  const subject = many
+    ? `проЯв · ${galleries(input.galleries.length)} закриваються ${when}`
+    : `проЯв · галерея «${input.galleries[0].title}» закривається ${when}`
+  return {
+    subject,
+    text: [
+      hello(input.name),
+      '',
+      many
+        ? `На безкоштовному тарифі галерея живе ${FREE_GALLERY_DAYS} днів. ${when[0].toUpperCase()}${when.slice(1)} для клієнтів закриються:`
+        : `На безкоштовному тарифі галерея живе ${FREE_GALLERY_DAYS} днів. ${when[0].toUpperCase()}${when.slice(1)} для клієнтів закриється:`,
+      ...input.galleries.map((g) => `• «${g.title}» — ${kyivDate(g.closesAt)}`),
+      '',
+      `Після закриття клієнт побачить «Галерею закрито, зверніться до фотографа». Ви й далі бачите її в кабінеті, а через ${FREE_PURGE_AFTER_DAYS} днів після закриття файли видаляються.`,
+      '',
+      `Щоб галереї працювали без строку — перейдіть на «Базовий»: ${basic.priceUahMonth} ₴/міс, ${basic.storageGb} ГБ, відео. Строк знімається з усіх галерей одразу після оплати:`,
+      billingUrl(),
+      '',
+      '— проЯв',
+    ].join('\n'),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 9. Partner period ends in 7 days
+// ---------------------------------------------------------------------------
+export interface PartnerEndingInput {
+  name: string | null
+  plan: string
+  endsAt: Date
+}
+
+export function partnerEndingEmail(input: PartnerEndingInput): EmailMessage {
+  const plan = GALLERY_PLANS[input.plan as keyof typeof GALLERY_PLANS] ?? GALLERY_PLANS.plus
+  return {
+    subject: `проЯв · партнерський період закінчується ${kyivDate(input.endsAt)}`,
+    text: [
+      hello(input.name),
+      '',
+      `Дякуємо, що працюєте з нами! Ваш партнерський період на тарифі «${planName(plan.id)}» закінчується ${kyivDate(input.endsAt)}.`,
+      '',
+      `Щоб залишитися на «${planName(plan.id)}» без перерви — оформіть тариф з автоплатежем: ${plan.priceUahMonth} ₴/міс або ${plan.priceUahYear} ₴/рік (два місяці в подарунок). Можна обрати й інший тариф, від «Базового» за ${GALLERY_PLANS.basic.priceUahMonth} ₴/міс.`,
+      billingUrl(),
+      '',
+      `Якщо нічого не робити, акаунт стане безкоштовним (${GALLERY_PLANS.free.storageGb} ГБ): наявні галереї будуть доступні клієнтам ще ${FREE_GALLERY_DAYS} днів, кожна нова — ${FREE_GALLERY_DAYS} днів від створення.`,
       '',
       '— проЯв',
     ].join('\n'),

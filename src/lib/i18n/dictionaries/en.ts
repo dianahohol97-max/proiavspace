@@ -52,6 +52,15 @@ export const en: Dictionary = {
   },
   dashboard: {
     title: 'My galleries',
+    partnerUntil: 'Partner until {date}',
+    freeClosesIn: 'Closes in {n} d',
+    freeClosesToday: 'Closes today',
+    freeClosed: 'Closed to clients',
+    freePurgeOn: 'files will be deleted on {date}',
+    freePurged: 'Files deleted',
+    freeExplain: 'On the free plan a gallery is open to clients for 30 days after it is created, then it closes, and 7 days later its files are deleted. Paid plans have no time limit.',
+    freeExtend: 'Keep it — upgrade to Basic',
+    freeUploadClosed: 'This gallery is closed (free plan, 30 days) — no new uploads.',
     settingsLink: 'Settings',
     billingLink: 'Plan',
     statsLink: 'Stats',
@@ -362,6 +371,8 @@ export const en: Dictionary = {
     promoAutopayButton: 'Connect auto-payment',
     promoAutopayDone:
       'Auto-payment connected: free until {date}, then «Basic» for {price} UAH/month.',
+    partnerHint:
+      'Partner period: everything on the plan, free of charge. To stay on it afterwards, pick a plan below with auto-payment; a payment replaces the partner period right away.',
     graceNotice: 'Full access until the date below. After that, if you are over the free 3 GB, galleries close to clients and files are kept for 60 more days:',
     closedNotice:
       'Your galleries are closed to clients — they see “This gallery is temporarily unavailable”. Files are kept until {date}; renew a plan to reopen the galleries at the same links, or download what you need.',
@@ -468,6 +479,7 @@ export const en: Dictionary = {
     madeOn: 'Made with Proiav',
     tip: 'Thank the photographer',
     unavailable: 'This gallery is temporarily unavailable. Please contact your photographer.',
+    expired: 'This gallery is closed. Please contact your photographer.',
     notFound: 'Gallery not found. The link may have expired or the gallery is not published yet.',
   },
 }

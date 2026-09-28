@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { getPayments } from '@/lib/payments'
+import { canChargeTokens, getPayments } from '@/lib/payments'
 import type { PaymentStatus } from '@/lib/payments/PaymentProvider'
 import {
   GALLERY_PLANS,
@@ -209,6 +209,13 @@ export async function POST(request: NextRequest) {
         })
         .eq('user_id', payment.user_id)
       if (error) return retryLater('plan update', error.message)
+      // A payment ends a running partner period (0051): the paid plan takes over.
+      const { error: partnerError } = await admin
+        .from('partner_periods')
+        .update({ finished_at: new Date().toISOString(), finish_reason: 'paid' })
+        .eq('user_id', payment.user_id)
+        .is('finished_at', null)
+      if (partnerError) console.error('billing webhook: partner period close failed', partnerError.message)
     } else {
       const { error } = await admin
         .from('profiles')
@@ -248,10 +255,28 @@ export async function POST(request: NextRequest) {
         .update({ site_plan: 'site_trial' })
         .eq('user_id', payment.user_id)
     }
-  } else if (event.status === 'canceled') {
+  } else if (event.status === 'canceled' && previousStatus === 'paid') {
     // A refund of a settled payment takes the referral reward back and returns
     // the credit the payer spent on it.
-    if (previousStatus === 'paid') await reversePaidSideEffects(admin, payment)
+    await reversePaidSideEffects(admin, payment)
+    // … and stops auto-renewal: refunded money must never be followed by the
+    // next charge of the same card (launch-week test, 28.09.2026). Same as
+    // «Скасувати автоплатіж»: status canceled + the saved token deleted.
+    const { data: sub } = await admin
+      .from('billing_subscriptions')
+      .select('id, card_token')
+      .eq('user_id', payment.user_id)
+      .eq('product', product)
+      .eq('status', 'active')
+      .maybeSingle()
+    if (sub) {
+      const { error: subError } = await admin
+        .from('billing_subscriptions')
+        .update({ status: 'canceled' })
+        .eq('id', sub.id)
+      if (subError) console.error('billing webhook: refund subscription cancel failed', subError.message)
+      if (canChargeTokens(payments)) await payments.deleteToken(sub.card_token).catch(() => undefined)
+    }
     if (product === 'gallery') {
       const graceUntil = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 3600 * 1000)
       await admin

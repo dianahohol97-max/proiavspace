@@ -71,6 +71,9 @@ export default async function BillingPage({ params }: { params: { locale: string
     .eq('user_id', user.id)
     .maybeSingle<PromoGrant>()
   const promoRunning = isPromoRunning(promoGrant)
+  // Partner period (0051): grace_until is its end, not a lapse.
+  const { data: partnerUntil } = await supabase.rpc('my_partner_until')
+  const isPartner = typeof partnerUntil === 'string'
 
   const galleryNames: Record<GalleryPlanId, string> = {
     free: dict.billing.planFree,
@@ -218,7 +221,20 @@ export default async function BillingPage({ params }: { params: { locale: string
           )}
         </p>
       )}
-      {profile.grace_until && !promoRunning && !profile.gallery_closed_at && (
+      {isPartner && (
+        <div className="mt-6 rounded-2xl border border-accent/40 bg-white p-5 text-sm leading-relaxed">
+          <p className="font-bold">
+            {dict.dashboard.partnerUntil.replace(
+              '{date}',
+              new Date(partnerUntil as string).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+                timeZone: 'Europe/Kyiv',
+              })
+            )}
+          </p>
+          <p className="mt-1 text-muted">{dict.billing.partnerHint}</p>
+        </div>
+      )}
+      {profile.grace_until && !promoRunning && !isPartner && !profile.gallery_closed_at && (
         <p className="mt-2 text-sm text-accent">
           {dict.billing.graceNotice}{' '}
           {new Date(profile.grace_until).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB')}
