@@ -52,6 +52,14 @@ export const en: Dictionary = {
   },
   dashboard: {
     title: 'My galleries',
+    freeClosesIn: 'Closes in {n} d',
+    freeClosesToday: 'Closes today',
+    freeClosed: 'Closed to clients',
+    freePurgeOn: 'files will be deleted on {date}',
+    freePurged: 'Files deleted',
+    freeExplain: 'On the free plan a gallery is open to clients for 30 days after it is created, then it closes, and 7 days later its files are deleted. Paid plans have no time limit.',
+    freeExtend: 'Keep it — upgrade to Basic',
+    freeUploadClosed: 'This gallery is closed (free plan, 30 days) — no new uploads.',
     settingsLink: 'Settings',
     billingLink: 'Plan',
     statsLink: 'Stats',
@@ -468,6 +476,7 @@ export const en: Dictionary = {
     madeOn: 'Made with Proiav',
     tip: 'Thank the photographer',
     unavailable: 'This gallery is temporarily unavailable. Please contact your photographer.',
+    expired: 'This gallery is closed. Please contact your photographer.',
     notFound: 'Gallery not found. The link may have expired or the gallery is not published yet.',
   },
 }

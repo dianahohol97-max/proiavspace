@@ -26,6 +26,7 @@ export const SCHEMA_PROBES: SchemaProbe[] = [
   { migration: '0047_user_email_helper', what: 'user_email() — адреси для листів', run: fn('user_email', { p_user: ZERO }) },
   { migration: '0048_retention_lifecycle', what: 'profiles.gallery_closed_at — вебхук оплати пише її', run: column('profiles', 'gallery_closed_at') },
   { migration: '0048_retention_lifecycle', what: 'lifecycle_notices', run: column('lifecycle_notices', 'kind') },
+  { migration: '0049_free_gallery_expiry', what: 'galleries.free_expires_at (30 днів Free)', run: column('galleries', 'free_expires_at') },
 ]
 
 export async function missingMigrations(admin: SupabaseClient): Promise<{ migration: string; what: string; error: string }[]> {

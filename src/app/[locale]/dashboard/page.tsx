@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
+import { daysLeft } from '@/lib/free-expiry'
 import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -30,7 +31,7 @@ export default async function DashboardPage({ params }: { params: { locale: stri
     supabase
       .from('galleries')
       .select(
-        'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, is_published, view_count, created_at, updated_at, theme'
+        'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme'
       )
       .order('created_at', { ascending: false })
       .returns<Gallery[]>(),
@@ -154,6 +155,7 @@ export default async function DashboardPage({ params }: { params: { locale: stri
                   <span>
                     {photoCount} {dict.dashboard.photosCount.toLowerCase()}
                   </span>
+                  <FreeDeadline gallery={gallery} dict={dict} />
                   {ownerPlan.features.stats && (
                     <span>
                       · {gallery.view_count} {dict.dashboard.views.toLowerCase()}
@@ -165,6 +167,40 @@ export default async function DashboardPage({ params }: { params: { locale: stri
           ))}
         </div>
       )}
+      {cards.some(({ gallery }) => gallery.free_expires_at || gallery.free_expired_at) && (
+        <div className="mt-8 max-w-2xl rounded-2xl border border-line bg-white p-5 text-sm leading-relaxed text-muted">
+          <p>{dict.dashboard.freeExplain}</p>
+          <Link
+            href={`/${locale}/dashboard/billing`}
+            className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-sm font-bold text-white no-underline hover:bg-accent-deep"
+          >
+            {dict.dashboard.freeExtend}
+          </Link>
+        </div>
+      )}
     </main>
+  )
+}
+
+/** «До закриття N дн.» / «Закрита для клієнтів» — the Free plan's 30 days (0049). */
+function FreeDeadline({
+  gallery,
+  dict,
+}: {
+  gallery: Gallery
+  dict: Awaited<ReturnType<typeof getDictionary>>
+}) {
+  if (gallery.free_purged_at) {
+    return <span className="rounded-full bg-red-600/10 px-2.5 py-0.5 font-extrabold text-red-700">{dict.dashboard.freePurged}</span>
+  }
+  if (gallery.free_expired_at) {
+    return <span className="rounded-full bg-red-600/10 px-2.5 py-0.5 font-extrabold text-red-700">{dict.dashboard.freeClosed}</span>
+  }
+  if (!gallery.free_expires_at) return null
+  const days = daysLeft(gallery.free_expires_at)
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 font-extrabold ${days <= 7 ? 'bg-amber-500/15 text-amber-800' : 'bg-bg text-muted'}`}>
+      {days === 0 ? dict.dashboard.freeClosesToday : dict.dashboard.freeClosesIn.replace('{n}', String(days))}
+    </span>
   )
 }

@@ -34,12 +34,17 @@ export async function authorizeUpload(
   // Ownership check — RLS returns nothing for someone else's gallery.
   const { data: gallery } = await supabase
     .from('galleries')
-    .select('id, owner_id')
+    .select('id, owner_id, free_expired_at')
     .eq('id', input.galleryId)
     .eq('owner_id', userId)
     .single()
   if (!gallery) {
     return { ok: false, status: 404, error: 'gallery_not_found' }
+  }
+  // Closed by the Free plan's 30 days (0049): files in it are about to be
+  // deleted, so nothing new goes in until the owner upgrades.
+  if (gallery.free_expired_at) {
+    return { ok: false, status: 403, error: 'gallery_free_expired' }
   }
 
   // Plan gates: quota (with the post-cancellation grace period applied
