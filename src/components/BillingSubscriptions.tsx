@@ -24,7 +24,8 @@ interface Labels {
 }
 
 /**
- * Auto-renewal panel on the billing page: one line per product with the next
+ * Site-plan auto-renewal on the billing page (the gallery plan's is in
+ * BillingOverview, #autopay): one line per product with the next
  * charge date and a cancel button. Cancel keeps the paid period running and
  * only stops future charges, which is what the label promises.
  */
@@ -58,7 +59,7 @@ export function BillingSubscriptions({
   }
 
   return (
-    <section id="autopay" className="mt-14">
+    <section className="mt-14">
       <h2 className="mb-6 font-brand text-xl">{labels.title}</h2>
       <ul className="divide-y divide-line border border-line">
         {subscriptions.map((sub) => {

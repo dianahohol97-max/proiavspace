@@ -5,8 +5,6 @@ import { isLocale } from '@/lib/i18n/config'
 import {
   GALLERY_PLANS,
   SITE_PLANS,
-  effectiveGalleryPlan,
-  planStorageBytes,
   type GalleryPlan,
   type GalleryPlanId,
   type SitePlanId,
@@ -15,6 +13,8 @@ import { IMPORT_PROMO, isPromoRunning, type PromoGrant } from '@/lib/promo'
 import { RETENTION_DAYS } from '@/lib/retention'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BillingPlans } from '@/components/BillingPlans'
+import { BillingOverview } from '@/components/BillingOverview'
+import { loadBillingOverview } from '@/lib/billing/cabinet'
 import { PromoAutopay } from '@/components/PromoAutopay'
 import { buildGalleryCard, buildSiteCard } from '@/components/billing-cards'
 import {
@@ -24,11 +24,6 @@ import {
 import type { Profile } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
-
-function formatGb(bytes: number): string {
-  const gb = bytes / (1024 * 1024 * 1024)
-  return gb >= 1 ? `${gb.toFixed(1)} ГБ` : `${Math.max(Math.round(bytes / (1024 * 1024)), 0)} МБ`
-}
 
 function galleryFeatureLines(plan: GalleryPlan, dict: Dictionary): string[] {
   const f = plan.features
@@ -74,6 +69,8 @@ export default async function BillingPage({ params }: { params: { locale: string
   // Partner period (0051): grace_until is its end, not a lapse.
   const { data: partnerUntil } = await supabase.rpc('my_partner_until')
   const isPartner = typeof partnerUntil === 'string'
+  // «Тариф і оплата» (always shown; #autopay lands here).
+  const overview = await loadBillingOverview(supabase, user.id)
 
   const galleryNames: Record<GalleryPlanId, string> = {
     free: dict.billing.planFree,
@@ -149,19 +146,10 @@ export default async function BillingPage({ params }: { params: { locale: string
           : 'active',
     }))
 
-  const currentGalleryName = isGalleryKey(profile.plan)
-    ? galleryNames[profile.plan]
-    : profile.plan
   const currentSiteName = isSiteKey(profile.site_plan)
     ? siteNames[profile.site_plan]
     : profile.site_plan
 
-  // Show the limit that actually gates uploads — mirrors src/lib/uploads.ts, so
-  // an expired/downgraded account shows its real (free) quota, not a stale one.
-  const effectiveStorageLimit = Math.min(
-    profile.storage_limit_bytes,
-    planStorageBytes(effectiveGalleryPlan(profile.plan, profile.grace_until))
-  )
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
@@ -170,10 +158,45 @@ export default async function BillingPage({ params }: { params: { locale: string
       </Link>
 
       <h1 className="mt-6 font-brand text-3xl">{dict.billing.title}</h1>
+      {overview && (
+        <BillingOverview
+          overview={overview}
+          locale={locale}
+          planNames={galleryNames}
+          labels={{
+            title: dict.billing.overviewTitle,
+            plan: dict.billing.overviewPlan,
+            used: dict.billing.overviewUsed,
+            validUntil: dict.billing.overviewValidUntil,
+            freeLifetime: dict.billing.overviewFreeLifetime,
+            autopayTitle: dict.billing.overviewAutopayTitle,
+            autopayOn: dict.billing.overviewAutopayOn,
+            autopayOff: dict.billing.overviewAutopayOff,
+            autopayPastDue: dict.billing.overviewAutopayPastDue,
+            autopayWallet: dict.billing.overviewAutopayWallet,
+            cancel: dict.billing.overviewCancel,
+            cancelConfirm: dict.billing.overviewCancelConfirm,
+            cancelError: dict.billing.overviewCancelError,
+            enable: dict.billing.overviewEnable,
+            payByCard: dict.billing.overviewPayByCard,
+            changePlan: dict.billing.overviewChangePlan,
+            partnerUntil: dict.dashboard.partnerUntil,
+            historyTitle: dict.billing.overviewHistoryTitle,
+            historyEmpty: dict.billing.overviewHistoryEmpty,
+            historyDate: dict.billing.overviewHistoryDate,
+            historyAmount: dict.billing.overviewHistoryAmount,
+            historyPlan: dict.billing.overviewHistoryPlan,
+            historyMethod: dict.billing.overviewHistoryMethod,
+            methodCard: dict.billing.overviewMethodCard,
+            methodAutocharge: dict.billing.overviewMethodAutocharge,
+            refunded: dict.billing.overviewRefunded,
+            periodMonth: dict.billing.overviewPeriodMonth,
+            periodYear: dict.billing.overviewPeriodYear,
+          }}
+        />
+      )}
       <p className="mt-4 text-sm text-muted">
-        {dict.billing.currentPlan}: {currentGalleryName} · {dict.billing.currentSitePlan}:{' '}
-        {currentSiteName} · {dict.dashboard.storageUsed}: {formatGb(profile.storage_used_bytes)} /{' '}
-        {formatGb(effectiveStorageLimit)}
+        {dict.billing.currentSitePlan}: {currentSiteName}
       </p>
       {promoGrant && promoRunning && (
         <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm">
@@ -225,19 +248,7 @@ export default async function BillingPage({ params }: { params: { locale: string
           )}
         </p>
       )}
-      {isPartner && (
-        <div className="mt-6 rounded-2xl border border-accent/40 bg-white p-5 text-sm leading-relaxed">
-          <p className="font-bold">
-            {dict.dashboard.partnerUntil.replace(
-              '{date}',
-              new Date(partnerUntil as string).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
-                timeZone: 'Europe/Kyiv',
-              })
-            )}
-          </p>
-          <p className="mt-1 text-muted">{dict.billing.partnerHint}</p>
-        </div>
-      )}
+      {isPartner && <p className="mt-2 text-sm text-muted">{dict.billing.partnerHint}</p>}
       {profile.grace_until && !promoRunning && !isPartner && !profile.gallery_closed_at && (
         <p className="mt-2 text-sm text-accent">
           {dict.billing.graceNotice}{' '}
@@ -245,7 +256,7 @@ export default async function BillingPage({ params }: { params: { locale: string
         </p>
       )}
 
-      <section className="mt-12">
+      <section id="plans" className="mt-12 scroll-mt-6">
         <h2 className="mb-6 font-brand text-xl">{dict.billing.galleryPlansTitle}</h2>
         <BillingPlans cards={galleryCards} locale={locale} labels={labels} columns={3} />
       </section>
@@ -257,7 +268,7 @@ export default async function BillingPage({ params }: { params: { locale: string
       </section>
 
       <BillingSubscriptions
-        subscriptions={subscriptions}
+        subscriptions={subscriptions.filter((sub) => sub.product === 'site')}
         locale={locale}
         labels={{
           title: dict.billing.autoRenewTitle,
