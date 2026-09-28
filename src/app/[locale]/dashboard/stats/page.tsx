@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
 import { setAmbassador, processWithdrawal } from '@/lib/actions/referrals'
@@ -110,6 +111,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
     { data: payments30 },
     { data: bookings30 },
     { data: promoGrants },
+    { data: partnerRows },
   ] = await Promise.all([
       admin
         .from('profiles')
@@ -153,6 +155,12 @@ export default async function StatsPage({ params }: { params: { locale: string }
         .from('promo_grants')
         .select('user_id, ends_at, autopay_at')
         .returns<{ user_id: string; ends_at: string; autopay_at: string | null }[]>(),
+      admin
+        .from('partner_periods')
+        .select('user_id, plan, starts_at, ends_at, note, applied_at')
+        .is('finished_at', null)
+        .order('ends_at', { ascending: true })
+        .returns<{ user_id: string; plan: string; starts_at: string; ends_at: string; note: string | null; applied_at: string | null }[]>(),
     ])
   const referralsTotal = refs?.length ?? 0
   const referralsPaid = (refs ?? []).filter((r) => r.status === 'converted').length
@@ -311,6 +319,22 @@ export default async function StatsPage({ params }: { params: { locale: string }
     }))
   const uk = locale === 'uk'
 
+  // Partner accounts (0051): open periods, soonest end first.
+  const partners = (partnerRows ?? []).map((p) => {
+    const prof = profileRows.find((r) => r.user_id === p.user_id)
+    return {
+      userId: p.user_id,
+      name: prof?.display_name || '—',
+      email: emailById.get(p.user_id) || '—',
+      plan: galleryPlanName[p.plan as GalleryPlanId] ?? p.plan,
+      until: dateFmt(p.ends_at),
+      scheduled: !p.applied_at,
+      note: p.note ?? '',
+      galleries: galleriesByOwner.get(p.user_id) ?? 0,
+      storage: formatGb(prof?.storage_used_bytes ?? 0),
+    }
+  })
+
   const tile = (label: string, value: string | number) => (
     <div className="rounded-2xl border border-line p-5">
       <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted">{label}</p>
@@ -418,6 +442,54 @@ export default async function StatsPage({ params }: { params: { locale: string }
         </section>
       )}
 
+      {/* --- partner accounts --- */}
+      <section className="mt-12">
+        <h2 className="mb-4 font-brand text-xl">
+          {uk ? 'Партнери' : 'Partners'} · {partners.length}
+        </h2>
+        {partners.length === 0 ? (
+          <p className="text-sm text-muted">
+            {uk
+              ? 'Партнерів ще немає. Відкрийте картку фотографа в списку нижче → «Партнерський період».'
+              : 'No partners yet. Open a photographer’s card below → “Partner period”.'}
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-line">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-line text-[11px] uppercase tracking-widest text-muted">
+                  <th className="px-4 py-3 font-semibold">{uk ? 'Імʼя' : 'Name'}</th>
+                  <th className="px-4 py-3 font-semibold">Email</th>
+                  <th className="px-4 py-3 font-semibold">{uk ? 'Тариф' : 'Plan'}</th>
+                  <th className="px-4 py-3 font-semibold">{uk ? 'До' : 'Until'}</th>
+                  <th className="px-4 py-3 font-semibold">{uk ? 'Примітка' : 'Note'}</th>
+                  <th className="px-4 py-3 font-semibold">{uk ? 'Галерей' : 'Galleries'}</th>
+                  <th className="px-4 py-3 font-semibold">{uk ? 'Обсяг' : 'Storage'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {partners.map((p, index) => (
+                  <tr key={p.userId} className={index > 0 ? 'border-t border-line' : ''}>
+                    <td className="px-4 py-3 font-medium">
+                      <Link href={`/${locale}/dashboard/stats/account/${p.userId}`}>{p.name}</Link>
+                    </td>
+                    <td className="px-4 py-3 text-muted">{p.email}</td>
+                    <td className="px-4 py-3">{p.plan}</td>
+                    <td className="px-4 py-3">
+                      {p.until}
+                      {p.scheduled ? (uk ? ' (ще не почався)' : ' (not started)') : ''}
+                    </td>
+                    <td className="max-w-[220px] px-4 py-3 text-muted">{p.note}</td>
+                    <td className="px-4 py-3">{p.galleries}</td>
+                    <td className="px-4 py-3">{p.storage}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       {/* --- last 50 sign-ups --- */}
       <section className="mt-12">
         <h2 className="mb-4 font-brand text-xl">
@@ -437,7 +509,9 @@ export default async function StatsPage({ params }: { params: { locale: string }
             <tbody>
               {recentSignups.map((r, index) => (
                 <tr key={r.userId} className={index > 0 ? 'border-t border-line' : ''}>
-                  <td className="px-4 py-3 text-fg">{r.email}</td>
+                  <td className="px-4 py-3 text-fg">
+                    <Link href={`/${locale}/dashboard/stats/account/${r.userId}`}>{r.email}</Link>
+                  </td>
                   <td className="px-4 py-3">{r.plan}</td>
                   <td className="px-4 py-3 text-muted">{r.joined}</td>
                   <td className="px-4 py-3">{r.galleries}</td>
@@ -470,7 +544,9 @@ export default async function StatsPage({ params }: { params: { locale: string }
             <tbody>
               {photographers.map((p, index) => (
                 <tr key={p.email + index} className={index > 0 ? 'border-t border-line' : ''}>
-                  <td className="px-4 py-3 font-medium text-fg">{p.name}</td>
+                  <td className="px-4 py-3 font-medium text-fg">
+                    <Link href={`/${locale}/dashboard/stats/account/${p.userId}`}>{p.name}</Link>
+                  </td>
                   <td className="px-4 py-3 text-muted">{p.email}</td>
                   <td className="px-4 py-3">{p.gallery}</td>
                   <td className="px-4 py-3">{p.site}</td>

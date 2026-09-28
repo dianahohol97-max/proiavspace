@@ -348,3 +348,31 @@ export function freeExpiryWarningEmail(input: FreeExpiryInput): EmailMessage {
     ].join('\n'),
   }
 }
+
+// ---------------------------------------------------------------------------
+// 9. Partner period ends in 7 days
+// ---------------------------------------------------------------------------
+export interface PartnerEndingInput {
+  name: string | null
+  plan: string
+  endsAt: Date
+}
+
+export function partnerEndingEmail(input: PartnerEndingInput): EmailMessage {
+  const plan = GALLERY_PLANS[input.plan as keyof typeof GALLERY_PLANS] ?? GALLERY_PLANS.plus
+  return {
+    subject: `проЯв · партнерський період закінчується ${kyivDate(input.endsAt)}`,
+    text: [
+      hello(input.name),
+      '',
+      `Дякуємо, що працюєте з нами! Ваш партнерський період на тарифі «${planName(plan.id)}» закінчується ${kyivDate(input.endsAt)}.`,
+      '',
+      `Щоб залишитися на «${planName(plan.id)}» без перерви — оформіть тариф з автоплатежем: ${plan.priceUahMonth} ₴/міс або ${plan.priceUahYear} ₴/рік (два місяці в подарунок). Можна обрати й інший тариф, від «Базового» за ${GALLERY_PLANS.basic.priceUahMonth} ₴/міс.`,
+      billingUrl(),
+      '',
+      `Якщо нічого не робити, акаунт стане безкоштовним (${GALLERY_PLANS.free.storageGb} ГБ): наявні галереї будуть доступні клієнтам ще ${FREE_GALLERY_DAYS} днів, кожна нова — ${FREE_GALLERY_DAYS} днів від створення.`,
+      '',
+      '— проЯв',
+    ].join('\n'),
+  }
+}

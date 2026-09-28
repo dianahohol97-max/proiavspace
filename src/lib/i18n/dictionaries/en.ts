@@ -52,6 +52,7 @@ export const en: Dictionary = {
   },
   dashboard: {
     title: 'My galleries',
+    partnerUntil: 'Partner until {date}',
     freeClosesIn: 'Closes in {n} d',
     freeClosesToday: 'Closes today',
     freeClosed: 'Closed to clients',
@@ -370,6 +371,8 @@ export const en: Dictionary = {
     promoAutopayButton: 'Connect auto-payment',
     promoAutopayDone:
       'Auto-payment connected: free until {date}, then «Basic» for {price} UAH/month.',
+    partnerHint:
+      'Partner period: everything on the plan, free of charge. To stay on it afterwards, pick a plan below with auto-payment; a payment replaces the partner period right away.',
     graceNotice: 'Full access until the date below. After that, if you are over the free 3 GB, galleries close to clients and files are kept for 60 more days:',
     closedNotice:
       'Your galleries are closed to clients — they see “This gallery is temporarily unavailable”. Files are kept until {date}; renew a plan to reopen the galleries at the same links, or download what you need.',

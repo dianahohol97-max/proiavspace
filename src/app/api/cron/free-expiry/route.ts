@@ -7,6 +7,7 @@ import {
 } from '@/lib/free-expiry'
 import { freeExpiryWarningEmail } from '@/lib/lifecycle-emails'
 import { contactOf, send } from '@/lib/lifecycle-notify'
+import { syncPartners, type PartnerSyncSummary } from '@/lib/partners'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -32,7 +33,9 @@ interface Candidate {
 }
 
 /**
- * Daily 03:00 UTC (vercel.json): the Free plan's 30-day galleries
+ * Daily 03:00 UTC (vercel.json). First the partner periods (migration 0051,
+ * lib/partners): start, end (back to Free, galleries get 30 days), 7-day
+ * letter. Then the Free plan's 30-day galleries
  * (src/lib/free-expiry.ts, migration 0049). Per gallery: warning e-mails
  * 7 days and 1 day before (one letter per owner per run), closure past the
  * deadline, file deletion 7 days after closure. Protected by CRON_SECRET.
@@ -58,6 +61,16 @@ export async function GET(request: NextRequest) {
         ? envMode
         : 'live'
   const now = Date.now()
+
+  // Partners first: a period that ended today hands its galleries a deadline
+  // that the pass below already sees.
+  let partners: PartnerSyncSummary
+  try {
+    partners = await syncPartners(admin, { dryRun: mode === 'dry-run' })
+  } catch (cause) {
+    console.error('free-expiry: partner sync failed', cause)
+    return NextResponse.json({ error: 'db_read_failed', table: 'partner_periods' }, { status: 500 })
+  }
 
   const { data: rows, error } = await admin.rpc('free_expiry_candidates')
   if (error) {
@@ -100,6 +113,7 @@ export async function GET(request: NextRequest) {
   const purgesDue = planned.filter((p) => p.action.type === 'purge').length
   const summary = {
     mode,
+    partners,
     scanned: candidates.length,
     notified: { d7: 0, d1: 0 } as Record<FreeNoticeKind, number>,
     letters: 0,

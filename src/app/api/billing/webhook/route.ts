@@ -209,6 +209,13 @@ export async function POST(request: NextRequest) {
         })
         .eq('user_id', payment.user_id)
       if (error) return retryLater('plan update', error.message)
+      // A payment ends a running partner period (0051): the paid plan takes over.
+      const { error: partnerError } = await admin
+        .from('partner_periods')
+        .update({ finished_at: new Date().toISOString(), finish_reason: 'paid' })
+        .eq('user_id', payment.user_id)
+        .is('finished_at', null)
+      if (partnerError) console.error('billing webhook: partner period close failed', partnerError.message)
     } else {
       const { error } = await admin
         .from('profiles')
