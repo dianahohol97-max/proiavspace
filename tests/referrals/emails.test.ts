@@ -80,7 +80,7 @@ describe('sending (mocked Brevo)', { skip }, () => {
 
   // Since PR 2 every paid webhook also sends the payer a receipt; these tests
   // are about the referral letters only.
-  const referral = () => outbox.filter((m) => !m.subject.startsWith('проЯв · оплата'))
+  const referral = () => outbox.filter((m) => !m.subject.startsWith('Квитанція:'))
 
   test('first payment → one e-mail to the referrer; repeat payment → the repeat text; re-delivery → nothing', async () => {
     const referrer = signUp({ email: 'ref@test.local' })
@@ -123,7 +123,7 @@ describe('sending (mocked Brevo)', { skip }, () => {
     await deliverWebhook({ orderId: pay3.orderId, status: 'failed' })
     assert.equal(referral().length, 0)
     // …while every successful payment still got its receipt.
-    assert.equal(outbox.filter((m) => m.subject.startsWith('проЯв · оплата')).length, 2)
+    assert.equal(outbox.filter((m) => m.subject.startsWith('Квитанція:')).length, 2)
   })
 
   test('withdrawal request → admin e-mail with masked details', async () => {

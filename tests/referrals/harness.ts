@@ -153,13 +153,15 @@ export function pendingPayment(opts: {
   amount: number
   creditAppliedKop?: number
   subscriptionId?: string
+  /** payments.autopay_consent (0052): the «Автопродовження» checkbox was on. */
+  autopayConsent?: boolean
 }): { id: string; orderId: string } {
   const orderId = randomUUID()
   const id = pg(
-    `insert into public.payments (user_id, provider, order_id, plan, period, amount, currency, status, credit_applied_kop, subscription_id)
+    `insert into public.payments (user_id, provider, order_id, plan, period, amount, currency, status, credit_applied_kop, subscription_id, autopay_consent)
      values (${q(opts.userId)}, 'monobank', ${q(orderId)}, ${q(opts.plan ?? 'basic')}, ${q(opts.period ?? 'month')},
              ${opts.amount}, 'UAH', 'pending', ${opts.creditAppliedKop ?? 0},
-             ${opts.subscriptionId ? q(opts.subscriptionId) : 'null'})
+             ${opts.subscriptionId ? q(opts.subscriptionId) : 'null'}, ${opts.autopayConsent ? 'true' : 'false'})
      returning id`
   )
   return { id, orderId }
@@ -176,7 +178,9 @@ const modUrl = (rel: string) => pathToFileURL(path.join(root, rel)).href
 export interface FakeProvider {
   name: string
   recurring: boolean
-  checkouts: { orderId: string; amount: number; description: string }[]
+  checkouts: { orderId: string; amount: number; description: string; customerId?: string; autopay?: boolean }[]
+  /** Card tokens the app asked the provider to delete. */
+  deletedTokens: string[]
   charges: { orderId: string; amount: number }[]
   /** What the next chargeToken() call answers. */
   chargeResult: 'paid' | 'failed' | 'pending'
@@ -188,6 +192,7 @@ export const provider: FakeProvider = {
   name: 'monobank',
   recurring: false,
   checkouts: [],
+  deletedTokens: [],
   charges: [],
   chargeResult: 'paid',
   lookupResult: 'unknown',
@@ -219,15 +224,23 @@ export async function installMocks(): Promise<void> {
     async parseWebhook(raw: string) {
       return JSON.parse(raw)
     },
-    async createCheckoutForm(req: { orderId: string; amount: number; description: string }) {
-      provider.checkouts.push({ orderId: req.orderId, amount: req.amount, description: req.description })
+    async createCheckoutForm(req: { orderId: string; amount: number; description: string; customerId?: string; autopay?: boolean }) {
+      provider.checkouts.push({
+        orderId: req.orderId,
+        amount: req.amount,
+        description: req.description,
+        customerId: req.customerId,
+        autopay: req.autopay,
+      })
       return { url: `https://pay.test/${req.orderId}` }
     },
     async chargeToken(req: { orderId: string; amount: number }) {
       provider.charges.push({ orderId: req.orderId, amount: req.amount })
       return provider.chargeResult
     },
-    async deleteToken() {},
+    async deleteToken(token: string) {
+      provider.deletedTokens.push(token)
+    },
     async lookupCharge() {
       return provider.lookupResult
     },

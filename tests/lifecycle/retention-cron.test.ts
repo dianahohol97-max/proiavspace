@@ -240,7 +240,7 @@ describe('окремі стани', { skip }, () => {
     assert.equal(await anonSees(a.galleries[0].slug), 1)
     assert.equal(closedAt(a.userId), '')
     // «Оплата пройшла» (лист 1).
-    const receipt = sent().find((m) => m.to === a.email && /оплата 129 ₴ — тариф «Базовий»/.test(m.subject))
+    const receipt = sent().find((m) => m.to === a.email && /^Квитанція: 129 ₴ — тариф «Базовий»/.test(m.subject))
     assert.ok(receipt)
     assert.match(receipt.text, /рахунок для ФОП/)
   })

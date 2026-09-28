@@ -38,11 +38,15 @@ beforeEach(() => {
   outbox.length = 0
 })
 
-async function checkout(userId: string, plan = 'basic', period = 'month') {
+/** Checkout as the plans page sends it; «Автопродовження» is on by default there. */
+async function checkout(userId: string, plan = 'basic', period = 'month', autopay = true) {
   session.userId = userId
   const { POST } = await import('@/app/api/billing/checkout/route')
   const res = await POST(
-    new Request('https://proiav.test/api/billing/checkout', { method: 'POST', body: JSON.stringify({ plan, period, locale: 'uk' }) }) as never
+    new Request('https://proiav.test/api/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan, period, locale: 'uk', autopay }),
+    }) as never
   )
   assert.equal(res.status, 200)
   return provider.checkouts.at(-1)!
