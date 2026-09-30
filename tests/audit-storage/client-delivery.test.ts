@@ -64,6 +64,25 @@ describe('presigned URL (B2, S3 SigV4)', () => {
     assert.equal(url.searchParams.get('X-Amz-Expires'), '3600')
   })
 
+  test('прев’ю: той самий URL при кожному рендері в межах вікна — браузер бере з кешу, а не качає з B2 знову', async () => {
+    delete process.env.MEDIA_CDN_URL
+    const a = await provider().getSignedReadUrl('u/a/g/b/v/p.jpg', { expiresInSeconds: 3600 })
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    const b = await provider().getSignedReadUrl('u/a/g/b/v/p.jpg', { expiresInSeconds: 3600 })
+    // Межа 15-хв вікна могла випасти рівно між викликами — тоді ще раз.
+    const c = a === b ? b : await provider().getSignedReadUrl('u/a/g/b/v/p.jpg', { expiresInSeconds: 3600 })
+    assert.equal(b, c)
+    assert.equal(new URL(b).searchParams.get('response-cache-control'), 'private, max-age=2700')
+  })
+
+  test('прев’ю: підписане не раніше ніж 1/4 TTL тому — URL живе щонайменше 45 хв', async () => {
+    const url = new URL(await provider().getSignedReadUrl('u/a/g/b/v/p.jpg', { expiresInSeconds: 3600 }))
+    const d = url.searchParams.get('X-Amz-Date') ?? ''
+    const signedAt = Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8), +d.slice(9, 11), +d.slice(11, 13), +d.slice(13, 15))
+    const left = signedAt + 3600 * 1000 - Date.now()
+    assert.ok(left >= 45 * 60 * 1000 - 1000, `лишилось ${Math.round(left / 1000)} с`)
+  })
+
   test('[CL-04] з MEDIA_CDN_URL оригінали для архіву мають лишатися підписаними й короткоживучими', async () => {
     process.env.MEDIA_CDN_URL = 'https://cdn.example'
     try {

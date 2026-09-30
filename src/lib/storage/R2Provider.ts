@@ -85,6 +85,15 @@ export class S3CompatProvider implements StorageProvider {
       return `${cdn.replace(/\/+$/, '')}/${key}`
     }
 
+    const expiresIn = options?.expiresInSeconds ?? DEFAULT_READ_TTL_SECONDS
+    // Sign at the start of a quarter-TTL window, not at "now": every render in
+    // that window hands out the very same URL, so the browser reuses its cached
+    // copy instead of downloading the photo again from B2 on each page view
+    // (each download is a billed Class B transaction plus egress, and hitting
+    // the account cap breaks every image). A URL still lives >= 3/4 of its TTL.
+    const windowMs = Math.max(1, Math.floor(expiresIn / 4)) * 1000
+    const signingDate = new Date(Math.floor(Date.now() / windowMs) * windowMs)
+
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
@@ -94,11 +103,11 @@ export class S3CompatProvider implements StorageProvider {
               options.downloadFileName
             )}"`,
           }
-        : {}),
+        : // Objects are immutable (a fresh UUID per key), so the browser may
+          // keep them for as long as the URL is guaranteed to stay valid.
+          { ResponseCacheControl: `private, max-age=${Math.floor((expiresIn * 3) / 4)}` }),
     })
-    return getSignedUrl(this.client, command, {
-      expiresIn: options?.expiresInSeconds ?? DEFAULT_READ_TTL_SECONDS,
-    })
+    return getSignedUrl(this.client, command, { expiresIn, signingDate })
   }
 
   async delete(keys: string[]): Promise<void> {
