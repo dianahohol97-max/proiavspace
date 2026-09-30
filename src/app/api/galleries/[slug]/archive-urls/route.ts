@@ -5,6 +5,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Asset } from '@/lib/types'
 
 export const runtime = 'nodejs'
+// Next to Supabase (eu-central-1) — same region as the public gallery page.
+export const preferredRegion = 'fra1'
 
 /**
  * "Download all" without server egress: hands the browser a list of

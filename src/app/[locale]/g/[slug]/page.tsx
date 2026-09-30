@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
+import { waitUntil } from '@vercel/functions'
 import { galleryAssetsClient, isGalleryUnlocked } from '@/lib/gallery-access'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
@@ -13,6 +14,10 @@ import { LangPicker } from '@/components/LangPicker'
 import type { Asset } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
+// Run next to Supabase (eu-central-1, Frankfurt): the render makes several
+// round trips to the database, and from iad1 each one crossed the Atlantic.
+// Frankfurt is also the closest region to our visitors in Ukraine.
+export const preferredRegion = 'fra1'
 
 /** Client galleries are private-by-link — never in search indexes. */
 export const metadata = {
@@ -34,30 +39,31 @@ export default async function PublicGalleryPage({
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
-  const dict = await getDictionary(locale)
-
   const supabase = createSupabaseServerClient()
 
   // has_password (a safe boolean) — the scrypt hash itself is not selectable by
   // the anon key at all (revoked in migration 0020), so it can never leak here.
-  const { data: gallery } = await supabase
-    .from('galleries')
-    .select(
-      'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style'
-    )
-    .eq('slug', params.slug)
-    .single<{
-      id: string
-      slug: string
-      title: string
-      description: string | null
-      event_date: string | null
-      has_password: boolean
-      is_published: boolean
-      cover_asset_id: string | null
-      theme: string | null
-      style: unknown
-    }>()
+  const [dict, { data: gallery }] = await Promise.all([
+    getDictionary(locale),
+    supabase
+      .from('galleries')
+      .select(
+        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style'
+      )
+      .eq('slug', params.slug)
+      .single<{
+        id: string
+        slug: string
+        title: string
+        description: string | null
+        event_date: string | null
+        has_password: boolean
+        is_published: boolean
+        cover_asset_id: string | null
+        theme: string | null
+        style: unknown
+      }>(),
+  ])
 
   if (!gallery) {
     // Closed by the plan lifecycle (LC-01): «тимчасово недоступна» in the
@@ -120,18 +126,40 @@ export default async function PublicGalleryPage({
     )
   }
 
-  const { data: assets } = await galleryAssetsClient(supabase, gallery)
-    .from('assets')
-    .select('*')
-    .eq('gallery_id', gallery.id)
-    .order('position')
-    .order('created_at')
-    .returns<Asset[]>()
+  // Basic stats: count the view without holding up the page. waitUntil keeps
+  // the function alive until the write lands; a failure is only logged.
+  waitUntil(
+    Promise.resolve(supabase.rpc('record_gallery_view', { gallery_slug: gallery.slug })).then(
+      ({ error }) => {
+        if (error) console.error('record_gallery_view failed', gallery.slug, error.message)
+      },
+      (cause) => console.error('record_gallery_view failed', gallery.slug, cause)
+    )
+  )
 
-  // Branding + plan gates + site theme for style inheritance.
-  const { data: brandingData } = await supabase.rpc('get_gallery_branding', {
-    gallery_slug: gallery.slug,
-  })
+  // This client's current favorites (scoped by the middleware-minted token).
+  const clientToken = cookies().get('ct')?.value
+
+  // Independent reads, in parallel: assets, branding (plan gates + site theme
+  // for style inheritance) and this client's picks.
+  const [{ data: assets }, { data: brandingData }, { data: selections }] = await Promise.all([
+    galleryAssetsClient(supabase, gallery)
+      .from('assets')
+      .select('*')
+      .eq('gallery_id', gallery.id)
+      .order('position')
+      .order('created_at')
+      .returns<Asset[]>(),
+    supabase.rpc('get_gallery_branding', { gallery_slug: gallery.slug }),
+    // Token-scoped RPC — the selections table is no longer readable directly
+    // by the anon key, so this can only ever return this client's own picks.
+    clientToken
+      ? supabase.rpc('list_selections', { p_gallery: gallery.id, p_token: clientToken })
+      : Promise.resolve({ data: null }),
+  ])
+  const initialFavorites = ((selections ?? []) as { asset_id: string; kind: string }[])
+    .filter((s) => s.kind === 'favorite')
+    .map((s) => s.asset_id)
   const branding =
     (
       brandingData as
@@ -208,24 +236,6 @@ export default async function PublicGalleryPage({
         expiresInSeconds: 60 * 60,
       })
     : null
-
-  // Basic stats: count the view (fire-and-forget semantics, errors ignored).
-  await supabase.rpc('record_gallery_view', { gallery_slug: gallery.slug })
-
-  // This client's current favorites (scoped by the middleware-minted token).
-  const clientToken = cookies().get('ct')?.value
-  let initialFavorites: string[] = []
-  if (clientToken) {
-    // Token-scoped RPC — the selections table is no longer readable directly
-    // by the anon key, so this can only ever return this client's own picks.
-    const { data: selections } = await supabase.rpc('list_selections', {
-      p_gallery: gallery.id,
-      p_token: clientToken,
-    })
-    initialFavorites = ((selections ?? []) as { asset_id: string; kind: string }[])
-      .filter((s) => s.kind === 'favorite')
-      .map((s) => s.asset_id)
-  }
 
   const eventLine = [
     gallery.event_date
