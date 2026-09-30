@@ -33,6 +33,11 @@ export default async function DashboardPage({ params }: { params: { locale: stri
       .select(
         'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme'
       )
+      // Required: RLS alone is not enough here. "galleries: public read when
+      // published" lets every role — signed-in photographers included — read
+      // any published gallery, so without this filter the dashboard listed
+      // other photographers' galleries as the user's own.
+      .eq('owner_id', user.id)
       .order('created_at', { ascending: false })
       .returns<Gallery[]>(),
     supabase
