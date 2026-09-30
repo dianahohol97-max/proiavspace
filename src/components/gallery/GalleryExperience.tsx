@@ -430,6 +430,11 @@ export function GalleryExperience({
                 height={item.height ?? undefined}
                 className={s.shotMedia}
                 style={tileFocus(item)}
+                // Storage refused the file (expired link, B2 cap): show the
+                // empty tile rather than the browser's broken-image glyph.
+                onError={(event) => {
+                  event.currentTarget.dataset.broken = ''
+                }}
               />
             ) : item.posterUrl ? (
               // Video with a poster: show the still (never streams the original)

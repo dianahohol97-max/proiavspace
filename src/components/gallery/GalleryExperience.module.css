@@ -116,8 +116,10 @@
 .shot {
   position: relative; break-inside: avoid; margin: 0 0 var(--g-gap, 14px);
   border-radius: var(--g-radius, 10px); overflow: hidden; cursor: zoom-in;
+  background: rgba(127, 127, 127, 0.12);
 }
 .shotMedia { display: block; width: 100%; height: auto; }
+.shotMedia[data-broken] { opacity: 0; }
 /* Uniform layouts (square / portrait 3:4): a real grid of equal tiles that
    crop with object-fit, instead of the masonry columns above. */
 .gridUniform {
