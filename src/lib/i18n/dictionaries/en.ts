@@ -503,7 +503,7 @@ export const en: Dictionary = {
     passwordError: 'That password does not match. Please try again.',
     downloadOriginal: 'Download original',
     downloadAll: 'Download all',
-    downloadHint: 'To save a photo: hover it and tap ↓, or use "Download all" above. Everything in full quality.',
+    downloadHint: 'To save a photo, tap ↓ on it or use "Download all" above. Everything in full quality.',
     preparingArchive: 'Preparing archive:',
     archiveError: 'Could not build the archive, try again',
     favoriteToggle: 'Add to favorites',

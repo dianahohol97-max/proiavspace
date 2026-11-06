@@ -349,6 +349,23 @@
     padding: 10px 16px; font-size: 12.5px; gap: 6px;
   }
 }
+/* Phones: the stat card is ~150px wide — keep «30 000+» on one line and the
+   caption short enough not to slide under the booking card. */
+@media (max-width: 520px) {
+  .statCard { padding: 12px 14px; top: 3%; }
+  .statNum { font-size: 21px; white-space: nowrap; }
+  .statCard p { font-size: 10.5px; margin-top: 6px; line-height: 1.4; }
+}
+/* The smallest phones (320–360px): shrink the floating mocks so nothing overlaps. */
+@media (max-width: 360px) {
+  .statCard { padding: 10px 11px; width: 44%; }
+  .statNum { font-size: 17px; }
+  .statCard p { font-size: 9.5px; }
+  .mockBooking { width: 52%; right: 0; padding: 8px; }
+  .mockBooking .slot, .mockBooking .slotOn { font-size: 9px; padding: 6px 8px; white-space: nowrap; }
+  .mockBooking .pay { font-size: 8.5px; padding: 7px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card, .marquee { animation: none; }
   .b:hover, .prod:hover, .pill:hover { transform: none; }
