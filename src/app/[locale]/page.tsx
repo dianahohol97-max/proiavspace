@@ -30,7 +30,7 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
       : 'Online client gallery for photographers — proiav',
     description: uk
       ? 'Онлайн-галерея для фотографа: передайте зйомку клієнту красивим посиланням — з відбором фото, паролем, оригіналами без стискання й zip. 3 ГБ безкоштовно.'
-      : 'Deliver shoots to clients in a beautiful online gallery: favourites, a password and expiry, uncompressed originals and one-click zip. 3 GB free forever.',
+      : 'Deliver shoots to clients in a beautiful online gallery: favourites, a password and expiry, uncompressed originals and one-click zip. 3 GB free.',
     image: {
       url: brandOgImage(locale),
       alt: uk ? 'проЯв — усе, що стається після зйомки' : 'proiav — everything after the shutter clicks',
@@ -206,12 +206,29 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <div className={s.prod}>
                 <span className={s.prodNo}>{t.products.items[1].no}</span>
                 <div className={s.pBook}>
+                  {/* A week of slots so the mock fills the card the gallery sets the height of */}
+                  <div className={s.slotTaken}>
+                    <span>Пт, 10:00 · 60 хв</span>
+                    <span>{locale === 'uk' ? 'зайнято' : 'booked'}</span>
+                  </div>
+                  <div className={s.slot}>
+                    <span>Пт, 18:00 · 60 хв</span>
+                    <span>2 000 ₴</span>
+                  </div>
+                  <div className={s.slotTaken}>
+                    <span>Сб, 11:00 · 60 хв</span>
+                    <span>{locale === 'uk' ? 'зайнято' : 'booked'}</span>
+                  </div>
                   <div className={s.slot}>
                     <span>Сб, 14:00 · 60 хв</span>
                     <span>2 000 ₴</span>
                   </div>
                   <div className={s.slotOn}>
                     <span>Сб, 17:00 · 60 хв</span>
+                    <span>2 000 ₴</span>
+                  </div>
+                  <div className={s.slot}>
+                    <span>Нд, 10:00 · 60 хв</span>
                     <span>2 000 ₴</span>
                   </div>
                   <div className={s.ok}>✓</div>
@@ -265,6 +282,12 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           <div className={s.bentoGrid}>
             <div className={s.bTall}>
               <span className={s.lbl}>{t.bento.cards.selection.label}</span>
+              {/* A tiny «picked with hearts» strip, so the tall card is not empty */}
+              <div className={s.bSel} aria-hidden="true">
+                <div className={`${s.ph} ${s.p08}`}><i>♥</i></div>
+                <div className={`${s.ph} ${s.p12}`} />
+                <div className={`${s.ph} ${s.p15}`}><i>♥</i></div>
+              </div>
               <h4>{t.bento.cards.selection.text}</h4>
             </div>
             <div className={s.b}>
@@ -294,7 +317,8 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <span className={s.lbl}>{t.bento.cards.themes.label}</span>
               <h4>{t.bento.cards.themes.text}</h4>
               <div className={s.chipsMini}>
-                {t.bento.cards.themes.chips.map((chip) => (
+                {/* The card is one 132px row tall — three chips fit, five were clipped */}
+                {t.bento.cards.themes.chips.slice(0, 3).map((chip) => (
                   <span key={chip}>{chip}</span>
                 ))}
               </div>
@@ -468,9 +492,6 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
                 </Link>
                 <Link href="/uk/tsiny" style={{ color: 'inherit' }}>
                   Тарифи
-                </Link>
-                <Link href="/uk/porivniannia" style={{ color: 'inherit' }}>
-                  Порівняння
                 </Link>
               </>
             )}
