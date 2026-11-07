@@ -5,7 +5,10 @@ import { AnimatePresence, m } from 'motion/react'
 import { SiteLangSwitch } from '../SiteLangSwitch'
 import type { LangSwitch } from '../SiteRenderer'
 import { EASE_OUT, useStill } from '../motion/useStill'
-import t from './Tysha.module.css'
+import tysha from './Tysha.module.css'
+
+/** A theme's CSS-module class map with the same class names (default: «Тиша»). */
+export type Skin = Record<string, string>
 
 export interface NavLink {
   href: string
@@ -28,6 +31,7 @@ export function TyshaNav({
   menuLabel,
   closeLabel,
   footLinks,
+  skin,
 }: {
   brand: string
   logoUrl: string | null
@@ -40,7 +44,10 @@ export function TyshaNav({
   closeLabel: string
   /** Contacts shown at the bottom of the mobile menu. */
   footLinks: NavLink[]
+  /** Class names of another theme (e.g. «Опівніч»); defaults to «Тиша». */
+  skin?: Skin
 }) {
+  const t = skin ?? tysha
   const still = useStill()
   const [solid, setSolid] = useState(false)
   const [hidden, setHidden] = useState(false)

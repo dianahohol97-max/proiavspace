@@ -26,6 +26,11 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     choosePack: p.choosePack,
     madeOn: p.madeOn,
     allPortfolio: p.allPortfolio,
+    bookEvening: p.bookEvening,
+    filmStrip: p.filmStrip,
+    swipeHint: p.swipeHint,
+    prev: p.prev,
+    next: p.next,
   }
 }
 

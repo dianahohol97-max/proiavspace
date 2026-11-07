@@ -5,7 +5,10 @@ import { AlbumLightbox, type AlbumLabels } from '../PortfolioAlbums'
 import type { PortfolioGroup, PortfolioItem } from '../SiteRenderer'
 import { DevelopImage } from '../motion/DevelopImage'
 import { Reveal } from '../motion/Reveal'
-import t from './Tysha.module.css'
+import tysha from './Tysha.module.css'
+
+/** A theme's CSS-module class map with the same class names (default: «Тиша»). */
+export type Skin = Record<string, string>
 
 /**
  * Series as large covers in two staggered columns (two small columns on
@@ -18,11 +21,18 @@ export function TyshaAlbums({
   groups,
   covers,
   labels,
+  skin,
+  reveal = 'develop',
 }: {
   groups: PortfolioGroup[]
   covers: Record<string, { src: string; srcSet?: string }>
   labels: AlbumLabels
+  /** Class names of another theme (e.g. «Опівніч»); defaults to «Тиша». */
+  skin?: Skin
+  /** How covers enter: «Тиша» develops them, «Опівніч» brings them out of the dark. */
+  reveal?: 'develop' | 'dark'
 }) {
+  const t = skin ?? tysha
   const [open, setOpen] = useState<number | null>(null)
   const close = useCallback(() => setOpen(null), [])
   const album = open !== null ? groups[open] : null
@@ -50,6 +60,7 @@ export function TyshaAlbums({
                     alt=""
                     sizes="(max-width: 760px) 50vw, 46vw"
                     objectPosition="50% 35%"
+                    from={reveal}
                   />
                 )}
               </button>
@@ -79,11 +90,15 @@ export function AllPortfolio({
   items,
   label,
   labels,
+  skin,
 }: {
   items: PortfolioItem[]
   label: string
   labels: Pick<AlbumLabels, 'portfolio' | 'photos' | 'close'>
+  /** Class names of another theme (e.g. «Опівніч»); defaults to «Тиша». */
+  skin?: Skin
 }) {
+  const t = skin ?? tysha
   const [open, setOpen] = useState(false)
   const close = useCallback(() => setOpen(false), [])
   return (

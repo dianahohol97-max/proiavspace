@@ -5,8 +5,9 @@ import type { CSSProperties } from 'react'
  * (hero, portfolio, about, pricing, contact) are shared across all themes.
  * Switching a theme repaints and re-spaces the same content, never changes it.
  *
- * «Тиша» is the flagship; «Опівніч» is the same theme with mode: 'night'
- * (inverted tokens) — one click in the editor, zero re-layout.
+ * «Тиша» is the flagship; «Опівніч» is stored as the same theme with
+ * mode: 'night' (catalog value 'opivnich' — kept for existing sites) and has
+ * its own layout (components/site/midnight) on these night tokens.
  */
 
 export const THEME_IDS = [
@@ -71,9 +72,11 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       bg: '#f2f1ed', fg: '#161513', muted: '#8a8781', accent: '#161513', line: '#dedcd5',
       fontLabel: MONO,
     },
+    // «Опівніч»: warm near-black, candle ivory, muted flame gold. Contrast on
+    // the background: fg ≈ 16:1, muted ≈ 7.4:1, accent ≈ 8.3:1 (all AA+).
     night: {
       ...base,
-      bg: '#1b1a18', fg: '#ece8e0', muted: '#807b72', accent: '#ece8e0', line: '#2b2a27',
+      bg: '#0d0b09', fg: '#efe6d6', muted: '#a89e8f', accent: '#c9a26a', line: '#2b251f',
       fontLabel: MONO,
     },
   },

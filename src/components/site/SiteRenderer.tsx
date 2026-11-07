@@ -7,6 +7,7 @@ import { LeadForm, type LeadFormLabels } from './LeadForm'
 import { SiteLangSwitch } from './SiteLangSwitch'
 import { ThemeGallery } from './ThemeGallery'
 import { ThemeSilence } from './ThemeSilence'
+import { MIDNIGHT_FONT_VARS } from './midnight/fonts'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeAir,
@@ -106,6 +107,11 @@ export interface SiteLabels {
   choosePack?: string
   madeOn?: string
   allPortfolio?: string
+  bookEvening?: string
+  filmStrip?: string
+  swipeHint?: string
+  prev?: string
+  next?: string
 }
 
 /** One selectable language in a site's switcher. */
@@ -126,8 +132,8 @@ export interface LangSwitch {
  * pricing, contact. Every theme renders THESE blocks — themes only change
  * the CSS custom properties (see lib/site/themes.ts). No platform branding
  * anywhere on the page — with one exception: on the FREE site plan
- * ('site_trial') «Тиша» prints a small «Сайт на проЯв» credit in its footer
- * (`platformCredit`). Paid sites never show it.
+ * ('site_trial') «Тиша» and «Опівніч» print a small «Сайт на проЯв» credit
+ * in their footer (`platformCredit`). Paid sites never show it.
  */
 export function SiteRenderer({
   theme,
@@ -257,7 +263,7 @@ export function SiteRenderer({
   if (theme === 'tysha') {
     const day = mode !== 'night'
     return (
-      <div style={day ? ({ ...vars, ...TYSHA_FONT_VARS } as CSSProperties) : vars}>
+      <div style={{ ...vars, ...(day ? TYSHA_FONT_VARS : MIDNIGHT_FONT_VARS) } as CSSProperties}>
         <ThemeSilence
           content={content}
           displayName={displayName}

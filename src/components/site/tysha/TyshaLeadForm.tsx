@@ -4,7 +4,10 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { useLeadSubmit, type LeadFormLabels, type LeadStatus } from '../LeadForm'
 import { EASE_OUT, useStill } from '../motion/useStill'
-import t from './Tysha.module.css'
+import tysha from './Tysha.module.css'
+
+/** A theme's CSS-module class map with the same class names (default: «Тиша»). */
+export type Skin = Record<string, string>
 
 /** Event a pricing card fires so its «Обрати» pre-selects the shoot type. */
 export const PACK_EVENT = 'tysha:pack'
@@ -27,12 +30,16 @@ export function TyshaLeadForm({
   handle,
   labels,
   shootTypes,
+  skin,
 }: {
   handle: string | null
   labels: LeadFormLabels
   /** Options for «Тип зйомки» (the pricing package names). */
   shootTypes: string[]
+  /** Class names of another theme (e.g. «Опівніч»); defaults to «Тиша». */
+  skin?: Skin
 }) {
+  const t = skin ?? tysha
   const still = useStill()
   const uid = useId()
   const { status: realStatus, send } = useLeadSubmit(handle)
