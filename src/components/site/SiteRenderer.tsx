@@ -18,6 +18,8 @@ import { TENDER_FONT_VARS } from './nizhnist/fonts'
 import { ThemeNizhnist } from './nizhnist/ThemeNizhnist'
 import { FEED_FONT_VARS } from './kontent/fonts'
 import { ThemeKontent } from './kontent/ThemeKontent'
+import { LETTER_FONT_VARS } from './lyst/fonts'
+import { ThemeLyst } from './lyst/ThemeLyst'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -359,6 +361,7 @@ export function SiteRenderer({
     start: { Component: ThemeStart, fonts: START_FONT_VARS },
     nizhnist: { Component: ThemeNizhnist, fonts: TENDER_FONT_VARS },
     kontent: { Component: ThemeKontent, fonts: FEED_FONT_VARS },
+    lyst: { Component: ThemeLyst, fonts: LETTER_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {

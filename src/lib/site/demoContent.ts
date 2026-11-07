@@ -170,8 +170,8 @@ function phs(
   category: string,
   caption: string,
   [width, height]: [number, number],
-  /** First-screen frame: has 828/1280 WebP + AVIF copies next to it. */
-  hero = false
+  /** First-screen frame: 828/1280 WebP + AVIF copies next to it ('small': 480/828). */
+  hero: boolean | 'small' = false
 ): PortfolioItem {
   const base = `/showcase/${n}`
   return {
@@ -182,12 +182,17 @@ function phs(
     caption,
     width,
     height,
-    ...(hero
+    ...(hero === 'small'
       ? {
-          srcSet: `${base}-828.webp 828w, ${base}-1280.webp 1280w, ${base}.webp ${width}w`,
-          avifSrcSet: `${base}-828.avif 828w, ${base}-1280.avif 1280w`,
+          srcSet: `${base}-480.webp 480w, ${base}-828.webp 828w`,
+          avifSrcSet: `${base}-480.avif 480w, ${base}-828.avif 828w`,
         }
-      : {}),
+      : hero
+        ? {
+            srcSet: `${base}-828.webp 828w, ${base}-1280.webp 1280w, ${base}.webp ${width}w`,
+            avifSrcSet: `${base}-828.avif 828w, ${base}-1280.avif 1280w`,
+          }
+        : {}),
   }
 }
 
@@ -673,6 +678,68 @@ export const THEME_DEMOS: ThemeDemo[] = [
       pht('8', 59, 'Продукт', 'Тюбики', [1333, 2000]),
       pht('9', 41, 'Люди бренду', 'Деталі образу', [1333, 2000]),
       pht('10', 47, 'Люди бренду', 'Лукбук', [1333, 2000]),
+    ],
+  },
+  {
+    value: 'lyst',
+    theme: 'lyst',
+    mode: 'light',
+    name: 'Лист',
+    suits: 'Love story, весілля, річниці',
+    displayName: 'Віра Ясень',
+    content: content({
+      hero: {
+        title: 'Віра Ясень',
+        subtitle: 'Знімаю історії, які хочеться перечитувати',
+        imageId: '1',
+        city: 'Чернівці',
+        directions: ['Love story', 'Весілля', 'Річниця'],
+      },
+      about: {
+        text: 'Я вірю, що найкращі кадри схожі на листи: їх пишуть повільно й для когось одного. Тому перед зйомкою ми довго говоримо, а на зйомці я просто дозволяю вам бути поруч.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '30% — і день записано за вами',
+        delivery: '20 кадрів за тиждень, уся історія за місяць',
+        travel: 'Буковина без доплат; інші міста — дорога',
+        bring: 'речі зі спільною історією: лист, плед, улюблену книжку',
+      },
+      testimonials: {
+        items: [
+          { names: 'Марта і Богдан', text: 'Ми перечитуємо ці фото, як старі листи. Кожного разу знаходимо щось нове.', photoId: '' },
+          { names: 'Ганна та Ігор, 25 років разом', text: 'Діти подарували нам зйомку на річницю. Ми знову почувалися як на першому побаченні.', photoId: '' },
+          { names: 'Олеся і Нік', text: 'Спокійно, тепло і зовсім без «а тепер поцілуйтеся». Дякуємо за нашу історію.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Love story', price: 'від 6 000 ₴', includes: ['2 години', 'одна-дві локації', '70 кадрів'] },
+          {
+            name: 'Весільний день',
+            price: 'від 22 000 ₴',
+            includes: ['до 10 годин', 'лист-історія вашого дня', '400+ кадрів', 'друкований конверт із 10 фото'],
+            featured: true,
+          },
+          { name: 'Річниця', price: 'від 5 000 ₴', includes: ['1.5 години', 'місце вашого знайомства', '50 кадрів'] },
+        ],
+      },
+      contact: { email: 'vira@example.com', phone: '+380 66 800 00 00', instagram: '@vira.yasen', telegram: 'vira_yasen', bookingUrl: '' },
+    }),
+    // Three frames fly out of the envelope: 1 (own), then the first two of
+    // the grid. TEMPORARY (until assets/lyst): 10, 19, 21, 22, 24, 03, 11, 14
+    // and /showcase/05 are the mountain couple of the «Тиша» set.
+    portfolio: [
+      phs('1', '11', 'Love story', 'Під яблунею', [1333, 2000], 'small'),
+      pht('2', 10, 'Love story', 'Тихо', [1335, 2000]),
+      pht('3', 22, 'Весілля', 'Удвох у горах', [2000, 1335]),
+      pht('4', 21, 'Весілля', 'Після церемонії', [2000, 1335]),
+      pht('5', 19, 'Річниця', 'Як уперше', [1335, 2000]),
+      pht('6', 24, 'Весілля', 'Червоні дахи', [2000, 1335]),
+      phs('7', '05', 'Love story', 'Простір', [2000, 1335]),
+      pht('8', 3, 'Річниця', 'Разом', [2000, 1335]),
+      pht('9', 11, 'Love story', 'Серед трав', [2000, 1335]),
+      pht('10', 14, 'Весілля', 'Сміх', [2000, 1335]),
     ],
   },
   {

@@ -123,6 +123,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     start: dict.site.themeStart,
     nizhnist: dict.site.themeNizhnist,
     kontent: dict.site.themeKontent,
+    lyst: dict.site.themeLyst,
   }
 
   return (

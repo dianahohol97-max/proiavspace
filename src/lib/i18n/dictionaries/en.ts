@@ -401,6 +401,7 @@ export const en: Dictionary = {
     themeStart: 'Start',
     themeNizhnist: 'Nizhnist',
     themeKontent: 'Kontent',
+    themeLyst: 'Lyst',
     heroLegend: 'Hero',
     heroTitle: 'Headline (your name or a tagline)',
     heroSubtitle: 'Subtitle (genre and city)',

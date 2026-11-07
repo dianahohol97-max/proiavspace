@@ -22,6 +22,7 @@ export const THEME_IDS = [
   'start',
   'nizhnist',
   'kontent',
+  'lyst',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -167,6 +168,16 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Feed Sans", "Feed Sans Fallback", Arial, sans-serif',
     },
   },
+  lyst: {
+    id: 'lyst',
+    tokens: {
+      ...base,
+      // «Лист»: letter paper, brown-black ink, blue fountain-pen ink (7.9:1);
+      // no pinks, no hearts.
+      bg: '#f4eee4', fg: '#2b2420', muted: '#6a5e55', accent: '#2e4a6b', line: '#e2d8ca',
+      fontDisplay: '"Letter Hand", "Letter Hand Fallback", Georgia, serif',
+    },
+  },
 }
 
 /**
@@ -177,6 +188,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   start: { theme: 'tysha', mode: 'light' },
   nizhnist: { theme: 'povitria', mode: 'light' },
   kontent: { theme: 'galereia', mode: 'light' },
+  lyst: { theme: 'tysha', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -260,4 +272,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'start', theme: 'start', mode: 'light' },
   { value: 'nizhnist', theme: 'nizhnist', mode: 'light' },
   { value: 'kontent', theme: 'kontent', mode: 'light' },
+  { value: 'lyst', theme: 'lyst', mode: 'light' },
 ]
