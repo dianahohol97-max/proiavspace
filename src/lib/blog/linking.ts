@@ -14,7 +14,6 @@ const PRODUCT_PATHS = [
   '/uk/tsiny',
   '/uk/halereia-z-parolem',
   '/uk/dlia-vesilnykh-fotohrafiv',
-  '/uk/porivniannia',
   '/uk/gallery-demo',
 ]
 

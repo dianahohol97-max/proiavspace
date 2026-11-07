@@ -24,6 +24,10 @@ const nextConfig = {
       out.push({ source: `/:locale(${locales})/blog/${from}`, destination: `/:locale/blog/${to}`, permanent: true })
       out.push({ source: `/blog/${from}`, destination: `/uk/blog/${to}`, permanent: true })
     }
+    // The photographer-site builder is shelved — its theme catalogue points to
+    // the gallery demo until sites come back (temporary, so 307).
+    out.push({ source: `/:locale(${locales})/themes`, destination: '/:locale/gallery-demo', permanent: false })
+    out.push({ source: `/:locale(${locales})/themes/:value`, destination: '/:locale/gallery-demo', permanent: false })
     return out
   },
   async rewrites() {

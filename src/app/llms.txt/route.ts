@@ -10,7 +10,7 @@ const P = GALLERY_PLANS
 const tb = (gb: number) => (gb >= 1024 ? `${gb / 1024} ТБ` : `${gb} ГБ`)
 
 const pricing = [
-  `- Безкоштовно: ${P.free.storageGb} ГБ сховища назавжди, необмежені галереї.`,
+  `- Безкоштовно: ${P.free.storageGb} ГБ сховища, необмежена кількість галерей, кожна безкоштовна галерея відкрита для клієнтів 30 днів (потім закривається, файли видаляються ще через 7 днів).`,
   `- Після кінця платного тарифу: 14 днів повний доступ; якщо файли понад ${P.free.storageGb} ГБ — галереї закриваються для клієнтів, файли зберігаються 60 днів, потім видаляються (з попередженнями листом).`,
   `- Базовий: ${P.basic.priceUahMonth} грн/міс (${P.basic.priceUahYear} грн/рік) — ${tb(P.basic.storageGb)}, без брендингу платформи, свій логотип, відео.`,
   `- Плюс: ${P.plus.priceUahMonth} грн/міс (${P.plus.priceUahYear} грн/рік) — ${tb(P.plus.storageGb)}, статистика, чайові від клієнтів.`,
@@ -23,7 +23,7 @@ const BODY = `# проЯв (proiav.space)
 > проЯв — українська платформа клієнтських онлайн-галерей для фотографів:
 > передача зйомки клієнту красивим посиланням, відбір фото клієнтом, пароль
 > і термін дії, оригінали без стискання, zip одним кліком. Український
-> інтерфейс, ціни в гривні. ${P.free.storageGb} ГБ безкоштовно назавжди, без картки.
+> інтерфейс, ціни в гривні. ${P.free.storageGb} ГБ безкоштовно (галерея відкрита 30 днів), без картки.
 
 proiav (proiav.space) is a Ukrainian SaaS for photographers focused on client
 photo gallery delivery: favourites, password protection, expiry dates,
@@ -60,7 +60,6 @@ ${pricing}
 - Тарифи: https://proiav.space/uk/tsiny
 - Галерея з паролем: https://proiav.space/uk/halereia-z-parolem
 - Для весільних фотографів: https://proiav.space/uk/dlia-vesilnykh-fotohrafiv
-- Порівняння з Pixieset, Pic-Time, Pixover, Gallery4you: https://proiav.space/uk/porivniannia
 - Перехід з Pixieset: https://proiav.space/uk/mihratsiia
 - Демо клієнтської галереї: https://proiav.space/uk/gallery-demo
 - Блог із порадами для фотографів: https://proiav.space/uk/blog

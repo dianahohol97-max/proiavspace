@@ -112,7 +112,7 @@ const uk: LandingCopy = {
     lede:
       'Галереї, у яких клієнт одразу розуміє, як забрати фото — без Google Drive і питань «як завантажити». Відбір кадрів сердечками, пароль і термін дії, оригінали без стискання. Скрізь лише ваш бренд.',
     cta: 'Почати безкоштовно',
-    ctaNote: '3 ГБ назавжди безкоштовно. Без картки при реєстрації.',
+    ctaNote: '3 ГБ безкоштовно, кожна галерея відкрита 30 днів. Без картки.',
     statNumber: '30 000',
     statText: 'фотографій передано клієнтам через галереї проЯв',
     slotPay: 'Оплатити фотографу',
@@ -202,16 +202,16 @@ const uk: LandingCopy = {
     lede:
       'Відбір фото клієнтом безкоштовний для всіх. Платні тарифи знімають наш брендинг і додають відео та більше місця, а з Плюса — статистику.',
     perMonth: '/ місяць',
-    freeLabel: 'назавжди',
+    freeLabel: 'без картки',
     yearHint: (year) => `або ${year} ₴ на рік — два місяці в подарунок`,
     storage: (gb) => (gb >= 1024 ? `${gb / 1024} ТБ сховища` : `${gb} ГБ сховища`),
-    popular: 'Найпопулярніший',
+    popular: 'Рекомендуємо',
     fineprint:
       'Оплата карткою будь-якого українського банку. Скасувати можна будь-коли — ще 14 днів усе працює на повному ліміті. Далі, якщо ви понад безкоштовні 3 ГБ, галереї закриваються для клієнтів, а файли зберігаються ще 60 днів.',
     plans: {
       free: {
         name: 'Безкоштовний',
-        note: 'Для перших галерей і проби пера',
+        note: 'Кожна галерея відкрита 30 днів — щоб спробувати',
         bullets: ['Відбір фото клієнтом', 'Галереї з паролем і терміном дії', 'Без обмеження кількості галерей'],
       },
       basic: {
@@ -302,7 +302,7 @@ const en: LandingCopy = {
     lede:
       'Galleries where the client instantly knows how to grab their photos — no Google Drive, no "how do I download this?". Favourites, a password and expiry, uncompressed originals. Your brand everywhere.',
     cta: 'Start for free',
-    ctaNote: '3 GB free forever. No card at sign-up.',
+    ctaNote: '3 GB free, each gallery stays open 30 days. No card.',
     statNumber: '30 000',
     statText: 'photos delivered to clients through proiav galleries',
     slotPay: 'Pay the photographer',
@@ -392,16 +392,16 @@ const en: LandingCopy = {
     lede:
       'Client photo selection is free for everyone. Paid tiers remove our branding and add video and more room; Plus adds statistics.',
     perMonth: '/ month',
-    freeLabel: 'forever',
+    freeLabel: 'no card',
     yearHint: (year) => `or ${year} ₴ per year — two months free`,
     storage: (gb) => (gb >= 1024 ? `${gb / 1024} TB of storage` : `${gb} GB of storage`),
-    popular: 'Most popular',
+    popular: 'Recommended',
     fineprint:
       'Pay with any Ukrainian bank card. Cancel anytime — everything keeps working for 14 more days. After that, if you are over the free 3 GB, galleries close to clients and files are kept for 60 more days.',
     plans: {
       free: {
         name: 'Free',
-        note: 'For your first galleries',
+        note: 'Each gallery stays open 30 days — to try it out',
         bullets: ['Client photo selection', 'Password & expiry on galleries', 'Unlimited galleries'],
       },
       basic: {

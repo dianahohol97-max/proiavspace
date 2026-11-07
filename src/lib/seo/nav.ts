@@ -37,11 +37,10 @@ export const FOOTER_UK: { title: string; links: NavLink[] }[] = [
     ],
   },
   {
-    title: 'Порівняння',
-    // The per-service comparisons are still drafts (noindex); link the indexed
-    // hub and the migration page until they are published.
+    title: 'Перехід',
+    // The comparison hub and per-service pages stay drafts (noindex, unlinked)
+    // until the competitor facts are confirmed.
     links: [
-      { label: 'Порівняння', href: '/uk/porivniannia' },
       { label: 'Перехід з Pixieset', href: '/uk/mihratsiia' },
     ],
   },

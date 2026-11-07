@@ -130,8 +130,14 @@ export function ArticleBody({ blocks, locale }: { blocks: Block[]; locale: strin
                   )}
                   <thead className="bg-[#f4f4f1]">
                     <tr>
+                      {/* On phones the table scrolls sideways — the first column stays put
+                          so every row keeps its label. */}
                       {block.head.map((cell, i) => (
-                        <th key={i} scope="col" className="border-b border-line px-4 py-3 font-semibold text-fg">
+                        <th
+                          key={i}
+                          scope="col"
+                          className={`border-b border-line px-4 py-3 font-semibold text-fg ${i === 0 ? 'sticky left-0 z-10 bg-[#f4f4f1]' : ''}`}
+                        >
                           {cell}
                         </th>
                       ))}
@@ -142,7 +148,7 @@ export function ArticleBody({ blocks, locale }: { blocks: Block[]; locale: strin
                       <tr key={r} className="border-b border-line last:border-0">
                         {row.map((cell, c) =>
                           c === 0 ? (
-                            <th key={c} scope="row" className="px-4 py-3 font-semibold text-fg">
+                            <th key={c} scope="row" className="sticky left-0 z-10 bg-bg px-4 py-3 font-semibold text-fg shadow-[1px_0_0_var(--color-border)]">
                               <RichText text={cell} />
                             </th>
                           ) : (
