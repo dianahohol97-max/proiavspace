@@ -2,7 +2,7 @@
  * План 4.3 — швидке завантаження великих зйомок і докачування після обриву.
  * Чисті правила multipart (lib/upload/multipart.ts), черга і повтори
  * (lib/upload/transfer.ts), ListParts у провайдері, резерв квоти під
- * незавершені завантаження (0058) та ідемпотентна реєстрація (повтор
+ * незавершені завантаження (0063) та ідемпотентна реєстрація (повтор
  * /complete після обриву не створює другий рядок).
  */
 import './helpers/fake-backend'
@@ -271,7 +271,7 @@ describe('облік місця: незавершені multipart', () => {
     })
   })
 
-  test('поки міграцію 0058 не накотили, відсутня таблиця не ламає завантаження', () => {
+  test('поки міграцію 0063 не накотили, відсутня таблиця не ламає завантаження', () => {
     assert.equal(isMissingTable({ code: 'PGRST205', message: 'Could not find the table' }), true)
     assert.equal(isMissingTable({ code: '42P01' }), true)
     assert.equal(isMissingTable({ code: '23505' }), false)

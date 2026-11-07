@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
   // 3. Multipart uploads left open for more than a day (AbortMultipartUpload).
   //    Resumable uploads keep their parts on purpose for up to ~20 h; past the
   //    24 h mark nobody resumes them. Their bytes were reserved against the
-  //    owner's quota (migration 0058) — the reservations go in step 4.
+  //    owner's quota (migration 0063) — the reservations go in step 4.
   const stale = staleMultipartUploads(await storage.listMultipartUploads('u/'))
   let aborted = 0
   let abortedBytes = 0

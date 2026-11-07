@@ -2,11 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { ORPHAN_GRACE_MS } from '@/lib/storage/cleanup'
 
 /**
- * Open multipart uploads reserved against the storage quota (migration 0058).
+ * Open multipart uploads reserved against the storage quota (migration 0063).
  * Server-only; always called with the service-role client — the table has no
  * policies for signed-in users.
  *
- * Until 0058 is applied the table does not exist: every helper then behaves as
+ * Until 0063 is applied the table does not exist: every helper then behaves as
  * "no reservations" so uploads keep working exactly as before.
  */
 

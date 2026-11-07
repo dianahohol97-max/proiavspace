@@ -24,7 +24,7 @@ export async function authorizeUpload(
   options: {
     /**
      * Bytes held by this account's other open multipart uploads (migration
-     * 0058, lib/upload/reservations.ts) — counted as used while they exist.
+     * 0063, lib/upload/reservations.ts) — counted as used while they exist.
      */
     reservedBytes?: number
   } = {}

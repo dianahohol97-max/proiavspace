@@ -30,7 +30,7 @@ function isCreateBody(value: unknown): value is CreateBody {
  * upload in storage after the same ownership + quota gate as the single-PUT
  * path. Bytes of this account's other open uploads count as used, and this
  * one's declared size is reserved until complete/abort/the 24 h sweep
- * (migration 0058). The browser then requests part URLs, PUTs parts straight
+ * (migration 0063). The browser then requests part URLs, PUTs parts straight
  * to storage (resuming via .../list-parts) and finalizes via .../complete.
  */
 export async function POST(request: NextRequest) {

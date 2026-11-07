@@ -88,7 +88,7 @@
 - API: новий `POST /api/uploads/multipart/list-parts`; `multipart/complete` бере список частин з
   ListParts, якщо браузер не прочитав ETag, і завершує ідемпотентно; `registerAsset` повертає
   наявний рядок для того самого ключа (повтор після обриву не дублює фото й облік).
-- Облік місця: міграція `0058_upload_reservations.sql` — розмір відкритого multipart резервується
+- Облік місця: міграція `0063_upload_reservations.sql` — розмір відкритого multipart резервується
   на `create` і враховується в ліміті, знімається на `complete`/`abort`; крон `storage-cleanup`
   скасовує multipart старші за 24 год (як і раніше), тепер ще рахує їхні байти
   (`abortedMultipartBytes`) і чистить старі резерви.
