@@ -4,7 +4,9 @@
  *   - no horizontal overflow on iPhone 13 and at 1440px;
  *   - every enquiry-form control has a <label>;
  *   - with prefers-reduced-motion the page is still (no running animations,
- *     nothing held transparent or shifted).
+ *     nothing held transparent or shifted);
+ *   - the page stays short: < 11 000 px on iPhone 13, ≤ 9 portfolio frames;
+ *   - the hero image is in the server HTML (JS off) with fetchpriority=high.
  *
  * Needs a running app with the /themes routes reachable (locally the
  * redirect to /gallery-demo in next.config.js is in the way — see
@@ -76,6 +78,35 @@ describe('«Тиша» demo', { skip }, () => {
       await close()
     })
   }
+
+  test('iPhone 13: page shorter than 11 000 px, at most 9 portfolio frames', async () => {
+    const { page, close } = await open(pw.devices['iPhone 13'])
+    await scrollThrough(page)
+    const height = await page.evaluate(() => document.documentElement.scrollHeight)
+    assert.ok(height < 11000, `page height ${height}px`)
+    const frames = await page.evaluate(() => document.querySelectorAll('#portfolio figure').length)
+    assert.ok(frames > 0 && frames <= 9, `${frames} portfolio frames`)
+    await close()
+  })
+
+  test('hero image: server HTML without JS, fetchpriority=high', async () => {
+    const { page, close } = await open({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false })
+    const hero = await page.evaluate(() => {
+      const img = document.querySelector('header img') as HTMLImageElement | null
+      if (!img) return null
+      return {
+        priority: img.getAttribute('fetchpriority'),
+        loaded: img.complete && img.naturalWidth > 0,
+        title: document.querySelector('header h1')?.getAttribute('aria-label') ?? '',
+        titleText: (document.querySelector('header h1') as HTMLElement | null)?.innerText.trim() ?? '',
+      }
+    })
+    assert.ok(hero, 'no <img> in the hero')
+    assert.equal(hero.priority, 'high')
+    assert.ok(hero.loaded, 'hero image did not load without JS')
+    assert.ok(hero.title.length > 0 && hero.titleText.length > 0, 'hero name missing without JS')
+    await close()
+  })
 
   test('every form field has a label', async () => {
     const { page, close } = await open({ viewport: { width: 1440, height: 900 } })

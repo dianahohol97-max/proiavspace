@@ -40,6 +40,9 @@ export interface SiteContent {
   /** imageId = optional portfolio asset id used as the photographer's portrait. */
   about: { text: string; imageId: string }
   pricing: { items: PricingItem[] }
+  /** Signature moment: one big frame + a short phrase (themes that have it,
+   *  e.g. «Тиша»). imageId empty → the theme picks an unused landscape frame. */
+  moment: { text: string; imageId: string }
   /** «Як ми працюємо» — optional; themes render it only when non-empty. */
   process: { steps: ProcessStep[] }
   /** «Відгуки» — optional; themes render it only when non-empty. */
@@ -75,6 +78,7 @@ export const EMPTY_CONTENT: SiteContent = {
   hero: { title: '', subtitle: '', imageId: '' },
   about: { text: '', imageId: '' },
   pricing: { items: [] },
+  moment: { text: '', imageId: '' },
   process: { steps: [] },
   testimonials: { items: [] },
   contact: { email: '', phone: '', instagram: '', bookingUrl: '' },
@@ -129,6 +133,7 @@ export function parseSiteContent(value: unknown): SiteContent {
     typeof v.settings === 'object' && v.settings !== null ? v.settings : {}
   ) as Record<string, unknown>
   const items = Array.isArray(pricing.items) ? pricing.items : []
+  const momentRaw = (v.moment ?? {}) as Record<string, unknown>
   const processRaw = (v.process ?? {}) as Record<string, unknown>
   const testimonialsRaw = (v.testimonials ?? {}) as Record<string, unknown>
 
@@ -184,6 +189,7 @@ export function parseSiteContent(value: unknown): SiteContent {
         }))
         .filter((i) => i.name),
     },
+    moment: { text: asString(momentRaw.text), imageId: asString(momentRaw.imageId) },
     process: {
       steps: (Array.isArray(processRaw.steps) ? processRaw.steps : [])
         .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)

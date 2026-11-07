@@ -21,11 +21,16 @@ interface SiteRow {
   content: unknown
   display_name: string | null
   logo_key: string | null
+  /** Since migration 0053; undefined until it is applied → treated as paid. */
+  site_plan?: string | null
 }
 
 interface PortfolioRow {
   id: string
   preview_key: string | null
+  /** Pixel size stored at upload — get_site_portfolio returns it since 0015. */
+  width: number | null
+  height: number | null
   category: string | null
   caption: string | null
 }
@@ -141,6 +146,8 @@ export default async function PublicSitePage({
         : null,
       category: row.category,
       caption: row.caption,
+      width: row.width,
+      height: row.height,
     }))
   )
 
@@ -247,6 +254,7 @@ export default async function PublicSitePage({
         logoUrl={logoUrl}
         portfolio={portfolio}
         booking={booking}
+        platformCredit={site.site_plan === 'site_trial'}
         footer={{
           brand: site.display_name ?? (content.hero.title || params.handle),
           year: new Date().getFullYear(),

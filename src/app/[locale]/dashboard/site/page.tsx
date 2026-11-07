@@ -31,6 +31,8 @@ interface PortfolioRow {
   visible: boolean
   category: string | null
   caption: string | null
+  width: number | null
+  height: number | null
 }
 
 export default async function SiteEditorPage({ params }: { params: { locale: string } }) {
@@ -63,7 +65,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         }>(),
       supabase
         .from('portfolio_assets')
-        .select('id, r2_key, variants, visible, category, caption')
+        .select('id, r2_key, variants, visible, category, caption, width, height')
         .eq('owner_id', user.id)
         .order('position')
         .order('created_at')
@@ -90,6 +92,8 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
       visible: row.visible,
       category: row.category,
       caption: row.caption,
+      width: row.width,
+      height: row.height,
     }))
   )
 
@@ -186,6 +190,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         displayName={profile?.display_name ?? null}
         logoUrl={logoUrl}
         portfolio={portfolio}
+        platformCredit={sitePlan === 'site_trial'}
         siteLabels={siteLabelsFromDict(dict, locale)}
         leadFormLabels={leadFormLabelsFromDict(dict)}
         labels={{
@@ -232,6 +237,11 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
           testimonialPhoto: dict.site.testimonialPhoto,
           testimonialAdd: dict.site.testimonialAdd,
           removeItem: dict.site.removeItem,
+          momentLegend: dict.site.momentLegend,
+          momentHint: dict.site.momentHint,
+          momentText: dict.site.momentText,
+          momentPhoto: dict.site.momentPhoto,
+          photoAuto: dict.site.photoAuto,
           contactLegend: dict.site.contactLegend,
           contactEmail: dict.site.contactEmail,
           contactPhone: dict.site.contactPhone,

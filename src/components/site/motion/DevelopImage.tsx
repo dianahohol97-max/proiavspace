@@ -1,8 +1,8 @@
 'use client'
 
-import Image from 'next/image'
 import { m } from 'motion/react'
 import { EASE_OUT, useStill } from './useStill'
+import { Picture } from './Picture'
 import k from './motion.module.css'
 
 /**
@@ -15,6 +15,8 @@ import k from './motion.module.css'
  */
 export function DevelopImage({
   src,
+  srcSet,
+  avifSrcSet,
   alt,
   sizes,
   delay = 0,
@@ -24,6 +26,8 @@ export function DevelopImage({
   objectPosition,
 }: {
   src: string
+  srcSet?: string
+  avifSrcSet?: string
   alt: string
   sizes: string
   delay?: number
@@ -34,14 +38,15 @@ export function DevelopImage({
 }) {
   const still = useStill()
   const img = (
-    <Image
+    <Picture
       src={src}
+      srcSet={srcSet}
+      avifSrcSet={avifSrcSet}
       alt={alt}
-      fill
       sizes={sizes}
       priority={priority}
-      className={`${k.fillImg} ${imgClassName ?? ''}`}
-      style={objectPosition ? { objectPosition } : undefined}
+      className={imgClassName}
+      objectPosition={objectPosition}
     />
   )
   if (still) return <div className={`${k.frame} ${className ?? ''}`}>{img}</div>

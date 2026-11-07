@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { Picture } from './Picture'
 import k from './motion.module.css'
 
 /**
@@ -9,12 +9,14 @@ import k from './motion.module.css'
  */
 export function ParallaxImage({
   src,
+  srcSet,
   alt,
   sizes,
   className,
   objectPosition,
 }: {
   src: string
+  srcSet?: string
   alt: string
   sizes: string
   className?: string
@@ -23,14 +25,7 @@ export function ParallaxImage({
   return (
     <div className={`${k.frame} ${className ?? ''}`}>
       <div className={k.parallax}>
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          sizes={sizes}
-          className={k.fillImg}
-          style={objectPosition ? { objectPosition } : undefined}
-        />
+        <Picture src={src} srcSet={srcSet} alt={alt} sizes={sizes} objectPosition={objectPosition} />
       </div>
     </div>
   )

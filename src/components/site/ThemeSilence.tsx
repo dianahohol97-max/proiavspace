@@ -22,6 +22,13 @@ export function ThemeSilence({
   bookingNav?: BookingNav
   /** «Опівніч»: night hero — the giant name over drifting photos. */
   night?: boolean
+  /** «Тиша» only: free-plan «Сайт на проЯв» credit in the footer. */
+  platformCredit?: boolean
 }) {
-  return night ? <ThemeMidnight {...props} night /> : <ThemeTysha {...props} />
+  const { platformCredit, ...shared } = props
+  return night ? (
+    <ThemeMidnight {...shared} night />
+  ) : (
+    <ThemeTysha {...shared} platformCredit={platformCredit} />
+  )
 }

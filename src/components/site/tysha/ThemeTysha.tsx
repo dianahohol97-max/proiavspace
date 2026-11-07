@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import type { SiteContent } from '@/lib/site/content'
 import { BASE_URL } from '@/lib/seo/site'
 import type { LeadFormLabels } from '../LeadForm'
@@ -9,29 +8,45 @@ import {
   type PortfolioItem,
   type SiteLabels,
 } from '../SiteRenderer'
-import { DevelopImage, MotionRoot, Reveal, RevealText } from '../motion/lazy'
+import { DevelopImage, MagneticButton, MotionRoot, Reveal, RevealText } from '../motion/lazy'
 import { ParallaxImage } from '../motion/ParallaxImage'
+import { Picture } from '../motion/Picture'
 import { ScrollLitText } from '../motion/ScrollLitText'
-import { PackCta, TyshaAlbums, TyshaHero, TyshaLeadForm, TyshaNav } from './islands'
+import { TYSHA_FONT_URL } from './fonts'
+import {
+  AllPortfolio,
+  HeroCounter,
+  HeroSlides,
+  PackCta,
+  TyshaAlbums,
+  TyshaLeadForm,
+  TyshaNav,
+} from './islands'
+import { layoutEditorial } from './layout'
 import type { HeroSlide } from './TyshaHero'
 import type { NavLink } from './TyshaNav'
 import t from './Tysha.module.css'
 
-/** Frames shown in the editorial grid before the series take over. */
-const GRID_LIMIT_WITH_SERIES = 12
+/** The home page shows at most this many frames; the rest sit behind «Усе портфоліо». */
+const GRID_MAX = 9
 const HERO_FRAMES = 4
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
+type Photo = PortfolioItem & { previewUrl: string }
+const isLandscape = (p: Photo) => !!p.width && !!p.height && p.width >= p.height
+/** What the lightboxes need — keeps the client payload (and the HTML) lean. */
+const lean = (p: Photo): PortfolioItem => ({ id: p.id, previewUrl: p.previewUrl, caption: p.caption ?? null, category: p.category ?? null })
 
 /**
  * «Тиша» — the flagship, rebuilt as a premium wedding-photographer site:
- * full-screen cross-fading hero, editorial asymmetric portfolio whose frames
- * «develop» in, a scroll-lit about quote beside a parallax portrait, numbered
+ * full-screen cross-fading hero, a dense editorial portfolio (orientation-
+ * aware pairs and full-width frames), a signature frame that opens up to the
+ * full screen, a scroll-lit about quote beside a parallax portrait, numbered
  * series, «Як ми працюємо», reviews, pricing cards, a hairline enquiry form
  * and a big-name footer. Blocks with no data are simply not rendered.
  *
- * Server component: only the pieces that move (nav, hero, reveals, albums,
- * form) are client islands; parallax and the lit quote are pure CSS.
+ * Server component. The hero's first frame and the name are plain server
+ * HTML (no JS needed to see them); only what moves is a client island.
  */
 export function ThemeTysha({
   content,
@@ -42,6 +57,7 @@ export function ThemeTysha({
   langSwitch,
   leadForm,
   bookingNav,
+  platformCredit = false,
 }: {
   content: SiteContent
   displayName: string | null
@@ -51,28 +67,59 @@ export function ThemeTysha({
   langSwitch?: LangSwitch
   leadForm?: { handle: string | null; labels: LeadFormLabels }
   bookingNav?: BookingNav
+  /** Free site plan only: the small «Сайт на проЯв» credit in the footer. */
+  platformCredit?: boolean
 }) {
   const brand = displayName || content.hero.title || ''
   const title = content.hero.title || brand
-  const photos = portfolio.filter((p): p is PortfolioItem & { previewUrl: string } => !!p.previewUrl)
+  const photos = portfolio.filter((p): p is Photo => !!p.previewUrl)
   const byId = (id: string) => (id ? photos.find((p) => p.id === id) : undefined)
+  const shown = new Set<string>()
 
   // Hero: the chosen photo first, then the next frames of the portfolio.
   const heroFirst = byId(content.hero.imageId) ?? photos[0]
-  const heroSlides: HeroSlide[] = heroFirst
-    ? [heroFirst, ...photos.filter((p) => p.id !== heroFirst.id)]
-        .slice(0, HERO_FRAMES)
-        .map((p) => ({ id: p.id, src: p.previewUrl, alt: p.caption || p.category || title }))
+  const heroPhotos = heroFirst
+    ? [heroFirst, ...photos.filter((p) => p.id !== heroFirst.id)].slice(0, HERO_FRAMES)
     : []
+  heroPhotos.forEach((p) => shown.add(p.id))
+  const heroSlides: HeroSlide[] = heroPhotos.map((p) => ({
+    id: p.id,
+    src: p.previewUrl,
+    srcSet: p.srcSet,
+    avifSrcSet: p.avifSrcSet,
+    alt: p.caption || p.category || title,
+  }))
 
+  // Selected frames: continue where the hero stopped when there is enough to
+  // show; at most GRID_MAX, laid out as an editorial spread.
+  const pool = photos.length >= heroPhotos.length + 6 ? photos.filter((p) => !shown.has(p.id)) : photos
+  const gridItems = pool.slice(0, GRID_MAX)
+  gridItems.forEach((p) => shown.add(p.id))
+  const spread = layoutEditorial(gridItems)
+
+  // Signature frame: the chosen one, else a landscape frame not used yet.
+  const momentPhoto =
+    byId(content.moment.imageId) ??
+    photos.find((p) => !shown.has(p.id) && isLandscape(p)) ??
+    photos.find((p) => !shown.has(p.id)) ??
+    (photos.length > 1 ? photos[photos.length - 1] : undefined)
+  if (momentPhoto) shown.add(momentPhoto.id)
+
+  const portrait = byId(content.about.imageId)
+  if (portrait) shown.add(portrait.id)
+
+  // Series: a cover the visitor has not just seen above, when there is one.
   const groups = groupPortfolio(photos)
   const hasSeries = groups.some((g) => g.category !== null)
-  // With a big enough portfolio the grid continues where the hero stopped
-  // instead of repeating its frames.
-  const heroIds = new Set(heroSlides.map((s) => s.id))
-  const pool = photos.length >= heroSlides.length + 6 ? photos.filter((p) => !heroIds.has(p.id)) : photos
-  const gridItems = hasSeries ? pool.slice(0, GRID_LIMIT_WITH_SERIES) : pool
-  const portrait = byId(content.about.imageId)
+  const covers: Record<string, { src: string; srcSet?: string }> = {}
+  for (const g of groups) {
+    const chosen = g.items.find((it) => it.id === content.albumCovers[g.category ?? ''])
+    const fresh = chosen && !shown.has(chosen.id) ? chosen : g.items.find((it) => !shown.has(it.id))
+    const cover = (fresh ?? chosen ?? g.items[0]) as Photo | undefined
+    if (cover) covers[g.category ?? ''] = { src: cover.previewUrl, srcSet: cover.srcSet }
+  }
+  const leanGroups = groups.map((g) => ({ category: g.category, items: (g.items as Photo[]).map(lean) }))
+
   const steps = content.process.steps
   const reviews = content.testimonials.items
   const packs = content.pricing.items
@@ -90,6 +137,7 @@ export function ThemeTysha({
     popular: labels.popular ?? 'Найчастіше обирають',
     choose: labels.choosePack ?? labels.book,
     madeOn: labels.madeOn ?? 'Сайт на проЯв',
+    all: labels.allPortfolio ?? labels.portfolio,
   }
 
   // Where «Забронювати дату» leads: the form when it is on, else the booking
@@ -125,8 +173,32 @@ export function ThemeTysha({
     )
   }
 
+  // Hero name: server-rendered letters with a CSS-only rise (no JS, no
+  // hydration wait); screen readers and crawlers get the plain string.
+  let letter = 0
+  const heroName = (
+    <h1 className={t.heroTitle} aria-label={title}>
+      {title.split(/\s+/).filter(Boolean).map((word, wi) => (
+        <span key={wi} aria-hidden="true">
+          {wi > 0 && ' '}
+          <span className={t.heroWord}>
+            {Array.from(word).map((ch, ci) => (
+              <span key={ci} className={t.heroCh} style={{ '--i': letter++ } as React.CSSProperties}>
+                {ch}
+              </span>
+            ))}
+          </span>
+        </span>
+      ))}
+    </h1>
+  )
+  const afterName = { '--d': `${Math.min(300 + letter * 38, 1100)}ms` } as React.CSSProperties
+  const lead = heroSlides[0]
+
   return (
     <MotionRoot>
+      {/* One font file, preloaded only where «Тиша» renders. */}
+      <link rel="preload" href={TYSHA_FONT_URL} as="font" type="font/woff2" crossOrigin="anonymous" />
       <div className={t.root}>
         <TyshaNav
           brand={brand}
@@ -140,31 +212,84 @@ export function ThemeTysha({
           footLinks={contactLinks}
         />
 
-        <TyshaHero
-          slides={heroSlides}
-          title={title}
-          subtitle={content.hero.subtitle}
-          cta={{ href: bookHref, label: L.bookDate }}
-          scrollHint={L.scroll}
-          scrollTarget={photos.length > 0 ? '#portfolio' : '#contact'}
-        />
+        {/* ---- hero ---- */}
+        <header id="top" className={`${t.hero} ${lead ? '' : t.heroPlain}`}>
+          {lead && (
+            <div className={t.slides}>
+              <div className={`${t.slide} ${t.slideBase}`}>
+                <div className={t.kb}>
+                  <Picture
+                    src={lead.src}
+                    srcSet={lead.srcSet}
+                    avifSrcSet={lead.avifSrcSet}
+                    sizes="100vw"
+                    alt={lead.alt}
+                    priority
+                  />
+                </div>
+              </div>
+              {heroSlides.length > 1 && <HeroSlides slides={heroSlides} />}
+            </div>
+          )}
+          {lead && <div className={t.heroShade} aria-hidden="true" />}
+          <div className={`${t.wrap} ${t.heroInner}`}>
+            <div className={t.heroCopy}>
+              {heroName}
+              <div className={t.heroRow}>
+                {content.hero.subtitle && (
+                  <p className={`${t.heroSub} ${t.heroFade}`} style={afterName}>
+                    {content.hero.subtitle}
+                  </p>
+                )}
+                <div className={t.heroFade} style={afterName}>
+                  <MagneticButton href={bookHref} className={t.ctaLight}>
+                    {L.bookDate} <span className={t.arrow}>→</span>
+                  </MagneticButton>
+                </div>
+              </div>
+            </div>
+            <div className={t.heroBar}>
+              <a
+                href={photos.length > 0 ? '#portfolio' : '#contact'}
+                className={`${t.label} ${t.heroLabel} ${t.scrollHint}`}
+              >
+                <span className={t.scrollLine} aria-hidden="true" />
+                {L.scroll}
+              </a>
+              {heroSlides.length > 1 && <HeroCounter total={heroSlides.length} />}
+            </div>
+          </div>
+        </header>
 
-        {/* ---- portfolio: asymmetric editorial grid ---- */}
-        {gridItems.length > 0 && (
+        {/* ---- portfolio: dense editorial spread, ≤ 9 frames ---- */}
+        {spread.length > 0 && (
           <section id="portfolio" className={`${t.section} ${t.wrap}`}>
-            {head(
-              labels.portfolio,
-              L.selected,
-              <span className={t.label}>{pad2(photos.length)}</span>
-            )}
+            {head(labels.portfolio, L.selected, <span className={t.label}>{pad2(photos.length)}</span>)}
             <div className={t.grid}>
-              {gridItems.map((item, i) => (
-                <Reveal key={item.id} as="figure" className={t.work} delay={(i % 2) * 0.1} y={36}>
+              {spread.map(({ item, desk, mobile }, i) => (
+                <Reveal
+                  key={item.id}
+                  as="figure"
+                  className={t.work}
+                  delay={desk.second ? 0.12 : 0}
+                  y={32}
+                  style={
+                    {
+                      '--col': desk.col,
+                      '--span': desk.span,
+                      '--align': desk.align,
+                      '--ratio': desk.ratio,
+                      '--m-ratio': mobile.ratio,
+                      '--m-col': mobile.full ? '1 / -1' : 'auto',
+                    } as React.CSSProperties
+                  }
+                >
                   <div className={t.workFrame}>
                     <DevelopImage
-                      src={item.previewUrl}
+                      src={item.previewUrl!}
+                      srcSet={item.srcSet}
                       alt={item.caption || item.category || title}
-                      sizes="(max-width: 760px) 100vw, 58vw"
+                      sizes={`(max-width: 760px) ${mobile.full ? '100vw' : '50vw'}, ${Math.round((desk.span / 12) * 92)}vw`}
                       objectPosition="50% 38%"
                     />
                   </div>
@@ -175,6 +300,34 @@ export function ThemeTysha({
                   </figcaption>
                 </Reveal>
               ))}
+            </div>
+            {photos.length > gridItems.length && (
+              <div className={t.allRow}>
+                <AllPortfolio
+                  items={photos.map(lean)}
+                  label={L.all}
+                  labels={{ portfolio: L.all, photos: labels.photos, close: labels.close }}
+                />
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ---- signature moment: a frame that opens up to the full screen ---- */}
+        {momentPhoto && (
+          <section className={t.moment} aria-label={content.moment.text || undefined}>
+            <div className={t.momentStage}>
+              <div className={t.momentFrame}>
+                <Picture
+                  src={momentPhoto.previewUrl}
+                  srcSet={momentPhoto.srcSet}
+                  avifSrcSet={momentPhoto.avifSrcSet}
+                  sizes="100vw"
+                  alt={content.moment.text ? '' : momentPhoto.caption || title}
+                  className={t.momentImg}
+                />
+              </div>
+              {content.moment.text && <p className={t.momentText}>{content.moment.text}</p>}
             </div>
           </section>
         )}
@@ -187,6 +340,7 @@ export function ThemeTysha({
                 <div className={t.aboutPortrait}>
                   <ParallaxImage
                     src={portrait.previewUrl}
+                    srcSet={portrait.srcSet}
                     alt={brand}
                     sizes="(max-width: 860px) 78vw, 40vw"
                     objectPosition="50% 30%"
@@ -207,8 +361,8 @@ export function ThemeTysha({
           <section id="series" className={`${t.section} ${t.wrap}`}>
             {head(L.series, L.series, <span className={t.label}>{pad2(groups.length)}</span>)}
             <TyshaAlbums
-              groups={groups}
-              covers={content.albumCovers}
+              groups={leanGroups}
+              covers={covers}
               labels={{
                 portfolio: labels.portfolio,
                 photos: labels.photos,
@@ -255,7 +409,7 @@ export function ThemeTysha({
                         <figcaption className={t.reviewWho}>
                           {photo && (
                             <span className={t.reviewPhoto}>
-                              <Image src={photo.previewUrl} alt="" fill sizes="52px" />
+                              <Picture src={photo.previewUrl} srcSet={photo.srcSet} alt="" sizes="52px" />
                             </span>
                           )}
                           {review.names && <span className={t.label}>{review.names}</span>}
@@ -288,11 +442,7 @@ export function ThemeTysha({
                       </ul>
                     )}
                     <div className={t.packCta}>
-                      <PackCta
-                        pack={pack.name}
-                        href={bookHref}
-                        className={pack.featured ? t.ctaDark : t.ctaLine}
-                      >
+                      <PackCta pack={pack.name} href={bookHref} className={pack.featured ? t.ctaDark : t.ctaLine}>
                         {L.choose} <span className={t.arrow}>→</span>
                       </PackCta>
                     </div>
@@ -353,11 +503,7 @@ export function ThemeTysha({
             </div>
             {leadForm && (
               <div className={t.contactForm}>
-                <TyshaLeadForm
-                  handle={leadForm.handle}
-                  labels={leadForm.labels}
-                  shootTypes={packs.map((p) => p.name)}
-                />
+                <TyshaLeadForm handle={leadForm.handle} labels={leadForm.labels} shootTypes={packs.map((p) => p.name)} />
               </div>
             )}
           </div>
@@ -380,9 +526,11 @@ export function ThemeTysha({
                 </a>
               ))}
             </div>
-            <a href={BASE_URL} target="_blank" rel="noopener">
-              {L.madeOn}
-            </a>
+            {platformCredit && (
+              <a href={BASE_URL} target="_blank" rel="noopener">
+                {L.madeOn}
+              </a>
+            )}
           </div>
         </footer>
       </div>

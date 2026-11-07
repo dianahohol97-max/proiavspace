@@ -68,6 +68,11 @@ export interface EditorLabels {
   testimonialPhoto: string
   testimonialAdd: string
   removeItem: string
+  momentLegend: string
+  momentHint: string
+  momentText: string
+  momentPhoto: string
+  photoAuto: string
   contactLegend: string
   contactEmail: string
   contactPhone: string
@@ -178,6 +183,7 @@ export function SiteEditor({
   siteLabels,
   leadFormLabels,
   labels,
+  platformCredit = false,
 }: {
   locale: Locale
   action: (formData: FormData) => Promise<void>
@@ -193,6 +199,8 @@ export function SiteEditor({
   siteLabels: SiteLabels
   leadFormLabels: LeadFormLabels
   labels: EditorLabels
+  /** Free site plan → preview shows the «Сайт на проЯв» credit like the site. */
+  platformCredit?: boolean
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -220,6 +228,8 @@ export function SiteEditor({
       : [{ name: '', price: '', includes: '', featured: false }]
   )
   const [aboutImageId, setAboutImageId] = useState(content.about.imageId)
+  const [momentText, setMomentText] = useState(content.moment.text)
+  const [momentImageId, setMomentImageId] = useState(content.moment.imageId)
   const [steps, setSteps] = useState(content.process.steps)
   const [reviews, setReviews] = useState(content.testimonials.items)
   const cleanSteps = useMemo(
@@ -320,13 +330,14 @@ export function SiteEditor({
       albumCovers,
       about: { text: aboutText, imageId: aboutImageId },
       pricing: { items: packsToItems(packs) },
+      moment: { text: momentText.trim(), imageId: momentImageId },
       process: { steps: cleanSteps },
       testimonials: { items: cleanReviews },
       contact,
       translations: content.translations,
       settings: { languages, leadForm, booking },
     }),
-    [heroTitle, heroSubtitle, heroImageId, albumCovers, aboutText, aboutImageId, packs, cleanSteps, cleanReviews, contact, content.translations, languages, leadForm, booking]
+    [heroTitle, heroSubtitle, heroImageId, albumCovers, aboutText, aboutImageId, momentText, momentImageId, packs, cleanSteps, cleanReviews, contact, content.translations, languages, leadForm, booking]
   )
 
   function setPack(index: number, patch: Partial<Pack>) {
@@ -724,6 +735,32 @@ export function SiteEditor({
           )}
         </fieldset>
 
+        {/* ---- signature moment: one big frame + a short phrase («Тиша») ---- */}
+        <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
+          <legend className="px-2 text-sm text-muted">{labels.momentLegend}</legend>
+          <p className="text-xs leading-relaxed text-muted">{labels.momentHint}</p>
+          <input
+            name="moment_text"
+            maxLength={160}
+            defaultValue={content.moment.text}
+            placeholder={labels.momentText}
+            onChange={(event) => setMomentText(event.target.value)}
+            className={inputClass}
+          />
+          <input type="hidden" name="moment_image_id" value={momentImageId} />
+          {visiblePortfolio.length > 0 && (
+            <>
+              <p className="text-xs text-muted">{labels.momentPhoto}</p>
+              <PhotoPicker
+                items={visiblePortfolio}
+                value={momentImageId}
+                onChange={setMomentImageId}
+                noneLabel={labels.photoAuto}
+              />
+            </>
+          )}
+        </fieldset>
+
         {/* ---- «Як ми працюємо» (optional; hidden on the site when empty) ---- */}
         <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
           <legend className="px-2 text-sm text-muted">{labels.processLegend}</legend>
@@ -1066,6 +1103,7 @@ export function SiteEditor({
                   : undefined
               }
               leadForm={leadForm ? { handle: null, labels: leadFormLabels } : undefined}
+              platformCredit={platformCredit}
             />
           </div>
         </div>

@@ -143,6 +143,7 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
     },
     about: { text: str(formData, 'about_text'), imageId: str(formData, 'about_image_id') },
     pricing: { items },
+    moment: { text: str(formData, 'moment_text').slice(0, 160), imageId: str(formData, 'moment_image_id') },
     process: { steps: process },
     testimonials: { items: testimonials },
     contact: {

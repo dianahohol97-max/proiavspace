@@ -2,15 +2,17 @@
 
 import { useCallback, useState } from 'react'
 import { AlbumLightbox, type AlbumLabels } from '../PortfolioAlbums'
-import type { PortfolioGroup } from '../SiteRenderer'
+import type { PortfolioGroup, PortfolioItem } from '../SiteRenderer'
 import { DevelopImage } from '../motion/DevelopImage'
 import { Reveal } from '../motion/Reveal'
 import t from './Tysha.module.css'
 
 /**
- * Series as large covers in two staggered columns: index number, series name,
- * photo count and an underlined «Дивитись серію». Cover or link opens the
- * shared album lightbox.
+ * Series as large covers in two staggered columns (two small columns on
+ * phones): index number, series name, photo count and an underlined
+ * «Дивитись серію». Cover or link opens the shared album lightbox.
+ * `covers` is decided on the server (ThemeTysha): the first frame of the
+ * series that the page has not shown yet.
  */
 export function TyshaAlbums({
   groups,
@@ -18,7 +20,7 @@ export function TyshaAlbums({
   labels,
 }: {
   groups: PortfolioGroup[]
-  covers: Record<string, string>
+  covers: Record<string, { src: string; srcSet?: string }>
   labels: AlbumLabels
 }) {
   const [open, setOpen] = useState<number | null>(null)
@@ -29,20 +31,24 @@ export function TyshaAlbums({
     <>
       <div className={t.series}>
         {groups.map((group, i) => {
-          const chosen = covers[group.category ?? '']
-          const cover =
-            group.items.find((it) => it.id === chosen)?.previewUrl ??
-            group.items.find((it) => it.previewUrl)?.previewUrl ??
-            null
+          const key = group.category ?? ''
+          const first = group.items.find((it) => it.previewUrl)?.previewUrl
+          const cover = covers[key] ?? (first ? { src: first } : undefined)
           const title = group.category ?? labels.portfolio
           return (
-            <Reveal key={group.category ?? `_${i}`} as="figure" className={t.seriesItem} delay={(i % 2) * 0.12}>
-              <button type="button" className={t.seriesCover} onClick={() => setOpen(i)} aria-label={`${labels.viewSeries}: ${title}`}>
+            <Reveal key={key || `_${i}`} as="figure" className={t.seriesItem} delay={(i % 2) * 0.12}>
+              <button
+                type="button"
+                className={t.seriesCover}
+                onClick={() => setOpen(i)}
+                aria-label={`${labels.viewSeries}: ${title}`}
+              >
                 {cover && (
                   <DevelopImage
-                    src={cover}
+                    src={cover.src}
+                    srcSet={cover.srcSet}
                     alt=""
-                    sizes="(max-width: 760px) 100vw, 46vw"
+                    sizes="(max-width: 760px) 50vw, 46vw"
                     objectPosition="50% 35%"
                   />
                 )}
@@ -64,6 +70,30 @@ export function TyshaAlbums({
         })}
       </div>
       {album && <AlbumLightbox album={album} labels={labels} onClose={close} />}
+    </>
+  )
+}
+
+/** «Усе портфоліо →» under the selected frames: every photo in the lightbox. */
+export function AllPortfolio({
+  items,
+  label,
+  labels,
+}: {
+  items: PortfolioItem[]
+  label: string
+  labels: Pick<AlbumLabels, 'portfolio' | 'photos' | 'close'>
+}) {
+  const [open, setOpen] = useState(false)
+  const close = useCallback(() => setOpen(false), [])
+  return (
+    <>
+      <button type="button" className={`${t.textLink} ${t.allLink}`} onClick={() => setOpen(true)}>
+        {label} <span className={t.arrow}>→</span>
+      </button>
+      {open && (
+        <AlbumLightbox album={{ category: labels.portfolio, items }} labels={labels} onClose={close} />
+      )}
     </>
   )
 }

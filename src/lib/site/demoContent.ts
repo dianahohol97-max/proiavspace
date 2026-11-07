@@ -29,9 +29,34 @@ function ph(id: string, n: number | string, category: string, caption = ''): Por
   return { id, previewUrl: img(n), visible: true, category, caption }
 }
 
-/** «Тиша» demo photos: the lighter .webp copies keep the demo's LCP honest. */
-function phw(id: string, path: string, category: string, caption = ''): PortfolioItem {
-  return { id, previewUrl: `${path}.webp`, visible: true, category, caption }
+/**
+ * «Тиша» demo photos: WebP with a 828w copy for phones (public/themes/tysha),
+ * real pixel sizes (portrait frames go to portrait slots), and for the four
+ * hero frames AVIF/WebP at 828/1280/1920w.
+ */
+const HERO_FRAMES = new Set(['/themes/07', '/themes/15', '/themes/12', '/themes/04'])
+function phw(
+  id: string,
+  path: string,
+  category: string,
+  caption: string,
+  [width, height]: [number, number]
+): PortfolioItem {
+  const small = `/themes/tysha/${path.slice(1).replace('/', '-')}`
+  const hero = HERO_FRAMES.has(path)
+  return {
+    id,
+    previewUrl: `${path}.webp`,
+    visible: true,
+    category,
+    caption,
+    width,
+    height,
+    srcSet: hero
+      ? `${small}-828.webp 828w, ${small}-1280.webp 1280w, ${small}-1920.webp 1920w`
+      : `${small}-828.webp 828w, ${path}.webp ${width}w`,
+    ...(hero ? { avifSrcSet: `${small}-828.avif 828w, ${small}-1280.avif 1280w, ${small}-1920.avif 1920w` } : {}),
+  }
 }
 
 function content(
@@ -42,6 +67,7 @@ function content(
     albumCovers: {},
     translations: {},
     settings: { languages: [], leadForm: true, booking: false },
+    moment: { text: '', imageId: '' },
     process: { steps: [] },
     testimonials: { items: [] },
     ...partial,
@@ -63,7 +89,7 @@ export const THEME_DEMOS: ThemeDemo[] = [
         text: 'Я знімаю весілля такими, якими їх памʼятають самі наречені: світло крізь фіранку, мамині руки, що поправляють фату, тиша перед першим «так». Не ставлю в пози — спостерігаю й допомагаю почуватися вільно.',
         imageId: '17',
       },
-      albumCovers: { Весілля: '12', Пари: '6', Сімейні: '13', Портрети: '15' },
+      moment: { text: 'Найцінніше — між кадрами', imageId: '15' },
       process: {
         steps: [
           {
@@ -128,27 +154,27 @@ export const THEME_DEMOS: ThemeDemo[] = [
     portfolio: [
       // 1–4: landscape frames for the hero; then the grid's rhythm
       // (landscape, portrait, portrait, landscape, landscape, portrait…).
-      phw('1', '/themes/07', 'Весілля', 'Марта і Богдан'),
-      phw('2', '/themes/15', 'Весілля', 'Дорога в гори'),
-      phw('3', '/themes/12', 'Весілля', 'Червоний дім на пагорбі'),
-      phw('4', '/themes/04', 'Весілля', 'Дорога додому'),
-      phw('5', '/themes/01', 'Весілля', 'Біля старого паркану'),
-      phw('6', '/themes/18', 'Пари', 'Тільки ми'),
-      phw('7', '/themes/13', 'Пари', 'Серед трав'),
-      phw('8', '/themes/16', 'Весілля', 'Перший погляд'),
-      phw('9', '/themes/20', 'Весілля', 'Удвох'),
-      phw('10', '/showcase/01', 'Пари', 'Ліс після дощу'),
-      phw('11', '/themes/05', 'Весілля', 'Під горами'),
-      phw('12', '/themes/06', 'Весілля', 'Вітер з гір'),
-      phw('13', '/showcase/09', 'Сімейні', 'Велика родина'),
-      phw('14', '/themes/23', 'Весілля', 'Червоні дахи'),
-      phw('15', '/showcase/16', 'Портрети', 'Золота година'),
-      phw('16', '/showcase/14', 'Сімейні', 'На татових плечах'),
-      phw('17', '/showcase/08', 'Портрети', 'Біля вікна'),
-      phw('18', '/showcase/03', 'Пари', 'Липневе світло'),
-      phw('19', '/showcase/04', 'Сімейні', 'Неділя в полі'),
-      phw('20', '/showcase/07', 'Сімейні', 'Перше літо'),
-      phw('21', '/showcase/06', 'Портрети', 'Вечірнє світло'),
+      phw('1', '/themes/07', 'Весілля', 'Марта і Богдан', [2000, 1335]),
+      phw('2', '/themes/15', 'Весілля', 'Дорога в гори', [2000, 1335]),
+      phw('3', '/themes/12', 'Весілля', 'Червоний дім на пагорбі', [2000, 1335]),
+      phw('4', '/themes/04', 'Весілля', 'Дорога додому', [2000, 1335]),
+      phw('5', '/themes/01', 'Весілля', 'Біля старого паркану', [2000, 1335]),
+      phw('6', '/themes/18', 'Пари', 'Тільки ми', [1335, 2000]),
+      phw('7', '/themes/13', 'Пари', 'Серед трав', [1335, 2000]),
+      phw('8', '/themes/16', 'Весілля', 'Перший погляд', [2000, 1335]),
+      phw('9', '/themes/20', 'Весілля', 'Удвох', [2000, 1335]),
+      phw('10', '/showcase/01', 'Пари', 'Ліс після дощу', [1333, 2000]),
+      phw('11', '/themes/05', 'Весілля', 'Під горами', [2000, 1335]),
+      phw('12', '/themes/06', 'Весілля', 'Вітер з гір', [1335, 2000]),
+      phw('13', '/showcase/09', 'Сімейні', 'Велика родина', [1333, 2000]),
+      phw('14', '/themes/23', 'Весілля', 'Червоні дахи', [2000, 1335]),
+      phw('15', '/showcase/16', 'Портрети', 'Золота година', [2000, 1333]),
+      phw('16', '/showcase/14', 'Сімейні', 'На татових плечах', [1333, 2000]),
+      phw('17', '/showcase/08', 'Портрети', 'Біля вікна', [1333, 2000]),
+      phw('18', '/showcase/03', 'Пари', 'Липневе світло', [1333, 2000]),
+      phw('19', '/showcase/04', 'Сімейні', 'Неділя в полі', [1333, 2000]),
+      phw('20', '/showcase/07', 'Сімейні', 'Перше літо', [1333, 2000]),
+      phw('21', '/showcase/06', 'Портрети', 'Вечірнє світло', [1333, 2000]),
     ],
   },
   {

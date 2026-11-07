@@ -1,35 +1,23 @@
-import localFont from 'next/font/local'
-
 /**
- * «Тиша» type pair. Display: Cormorant Garamond (variable 300–700, Latin +
- * Cyrillic, self-hosted — no build-time network). Body: Manrope, already
- * self-hosted app-wide in globals.css, so it costs nothing extra here.
+ * «Тиша» type pair. Display: Cormorant Garamond Light — ONE static 27 KB
+ * file (Latin + Cyrillic), self-hosted in /public/fonts/tysha and declared in
+ * Tysha.module.css with a size-adjusted Times New Roman fallback, so the
+ * swap does not shift layout. Body: Manrope, already self-hosted app-wide.
  *
- * preload: false — SiteRenderer bundles every theme, and preloading would make
- * sites on other themes download this face too. Browsers fetch a @font-face
- * only when text actually uses it, and next/font's size-adjusted fallback
- * keeps the swap free of layout shift.
+ * Why not next/font: SiteRenderer bundles every theme, so a next/font preload
+ * would make sites on all other themes download this face too. Here the
+ * preload <link> is rendered by ThemeTysha itself — only «Тиша» pages get it.
  */
-export const tyshaSerif = localFont({
-  src: [
-    { path: './fonts/cormorant-garamond.woff2', weight: '300 700', style: 'normal' },
-    { path: './fonts/cormorant-garamond-italic.woff2', weight: '300 700', style: 'italic' },
-  ],
-  variable: '--tysha-serif',
-  display: 'swap',
-  preload: false,
-  fallback: ['Georgia', 'Times New Roman', 'serif'],
-  adjustFontFallback: 'Times New Roman',
-})
+export const TYSHA_FONT_URL = '/fonts/tysha/cormorant-garamond-300.woff2'
 
 /**
  * Site-token overrides for «Тиша» (light only): the shared blocks rendered
  * around the theme — booking section, legal footer — pick up the same type.
- * Set on the wrapper together with `tyshaSerif.variable`; galleries and
- * «Опівніч» keep the tokens from lib/site/themes.ts untouched.
+ * Galleries and «Опівніч» keep the tokens from lib/site/themes.ts untouched.
  */
 export const TYSHA_FONT_VARS = {
-  '--site-font-display': 'var(--tysha-serif), Georgia, "Times New Roman", serif',
+  '--tysha-serif': '"Tysha Serif", "Tysha Serif Fallback"',
+  '--site-font-display': '"Tysha Serif", "Tysha Serif Fallback", Georgia, "Times New Roman", serif',
   '--site-font-body': 'Manrope, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
   '--site-font-label': 'Manrope, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
 } as const

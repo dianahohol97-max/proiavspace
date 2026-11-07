@@ -1,167 +1,120 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 import { AnimatePresence, m } from 'motion/react'
-import { MagneticButton } from '../motion/MagneticButton'
-import { RevealText } from '../motion/RevealText'
+import { Picture } from '../motion/Picture'
 import { EASE_OUT, useStill } from '../motion/useStill'
-import k from '../motion/motion.module.css'
 import t from './Tysha.module.css'
 
 export interface HeroSlide {
   id: string
   src: string
+  srcSet?: string
+  avifSrcSet?: string
   alt: string
 }
 
 const FRAME_MS = 6500
+const FRAME_EVENT = 'tysha:frame'
 /** Ken Burns drifts toward a different corner on every frame. */
 const ORIGINS = ['50% 40%', '30% 60%', '70% 35%', '45% 70%']
 
 /**
- * Full-screen hero: up to four portfolio frames cross-fading with a slow Ken
- * Burns drift. The first frame is the LCP image (priority, rendered on the
- * server); the rest mount only after it has loaded so they never compete with
- * it. The name rises letter by letter once the first frame is in; subtitle
- * and the booking CTA follow. Reduced motion: one still frame, static text.
+ * The hero slideshow layer. The FIRST frame is not here: ThemeTysha renders it
+ * on the server (the LCP image, fetchpriority=high) and it stays underneath.
+ * This island waits for the page `load` and an idle moment, only then mounts
+ * the other frames (plus a copy of the first, to loop back to) and starts the
+ * cross-fade — so nothing competes with the first paint. Reduced motion:
+ * never starts; the server frame is all there is.
  */
-export function TyshaHero({
-  slides,
-  title,
-  subtitle,
-  cta,
-  scrollHint,
-  scrollTarget,
-}: {
-  slides: HeroSlide[]
-  title: string
-  subtitle: string
-  cta: { href: string; label: string } | null
-  scrollHint: string
-  scrollTarget: string
-}) {
+export function HeroSlides({ slides }: { slides: HeroSlide[] }) {
   const still = useStill()
-  const [loaded, setLoaded] = useState(false)
-  const [restMounted, setRestMounted] = useState(false)
+  const [ready, setReady] = useState(false)
   const [{ index, prev }, setFrame] = useState<{ index: number; prev: number | null }>({
     index: 0,
     prev: null,
   })
   const n = slides.length
-  const hasPhoto = n > 0
-  const playing = hasPhoto && n > 1 && !still
-
-  // Safety net: never hold the title back for a slow or broken image.
-  useEffect(() => {
-    const timer = window.setTimeout(() => setLoaded(true), hasPhoto ? 1600 : 0)
-    return () => window.clearTimeout(timer)
-  }, [hasPhoto])
+  const playing = n > 1 && !still
 
   useEffect(() => {
-    if (!loaded || !playing) return
-    const timer = window.setTimeout(() => setRestMounted(true), 400)
-    return () => window.clearTimeout(timer)
-  }, [loaded, playing])
+    if (!playing) return
+    let idle = 0
+    let timer = 0
+    const start = () => {
+      const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
+        .requestIdleCallback
+      if (ric) idle = ric(() => setReady(true), { timeout: 2500 })
+      else timer = window.setTimeout(() => setReady(true), 1200)
+    }
+    if (document.readyState === 'complete') start()
+    else window.addEventListener('load', start, { once: true })
+    return () => {
+      window.removeEventListener('load', start)
+      const cic = (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback
+      if (idle && cic) cic(idle)
+      if (timer) window.clearTimeout(timer)
+    }
+  }, [playing])
 
   useEffect(() => {
-    if (!restMounted || !playing) return
+    if (!ready || !playing) return
     const timer = window.setInterval(() => {
       setFrame((f) => ({ index: (f.index + 1) % n, prev: f.index }))
     }, FRAME_MS)
     return () => window.clearInterval(timer)
-  }, [restMounted, playing, n])
+  }, [ready, playing, n])
 
-  const pad = (v: number) => String(v).padStart(2, '0')
-  const appear = (delay: number) =>
-    still
-      ? {}
-      : {
-          initial: { opacity: 0, y: 16 },
-          animate: loaded ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 },
-          transition: { duration: 1.1, ease: EASE_OUT, delay },
-        }
-  const letters = Array.from(title).length
-  const afterTitle = Math.min(0.5 + letters * 0.035, 1.3)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(FRAME_EVENT, { detail: index }))
+  }, [index])
 
+  if (!ready || !playing) return null
   return (
-    <header id="top" className={`${t.hero} ${hasPhoto ? '' : t.heroPlain}`}>
-      {hasPhoto && (
-        <div className={t.slides}>
-          {slides.map((slide, i) => {
-            if (i > 0 && !restMounted) return null
-            const state = i === index ? 'active' : i === prev ? 'leaving' : 'idle'
-            return (
-              <div
-                key={slide.id}
-                className={t.slide}
-                data-state={state}
-                aria-hidden={i === 0 ? undefined : true}
-              >
-                <div
-                  className={t.kb}
-                  style={{ '--kb-origin': ORIGINS[i % ORIGINS.length] } as React.CSSProperties}
-                >
-                  <Image
-                    src={slide.src}
-                    alt={i === 0 ? slide.alt : ''}
-                    fill
-                    sizes="100vw"
-                    priority={i === 0}
-                    onLoad={i === 0 ? () => setLoaded(true) : undefined}
-                  />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-      {hasPhoto && <div className={t.heroShade} aria-hidden="true" />}
-
-      <div className={`${t.wrap} ${t.heroInner}`}>
-        <div className={t.heroCopy}>
-          <RevealText as="h1" by="letters" text={title} play={loaded} className={t.heroTitle} />
-          <div className={t.heroRow}>
-            {subtitle && (
-              <m.p className={`${t.heroSub} ${k.guard}`} data-motion="" {...appear(afterTitle)}>
-                {subtitle}
-              </m.p>
-            )}
-            {cta && (
-              <m.div className={k.guard} data-motion="" {...appear(afterTitle + 0.15)}>
-                <MagneticButton href={cta.href} className={t.ctaLight}>
-                  {cta.label} <span className={t.arrow}>→</span>
-                </MagneticButton>
-              </m.div>
-            )}
+    <>
+      {slides.map((slide, i) => {
+        // Frame 0 is the server image underneath; its copy here only takes
+        // part once the loop comes back round.
+        const state = i === index && !(i === 0 && prev === null) ? 'active' : i === prev ? 'leaving' : 'idle'
+        return (
+          <div key={slide.id} className={t.slide} data-state={state} aria-hidden="true">
+            <div className={t.kb} style={{ '--kb-origin': ORIGINS[i % ORIGINS.length] } as React.CSSProperties}>
+              <Picture src={slide.src} srcSet={slide.srcSet} avifSrcSet={slide.avifSrcSet} sizes="100vw" alt="" />
+            </div>
           </div>
-        </div>
+        )
+      })}
+    </>
+  )
+}
 
-        <div className={t.heroBar}>
-          <a href={scrollTarget} className={`${t.label} ${t.heroLabel} ${t.scrollHint}`}>
-            <span className={t.scrollLine} aria-hidden="true" />
-            {scrollHint}
-          </a>
-          {playing && (
-            <span className={`${t.label} ${t.heroLabel} ${t.counter}`} aria-hidden="true">
-              <AnimatePresence mode="popLayout" initial={false}>
-                <m.span
-                  key={index}
-                  className={t.counterNow}
-                  initial={{ y: '100%', opacity: 0 }}
-                  animate={{ y: '0%', opacity: 1 }}
-                  exit={{ y: '-100%', opacity: 0 }}
-                  transition={{ duration: 0.7, ease: EASE_OUT }}
-                >
-                  {pad(index + 1)}
-                </m.span>
-              </AnimatePresence>
-              <span>/</span>
-              <span>{pad(n)}</span>
-            </span>
-          )}
-        </div>
-      </div>
-    </header>
+/** «01 / 04» in the hero bar; follows HeroSlides through a window event. */
+export function HeroCounter({ total }: { total: number }) {
+  const still = useStill()
+  const [index, setIndex] = useState(0)
+  useEffect(() => {
+    const on = (e: Event) => setIndex(Number((e as CustomEvent<number>).detail) || 0)
+    window.addEventListener(FRAME_EVENT, on)
+    return () => window.removeEventListener(FRAME_EVENT, on)
+  }, [])
+  const pad = (v: number) => String(v).padStart(2, '0')
+  if (still) return null
+  return (
+    <span className={`${t.label} ${t.heroLabel} ${t.counter}`} aria-hidden="true">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <m.span
+          key={index}
+          className={t.counterNow}
+          initial={{ y: '100%', opacity: 0 }}
+          animate={{ y: '0%', opacity: 1 }}
+          exit={{ y: '-100%', opacity: 0 }}
+          transition={{ duration: 0.7, ease: EASE_OUT }}
+        >
+          {pad(index + 1)}
+        </m.span>
+      </AnimatePresence>
+      <span>/</span>
+      <span>{pad(total)}</span>
+    </span>
   )
 }

@@ -25,6 +25,7 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     popular: p.popular,
     choosePack: p.choosePack,
     madeOn: p.madeOn,
+    allPortfolio: p.allPortfolio,
   }
 }
 
