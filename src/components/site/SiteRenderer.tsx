@@ -14,6 +14,8 @@ import { ThemeZhurnal } from './journal/ThemeZhurnal'
 import { MIDNIGHT_FONT_VARS } from './midnight/fonts'
 import { START_FONT_VARS } from './start/fonts'
 import { ThemeStart } from './start/ThemeStart'
+import { TENDER_FONT_VARS } from './nizhnist/fonts'
+import { ThemeNizhnist } from './nizhnist/ThemeNizhnist'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -352,6 +354,7 @@ export function SiteRenderer({
   type CardThemeProps = Parameters<typeof ThemeStart>[0]
   const cardThemes: Partial<Record<ThemeId, { Component: (p: CardThemeProps) => React.ReactElement; fonts: object }>> = {
     start: { Component: ThemeStart, fonts: START_FONT_VARS },
+    nizhnist: { Component: ThemeNizhnist, fonts: TENDER_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {
