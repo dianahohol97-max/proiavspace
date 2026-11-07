@@ -38,6 +38,8 @@ import { loadClientEmailState } from '@/lib/gallery/ready-email-store'
 import { parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
+import { HowItWorks } from '@/components/gallery/HowItWorks'
+import { galleryHelp } from '@/lib/gallery/help'
 import { daysLeft, purgeDate } from '@/lib/free-expiry'
 import type { Asset, Gallery } from '@/lib/types'
 
@@ -51,6 +53,7 @@ export default async function ManageGalleryPage({
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const dict = await getDictionary(locale)
+  const help = galleryHelp(locale)
 
   const supabase = createSupabaseServerClient()
   const {
@@ -326,6 +329,7 @@ export default async function ManageGalleryPage({
           error: dict.galleryManage.deliveryError,
         }}
       />
+      <HowItWorks help={help.delivery} testId="help-delivery" />
 
       <ClientEmailControl
         available={clientEmail.available}
@@ -471,6 +475,7 @@ export default async function ManageGalleryPage({
           />
           )}
         </div>
+        <HowItWorks help={help.upload} testId="help-upload" />
       </section>
 
       {cullingPhotos.length > 0 && (
@@ -484,6 +489,7 @@ export default async function ManageGalleryPage({
           ownerId={user.id}
         />
       )}
+      {cullingPhotos.length > 0 && <HowItWorks help={help.culling} testId="help-culling" />}
 
       <section className="mt-12">
         {previews.length > 0 && (
