@@ -89,6 +89,7 @@ export default async function ThemePreviewPage({
         displayName={demo.displayName}
         logoUrl={null}
         portfolio={demo.portfolio}
+        freeDates={demo.freeDates}
         labels={labels}
         leadForm={{ handle: null, labels: leadFormLabels }}
       />

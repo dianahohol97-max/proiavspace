@@ -19,6 +19,21 @@ export interface ThemeDemo {
   displayName: string
   content: SiteContent
   portfolio: PortfolioItem[]
+  /** Sample free dates for themes with a calendar (real sites: booking slots). */
+  freeDates?: string[]
+}
+
+/** A few weekend dates over the next six weeks, for calendar demos. */
+function sampleFreeDates(): string[] {
+  const out: string[] = []
+  const day = new Date()
+  day.setHours(12, 0, 0, 0)
+  for (let i = 3; i < 45 && out.length < 7; i++) {
+    const d = new Date(day.getTime() + i * 86_400_000)
+    const wd = d.getDay()
+    if ((wd === 5 && i % 2 === 0) || wd === 6 || (wd === 0 && i % 3 === 0)) out.push(d.toISOString().slice(0, 10))
+  }
+  return out
 }
 
 /** A /themes photo by number, or any other public path as-is. */
@@ -813,6 +828,78 @@ export const THEME_DEMOS: ThemeDemo[] = [
         width: 1333,
         height: 2000,
       },
+    ],
+  },
+  {
+    value: 'sviato',
+    theme: 'sviato',
+    mode: 'light',
+    name: 'Свято',
+    suits: 'Дні народження, хрестини, корпоративи',
+    displayName: 'Тарас Іскра',
+    content: content({
+      hero: {
+        title: 'Тарас Іскра',
+        subtitle: 'Знімаю свята так, щоб гості потім шукали себе в кожному кадрі',
+        imageId: '1',
+        city: 'Дніпро',
+        directions: ['Дні народження', 'Хрестини', 'Корпоративи'],
+      },
+      about: {
+        text: 'Я той фотограф, якого не помічають на святі, доки не побачать фото. Працюю швидко, з живим світлом і фотобудкою, а найкращі кадри показую гостям ще до кінця вечора.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '1 000 ₴ — і дата за вами',
+        delivery: '30 кадрів наступного дня, решта за тиждень',
+        travel: 'Дніпро без доплат; область — 10 ₴/км',
+        bring: 'список важливих гостей і моментів — решту візьму на себе',
+      },
+      gifts: {
+        enabled: true,
+        items: [
+          { kind: 'certificate', enabled: true, title: 'Сертифікат на свято', text: 'Подаруйте друзям зйомку їхнього дня народження чи хрестин.', price: 'від 2 000 ₴', imageId: '' },
+          { kind: 'book', enabled: false, title: '', text: '', price: '', imageId: '' },
+          { kind: 'prints', enabled: true, title: 'Стрічки з фотобудки', text: 'Друкуємо на місці: кожен гість забирає свою стрічку.', price: 'від 1 500 ₴', imageId: '' },
+        ],
+      },
+      testimonials: {
+        items: [
+          { names: 'Наталя, 40 років', text: 'Фотобудка була хітом вечора, а кадри з танцполу — найкращі в моєму житті!', photoId: '' },
+          { names: 'Команда «Сокіл»', text: 'Корпоратив на 80 людей — і кожен знайшов себе в галереї. Дякуємо!', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'День народження', price: 'від 4 000 ₴', includes: ['до 3 годин', 'репортаж і портрети гостей', '150+ кадрів'] },
+          {
+            name: 'Свято + фотобудка',
+            price: 'від 7 500 ₴',
+            includes: ['до 4 годин', 'фотобудка з реквізитом', 'друк стрічок на місці', '250+ кадрів'],
+            featured: true,
+          },
+          { name: 'Хрестини', price: 'від 3 500 ₴', includes: ['церемонія і застілля', 'сімейні портрети', '120+ кадрів'] },
+        ],
+      },
+      contact: { email: 'taras@example.com', phone: '+380 68 100 20 30', instagram: '@taras.iskra', telegram: 'taras_iskra', bookingUrl: '' },
+    }),
+    get freeDates() {
+      return sampleFreeDates()
+    },
+    // The photo-booth strip: 1–4. TEMPORARY (until assets/sviato): evening
+    // frames of the «Опівніч» set.
+    portfolio: [
+      phn('1', '/themes/27', 'Дні народження', 'Іскри', [1333, 2000]),
+      phn('2', '/themes/28', 'Дні народження', 'Щасливі', [1333, 2000]),
+      phn('3', '/themes/29', 'Корпоративи', 'Вогні', [1333, 2000]),
+      phn('4', '/themes/26', 'Корпоративи', 'Танець', [2000, 1335]),
+      phn('5', '/themes/25', 'Корпоративи', 'Коридор із вогнів', [2000, 1333]),
+      phn('6', '/themes/30', 'Хрестини', 'Остання година сонця', [2000, 1374]),
+      phn('7', '/themes/38', 'Дні народження', 'Тепло на обличчі', [1416, 2000]),
+      phn('8', '/themes/37', 'Дні народження', 'Червоне світло', [2000, 1333]),
+      phn('9', '/themes/39', 'Хрестини', 'Вікно у вечір', [1600, 2000]),
+      phn('10', '/themes/35', 'Корпоративи', 'Вогні міста', [1333, 2000]),
+      phn('11', '/themes/36', 'Хрестини', 'Боке', [1500, 2000]),
     ],
   },
   {

@@ -24,6 +24,7 @@ export const THEME_IDS = [
   'kontent',
   'lyst',
   'portret',
+  'sviato',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -188,6 +189,16 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Studio Sans", "Studio Sans Fallback", Arial, sans-serif',
     },
   },
+  sviato: {
+    id: 'sviato',
+    tokens: {
+      ...base,
+      // «Свято»: party cream, deep violet ink, tomato (5:1) and confetti
+      // colours used behind dark text only.
+      bg: '#fff8ef', fg: '#1d1a2b', muted: '#5f5a6e', accent: '#c23a26', line: '#efe3d2',
+      fontDisplay: '"Party Sans", "Party Sans Fallback", Arial, sans-serif',
+    },
+  },
 }
 
 /**
@@ -200,6 +211,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   kontent: { theme: 'galereia', mode: 'light' },
   lyst: { theme: 'tysha', mode: 'light' },
   portret: { theme: 'galereia', mode: 'light' },
+  sviato: { theme: 'tysha', mode: 'night' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -285,4 +297,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'kontent', theme: 'kontent', mode: 'light' },
   { value: 'lyst', theme: 'lyst', mode: 'light' },
   { value: 'portret', theme: 'portret', mode: 'light' },
+  { value: 'sviato', theme: 'sviato', mode: 'light' },
 ]

@@ -55,7 +55,7 @@ export interface CardData {
   navLinks: { href: string; label: string }[]
   L: Required<Pick<SiteLabels,
     'photographer' | 'termsTitle' | 'giftsTitle' | 'order' | 'filterAll' | 'testimonials' | 'popular' | 'choosePack' | 'madeOn' | 'menu' | 'bookDate' | 'allPortfolio'
-    | 'before' | 'after' | 'howToPrepare' | 'compareRetouch'
+    | 'before' | 'after' | 'howToPrepare' | 'compareRetouch' | 'freeDates' | 'freeShort'
   >>
 }
 
@@ -119,6 +119,8 @@ export function buildCard({
     after: labels.after ?? 'Після',
     howToPrepare: labels.howToPrepare ?? 'Як підготуватися',
     compareRetouch: labels.compareRetouch ?? 'Порівняти до і після ретуші',
+    freeDates: labels.freeDates ?? 'Вільні дати',
+    freeShort: labels.freeShort ?? 'вільно',
   }
 
   const t = content.terms
