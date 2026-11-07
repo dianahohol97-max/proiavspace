@@ -51,7 +51,7 @@ function spreadJson(id: string, projectId: string, assetId: string | null, slots
 }
 
 describe('альбоми: міграції 0061–0062', () => {
-  test('накочуються без помилок', { skip: skip() }, () => {
+  test('накочуються без помилок (разом з 0064)', { skip: skip() }, () => {
     const failed = Object.keys(pg!.failedMigrations).filter((f) => f.startsWith('006'))
     assert.deepEqual(failed, [])
   })
@@ -147,5 +147,87 @@ describe('альбоми: міграції 0061–0062', () => {
     pg!.sql(`delete from public.assets where id = '${a.assetId}'`)
     assert.equal(pg!.sql(`select count(*) from public.album_slots s join public.album_spreads p on p.id = s.spread_id
       where p.project_id = '${projectId}' and s.asset_id is not null`), '0')
+  })
+})
+
+describe('альбоми: 0064 — текст, поворот, корінець, службова галерея', () => {
+  const create = (userId: string, gallery: string | null) =>
+    as('authenticated', userId, `select public.album_create_project('Весілля', ${SPEC}, null, ${gallery ? `'${gallery}'` : 'null'})`)
+  const galleryOf = (projectId: string) => pg!.sql(`select gallery_id from public.album_projects where id = '${projectId}'`)
+  const expiry = (galleryId: string) =>
+    pg!.sql(`select coalesce(to_char(free_expires_at - now(), 'DD'), 'null') from public.galleries where id = '${galleryId}'`)
+
+  test('порожній альбом: службова галерея створюється без строку Free, позначка лише з RPC', { skip: skip() }, () => {
+    const a = account()
+    // Free account: an ordinary gallery gets 30 days.
+    assert.match(expiry(a.galleryId), /^(29|30)$/)
+    const r = create(a.userId, null)
+    assert.ok(r.ok, r.out)
+    const g = galleryOf(r.out)
+    assert.notEqual(g, a.galleryId)
+    assert.equal(pg!.sql(`select owns_gallery || '|' || (select is_published from public.galleries where id = '${g}') from public.album_projects where id = '${r.out}'`), 'true|false')
+    assert.equal(expiry(g), 'null')
+    // Client gallery as the source: Free rules untouched.
+    const fromGallery = create(a.userId, a.galleryId)
+    assert.ok(fromGallery.ok, fromGallery.out)
+    assert.equal(pg!.sql(`select owns_gallery::text from public.album_projects where id = '${fromGallery.out}'`), 'false')
+    assert.match(expiry(a.galleryId), /^(29|30)$/)
+  })
+
+  test('позначку не підробити: insert/update з клієнта і чужа галерея в RPC', { skip: skip() }, () => {
+    const a = account()
+    const b = account()
+    const forged = as('authenticated', a.userId, `insert into public.album_projects (owner_id, title, gallery_id, spec, owns_gallery)
+      values ('${a.userId}', 'X', '${a.galleryId}', ${SPEC}, true) returning id`)
+    assert.ok(forged.ok, forged.out)
+    assert.equal(pg!.sql(`select owns_gallery::text from public.album_projects where id = '${forged.out}'`), 'false')
+    as('authenticated', a.userId, `update public.album_projects set owns_gallery = true where id = '${forged.out}'`)
+    assert.equal(pg!.sql(`select owns_gallery::text from public.album_projects where id = '${forged.out}'`), 'false')
+    assert.match(expiry(a.galleryId), /^(29|30)$/)
+    // Move an existing service album onto a client gallery: refused silently (gallery_id kept).
+    const own = create(a.userId, null)
+    const service = galleryOf(own.out)
+    as('authenticated', a.userId, `update public.album_projects set gallery_id = '${a.galleryId}' where id = '${own.out}'`)
+    assert.equal(galleryOf(own.out), service)
+    const foreign = create(a.userId, b.galleryId)
+    assert.equal(foreign.ok, false)
+    assert.equal(as('anon', null, `select public.album_create_project('X', ${SPEC}, null, null)`).ok, false)
+  })
+
+  test('опублікувала службову галерею — звичайні 30 днів; зняла з публікації — знову без строку', { skip: skip() }, () => {
+    const a = account()
+    const g = galleryOf(create(a.userId, null).out)
+    as('authenticated', a.userId, `update public.galleries set is_published = true where id = '${g}'`)
+    assert.match(expiry(g), /^(29|30)$/)
+    as('authenticated', a.userId, `update public.galleries set is_published = false where id = '${g}'`)
+    assert.equal(expiry(g), 'null')
+    // Server-side rules (partner period end, backfills) cannot re-arm it either.
+    pg!.sql(`update public.galleries set free_expires_at = now() + interval '30 days' where id = '${g}'`)
+    assert.equal(expiry(g), 'null')
+  })
+
+  test('альбом видалено — службова галерея отримує звичайний строк', { skip: skip() }, () => {
+    const a = account()
+    const p = create(a.userId, null).out
+    const g = galleryOf(p)
+    as('authenticated', a.userId, `delete from public.album_projects where id = '${p}'`)
+    assert.match(expiry(g), /^(29|30)$/)
+  })
+
+  test('збереження розвороту з поворотом, текстом і корінцем', { skip: skip() }, () => {
+    const a = account()
+    const p = create(a.userId, a.galleryId).out
+    const spreadId = pg!.sql('select gen_random_uuid()')
+    const spread = JSON.parse(spreadJson(spreadId, p, a.assetId, 1))
+    spread.kind = 'cover'
+    spread.spine_mm = 17.5
+    spread.slots[0].rotation = -92.5
+    spread.texts = [{ id: 't1', x: 310, y: 150, text: 'Аня & Тарас', font: 'cormorant', sizePt: 24, color: '#ffffff', align: 'center', rotation: 90, lineHeight: 1.25 }]
+    const r = as('authenticated', a.userId, `select public.album_save_spread('${JSON.stringify(spread)}'::jsonb)`)
+    assert.ok(r.ok, r.out)
+    assert.equal(pg!.sql(`select rotation from public.album_slots where spread_id = '${spreadId}'`), '-92.50')
+    assert.equal(pg!.sql(`select spine_mm || '|' || (texts -> 0 ->> 'text') from public.album_spreads where id = '${spreadId}'`), '17.5|Аня & Тарас')
+    spread.texts = 'oops'
+    assert.equal(as('authenticated', a.userId, `select public.album_save_spread('${JSON.stringify(spread)}'::jsonb)`).ok, false)
   })
 })

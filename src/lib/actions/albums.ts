@@ -8,7 +8,6 @@
  * asks for originals (signOriginals), a few at a time.
  */
 import { redirect } from 'next/navigation'
-import { slugify } from '@/lib/slug'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { normalizeSpec, profileFromRow, rowFromSpec, type PrintProfileRow } from '@/lib/album/profiles'
@@ -141,33 +140,21 @@ export async function createAlbumProject(input: {
   galleryId: string | null
 }): Promise<ActionResult<{ id: string }>> {
   return wrap(async () => {
-    const { supabase, user } = await requireUser()
+    const { supabase } = await requireUser()
     const title = input.title.trim().slice(0, 120)
     if (!title) throw new Error('Вкажіть назву альбому')
     const spec = normalizeSpec(input.spec)
-    let galleryId = input.galleryId
-    if (galleryId) {
-      const { data: own } = await supabase.from('galleries').select('id').eq('id', galleryId).eq('owner_id', user.id).maybeSingle()
-      if (!own) throw new Error('Галерею не знайдено')
-    } else {
-      // «Порожній» альбом: фото вантажаться в неопубліковану галерею — той
-      // самий конвеєр (квота, прев'ю, очищення), клієнтам вона не видна.
-      const { data: gallery, error } = await supabase
-        .from('galleries')
-        .insert({ owner_id: user.id, slug: slugify(`albom ${title}`), title: `Альбом: ${title}`.slice(0, 200) })
-        .select('id')
-        .single()
-      if (error) throw new Error(error.message)
-      galleryId = gallery.id
-    }
-    const profileId = input.profileId && UUID.test(input.profileId) ? input.profileId : null
-    const { data, error } = await supabase
-      .from('album_projects')
-      .insert({ owner_id: user.id, title, spec, profile_id: profileId, gallery_id: galleryId })
-      .select('id')
-      .single()
-    if (error) throw new Error(error.message)
-    return { id: data.id as string }
+    // One RPC (0064): checks the gallery is the caller's, or creates the
+    // album's own unpublished service gallery and marks it — that mark keeps
+    // the gallery out of the Free 30-day cleanup while the album exists.
+    const { data, error } = await supabase.rpc('album_create_project', {
+      p_title: title,
+      p_spec: spec,
+      p_profile: input.profileId && UUID.test(input.profileId) ? input.profileId : null,
+      p_gallery: input.galleryId && UUID.test(input.galleryId) ? input.galleryId : null,
+    })
+    if (error) throw new Error(error.message.includes('gallery_not_found') ? 'Галерею не знайдено' : error.message)
+    return { id: data as string }
   })
 }
 
