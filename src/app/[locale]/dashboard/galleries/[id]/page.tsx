@@ -296,6 +296,7 @@ export default async function ManageGalleryPage({
         labels={{
           title: dict.galleryManage.deliveryTitle,
           hint: dict.galleryManage.deliveryHint,
+          teaser: dict.galleryManage.deliveryTeaserHint,
           none: dict.galleryManage.deliveryNone,
           shot: dict.galleryManage.deliveryShot,
           editing: dict.galleryManage.deliveryEditing,

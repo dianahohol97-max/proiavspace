@@ -6,6 +6,8 @@ import type { GalleryDeliveryStatus } from '@/lib/types'
 export interface DeliveryControlLabels {
   title: string
   hint: string
+  /** «Додайте один кадр-тизер…» — under the switcher. */
+  teaser: string
   none: string
   shot: string
   editing: string
@@ -111,6 +113,10 @@ export function DeliveryStatusControl({
           )
         })}
       </div>
+
+      <p className="mt-3 max-w-xl text-xs leading-relaxed text-muted" data-testid="delivery-teaser-hint">
+        {labels.teaser}
+      </p>
 
       {showEta && (
         <div className="mt-5 flex max-w-md flex-col gap-1">

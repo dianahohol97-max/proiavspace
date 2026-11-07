@@ -43,6 +43,7 @@ export default async function E2EDeliveryControl({
         labels={{
           title: t.deliveryTitle,
           hint: t.deliveryHint,
+          teaser: t.deliveryTeaserHint,
           none: t.deliveryNone,
           shot: t.deliveryShot,
           editing: t.deliveryEditing,

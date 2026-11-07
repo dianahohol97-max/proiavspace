@@ -143,6 +143,7 @@ export const en: Dictionary = {
     deliveryShot: 'Shoot done',
     deliveryEditing: 'Editing',
     deliveryReady: 'Ready',
+    deliveryTeaserHint: 'Add one teaser frame — the client sees it in the background while the gallery is being edited.',
     deliveryEtaLabel: 'Estimated ready date',
     deliveryEtaHint: 'Optional. The client sees “expected by …”.',
     deliveryEtaClear: 'Clear date',

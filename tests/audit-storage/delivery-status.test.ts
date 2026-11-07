@@ -44,8 +44,13 @@ describe('вибір: екран / плашка / звичайна галере�
     assert.equal(deliveryView('editing', 0), 'screen')
   })
 
-  test("'shot' / 'editing' з кількома прев'ю → галерея з плашкою", () => {
-    assert.equal(deliveryView('shot', 1), 'banner')
+  test("один видимий кадр (обкладинка / тизер) не рахується як «фото є» → екран статусу", () => {
+    assert.equal(deliveryView('shot', 1), 'screen')
+    assert.equal(deliveryView('editing', 1), 'screen')
+  })
+
+  test("'shot' / 'editing' з 2+ видимими кадрами → галерея з плашкою", () => {
+    assert.equal(deliveryView('shot', 2), 'banner')
     assert.equal(deliveryView('editing', 3), 'banner')
   })
 
@@ -58,9 +63,12 @@ describe('вибір: екран / плашка / звичайна галере�
     const onlyHidden = [{ hidden_from_client: true }, { hidden_from_client: true }]
     assert.equal(countVisibleAssets(onlyHidden), 0)
     assert.equal(deliveryView('editing', countVisibleAssets(onlyHidden)), 'screen')
-    const mixed = [...onlyHidden, { hidden_from_client: false }]
-    assert.equal(countVisibleAssets(mixed), 1)
-    assert.equal(deliveryView('editing', countVisibleAssets(mixed)), 'banner')
+    // Hidden frames + one visible: still a single (teaser) frame → screen.
+    const oneVisible = [...onlyHidden, { hidden_from_client: false }]
+    assert.equal(countVisibleAssets(oneVisible), 1)
+    assert.equal(deliveryView('editing', countVisibleAssets(oneVisible)), 'screen')
+    const twoVisible = [...oneVisible, { hidden_from_client: false }]
+    assert.equal(deliveryView('editing', countVisibleAssets(twoVisible)), 'banner')
     assert.equal(countVisibleAssets(null), 0)
     assert.equal(countVisibleAssets(undefined), 0)
   })
@@ -85,6 +93,15 @@ describe('обкладинка на фоні екрана статусу', () =>
     assert.equal(deliveryCoverKey([photo('a'), photo('b')], 'b'), 'b/m.webp')
     assert.equal(deliveryCoverKey([photo('a'), photo('b')], null), 'a/m.webp')
     assert.equal(deliveryCoverKey([photo('a', { variants: { preview: 'a/p.jpg' } })], null), 'a/p.jpg')
+  })
+
+  test('єдиний видимий кадр — тизер на фоні екрана (з cover_asset_id чи без)', () => {
+    const teaser = [photo('h1', { hidden_from_client: true }), photo('t'), photo('h2', { hidden_from_client: true })]
+    assert.equal(deliveryView('editing', countVisibleAssets(teaser)), 'screen')
+    assert.equal(deliveryCoverKey(teaser, null), 't/m.webp')
+    assert.equal(deliveryCoverKey(teaser, 't'), 't/m.webp')
+    // The chosen cover is hidden → the single visible frame instead, never the hidden one.
+    assert.equal(deliveryCoverKey(teaser, 'h1'), 't/m.webp')
   })
 
   test('приховані не беруться: прихована обкладинка → наступне видиме, усі приховані → null', () => {
@@ -206,6 +223,12 @@ describe('кабінет: збереження статусу', () => {
     assert.doesNotMatch(dashboard, /saved-state|\?\? 'null'/)
     const control = source('src/components/gallery/DeliveryStatusControl.tsx')
     assert.doesNotMatch(control, /'null'|JSON\.stringify/)
+  })
+
+  test('під перемикачем — підказка про кадр-тизер (uk/en)', () => {
+    assert.match(uk.galleryManage.deliveryTeaserHint, /кадр-тизер/)
+    assert.match(en.galleryManage.deliveryTeaserHint, /teaser/)
+    assert.match(dashboard, /teaser: dict\.galleryManage\.deliveryTeaserHint/)
   })
 
   test('сторінка галереї в кабінеті показує перемикач і читає поля', () => {

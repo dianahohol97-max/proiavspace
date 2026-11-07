@@ -30,9 +30,12 @@ export function parseDeliveryEta(value: unknown): string | null {
  * What the client sees at the gallery link (after the password / closed
  * checks, which always come first):
  *   - 'gallery' — the ordinary gallery, exactly as before (status null or 'ready');
- *   - 'screen'  — the status screen instead of an empty page ('shot'/'editing', no visible photos);
+ *   - 'screen'  — the status screen instead of an empty page ('shot'/'editing'
+ *                 with 0 or 1 visible photos: a single visible frame is the
+ *                 cover/teaser and is shown blurred behind the screen, it
+ *                 does not count as «фото є»);
  *   - 'banner'  — the ordinary gallery with a small «в обробці» strip on top
- *                 ('shot'/'editing', some photos already visible).
+ *                 ('shot'/'editing', 2+ photos already visible).
  */
 export type DeliveryView = 'gallery' | 'screen' | 'banner'
 
@@ -41,7 +44,7 @@ export function deliveryView(
   visiblePhotoCount: number
 ): DeliveryView {
   if (status !== 'shot' && status !== 'editing') return 'gallery'
-  return visiblePhotoCount > 0 ? 'banner' : 'screen'
+  return visiblePhotoCount >= 2 ? 'banner' : 'screen'
 }
 
 /** Photos hidden from the client (assets.hidden_from_client, 0054) never count as «фото є». */
