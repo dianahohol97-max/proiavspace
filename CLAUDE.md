@@ -16,5 +16,7 @@
     - `0058` — бронювання (`release/6`, `0058_booking_all_day_slots.sql`), не застосована
     - `0059` — AI-відбір кадрів (`release/7`, `0059_culling_decisions.sql`: рішення відбору в акаунті), не застосована; код `release/7` без неї працює (IndexedDB)
     - `0060` — захист БД (`feat/db-hardening` → `release/4`, `0060_db_hardening.sql`): search_path для `normalize_email`/`plan_storage_bytes`; без EXECUTE для anon: `profiles_clear_free_expiry` (також authenticated), `owner_has_paid_plan`; `release_expired_slots` лише власнику; не застосована
-    - **наступний вільний номер — `0061`**
+    - `0064` — обране для Lightroom + лист «Ваші фото готові» (`feat/client-picks` → `release/4`, `0064_client_picks_ready_email.sql`): `assets.source_file_name`; `galleries.client_email`/`client_email_consent_at`/`ready_email_sent_at` без грантів для anon/authenticated; не застосована; код `release/4` без неї працює (завантаження без назви, блок листа показує «після оновлення бази»)
+    - `0061`–`0063` — тут не записані: номер `0064` призначила власниця (якщо їх ніхто не взяв — вони вільні)
+    - **наступний вільний номер — `0065`**
   - Нова міграція має бути безпечною для коду, що зараз на проді (нові колонки з дефолтами, `create or replace` з тими самими сигнатурами). Якщо код без міграції падає, написати це в PR явно.

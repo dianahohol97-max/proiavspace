@@ -91,6 +91,11 @@ export interface Asset {
   /** Hidden from the client (future AI culling, migration 0054): the owner
    *  sees it, the public gallery, archive and selections never do. */
   hidden_from_client: boolean
+  /** File name exactly as on the photographer's disk (migration 0064);
+   *  null/absent for older uploads — use lib/gallery/client-picks assetOriginalName. */
+  source_file_name?: string | null
+  /** File name inside an imported zip (0037). */
+  original_name?: string | null
   created_at: string
 }
 
