@@ -48,6 +48,9 @@ export default defineConfig({
       // Opens /[locale]/e2e/themes/[value] — the theme demos, which the
       // public /themes routes redirect away from (tests/e2e/tysha.spec.ts).
       E2E_THEME_PREVIEW: '1',
+      // Opens /[locale]/e2e/albums — the album builder on localStorage and the
+      // bundled showcase photos (tests/e2e/albums.spec.ts).
+      E2E_ALBUM_DEMO: '1',
     },
   },
 })
