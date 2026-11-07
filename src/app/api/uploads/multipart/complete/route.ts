@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
   // From here the bytes are an object (counted through the asset row, or
   // discarded by registerAsset) — the reservation has done its job.
   const result = await registerAsset(supabase, user.id, register)
-  await releaseReservation(createSupabaseAdminClient(), multipart.uploadId)
+  await releaseReservation(createSupabaseAdminClient(), multipart.uploadId, user.id)
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status })
   }

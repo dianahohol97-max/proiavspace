@@ -54,9 +54,14 @@ export async function reserveUpload(
   }
 }
 
-export async function releaseReservation(admin: SupabaseClient | null, uploadId: string): Promise<void> {
+export async function releaseReservation(
+  admin: SupabaseClient | null,
+  uploadId: string,
+  ownerId: string
+): Promise<void> {
   if (!admin) return
-  const { error } = await admin.from(TABLE).delete().eq('upload_id', uploadId)
+  // Scoped to the caller: someone else's uploadId must not free their reservation.
+  const { error } = await admin.from(TABLE).delete().eq('upload_id', uploadId).eq('owner_id', ownerId)
   if (error && !isMissingTable(error)) {
     console.error('upload reservations: delete failed', error.message)
   }

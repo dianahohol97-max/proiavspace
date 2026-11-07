@@ -45,7 +45,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'key_mismatch' }, { status: 400 })
   }
 
-  await getStorage().abortMultipartUpload(body.key, body.uploadId)
-  await releaseReservation(createSupabaseAdminClient(), body.uploadId)
+  try {
+    await getStorage().abortMultipartUpload(body.key, body.uploadId)
+  } catch (cause) {
+    // Already completed or swept by the cron: nothing to abort, but the
+    // reservation must still go, or it holds quota for up to 24 h.
+    const err = cause as { name?: string; Code?: string }
+    if (err.name !== 'NoSuchUpload' && err.Code !== 'NoSuchUpload') throw cause
+  }
+  await releaseReservation(createSupabaseAdminClient(), body.uploadId, user.id)
   return NextResponse.json({ ok: true })
 }

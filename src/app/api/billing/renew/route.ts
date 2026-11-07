@@ -525,6 +525,8 @@ async function sendPromoReminders(
   const { data: due } = await admin
     .from('promo_grants')
     .select('user_id, ends_at')
+    // After 0056 rows of deleted accounts stay with user_id NULL — skip them.
+    .not('user_id', 'is', null)
     .is('reminder_sent_at', null)
     .is('autopay_at', null)
     .gt('ends_at', new Date(now).toISOString())
