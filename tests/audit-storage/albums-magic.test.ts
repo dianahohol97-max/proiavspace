@@ -16,6 +16,8 @@ import type { AlbumPhoto, AlbumSpread, PrintSpec } from '../../src/lib/album/typ
 import { buildMagicAlbum, buildMagicVariants, capacity, type MagicInput, type MagicStyle } from '../../src/lib/album/magic'
 import { STYLE_RULES, groupCost, partition, shotScale, spreadBudgets, type Item } from '../../src/lib/album/magic/compose'
 import { focalPoint, headsFit, visibleWindow } from '../../src/lib/album/magic/focal'
+import { magicCover } from '../../src/lib/album/magic/cover'
+import { formatFor } from '../../src/lib/album/geometry'
 import { apportion } from '../../src/lib/album/magic/select'
 import { chapterStarts, MINUTE, pauseThreshold, splitAt, storyOrder } from '../../src/lib/album/magic/story'
 
@@ -319,6 +321,19 @@ describe('збірка альбому', () => {
     assert.ok(g.photos.find((p) => p.id === coverPhoto)!.favorites || g.photos.find((p) => p.id === coverPhoto)!.retouch, 'обкладинка — не вибір клієнта')
   })
 
+  test('панорама на весь розворот — лише для героїв; вертикальні кадри не ріжуться в смугу', () => {
+    const portraits = makeGallery(120, 21)
+    for (const p of portraits.photos) {
+      p.width = 4000
+      p.height = 6000
+    }
+    for (const style of ['calm', 'rich', 'editorial'] as MagicStyle[]) {
+      const result = buildMagicAlbum(input(portraits, 12, style))
+      assert.equal(result.report.heroes, 0)
+      assert.ok(result.spreads.slice(1).every((s) => !s.layout.startsWith('spread:pano')), `${style}: панорама з вертикального`)
+    }
+  })
+
   test('мало фото: розворотів не більше, ніж кадрів; усе без дублів', () => {
     const small = makeGallery(8, 3)
     const result = buildMagicAlbum(input(small, 20, 'calm'))
@@ -413,6 +428,16 @@ describe('пари, гармонія, фокус', () => {
     assert.equal(focalPoint({ focalX: 0.2, focalY: 0.8 }, undefined).source, 'photographer')
     const s = focalPoint({}, { sharpness: 1, globalSharpness: 1, hash: '', faces: [], subject: { x: 0.7, y: 0.3, size: 0.1 } })
     assert.deepEqual([s.source, s.fx, s.fy], ['subject', 0.7, 0.3])
+  })
+
+  test('обкладинка: назва не лягає на обличчя', () => {
+    const cover = (faceY: number) => {
+      const it = item('c', { faces: [{ size: 0.3, blinkLeft: 0, blinkRight: 0, x: 0.45, y: faceY, w: 0.12, h: 0.15 }] }, 4000, 6000)
+      const spread = magicCover(it, spec3030, 10, 'Аня й Тарас', null, 'editorial', newId)
+      return spread.texts!.find((t) => t.rotation === 0 && t.text === 'Аня й Тарас')!.y / formatFor(spec3030, spread).heightMm
+    }
+    assert.ok(cover(0.15) > 0.5, 'обличчя вгорі — назва внизу')
+    assert.ok(cover(0.7) < 0.5, 'обличчя внизу — назва вгорі')
   })
 
   test('бюджет розворотів на розділи: сума = N, щонайменше 1, не більше, ніж кадрів', () => {

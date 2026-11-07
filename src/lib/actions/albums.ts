@@ -13,6 +13,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { normalizeSpec, profileFromRow, rowFromSpec, type PrintProfileRow } from '@/lib/album/profiles'
 import { normalizeRotation } from '@/lib/album/crop'
 import { sanitizeText } from '@/lib/album/texts'
+import { assetOriginalName, buildClientPicks, type PickSelection } from '@/lib/gallery/client-picks'
 import type {
   AlbumPhoto,
   AlbumProject,
@@ -171,6 +172,21 @@ export async function renameAlbumProject(id: string, title: string): Promise<Act
   })
 }
 
+/**
+ * Another print profile for an album (snapshot, like at creation). «Магічна
+ * збірка» offers it only while no photo is placed yet: a laid-out album is
+ * never re-flowed by a profile change.
+ */
+export async function setAlbumSpec(id: string, spec: PrintSpec): Promise<ActionResult<PrintSpec>> {
+  return wrap(async () => {
+    const { supabase, user } = await requireUser()
+    const clean = normalizeSpec(spec)
+    const { error } = await supabase.from('album_projects').update({ spec: clean }).eq('id', id).eq('owner_id', user.id)
+    if (error) throw new Error(error.message)
+    return clean
+  })
+}
+
 export async function deleteAlbumProject(id: string): Promise<ActionResult<null>> {
   return wrap(async () => {
     const { supabase, user } = await requireUser()
@@ -189,19 +205,31 @@ interface AssetRow {
   variants: Record<string, string> | null
   focal_x: number | null
   focal_y: number | null
+  // Columns of later migrations: absent until those are applied (select('*')).
+  taken_at?: string | null
+  hidden_from_client?: boolean | null
+  source_file_name?: string | null
+  original_name?: string | null
 }
 
 async function photosOf(supabase: ReturnType<typeof createSupabaseServerClient>, galleryId: string | null): Promise<AlbumPhoto[]> {
   if (!galleryId) return []
-  const { data, error } = await supabase
-    .from('assets')
-    .select('id, r2_key, width, height, variants, focal_x, focal_y')
-    .eq('gallery_id', galleryId)
-    .eq('kind', 'photo')
-    .order('position')
-    .order('created_at')
-    .returns<AssetRow[]>()
+  // '*' rather than a column list: taken_at (0067), source_file_name (0066)
+  // may not exist yet, and naming a missing column fails the whole query.
+  const [{ data, error }, { data: selections }] = await Promise.all([
+    supabase
+      .from('assets')
+      .select('*')
+      .eq('gallery_id', galleryId)
+      .eq('kind', 'photo')
+      .order('position')
+      .order('created_at')
+      .returns<AssetRow[]>(),
+    // Client hearts / retouch requests (owner-readable by RLS) for «Магічна збірка».
+    supabase.from('selections').select('asset_id, kind, client_token').eq('gallery_id', galleryId).returns<PickSelection[]>(),
+  ])
   if (error) throw new Error(error.message)
+  const picks = new Map(buildClientPicks(data ?? [], selections ?? []).map((p) => [p.assetId, p]))
   const storage = getStorage()
   const sign = async (key: string) => {
     try {
@@ -219,15 +247,21 @@ async function photosOf(supabase: ReturnType<typeof createSupabaseServerClient>,
         const v = a.variants ?? {}
         // Editor works on previews only; the original is never signed here.
         const [thumbUrl, previewUrl] = await Promise.all([sign(v.thumb ?? v.preview ?? a.r2_key), sign(v.preview ?? v.thumb ?? a.r2_key)])
+        const takenAt = a.taken_at ? Date.parse(a.taken_at) : NaN
+        const pick = picks.get(a.id)
         return {
           id: a.id,
           width: a.width!,
           height: a.height!,
           thumbUrl,
           previewUrl,
-          name: (a.r2_key.split('/').pop() ?? a.id).replace(/^[0-9a-f-]{37}/, ''),
+          name: assetOriginalName(a),
           focalX: a.focal_x === null ? null : a.focal_x / 100,
           focalY: a.focal_y === null ? null : a.focal_y / 100,
+          takenAt: Number.isFinite(takenAt) ? takenAt : null,
+          hidden: a.hidden_from_client === true,
+          favorites: pick?.favorites ?? 0,
+          retouch: (pick?.retouch ?? 0) > 0,
         }
       })
   )
@@ -247,7 +281,7 @@ interface SlotRow {
 }
 
 export async function loadAlbumProject(id: string): Promise<
-  ActionResult<{ project: AlbumProject; photos: AlbumPhoto[]; uploadGalleryId: string | null }>
+  ActionResult<{ project: AlbumProject; photos: AlbumPhoto[]; uploadGalleryId: string | null; galleryTitle: string | null }>
 > {
   return wrap(async () => {
     const { supabase, user } = await requireUser()
@@ -297,9 +331,14 @@ export async function loadAlbumProject(id: string): Promise<
     // Uploads go to the source gallery only when it is the album's own
     // (unpublished «Альбом: …») one — a client gallery is managed on its page.
     const { data: gallery } = row.gallery_id
-      ? await supabase.from('galleries').select('id, is_published').eq('id', row.gallery_id).maybeSingle<{ id: string; is_published: boolean }>()
+      ? await supabase.from('galleries').select('id, title, is_published').eq('id', row.gallery_id).maybeSingle<{ id: string; title: string; is_published: boolean }>()
       : { data: null }
-    return { project, photos: await photosOf(supabase, row.gallery_id), uploadGalleryId: gallery && !gallery.is_published ? gallery.id : null }
+    return {
+      project,
+      photos: await photosOf(supabase, row.gallery_id),
+      uploadGalleryId: gallery && !gallery.is_published ? gallery.id : null,
+      galleryTitle: gallery?.title ?? null,
+    }
   })
 }
 

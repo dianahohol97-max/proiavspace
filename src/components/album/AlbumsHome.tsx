@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { backendFor, type GalleryOption } from '@/lib/album/backend'
 import { EXAMPLE_PROFILES, describeSpec } from '@/lib/album/profiles'
+import { MAGIC_STYLES, type MagicStyle } from '@/lib/album/magic/types'
 import type { AlbumProjectSummary, PrintProfile } from '@/lib/album/types'
 import { btn, btnGhost, btnPrimary, card, input, label } from './ui'
 
@@ -26,6 +27,9 @@ export function AlbumsHome({ backendKind, basePath, editorPath }: { backendKind:
   const [source, setSource] = useState<'gallery' | 'empty'>('gallery')
   const [galleryId, setGalleryId] = useState('')
   const [auto, setAuto] = useState(true)
+  const [how, setHow] = useState<'magic' | 'all'>('magic')
+  const [magicSpreads, setMagicSpreads] = useState(20)
+  const [magicStyle, setMagicStyle] = useState<MagicStyle>('editorial')
 
   useEffect(() => {
     Promise.all([backend.listProjects(), backend.listProfiles(), backend.listGalleries()]).then(
@@ -55,7 +59,8 @@ export function AlbumsHome({ backendKind, basePath, editorPath }: { backendKind:
         profileId: chosenProfile.example ? null : chosenProfile.id,
         galleryId: fromGallery ? galleryId : null,
       })
-      router.push(`${editorPath}/${id}${fromGallery && auto ? '?auto=1' : ''}`)
+      const query = !fromGallery || !auto ? '' : how === 'magic' ? `?magic=1&spreads=${magicSpreads}&style=${magicStyle}` : '?auto=1'
+      router.push(`${editorPath}/${id}${query}`)
     } catch (e) {
       setError((e as Error).message)
       setBusy(false)
@@ -144,6 +149,44 @@ export function AlbumsHome({ backendKind, basePath, editorPath }: { backendKind:
                     <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
                     Одразу розкласти фото по розворотах (потім можна все змінити)
                   </label>
+                  {auto && (
+                    <div className="ml-6 flex flex-col gap-2" data-testid="new-album-how">
+                      <label className="flex items-start gap-2 text-sm">
+                        <input type="radio" name="how" className="mt-1" checked={how === 'magic'} onChange={() => setHow('magic')} />
+                        <span>
+                          ✨ Магічна збірка
+                          <span className="block text-xs text-muted">Кращі кадри за AI-відбором, історія за часом зйомки, герої й пари, обкладинка; три стилі на вибір.</span>
+                        </span>
+                      </label>
+                      {how === 'magic' && (
+                        <div className="ml-6 flex flex-wrap items-center gap-2 text-sm">
+                          <label className="flex items-center gap-1.5">
+                            Розворотів
+                            <input
+                              type="number"
+                              min={1}
+                              max={80}
+                              className={`${input} w-20`}
+                              value={magicSpreads}
+                              onChange={(e) => setMagicSpreads(Math.max(1, Math.min(80, Number(e.target.value) || 1)))}
+                              aria-label="Розворотів"
+                            />
+                          </label>
+                          <select className={`${input} w-auto`} value={magicStyle} onChange={(e) => setMagicStyle(e.target.value as MagicStyle)} aria-label="Стиль">
+                            {MAGIC_STYLES.map((x) => (
+                              <option key={x.id} value={x.id}>
+                                {x.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="radio" name="how" checked={how === 'all'} onChange={() => setHow('all')} />
+                        Усі фото підряд (автодизайн)
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
               {backendKind === 'server' && (

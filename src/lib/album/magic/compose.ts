@@ -48,7 +48,7 @@ function pageStats(layout: string) {
 export const STYLE_RULES: Record<MagicStyle, StyleRules> = {
   calm: {
     perSpread: 2.2,
-    min: 1,
+    min: 2,
     max: 3,
     heroEvery: 3,
     harmony: 1.4,
@@ -135,6 +135,8 @@ const SAME_SPREAD_DUP = 12
 export function groupCost(group: Item[], rules: StyleRules): number {
   const n = group.length
   let cost = 0.35 * (n - rules.perSpread) ** 2
+  // One ordinary frame on a spread leaves a page empty (heroes are separate).
+  if (n === 1) cost += 1.2
   let maxColour = 0
   let bw = 0
   let colour = 0
@@ -244,30 +246,35 @@ export interface ChapterPlan {
 }
 
 /** Per-chapter spread budgets (sum = spreads), never more spreads than photos in a chapter. */
-export function spreadBudgets(sizes: number[], spreads: number): number[] {
+export function spreadBudgets(sizes: number[], spreads: number, minPerSpread = 1): number[] {
   const total = Math.min(spreads, sizes.reduce((a, b) => a + b, 0))
-  const out = apportion(total, sizes, 1).map((b, i) => Math.min(b, sizes[i]!))
+  // A small chapter should not be stretched into half-empty spreads: at most
+  // size / minPerSpread spreads, unless the album cannot be filled otherwise.
+  const soft = sizes.map((n) => Math.max(1, Math.floor(n / Math.max(1, minPerSpread))))
+  const out = apportion(total, sizes, 1).map((b, i) => Math.min(b, soft[i]!))
   let left = total - out.reduce((a, b) => a + b, 0)
-  while (left > 0) {
-    // Hand spare spreads to chapters with the most photos per spread.
-    let best = -1
-    let ratio = -1
-    out.forEach((b, i) => {
-      if (b < sizes[i]! && sizes[i]! / Math.max(b, 1) > ratio) {
-        ratio = sizes[i]! / Math.max(b, 1)
-        best = i
-      }
-    })
-    if (best < 0) break
-    out[best]!++
-    left--
+  for (const cap of [soft, sizes]) {
+    while (left > 0) {
+      // Hand spare spreads to chapters with the most photos per spread.
+      let best = -1
+      let ratio = -1
+      out.forEach((b, i) => {
+        if (b < cap[i]! && sizes[i]! / Math.max(b, 1) > ratio) {
+          ratio = sizes[i]! / Math.max(b, 1)
+          best = i
+        }
+      })
+      if (best < 0) break
+      out[best]!++
+      left--
+    }
   }
   return out
 }
 
 export function planChapters(chapters: Item[][], spreads: number, style: MagicStyle, spreadAspect: number): ChapterPlan[] {
   const rules = STYLE_RULES[style]
-  const budgets = spreadBudgets(chapters.map((c) => c.length), spreads)
+  const budgets = spreadBudgets(chapters.map((c) => c.length), spreads, rules.min)
   let carry = 0.5
   return chapters.map((items, c) => {
     const budget = budgets[c]!
@@ -333,6 +340,8 @@ export function buildSpreads(plans: ChapterPlan[], spec: PrintSpec, style: Magic
       const shapes = group.map((g) => g.photo)
       const picked = pickLayout(shapes, format, options, previous, (layout, rects, order) => {
         let c = rules.layoutCost(layout)
+        // A panorama across the spread is the heroes' privilege.
+        if (layout.startsWith('spread:pano')) c += 3
         rects.forEach((r, s) => {
           const it = order[s]! >= 0 ? group[order[s]!] : undefined
           if (it && !headsFit(it.photo, it.focal, r.w / r.h)) c += 0.6

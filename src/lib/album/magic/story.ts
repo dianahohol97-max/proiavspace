@@ -79,11 +79,12 @@ export function pauseThreshold(values: number[], minGap: number, medianFactor = 
   const sorted = gaps.filter((g) => g > 0).sort((a, b) => a - b)
   if (!sorted.length) return Infinity
   const median = quantile(sorted, 0.5)
-  // The shoot's own rhythm: almost every gap is under its 95th percentile;
-  // a pause is several times longer than that. Bursts (gaps of a second or
-  // two) do not count — they would make every walk to the next spot a pause.
+  // The shoot's own rhythm: a pause is several times its upper quartile gap
+  // (the quartile, not a high percentile: in a small gallery the pauses
+  // themselves are a sizeable share of all gaps). Bursts (a second or two
+  // apart) do not set the rhythm — they would make every walk a pause.
   const rhythm = sorted.filter((g) => g >= burstGap)
-  const fence = 3 * quantile(rhythm.length ? rhythm : sorted, 0.95)
+  const fence = 4 * quantile(rhythm.length ? rhythm : sorted, 0.75)
   return Math.max(minGap, median * medianFactor, fence)
 }
 

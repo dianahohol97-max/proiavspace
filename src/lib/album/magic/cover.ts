@@ -10,6 +10,7 @@ import { formatFor, pageBoxes } from '../geometry'
 import type { IdFactory } from '../autofill'
 import type { AlbumSpread, AlbumText, PrintSpec } from '../types'
 import type { Item } from './compose'
+import { visibleWindow } from './focal'
 import type { MagicStyle } from './types'
 
 /** «12 вересня 2026»; takenAt is the camera's wall-clock time stored as UTC (0067). */
@@ -56,17 +57,38 @@ export function magicCover(
   const format = formatFor(spec, cover)
   const [, front] = pageBoxes(format)
   const texts: AlbumText[] = [...(cover.texts ?? [])]
-  // front-photo has no title in the preset: put one over the photo.
+  // front-photo has no title in the preset: put one over the photo, in the
+  // half away from the faces (a title across a face is the worst cover).
+  // Without faces: a masthead at the top — the top of a frame is usually sky
+  // or background, the bottom is where people stand.
+  let titleAt = 0.14
+  const slot = cover.slots.find((x) => x.assetId)
+  if (best && slot && best.focal.heads) {
+    const win = visibleWindow(best.photo.width / best.photo.height, slot.w / slot.h, best.focal.fx, best.focal.fy)
+    const toCover = (y: number) => (slot.y + ((y - win.y0) / (win.y1 - win.y0)) * slot.h) / format.heightMm
+    const top = toCover(best.focal.heads.y0)
+    const bottom = toCover(best.focal.heads.y1)
+    // Text band of the title (+ date) around each candidate baseline, as a share of the height.
+    const band = (at: number) => [at - 0.07, at + 0.06] as const
+    const gap = (at: number) => {
+      const [a, b] = band(at)
+      return Math.max(a - bottom, top - b)
+    }
+    titleAt = [0.14, 0.86, 0.93].reduce((bestAt, at) => (gap(at) > gap(bestAt) + 0.02 ? at : bestAt))
+  }
+  // Dark letters on a bright frame (sky, a white wall), white on a dark one.
+  const bright = (best?.analysis?.palette ?? []).filter((c) => c.l >= 78).reduce((sum, c) => sum + c.weight, 0)
+  const titleColor = bright >= 0.25 ? '#1f1f1f' : '#ffffff'
   let titleText = texts.find((t) => t.rotation === 0)
   if (!titleText && title) {
     titleText = {
       id: newId(),
       x: front.x + front.w / 2,
-      y: format.heightMm * 0.84,
+      y: format.heightMm * titleAt,
       text: title,
       font: DEFAULT_FONT_ID,
-      sizePt: 34,
-      color: '#ffffff',
+      sizePt: 40,
+      color: titleColor,
       align: 'center',
       rotation: 0,
       lineHeight: 1.25,
