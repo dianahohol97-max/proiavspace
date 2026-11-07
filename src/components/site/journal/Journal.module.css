@@ -33,6 +33,13 @@
   --j-section: clamp(88px, 10vw, 152px);
   --t-nav-h: 68px;
   --j-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --card-bg: var(--j-bg);
+  --card-fg: var(--j-fg);
+  --card-muted: var(--j-muted);
+  --card-line: var(--j-line);
+  --card-accent: var(--j-red);
+  --card-display: var(--j-serif);
+  --card-label: var(--j-sans);
 
   background: var(--j-bg);
   color: var(--j-fg);
@@ -387,13 +394,15 @@
   }
 }
 .issue {
+  gap: 0 0.4em;
   position: absolute;
   top: calc(3.5cqi + min(calc(92cqi / (var(--len) * 0.5)), 24cqi) * 0.9);
   left: 5cqi;
   right: 5cqi;
   margin: 0;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   border-top: 1px solid rgba(255, 255, 255, 0.6);
   padding-top: 6px;
   font-size: clamp(10px, 2.2cqi, 13px);
@@ -436,7 +445,7 @@
 .contents {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 22px;
   padding-bottom: 12px;
 }
@@ -688,166 +697,6 @@
   }
 }
 
-/* --------------------------------------------------- the spread turns --- */
-
-.spread {
-  margin-top: var(--j-section);
-}
-.spreadHead {
-  margin-bottom: clamp(24px, 3vw, 40px);
-}
-.spreadTitle {
-  margin: 10px 0 0;
-  font-family: var(--j-serif);
-  font-weight: 400;
-  font-size: clamp(40px, 5.6vw, 88px);
-  line-height: 0.95;
-  text-transform: uppercase;
-  max-width: 16ch;
-}
-.page {
-  position: relative;
-  overflow: hidden;
-  background: #ddd;
-  aspect-ratio: 3 / 4;
-}
-.pageFolio {
-  position: absolute;
-  bottom: 10px;
-  left: 12px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: #fff;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
-}
-/* fallback: two spreads, one under the other */
-.spreadStatic {
-  display: grid;
-  gap: clamp(24px, 3vw, 40px);
-}
-.staticSpread {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
-  max-width: 1100px;
-  margin-inline: auto;
-  width: 100%;
-  box-shadow: 0 24px 60px rgba(30, 20, 20, 0.12);
-}
-.spreadBook {
-  display: none;
-}
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .spreadStatic {
-      display: none;
-    }
-    .spreadBook {
-      display: block;
-      height: 190vh;
-      height: 190svh;
-      view-timeline-name: --j-spread;
-      view-timeline-axis: block;
-    }
-    .bookStage {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      height: 100svh;
-      display: grid;
-      place-items: center;
-      perspective: 2400px;
-      padding: var(--t-nav-h) var(--j-pad) 24px;
-    }
-    .book {
-      position: relative;
-      width: min(100%, 1100px, calc((100svh - var(--t-nav-h) - 60px) * 1.5));
-      aspect-ratio: 3 / 2;
-      transform-style: preserve-3d;
-      box-shadow: 0 30px 70px rgba(30, 20, 20, 0.16);
-    }
-    .pageLeft,
-    .pageRight {
-      position: absolute;
-      top: 0;
-      width: 50%;
-      height: 100%;
-      aspect-ratio: auto;
-    }
-    .pageLeft {
-      left: 0;
-    }
-    .pageRight {
-      right: 0;
-    }
-    .leaf {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 50%;
-      height: 100%;
-      transform-origin: left center;
-      transform-style: preserve-3d;
-      animation: jTurn linear both;
-      animation-timeline: --j-spread;
-      animation-range: contain 10% contain 75%;
-    }
-    .leafFront,
-    .leafBack {
-      position: absolute;
-      inset: 0;
-      aspect-ratio: auto;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-    }
-    .leafBack {
-      transform: rotateY(180deg);
-    }
-    /* the turning page catches a little shadow as it lifts */
-    .leafFront::after,
-    .leafBack::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background: linear-gradient(90deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0) 40%);
-      opacity: 0;
-      animation: jLeafShade linear both;
-      animation-timeline: --j-spread;
-      animation-range: contain 10% contain 75%;
-    }
-    .spine {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 50%;
-      width: 40px;
-      margin-left: -20px;
-      pointer-events: none;
-      background: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.18) 50%, rgba(0, 0, 0, 0) 100%);
-      transform: translateZ(2px);
-    }
-  }
-}
-@keyframes jTurn {
-  from {
-    transform: translateZ(1px) rotateY(0deg);
-  }
-  to {
-    transform: translateZ(1px) rotateY(-180deg);
-  }
-}
-@keyframes jLeafShade {
-  0%,
-  100% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
 /* --------------------------------------------------- editor's letter --- */
 
 .letter {
@@ -894,149 +743,6 @@
   .letterPortrait {
     max-width: 55%;
   }
-}
-
-/* ----------------------------------------------------- rubrics (series) --- */
-
-.series {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  gap: clamp(20px, 3vw, 40px);
-}
-.seriesItem {
-  margin: 0;
-  min-width: 0;
-}
-.seriesCover {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  padding: 0;
-  border: 0;
-  overflow: hidden;
-  cursor: pointer;
-  background: var(--j-line);
-}
-.seriesCover img {
-  transition: transform 1.4s var(--j-ease);
-}
-@media (hover: hover) {
-  .seriesItem:hover .seriesCover img {
-    transform: scale(1.04);
-  }
-}
-.seriesCover:focus-visible {
-  outline: 2px solid var(--j-red);
-  outline-offset: 3px;
-}
-.seriesMeta {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 12px;
-  align-items: baseline;
-  margin-top: 14px;
-  border-top: 2px solid var(--j-fg);
-  padding-top: 10px;
-}
-.seriesNo {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--j-red);
-}
-.seriesName {
-  margin: 0;
-  font-family: var(--j-serif);
-  font-weight: 400;
-  font-size: clamp(28px, 2.6vw, 40px);
-  line-height: 1;
-  text-transform: uppercase;
-}
-.seriesCount {
-  grid-column: 2;
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  align-items: center;
-}
-.seriesCount .label {
-  color: var(--j-muted);
-}
-.textLink {
-  position: relative;
-  background: none;
-  border: 0;
-  padding: 4px 0;
-  color: var(--j-fg);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  cursor: pointer;
-  text-decoration: none;
-}
-.textLink::after {
-  transform: scaleX(0.3);
-  transform-origin: left;
-}
-.textLink:hover::after,
-.textLink:focus-visible::after,
-.seriesItem:hover .textLink::after {
-  transform: scaleX(1);
-}
-.allLink {
-  font-size: 12px;
-  color: var(--j-red);
-}
-@media (max-width: 760px) {
-  .series {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    row-gap: 28px;
-  }
-  .seriesName {
-    font-size: 24px;
-  }
-  .seriesCount .label {
-    display: none;
-  }
-}
-
-/* ------------------------------------------------------- how we shoot --- */
-
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  gap: clamp(24px, 3vw, 48px);
-}
-.step {
-  border-top: 1px solid var(--j-fg);
-  padding-top: 14px;
-}
-.stepNo {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  color: var(--j-red);
-}
-.stepTitle {
-  margin: 10px 0 8px;
-  font-family: var(--j-serif);
-  font-weight: 400;
-  font-size: clamp(28px, 2.4vw, 36px);
-  line-height: 1;
-  text-transform: uppercase;
-}
-.stepText {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.65;
-  color: color-mix(in srgb, var(--j-fg) 82%, var(--j-bg));
 }
 
 /* --------------------------------------------------------- pull quotes --- */
@@ -1399,5 +1105,80 @@ select.input {
   text-decoration: none;
 }
 .footLinks a:hover {
+  color: var(--j-red);
+}
+
+/* ------------------------------------------------ visiting-card blocks --- */
+.issueNo {
+  margin-left: auto;
+  opacity: 0.85;
+}
+.coverDirections {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+/* on phones the cover carries the booking button (the contents fall below) */
+.coverCta {
+  display: none;
+}
+@media (max-width: 860px) {
+  .coverCta {
+    display: inline-flex;
+    justify-self: start;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 13px 18px;
+    background: #fff;
+    color: #141214;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+}
+.contentsCta {
+  display: block;
+}
+.filterChip {
+  border-radius: 0;
+  font-weight: 700;
+}
+.filterChipOn {
+  background: var(--j-red);
+  border-color: var(--j-red);
+  color: #fff;
+}
+/* filtered: magazine rows dissolve into an even grid of pages */
+.pages[data-filter]:not([data-filter='']) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 28px);
+}
+.pages[data-filter]:not([data-filter='']) .row:not([data-cat]) {
+  display: contents;
+}
+.pages[data-filter]:not([data-filter='']) .row[data-cat] {
+  display: block;
+  margin: 0;
+}
+.pages[data-filter]:not([data-filter='']) .folio,
+.pages[data-filter]:not([data-filter='']) .featureText {
+  display: none;
+}
+.pages[data-filter]:not([data-filter='']) .frame {
+  aspect-ratio: 4 / 5;
+}
+@media (max-width: 760px) {
+  .pages[data-filter]:not([data-filter='']) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.termsLabel {
+  font-style: italic;
+}
+.giftCta {
   color: var(--j-red);
 }

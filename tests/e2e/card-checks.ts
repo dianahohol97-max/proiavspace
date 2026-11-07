@@ -77,7 +77,7 @@ export function cardSuite(
         await page.waitForTimeout(3000)
         const vh = page.viewportSize()!.height
         for (const key of ['name', 'role', 'directions', 'city', 'book']) {
-          const el = page.locator(`[data-card=${key}]`).first()
+          const el = page.locator(`[data-card=${key}]:visible`).first()
           await expect(el, key).toBeVisible()
           const box = await el.boundingBox()
           expect(box, key).not.toBeNull()
