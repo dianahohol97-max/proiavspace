@@ -64,6 +64,8 @@ export function cardSuite(
         const context = await browser.newContext({ ...device, javaScriptEnabled: false })
         const page = await context.newPage()
         await page.goto(URL)
+        // CSS-only entrances may still be finishing; the visitor gets 5 seconds.
+        await page.waitForTimeout(3000)
         const vh = page.viewportSize()!.height
         for (const key of ['name', 'role', 'directions', 'city', 'book']) {
           const el = page.locator(`[data-card=${key}]`).first()

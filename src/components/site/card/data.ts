@@ -99,13 +99,7 @@ export function buildCard({
     if (c && !cats.includes(c)) cats.push(c)
   }
   const directions = content.hero.directions.length > 0 ? content.hero.directions : cats.slice(0, 5)
-  const counts = new Map<string, number>()
-  for (const p of grid) {
-    const c = p.category?.trim()
-    if (c) counts.set(c, (counts.get(c) ?? 0) + 1)
-  }
-  const order = [...directions.filter((d) => counts.has(d)), ...[...counts.keys()].filter((c) => !directions.includes(c))]
-  const filters = order.length >= 2 ? order.map((label) => ({ label, count: counts.get(label)! })) : []
+  const filters = filtersFor(grid, directions)
 
   const L = {
     photographer: labels.photographer ?? 'Фотограф',
@@ -200,3 +194,14 @@ export function buildCard({
 /** srcset-aware aspect ratio of a frame. */
 export const ratioOf = (p: PortfolioItem, fallback = '4 / 5') =>
   p.width && p.height ? `${p.width} / ${p.height}` : fallback
+
+/** Filter chips for a set of frames: directions first, then other categories; none for one direction. */
+export function filtersFor(items: PortfolioItem[], directions: string[]): CardFilter[] {
+  const counts = new Map<string, number>()
+  for (const p of items) {
+    const c = p.category?.trim()
+    if (c) counts.set(c, (counts.get(c) ?? 0) + 1)
+  }
+  const order = [...directions.filter((d) => counts.has(d)), ...[...counts.keys()].filter((c) => !directions.includes(c))]
+  return order.length >= 2 ? order.map((label) => ({ label, count: counts.get(label)! })) : []
+}
