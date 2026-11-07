@@ -53,6 +53,21 @@ export interface EditorLabels {
   priceName: string
   priceAmount: string
   priceIncludes: string
+  priceFeatured: string
+  aboutPhoto: string
+  photoNone: string
+  processLegend: string
+  processHint: string
+  processTitle: string
+  processText: string
+  processAdd: string
+  testimonialsLegend: string
+  testimonialsHint: string
+  testimonialNames: string
+  testimonialText: string
+  testimonialPhoto: string
+  testimonialAdd: string
+  removeItem: string
   contactLegend: string
   contactEmail: string
   contactPhone: string
@@ -78,6 +93,65 @@ interface Pack {
   name: string
   price: string
   includes: string
+  featured: boolean
+}
+
+/** Packages as saved/previewed: trimmed, empty names dropped. */
+function packsToItems(packs: Pack[]) {
+  return packs
+    .map((p) => ({
+      name: p.name.trim(),
+      price: p.price.trim(),
+      includes: p.includes.split('\n').map((s) => s.trim()).filter(Boolean),
+      ...(p.featured ? { featured: true } : {}),
+    }))
+    .filter((p) => p.name)
+}
+
+/** Compact thumbnail picker over the visible portfolio (portrait, couple photo). */
+function PhotoPicker({
+  items,
+  value,
+  onChange,
+  noneLabel,
+  small = false,
+}: {
+  items: PortfolioItem[]
+  value: string
+  onChange: (id: string) => void
+  noneLabel: string
+  small?: boolean
+}) {
+  return (
+    <div className={`grid gap-2 ${small ? 'grid-cols-8' : 'grid-cols-6'}`}>
+      <button
+        type="button"
+        onClick={() => onChange('')}
+        className={`flex aspect-square items-center justify-center rounded border-2 p-1 text-center text-[9px] leading-tight ${
+          value === '' ? 'border-accent text-accent' : 'border-line text-muted'
+        }`}
+      >
+        {noneLabel}
+      </button>
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onChange(item.id)}
+          aria-pressed={value === item.id}
+          aria-label={item.caption || item.category || item.id}
+          className={`aspect-square rounded border-2 transition-colors ${
+            value === item.id ? 'border-accent' : 'border-transparent hover:border-line'
+          }`}
+          style={
+            item.previewUrl
+              ? { background: `center / cover no-repeat url("${item.previewUrl}")` }
+              : { background: 'var(--color-border)' }
+          }
+        />
+      ))}
+    </div>
+  )
 }
 
 const inputClass =
@@ -141,8 +215,26 @@ export function SiteEditor({
           name: item.name,
           price: item.price,
           includes: item.includes.join('\n'),
+          featured: item.featured === true,
         }))
-      : [{ name: '', price: '', includes: '' }]
+      : [{ name: '', price: '', includes: '', featured: false }]
+  )
+  const [aboutImageId, setAboutImageId] = useState(content.about.imageId)
+  const [steps, setSteps] = useState(content.process.steps)
+  const [reviews, setReviews] = useState(content.testimonials.items)
+  const cleanSteps = useMemo(
+    () =>
+      steps
+        .map((st) => ({ title: st.title.trim(), text: st.text.trim() }))
+        .filter((st) => st.title || st.text),
+    [steps]
+  )
+  const cleanReviews = useMemo(
+    () =>
+      reviews
+        .map((r) => ({ names: r.names.trim(), text: r.text.trim(), photoId: r.photoId }))
+        .filter((r) => r.text),
+    [reviews]
   )
   const [contact, setContact] = useState(content.contact)
   const [languages, setLanguages] = useState<string[]>(content.settings.languages)
@@ -226,28 +318,22 @@ export function SiteEditor({
     () => ({
       hero: { title: heroTitle, subtitle: heroSubtitle, imageId: heroImageId },
       albumCovers,
-      about: { text: aboutText },
-      pricing: {
-        items: packs
-          .map((pack) => ({
-            name: pack.name.trim(),
-            price: pack.price.trim(),
-            includes: pack.includes.split('\n').map((s) => s.trim()).filter(Boolean),
-          }))
-          .filter((pack) => pack.name),
-      },
+      about: { text: aboutText, imageId: aboutImageId },
+      pricing: { items: packsToItems(packs) },
+      process: { steps: cleanSteps },
+      testimonials: { items: cleanReviews },
       contact,
       translations: content.translations,
       settings: { languages, leadForm, booking },
     }),
-    [heroTitle, heroSubtitle, heroImageId, albumCovers, aboutText, packs, contact, content.translations, languages, leadForm, booking]
+    [heroTitle, heroSubtitle, heroImageId, albumCovers, aboutText, aboutImageId, packs, cleanSteps, cleanReviews, contact, content.translations, languages, leadForm, booking]
   )
 
   function setPack(index: number, patch: Partial<Pack>) {
     setPacks((prev) => prev.map((pack, i) => (i === index ? { ...pack, ...patch } : pack)))
   }
   function addPack() {
-    setPacks((prev) => [...prev, { name: '', price: '', includes: '' }])
+    setPacks((prev) => [...prev, { name: '', price: '', includes: '', featured: false }])
   }
   function removePack(index: number) {
     setPacks((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
@@ -624,6 +710,125 @@ export function SiteEditor({
             onChange={(event) => setAboutText(event.target.value)}
             className={inputClass}
           />
+          <input type="hidden" name="about_image_id" value={aboutImageId} />
+          {visiblePortfolio.length > 0 && (
+            <>
+              <p className="text-xs text-muted">{labels.aboutPhoto}</p>
+              <PhotoPicker
+                items={visiblePortfolio}
+                value={aboutImageId}
+                onChange={setAboutImageId}
+                noneLabel={labels.photoNone}
+              />
+            </>
+          )}
+        </fieldset>
+
+        {/* ---- «Як ми працюємо» (optional; hidden on the site when empty) ---- */}
+        <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
+          <legend className="px-2 text-sm text-muted">{labels.processLegend}</legend>
+          <p className="text-xs leading-relaxed text-muted">{labels.processHint}</p>
+          <input type="hidden" name="process_json" value={JSON.stringify(cleanSteps)} />
+          {steps.map((step, index) => (
+            <div key={index} className="relative flex flex-col gap-2 rounded border border-line p-3">
+              <span className="text-xs text-muted">{String(index + 1).padStart(2, '0')}</span>
+              <button
+                type="button"
+                aria-label={labels.removeItem}
+                title={labels.removeItem}
+                onClick={() => setSteps((prev) => prev.filter((_, i) => i !== index))}
+                className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full border border-line bg-bg text-xs hover:border-fg"
+              >
+                ✕
+              </button>
+              <input
+                value={step.title}
+                placeholder={labels.processTitle}
+                onChange={(event) =>
+                  setSteps((prev) => prev.map((st, i) => (i === index ? { ...st, title: event.target.value } : st)))
+                }
+                className={inputClass}
+              />
+              <textarea
+                rows={2}
+                value={step.text}
+                placeholder={labels.processText}
+                onChange={(event) =>
+                  setSteps((prev) => prev.map((st, i) => (i === index ? { ...st, text: event.target.value } : st)))
+                }
+                className={inputClass}
+              />
+            </div>
+          ))}
+          {steps.length < 8 && (
+            <button
+              type="button"
+              onClick={() => setSteps((prev) => [...prev, { title: '', text: '' }])}
+              className="self-start rounded-full border border-line px-4 py-2 text-sm transition-colors hover:border-fg"
+            >
+              + {labels.processAdd}
+            </button>
+          )}
+        </fieldset>
+
+        {/* ---- «Відгуки» (optional; hidden on the site when empty) ---- */}
+        <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
+          <legend className="px-2 text-sm text-muted">{labels.testimonialsLegend}</legend>
+          <p className="text-xs leading-relaxed text-muted">{labels.testimonialsHint}</p>
+          <input type="hidden" name="testimonials_json" value={JSON.stringify(cleanReviews)} />
+          {reviews.map((review, index) => (
+            <div key={index} className="relative flex flex-col gap-2 rounded border border-line p-3">
+              <button
+                type="button"
+                aria-label={labels.removeItem}
+                title={labels.removeItem}
+                onClick={() => setReviews((prev) => prev.filter((_, i) => i !== index))}
+                className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full border border-line bg-bg text-xs hover:border-fg"
+              >
+                ✕
+              </button>
+              <input
+                value={review.names}
+                placeholder={labels.testimonialNames}
+                onChange={(event) =>
+                  setReviews((prev) => prev.map((r, i) => (i === index ? { ...r, names: event.target.value } : r)))
+                }
+                className={inputClass}
+              />
+              <textarea
+                rows={3}
+                value={review.text}
+                placeholder={labels.testimonialText}
+                onChange={(event) =>
+                  setReviews((prev) => prev.map((r, i) => (i === index ? { ...r, text: event.target.value } : r)))
+                }
+                className={inputClass}
+              />
+              {visiblePortfolio.length > 0 && (
+                <>
+                  <p className="text-xs text-muted">{labels.testimonialPhoto}</p>
+                  <PhotoPicker
+                    small
+                    items={visiblePortfolio}
+                    value={review.photoId}
+                    onChange={(id) =>
+                      setReviews((prev) => prev.map((r, i) => (i === index ? { ...r, photoId: id } : r)))
+                    }
+                    noneLabel={labels.photoNone}
+                  />
+                </>
+              )}
+            </div>
+          ))}
+          {reviews.length < 6 && (
+            <button
+              type="button"
+              onClick={() => setReviews((prev) => [...prev, { names: '', text: '', photoId: '' }])}
+              className="self-start rounded-full border border-line px-4 py-2 text-sm transition-colors hover:border-fg"
+            >
+              + {labels.testimonialAdd}
+            </button>
+          )}
         </fieldset>
 
         <fieldset className="flex flex-col gap-4 rounded border border-line p-5">
@@ -733,15 +938,7 @@ export function SiteEditor({
           <input
             type="hidden"
             name="pricing_json"
-            value={JSON.stringify(
-              packs
-                .map((p) => ({
-                  name: p.name.trim(),
-                  price: p.price.trim(),
-                  includes: p.includes.split('\n').map((s) => s.trim()).filter(Boolean),
-                }))
-                .filter((p) => p.name)
-            )}
+            value={JSON.stringify(packsToItems(packs))}
           />
           {packs.map((pack, index) => (
             <div key={index} className="relative flex flex-col gap-2 rounded border border-line p-3">
@@ -775,6 +972,19 @@ export function SiteEditor({
                 onChange={(event) => setPack(index, { includes: event.target.value })}
                 className={inputClass}
               />
+              <label className="flex items-center gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={pack.featured}
+                  onChange={(event) =>
+                    // Only one package carries the badge.
+                    setPacks((prev) =>
+                      prev.map((p, i) => ({ ...p, featured: i === index ? event.target.checked : false }))
+                    )
+                  }
+                />
+                {labels.priceFeatured}
+              </label>
             </div>
           ))}
           <button

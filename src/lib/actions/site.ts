@@ -3,7 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isSiteTrialExpired } from '@/lib/plans'
-import type { PricingItem, SiteContent, SiteTextBlocks } from '@/lib/site/content'
+import type {
+  PricingItem,
+  ProcessStep,
+  SiteContent,
+  SiteTextBlocks,
+  Testimonial,
+} from '@/lib/site/content'
 import { THEME_CATALOG } from '@/lib/site/themes'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { locales, type Locale } from '@/lib/i18n/config'
@@ -22,6 +28,18 @@ async function requireUser() {
 
 function str(formData: FormData, name: string): string {
   return String(formData.get(name) ?? '').trim()
+}
+
+/** Parses a JSON array of objects from a form field; anything else → []. */
+function jsonArray(raw: string): Record<string, unknown>[] {
+  try {
+    const parsed = JSON.parse(raw || '[]')
+    return Array.isArray(parsed)
+      ? parsed.filter((p): p is Record<string, unknown> => !!p && typeof p === 'object')
+      : []
+  } catch {
+    return []
+  }
 }
 
 export async function saveSite(locale: Locale, formData: FormData): Promise<void> {
@@ -65,12 +83,28 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
                 .split('\n')
                 .map((l) => l.trim())
                 .filter(Boolean),
+          ...(p.featured === true ? { featured: true } : {}),
         }))
         .filter((item) => item.name)
     }
   } catch {
     items = []
   }
+
+  // «Як ми працюємо» steps and «Відгуки» arrive as JSON arrays too (jsonb
+  // content — no schema change); both are optional and tolerate bad input.
+  const process: ProcessStep[] = jsonArray(str(formData, 'process_json'))
+    .map((p) => ({ title: String(p.title ?? '').trim(), text: String(p.text ?? '').trim() }))
+    .filter((p) => p.title || p.text)
+    .slice(0, 8)
+  const testimonials: Testimonial[] = jsonArray(str(formData, 'testimonials_json'))
+    .map((p) => ({
+      names: String(p.names ?? '').trim(),
+      text: String(p.text ?? '').trim(),
+      photoId: String(p.photoId ?? '').trim(),
+    }))
+    .filter((p) => p.text)
+    .slice(0, 6)
 
   // Enabled languages + their per-language text blocks. Translation fields are
   // kept even for a language that is momentarily unchecked, so toggling a
@@ -107,8 +141,10 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
       subtitle: str(formData, 'hero_subtitle'),
       imageId: str(formData, 'hero_image_id'),
     },
-    about: { text: str(formData, 'about_text') },
+    about: { text: str(formData, 'about_text'), imageId: str(formData, 'about_image_id') },
     pricing: { items },
+    process: { steps: process },
+    testimonials: { items: testimonials },
     contact: {
       email: str(formData, 'contact_email'),
       phone: str(formData, 'contact_phone'),

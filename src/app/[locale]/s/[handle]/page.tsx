@@ -4,6 +4,7 @@ import { getDictionary } from '@/lib/i18n'
 import { isLocale, localeLabels, type Locale } from '@/lib/i18n/config'
 import { jsonLdScript } from '@/lib/jsonld'
 import { localizedSiteContent, parseSiteContent } from '@/lib/site/content'
+import { leadFormLabelsFromDict, siteLabelsFromDict } from '@/lib/site/labels'
 import { isThemeId } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -260,16 +261,7 @@ export default async function PublicSitePage({
             },
           ],
         }}
-        labels={{
-          portfolio: dict.publicSite.portfolio,
-          about: dict.publicSite.about,
-          pricing: dict.publicSite.pricing,
-          contacts: dict.publicSite.contacts,
-          book: dict.publicSite.book,
-          photos: locale === 'uk' ? 'фото' : 'photos',
-          viewSeries: locale === 'uk' ? 'Дивитись серію' : 'View series',
-          close: locale === 'uk' ? 'Закрити' : 'Close',
-        }}
+        labels={siteLabelsFromDict(dict, locale)}
         langSwitch={
           rawContent.settings.languages.length > 0
             ? {
@@ -288,15 +280,7 @@ export default async function PublicSitePage({
           rawContent.settings.leadForm
             ? {
                 handle: params.handle,
-                labels: {
-                  title: dict.publicSite.leadTitle,
-                  name: dict.publicSite.leadName,
-                  contact: dict.publicSite.leadContact,
-                  message: dict.publicSite.leadMessage,
-                  send: dict.publicSite.leadSend,
-                  sent: dict.publicSite.leadSent,
-                  error: dict.publicSite.leadError,
-                },
+                labels: leadFormLabelsFromDict(dict),
               }
             : undefined
         }

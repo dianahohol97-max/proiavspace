@@ -7,6 +7,7 @@ import { LeadForm, type LeadFormLabels } from './LeadForm'
 import { SiteLangSwitch } from './SiteLangSwitch'
 import { ThemeGallery } from './ThemeGallery'
 import { ThemeSilence } from './ThemeSilence'
+import { TYSHA_FONT_VARS, tyshaSerif } from './tysha/fonts'
 import {
   ThemeAir,
   ThemeArchive,
@@ -85,6 +86,17 @@ export interface SiteLabels {
   close: string
   /** «Дивитись серію» — opens an album. */
   viewSeries: string
+  /* Optional wording used by themes with richer layouts («Тиша»). */
+  bookDate?: string
+  scrollHint?: string
+  menu?: string
+  process?: string
+  selectedWork?: string
+  series?: string
+  testimonials?: string
+  popular?: string
+  choosePack?: string
+  madeOn?: string
 }
 
 /** One selectable language in a site's switcher. */
@@ -229,8 +241,12 @@ export function SiteRenderer({
   // Themes with their own distinct layout dispatch here; the rest still use
   // the shared block layout below until each gets its own design.
   if (theme === 'tysha') {
+    const day = mode !== 'night'
     return (
-      <div style={vars}>
+      <div
+        className={day ? tyshaSerif.variable : undefined}
+        style={day ? ({ ...vars, ...TYSHA_FONT_VARS } as CSSProperties) : vars}
+      >
         <ThemeSilence
           content={content}
           displayName={displayName}

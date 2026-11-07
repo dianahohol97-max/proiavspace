@@ -1,0 +1,88 @@
+/* ---------------------------------------------------------------------------
+   Motion kit — shared, theme-agnostic styles. Only transform / opacity /
+   filter / clip-path ever animate; frames are sized by the parent so nothing
+   shifts layout (no CLS).
+--------------------------------------------------------------------------- */
+
+/* RevealText: each word is a mask; pieces rise from below it. */
+.mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  /* room for descenders / Cyrillic tails inside the mask */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.piece {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}
+
+/* Image frames (DevelopImage / ParallaxImage). */
+.frame {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+.fillImg {
+  object-fit: cover;
+}
+
+/* ParallaxImage: an oversized layer that drifts with the view timeline. */
+.parallax {
+  position: absolute;
+  inset: -8% 0;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .parallax {
+      animation: kitParallax linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+  }
+}
+@keyframes kitParallax {
+  from {
+    transform: translate3d(0, -6%, 0);
+  }
+  to {
+    transform: translate3d(0, 6%, 0);
+  }
+}
+
+/* ScrollLitText: words go from 0.2 to 1 along the block's view timeline. */
+.lit {
+  view-timeline-name: --kit-lit;
+  view-timeline-axis: block;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .litWord {
+      opacity: 0.2;
+      animation: kitLit linear both;
+      animation-timeline: --kit-lit;
+      animation-range: cover var(--lit-a) cover var(--lit-b);
+    }
+  }
+}
+@keyframes kitLit {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion before hydration: whatever motion pre-rendered as hidden is
+   shown at rest, so the page is static from the very first paint. */
+@media (prefers-reduced-motion: reduce) {
+  .guard,
+  .guard * {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
