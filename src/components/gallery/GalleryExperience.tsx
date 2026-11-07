@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { buildZipBlob, splitIntoParts, writeZipToStream, type ArchiveFile } from '@/lib/gallery/archive'
-import { resolveTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
+import { resolveGalleryTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import { fontFamily, type GalleryStyle } from '@/lib/gallery/style'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { isLocale, type Locale } from '@/lib/i18n/config'
@@ -164,7 +164,7 @@ export function GalleryExperience({
    */
   deliveryNotice?: { text: string; etaText: string | null } | null
 }) {
-  const tokens = resolveTokens(theme, mode)
+  const tokens = resolveGalleryTokens(theme, mode)
   // Default accent: on «Опівніч» (night) the theme's own flame gold, so hearts
   // and the favourites pill match the site; light themes keep the cobalt.
   const accent = style?.accent ?? (mode === 'night' ? tokens.accent : '#2f55ff')

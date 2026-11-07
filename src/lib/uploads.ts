@@ -212,7 +212,7 @@ export async function registerAsset(
 
   let { data, error } = await insert(row)
   if (error && 'taken_at' in row && isMissingColumn(error, 'taken_at')) {
-    // Migration 0061 not applied yet: register the photo without its capture
+    // Migration 0066 not applied yet: register the photo without its capture
     // time rather than failing the upload.
     const { taken_at: _ignored, ...withoutTakenAt } = row
     ;({ data, error } = await insert(withoutTakenAt))

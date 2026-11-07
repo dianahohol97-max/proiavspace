@@ -1,7 +1,7 @@
 /**
  * feat/gallery-grid: розкладка «Рядки» (justified), дата зйомки з EXIF,
  * орієнтація й HEIC-прев’ю. Чиста математика й серверний шлях реєстрації
- * (фейковий бекенд), а також міграція 0061 на локальному Postgres (без
+ * (фейковий бекенд), а також міграція 0066 на локальному Postgres (без
  * Postgres-бінарників ці тести пропускаються).
  */
 import './helpers/fake-backend'
@@ -278,7 +278,7 @@ describe('реєстрація фото з датою зйомки', () => {
     assert.equal(db.assets[0].kind, 'photo')
   })
 
-  test('до міграції 0061 (колонки нема) фото все одно реєструється, без дати', async () => {
+  test('до міграції 0066 (колонки нема) фото все одно реєструється, без дати', async () => {
     schema.assetsTakenAt = false
     const { userId, galleryId } = seedAccount({ plan: 'basic', usedBytes: 0, limitBytes: 100 * 1024 * MB })
     const result = await registerAsset(client(), userId, {
@@ -308,7 +308,7 @@ before(() => {
 after(() => pg?.stop())
 const noPg = () => (pg ? false : 'немає Postgres-бінарників (initdb/pg_ctl/psql)')
 
-describe('0061: taken_at і sort_gallery_assets', () => {
+describe('0066: taken_at і sort_gallery_assets', () => {
   function account() {
     const db = pg!
     const userId = db.sql(`insert into auth.users (email) values ('u' || gen_random_uuid() || '@t.test') returning id`)
@@ -331,7 +331,7 @@ describe('0061: taken_at і sort_gallery_assets', () => {
       .join(',')
 
   test('міграція накочується без помилок', { skip: noPg() }, () => {
-    assert.equal(pg!.failedMigrations['0061_asset_taken_at.sql'], undefined)
+    assert.equal(pg!.failedMigrations['0066_asset_taken_at.sql'], undefined)
     assert.equal(pg!.sql(`select data_type from information_schema.columns where table_name = 'assets' and column_name = 'taken_at'`), 'timestamp with time zone')
   })
 

@@ -101,3 +101,9 @@ html {
   break-inside: avoid;
   margin-bottom: var(--space-4);
 }
+
+/* One-page portfolio filter (components/site/card): a hidden frame stays hidden
+   whatever display a theme gives its grid items. */
+[data-cat][hidden] {
+  display: none !important;
+}

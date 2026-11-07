@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { resolveTokens, THEME_CATALOG } from '@/lib/site/themes'
+import { resolveGalleryTokens, THEME_CATALOG } from '@/lib/site/themes'
 import {
   ACCENT_PRESETS,
   COLUMN_CHOICES,
@@ -84,7 +84,7 @@ export function GalleryDesigner({
 
   const entry = useMemo(() => THEME_CATALOG.find((e) => e.value === theme), [theme])
   const tokens = useMemo(
-    () => resolveTokens(entry?.theme ?? 'tysha', entry?.mode ?? 'light'),
+    () => resolveGalleryTokens(entry?.theme ?? 'tysha', entry?.mode ?? 'light'),
     [entry]
   )
   // Same default as GalleryExperience: night («Опівніч») → the theme's gold.
@@ -227,7 +227,7 @@ export function GalleryDesigner({
             <div className="grid grid-cols-3 gap-2.5">
               {themeOptions.map((option) => {
                 const entry = THEME_CATALOG.find((e) => e.value === option.value)
-                const t = entry ? resolveTokens(entry.theme, entry.mode) : null
+                const t = entry ? resolveGalleryTokens(entry.theme, entry.mode) : null
                 const on = theme === option.value
                 return (
                   <button

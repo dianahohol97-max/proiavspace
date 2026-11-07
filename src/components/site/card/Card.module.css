@@ -1,0 +1,212 @@
+/*
+ * Base look of the shared visiting-card blocks. Every rule sits in :where()
+ * (zero specificity), so a theme's own class map always wins; a theme only
+ * sets the variables below on its root and restyles what it wants.
+ *
+ *   --card-fg, --card-muted, --card-line, --card-accent, --card-bg
+ *   --card-display (headings font), --card-label (small caps font)
+ */
+
+:where(.heroFacts) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0 0 24px;
+  font: 500 12px/1.4 var(--card-label, inherit);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+:where(.heroFacts > span + span)::before {
+  content: '·';
+  margin-right: 16px;
+  opacity: 0.7;
+}
+:where(.heroRole) {
+  font-weight: 700;
+}
+@media (max-width: 760px) {
+  :where(.heroFacts) {
+    flex-direction: column;
+    gap: 6px;
+  }
+  :where(.heroFacts > span + span)::before {
+    content: none;
+  }
+}
+
+:where(.filterBar) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 clamp(24px, 4vw, 44px);
+}
+:where(.filterChip) {
+  appearance: none;
+  min-height: 40px;
+  padding: 10px 16px;
+  border: 1px solid var(--card-line, currentColor);
+  border-radius: 999px;
+  background: none;
+  color: var(--card-fg, inherit);
+  font: 500 12px/1 var(--card-label, inherit);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+:where(.filterChip) sup {
+  margin-left: 5px;
+  font-size: 9px;
+  opacity: 0.75;
+}
+:where(.filterChip:hover) {
+  border-color: var(--card-fg, currentColor);
+}
+:where(.filterChipOn) {
+  background: var(--card-fg, #111);
+  border-color: var(--card-fg, #111);
+  color: var(--card-bg, #fff);
+}
+
+:where(.terms) {
+  margin-top: clamp(36px, 5vw, 64px);
+  padding-top: 24px;
+  border-top: 1px solid var(--card-line, currentColor);
+}
+:where(.termsTitle) {
+  margin: 0 0 18px;
+  font: 600 11px/1 var(--card-label, inherit);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--card-muted, inherit);
+}
+:where(.termsList) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px clamp(18px, 2.4vw, 40px);
+  margin: 0;
+}
+:where(.termsItem) {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+:where(.termsLabel) {
+  font-family: var(--card-display, inherit);
+  font-size: 19px;
+}
+:where(.termsText) {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--card-muted, inherit);
+}
+@media (max-width: 480px) {
+  :where(.termsList) {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+:where(.giftGrid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(14px, 2.2vw, 36px);
+}
+:where(.gift) {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--card-line, currentColor);
+  overflow: hidden;
+}
+:where(.giftImg) {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  max-height: 280px;
+  overflow: hidden;
+  background: var(--card-line, #ccc);
+}
+:where(.giftImg img) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+:where(.giftBody) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+}
+:where(.giftTitle) {
+  margin: 0;
+  font-family: var(--card-display, inherit);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.2;
+}
+:where(.giftText) {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--card-muted, inherit);
+}
+:where(.giftFoot) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+:where(.giftPrice) {
+  font-family: var(--card-display, inherit);
+  font-size: 19px;
+}
+:where(.giftCta) {
+  padding: 12px 0;
+  border-bottom: 1px solid currentColor;
+  color: var(--card-accent, inherit);
+  font: 600 11px/1 var(--card-label, inherit);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+@media (max-width: 760px) {
+  :where(.giftGrid) {
+    grid-template-columns: 1fr;
+  }
+  :where(.gift) {
+    flex-direction: row;
+  }
+  :where(.giftImg) {
+    flex: 0 0 34%;
+    aspect-ratio: auto;
+  }
+  :where(.giftBody) {
+    padding: 14px 16px;
+  }
+  :where(.giftText) {
+    font-size: 14px;
+  }
+}
+
+:where(.contactList) {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+:where(.contactItem a) {
+  font-family: var(--card-display, inherit);
+  font-size: clamp(19px, 1.8vw, 25px);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+:where(.contactItem a:hover) {
+  color: var(--card-accent, inherit);
+}

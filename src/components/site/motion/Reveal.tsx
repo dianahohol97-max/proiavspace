@@ -15,6 +15,8 @@ export function Reveal({
   className,
   style,
   as = 'div',
+  cat,
+  pack,
 }: {
   children: React.ReactNode
   delay?: number
@@ -22,12 +24,16 @@ export function Reveal({
   className?: string
   style?: React.CSSProperties
   as?: 'div' | 'li' | 'figure' | 'article' | 'section'
+  /** Portfolio direction, for the one-page filter (data-cat). */
+  cat?: string
+  /** Package name, for the shared checks (data-pack). */
+  pack?: string
 }) {
   const still = useStill()
   if (still) {
     const Tag = as
     return (
-      <Tag className={className} style={style}>
+      <Tag className={className} style={style} data-cat={cat} data-pack={pack}>
         {children}
       </Tag>
     )
@@ -37,6 +43,8 @@ export function Reveal({
     <MTag
       className={`${k.guard} ${className ?? ''}`}
       style={style}
+      data-cat={cat}
+      data-pack={pack}
       data-motion=""
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}

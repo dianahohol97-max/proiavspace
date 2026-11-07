@@ -91,7 +91,7 @@ export interface Asset {
   /** Hidden from the client (future AI culling, migration 0054): the owner
    *  sees it, the public gallery, archive and selections never do. */
   hidden_from_client: boolean
-  /** Capture time from EXIF (migration 0061; wall clock as UTC). Absent
+  /** Capture time from EXIF (migration 0066; wall clock as UTC). Absent
    *  before the migration, null for videos and photos without EXIF. */
   taken_at?: string | null
   created_at: string
