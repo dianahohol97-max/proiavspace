@@ -187,7 +187,7 @@ describe('1.5 промо імпорту (grant_import_promo)', () => {
     assert.deepEqual(results.map((r) => r !== ''), [true, true, true, false])
   })
 
-  test('[PR-01] видалений акаунт не звільняє слот «перших 30»', { skip: skip(), todo: 'чекає міграції: видалення акаунта, див. docs/AUDIT_STORAGE_LIFECYCLE.md' }, () => {
+  test('[PR-01] видалений акаунт не звільняє слот «перших 30»', { skip: skip() }, () => {
     pg!.sql('delete from promo_grants')
     const users = Array.from({ length: 3 }, () => newAccount())
     for (const { userId } of users) grant(userId, completedImport(userId), 3)
@@ -198,6 +198,11 @@ describe('1.5 промо імпорту (grant_import_promo)', () => {
       grant(late.userId, completedImport(late.userId), 3),
       '',
       'слот звільнився: count(*) з promo_grants падає після каскадного видалення'
+    )
+    // Рядок промо лишився без власника, з позначкою, коли акаунт видалили (0056).
+    assert.equal(
+      pg!.sql(`select count(*) || '|' || count(user_deleted_at) from promo_grants where user_id is null`),
+      '1|1'
     )
   })
 })
@@ -212,10 +217,36 @@ describe('4.1 видалення акаунта через Supabase Auth', () =>
     assert.equal(pg!.sql(`select count(*) from profiles where user_id='${userId}'`), '0')
   })
 
-  test('[LC-02] ключі файлів видаленого акаунта мають лишитися в черзі на видалення з B2', { skip: skip(), todo: 'чекає міграції: видалення акаунта, див. docs/AUDIT_STORAGE_LIFECYCLE.md' }, () => {
-    const queue = pg!.sql(`select count(*) from information_schema.tables
-      where table_schema='public' and (table_name ilike '%deleted%' or table_name ilike '%orphan%' or table_name ilike '%purge%')`)
-    assert.notEqual(queue, '0', 'після каскаду r2_key зникають з БД; об’єкти в B2 лишаються назавжди, знайти їх можна лише list-ом бакета')
+  test('[LC-02] ключі файлів видаленого акаунта мають лишитися в черзі на видалення з B2', { skip: skip() }, () => {
+    const { userId, galleryId } = newAccount()
+    const orig = `u/${userId}/g/${galleryId}/o/x.jpg`
+    pg!.sql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes, variants)
+             values ('${galleryId}', '${userId}', '${orig}', 'photo', 'image/jpeg', 10,
+                     '{"thumb": "u/${userId}/g/${galleryId}/t/x.jpg", "preview": "u/${userId}/g/${galleryId}/p/x.jpg"}')`)
+    pg!.sql(`insert into public.portfolio_assets (owner_id, r2_key, content_type, size_bytes)
+             values ('${userId}', 'u/${userId}/portfolio/y.jpg', 'image/jpeg', 5)`)
+    pg!.sql(`delete from auth.users where id='${userId}'`)
+    assert.equal(pg!.sql(`select count(*) from assets where owner_id='${userId}'`), '0', 'рядки все одно прибираються каскадом')
+    const queued = pg!.sql(`select kind || ' ' || key from storage_purge_queue
+      where owner_id='${userId}' and purged_at is null order by kind, key`).split('\n')
+    assert.deepEqual(queued, [
+      `object u/${userId}/g/${galleryId}/o/x.jpg`,
+      `object u/${userId}/g/${galleryId}/p/x.jpg`,
+      `object u/${userId}/g/${galleryId}/t/x.jpg`,
+      `object u/${userId}/portfolio/y.jpg`,
+      `prefix u/${userId}/`,
+    ])
+  })
+
+  test('[LC-02] звичайне видалення фото черги не чіпає; анонім черги не бачить', { skip: skip() }, () => {
+    const { userId, galleryId } = newAccount()
+    pg!.sql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes)
+             values ('${galleryId}', '${userId}', 'u/${userId}/g/${galleryId}/o/z.jpg', 'photo', 'image/jpeg', 10)`)
+    pg!.sql(`delete from public.galleries where id='${galleryId}'`)
+    assert.equal(pg!.sql(`select count(*) from storage_purge_queue where owner_id='${userId}'`), '0')
+    const anon = pg!.trySql(`begin; set local role anon; select count(*) from public.storage_purge_queue; commit;`)
+    assert.equal(anon.ok, false)
+    assert.match(anon.out, /permission denied/)
   })
 
   test('LC-03: Auth-видалення реферала й реферера проходить (FK 0046)', { skip: skip() }, () => {
@@ -239,5 +270,105 @@ describe('4.1 видалення акаунта через Supabase Auth', () =>
     pg!.sql(`delete from auth.users where id='${referrer.userId}'`)
     assert.equal(pg!.sql(`select referred_by is null from profiles where user_id='${referred}'`), 't')
     assert.equal(pg!.sql(`select referrer_id is null from referral_earnings where referred_id='${referred}'`), 't')
+  })
+})
+
+/** Runs `query` as PostgREST would for anon (or for a signed-in user). */
+function as(role: 'anon' | 'authenticated', query: string, sub?: string) {
+  const claims = sub ? `set local request.jwt.claim.sub = '${sub}';` : ''
+  return pg!.trySql(`begin; set local role ${role}; ${claims} ${query}; commit;`)
+}
+
+function publishedGalleryWith(hidden: boolean[]) {
+  const acc = newAccount()
+  pg!.sql(`update public.galleries set is_published = true where id = '${acc.galleryId}'`)
+  const slug = pg!.sql(`select slug from public.galleries where id = '${acc.galleryId}'`)
+  const ids = hidden.map((h, i) =>
+    pg!.sql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes, position, hidden_from_client)
+             values ('${acc.galleryId}', '${acc.userId}', 'u/${acc.userId}/g/${acc.galleryId}/o/${i}.jpg', 'photo', 'image/jpeg', 1, ${i}, ${h})
+             returning id`)
+  )
+  return { ...acc, slug, ids }
+}
+
+describe('0054 «приховано від клієнта»', () => {
+  test('за замовчуванням кадр видно (false)', { skip: skip() }, () => {
+    const { userId, galleryId } = newAccount()
+    const id = pg!.sql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes)
+             values ('${galleryId}', '${userId}', 'k-def-${userId}', 'photo', 'image/jpeg', 1) returning id`)
+    assert.equal(pg!.sql(`select hidden_from_client from assets where id = '${id}'`), 'f')
+  })
+
+  test('анонім (публічна галерея, архів через RLS) не бачить прихованих; власник бачить усі', { skip: skip() }, () => {
+    const g = publishedGalleryWith([false, true, false])
+    const anon = as('anon', `select string_agg(id::text, ',' order by position) from public.assets where gallery_id = '${g.galleryId}'`)
+    assert.equal(anon.ok, true, anon.out)
+    assert.equal(anon.out, `${g.ids[0]},${g.ids[2]}`)
+    const anonHidden = as('anon', `select count(*) from public.assets where id = '${g.ids[1]}'`)
+    assert.equal(anonHidden.out, '0', 'прямий запит за id теж нічого не дає')
+    const owner = as('authenticated', `select count(*) from public.assets where gallery_id = '${g.galleryId}'`, g.userId)
+    assert.equal(owner.out, '3')
+    const stranger = newAccount()
+    const other = as('authenticated', `select count(*) from public.assets where gallery_id = '${g.galleryId}'`, stranger.userId)
+    assert.equal(other.out, '2', 'чужий залогінений користувач — як анонім')
+  })
+
+  test('вибір клієнта: прихований кадр обрати не можна, видимий — можна', { skip: skip() }, () => {
+    const g = publishedGalleryWith([false, true])
+    const ok = as('anon', `select public.set_selection('${g.slug}', '${g.ids[0]}', 'favorite', true, 'tok')`)
+    assert.equal(ok.ok, true, ok.out)
+    const hidden = as('anon', `select public.set_selection('${g.slug}', '${g.ids[1]}', 'favorite', true, 'tok')`)
+    assert.equal(hidden.ok, false)
+    assert.match(hidden.out, /asset_not_in_gallery/)
+  })
+
+  test('статистика: завантаження й перегляд прихованого кадру не пишуться', { skip: skip() }, () => {
+    const g = publishedGalleryWith([false, true])
+    for (const id of g.ids) {
+      assert.equal(as('anon', `select public.record_gallery_download('${g.galleryId}', '${id}')`).ok, true)
+      assert.equal(as('anon', `select public.record_photo_view('${g.slug}', '${id}')`).ok, true)
+    }
+    assert.equal(
+      pg!.sql(`select count(*) from gallery_events where gallery_id = '${g.galleryId}' and meta ->> 'asset_id' = '${g.ids[1]}'`),
+      '0'
+    )
+    assert.equal(
+      pg!.sql(`select count(*) from gallery_events where gallery_id = '${g.galleryId}' and meta ->> 'asset_id' = '${g.ids[0]}'`),
+      '2'
+    )
+  })
+
+  test('анонім не може сам зняти позначку', { skip: skip() }, () => {
+    const g = publishedGalleryWith([true])
+    const r = as('anon', `update public.assets set hidden_from_client = false where id = '${g.ids[0]}'`)
+    assert.equal(r.ok, false)
+    const owner = as('authenticated', `update public.assets set hidden_from_client = false where id = '${g.ids[0]}'`, g.userId)
+    assert.equal(owner.ok, false, 'писати позначку може лише service role (0041)')
+  })
+})
+
+describe('0053, 0055 нові поля', () => {
+  test('assets.thumbhash — необов’язковий текст; сміття довше 100 символів не приймається', { skip: skip() }, () => {
+    const { userId, galleryId } = newAccount()
+    const id = pg!.sql(`insert into public.assets (gallery_id, owner_id, r2_key, kind, content_type, size_bytes)
+             values ('${galleryId}', '${userId}', 'k-th-${userId}', 'photo', 'image/jpeg', 1) returning id`)
+    assert.equal(pg!.sql(`select thumbhash is null from assets where id = '${id}'`), 't')
+    pg!.sql(`update public.assets set thumbhash = 'HBkSHYSIeHiPiHh8eJd4eTN0EEQG' where id = '${id}'`)
+    const bad = pg!.trySql(`update public.assets set thumbhash = repeat('a', 101) where id = '${id}'`)
+    assert.match(bad.out, /assets_thumbhash_len/)
+  })
+
+  test('galleries.delivery_status / delivery_eta: читаються анонімом, статус лише зі списку', { skip: skip() }, () => {
+    const g = publishedGalleryWith([])
+    pg!.sql(`update public.galleries set delivery_status = 'editing', delivery_eta = '2026-12-01' where id = '${g.galleryId}'`)
+    const anon = as('anon', `select delivery_status || '|' || delivery_eta from public.galleries where id = '${g.galleryId}'`)
+    assert.equal(anon.ok, true, anon.out)
+    assert.equal(anon.out, 'editing|2026-12-01')
+    for (const s of ['shot', 'ready']) {
+      pg!.sql(`update public.galleries set delivery_status = '${s}' where id = '${g.galleryId}'`)
+    }
+    const bad = pg!.trySql(`update public.galleries set delivery_status = 'done' where id = '${g.galleryId}'`)
+    assert.match(bad.out, /galleries_delivery_status_check/)
+    pg!.sql(`update public.galleries set delivery_status = null, delivery_eta = null where id = '${g.galleryId}'`)
   })
 })

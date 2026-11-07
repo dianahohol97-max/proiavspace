@@ -154,7 +154,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
       admin
         .from('promo_grants')
         .select('user_id, ends_at, autopay_at')
-        .returns<{ user_id: string; ends_at: string; autopay_at: string | null }[]>(),
+        .returns<{ user_id: string | null; ends_at: string; autopay_at: string | null }[]>(), // null: account deleted, slot still taken (0056)
       admin
         .from('partner_periods')
         .select('user_id, plan, starts_at, ends_at, note, applied_at')

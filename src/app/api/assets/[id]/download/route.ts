@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   // and not expired) and a password gallery needs the unlock cookie.
   const { data: asset } = await (createSupabaseAdminClient() ?? supabase)
     .from('assets')
-    .select('id, r2_key, gallery_id, owner_id')
+    .select('id, r2_key, gallery_id, owner_id, hidden_from_client')
     .eq('id', params.id)
     .single()
 
@@ -48,6 +48,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     data: { user },
   } = await supabase.auth.getUser()
   const isOwner = user?.id === asset.owner_id
+
+  // Hidden from the client (0054): only the owner can still download it.
+  if (!isOwner && asset.hidden_from_client) {
+    return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  }
 
   if (!isOwner && !(await isGalleryUnlocked({ id: gallery.id, has_password: gallery.has_password }))) {
     return NextResponse.json({ error: 'locked' }, { status: 403 })
