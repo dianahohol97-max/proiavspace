@@ -154,6 +154,7 @@ export default async function GalleryDemoPage({
           downloadHint: dict.publicGallery.downloadHint,
           preparingArchive: dict.publicGallery.preparingArchive,
           archiveError: dict.publicGallery.archiveError,
+          savePart: dict.publicGallery.savePart,
           downloadOriginal: dict.publicGallery.downloadOriginal,
           favoriteToggle: dict.publicGallery.favoriteToggle,
           madeOn: dict.publicGallery.madeOn,

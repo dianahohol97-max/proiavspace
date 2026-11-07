@@ -40,13 +40,18 @@ export async function POST(request: NextRequest, { params }: { params: { slug: s
     return NextResponse.redirect(galleryUrl, { status: 303 })
   }
 
-  if (gallery.password_hash && !verifyPassword(password, gallery.password_hash)) {
+  // No password set: nothing to unlock, the gallery page is open anyway.
+  if (!gallery.password_hash) {
+    return NextResponse.redirect(galleryUrl, { status: 303 })
+  }
+
+  if (!verifyPassword(password, gallery.password_hash)) {
     galleryUrl.searchParams.set('error', 'password')
     return NextResponse.redirect(galleryUrl, { status: 303 })
   }
 
   const response = NextResponse.redirect(galleryUrl, { status: 303 })
-  response.cookies.set(unlockCookieName(gallery.id), unlockCookieValue(gallery.id), {
+  response.cookies.set(unlockCookieName(gallery.id), unlockCookieValue(gallery.id, gallery.password_hash), {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',

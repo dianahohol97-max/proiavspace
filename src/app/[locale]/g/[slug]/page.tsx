@@ -88,7 +88,7 @@ export default async function PublicGalleryPage({
     )
   }
 
-  if (!isGalleryUnlocked(gallery)) {
+  if (!(await isGalleryUnlocked(gallery))) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
         <div className="absolute right-6 top-6">
@@ -275,6 +275,7 @@ export default async function PublicGalleryPage({
         downloadHint: dict.publicGallery.downloadHint,
         preparingArchive: dict.publicGallery.preparingArchive,
         archiveError: dict.publicGallery.archiveError,
+        savePart: dict.publicGallery.savePart,
         downloadOriginal: dict.publicGallery.downloadOriginal,
         favoriteToggle: dict.publicGallery.favoriteToggle,
         madeOn: dict.publicGallery.madeOn,

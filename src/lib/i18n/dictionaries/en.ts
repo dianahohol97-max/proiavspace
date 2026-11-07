@@ -506,6 +506,7 @@ export const en: Dictionary = {
     downloadHint: 'To save a photo, tap ↓ on it or use "Download all" above. Everything in full quality.',
     preparingArchive: 'Preparing archive:',
     archiveError: 'Could not build the archive, try again',
+    savePart: "Save part {i} of {n}",
     favoriteToggle: 'Add to favorites',
     selected: 'selected',
     scrollHint: 'scroll ↓',

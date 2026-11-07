@@ -10,8 +10,8 @@ export const preferredRegion = 'fra1'
 
 /**
  * "Download all" without server egress: hands the browser a list of
- * short-lived presigned original URLs; the client fetches straight from R2
- * and builds the zip locally (see DownloadAllButton). One archive event is
+ * presigned original URLs; the client fetches straight from storage and
+ * builds the zip locally (src/lib/gallery/archive.ts). One archive event is
  * logged per invocation.
  */
 export async function GET(_request: NextRequest, { params }: { params: { slug: string } }) {
@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest, { params }: { params: { slug: s
   if (!gallery) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
-  if (!isGalleryUnlocked(gallery)) {
+  if (!(await isGalleryUnlocked(gallery))) {
     return NextResponse.json({ error: 'locked' }, { status: 403 })
   }
 
@@ -44,7 +44,11 @@ export async function GET(_request: NextRequest, { params }: { params: { slug: s
       return {
         // Index prefix keeps names unique inside the zip.
         name: `${String(index + 1).padStart(3, '0')}-${baseName}`,
-        url: await storage.getSignedReadUrl(asset.r2_key, { expiresInSeconds: 15 * 60 }),
+        // Files are fetched one after another and every URL is handed out at
+        // the start, so a 2 500-photo wedding on a slow line needs well over an
+        // hour; with 15 minutes the tail of the archive got 403 (CL-03).
+        url: await storage.getSignedReadUrl(asset.r2_key, { expiresInSeconds: 6 * 60 * 60 }),
+        size: asset.size_bytes,
       }
     })
   )
