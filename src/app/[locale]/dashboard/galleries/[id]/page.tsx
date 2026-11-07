@@ -4,6 +4,7 @@ import {
   deleteGallery,
   setAssetFocal,
   setGalleryCover,
+  setGalleryDelivery,
   setGalleryPublished,
   setGalleryTheme,
   updateGallerySettings,
@@ -17,6 +18,8 @@ import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
+import { DeliveryStatusControl } from '@/components/gallery/DeliveryStatusControl'
+import { parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
 import { daysLeft, purgeDate } from '@/lib/free-expiry'
@@ -47,7 +50,7 @@ export default async function ManageGalleryPage({
   const { data: gallery } = await supabase
     .from('galleries')
     .select(
-      'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme, style'
+      'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme, style, delivery_status, delivery_eta'
     )
     .eq('id', params.id)
     .eq('owner_id', user.id)
@@ -144,6 +147,7 @@ export default async function ManageGalleryPage({
   const deleteAction = deleteGallery.bind(null, locale, gallery.id)
   const themeAction = setGalleryTheme.bind(null, locale, gallery.id)
   const settingsAction = updateGallerySettings.bind(null, locale, gallery.id)
+  const deliveryAction = setGalleryDelivery.bind(null, locale, gallery.id)
   const hasPassword = gallery.has_password
   const expiryDefault = gallery.expires_at ? gallery.expires_at.slice(0, 10) : ''
 
@@ -250,6 +254,26 @@ export default async function ManageGalleryPage({
           }}
         />
       </header>
+
+      <DeliveryStatusControl
+        initialStatus={parseDeliveryStatus(gallery.delivery_status)}
+        initialEta={parseDeliveryEta(gallery.delivery_eta)}
+        save={deliveryAction}
+        labels={{
+          title: dict.galleryManage.deliveryTitle,
+          hint: dict.galleryManage.deliveryHint,
+          none: dict.galleryManage.deliveryNone,
+          shot: dict.galleryManage.deliveryShot,
+          editing: dict.galleryManage.deliveryEditing,
+          ready: dict.galleryManage.deliveryReady,
+          etaLabel: dict.galleryManage.deliveryEtaLabel,
+          etaHint: dict.galleryManage.deliveryEtaHint,
+          etaClear: dict.galleryManage.deliveryEtaClear,
+          saving: dict.galleryManage.deliverySaving,
+          saved: dict.galleryManage.deliverySaved,
+          error: dict.galleryManage.deliveryError,
+        }}
+      />
 
       {(gallery.free_expires_at || gallery.free_expired_at) && (
         <section className="mt-8 rounded-2xl border border-line bg-white p-5 text-sm leading-relaxed">
