@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isLocale } from '@/lib/i18n/config'
 import { CullingPanel } from '@/components/gallery/CullingPanel'
+import { HowItWorks } from '@/components/gallery/HowItWorks'
+import { galleryHelp } from '@/lib/gallery/help'
 import type { CullingPhoto } from '@/lib/culling/types'
 
 /**
@@ -50,6 +52,7 @@ export default function CullingDemoPage({
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <h1 className="font-display text-3xl">{params.locale === 'uk' ? 'Демо: відбір кадрів' : 'Demo: photo culling'}</h1>
       <CullingPanel galleryId={`demo-${count}`} locale={params.locale} photos={photos} onSetHidden={demoSetHidden} />
+      <HowItWorks help={galleryHelp(params.locale).culling} testId="help-culling" />
     </main>
   )
 }
