@@ -122,10 +122,10 @@ export default async function GalleryDemoPage({
           )
         })}
         <a
-          href={`/${locale}/themes`}
+          href={`/${locale}`}
           className="ml-auto text-sm text-accent no-underline hover:underline"
         >
-          ← {uk ? 'До тем сайтів' : 'Site themes'}
+          ← {uk ? 'На головну' : 'Home'}
         </a>
       </div>
 
@@ -154,6 +154,7 @@ export default async function GalleryDemoPage({
           downloadHint: dict.publicGallery.downloadHint,
           preparingArchive: dict.publicGallery.preparingArchive,
           archiveError: dict.publicGallery.archiveError,
+          savePart: dict.publicGallery.savePart,
           downloadOriginal: dict.publicGallery.downloadOriginal,
           favoriteToggle: dict.publicGallery.favoriteToggle,
           madeOn: dict.publicGallery.madeOn,

@@ -166,7 +166,10 @@ export async function deleteGallery(locale: Locale, galleryId: string): Promise<
     .eq('id', galleryId)
     .single()
   if (fetchError || !gallery || gallery.owner_id !== user.id) {
-    throw new Error('Gallery not found')
+    // Already gone (a double click on «Видалити», a second tab) or not ours:
+    // nothing to delete — go back to the list instead of an error page.
+    revalidatePath(`/${locale}/dashboard`)
+    redirect(`/${locale}/dashboard`)
   }
 
   // R2 objects first (list by prefix catches originals + future variants),

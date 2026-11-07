@@ -85,7 +85,7 @@ const UI = {
   uk: {
     start: 'Почати безкоштовно',
     demo: 'Подивитися демо галереї',
-    note: `${GALLERY_PLANS.free.storageGb} ГБ безкоштовно назавжди. Без картки при реєстрації.`,
+    note: `${GALLERY_PLANS.free.storageGb} ГБ безкоштовно, кожна галерея відкрита 30 днів. Без картки при реєстрації.`,
     related: 'Ще по темі',
     closingTitle: 'Наступну зйомку віддайте клієнту красиво',
     closingText: 'Створіть першу галерею за кілька хвилин — безкоштовно й без картки.',
@@ -94,7 +94,7 @@ const UI = {
   en: {
     start: 'Start for free',
     demo: 'See the gallery demo',
-    note: `${GALLERY_PLANS.free.storageGb} GB free forever. No card needed to sign up.`,
+    note: `${GALLERY_PLANS.free.storageGb} GB free, each gallery stays open 30 days. No card needed to sign up.`,
     related: 'Related',
     closingTitle: 'Deliver your next shoot beautifully',
     closingText: 'Create your first gallery in a few minutes, free and without a card.',

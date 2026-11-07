@@ -159,7 +159,7 @@ const halerei: ProductPageContent = {
   faq: [
     {
       q: 'Скільки коштує онлайн-галерея?',
-      a: `Безкоштовно — ${P.free.storageGb} ГБ назавжди, без картки. Далі тарифи за місцем: ${uah(P.basic.priceUahMonth)}, ${uah(P.plus.priceUahMonth)} і ${uah(P.pro.priceUahMonth)} на місяць. Деталі — на сторінці [тарифів](/uk/tsiny).`,
+      a: `Безкоштовно — ${P.free.storageGb} ГБ без картки, кожна галерея відкрита 30 днів. Далі тарифи за місцем: ${uah(P.basic.priceUahMonth)}, ${uah(P.plus.priceUahMonth)} і ${uah(P.pro.priceUahMonth)} на місяць. Деталі — на сторінці [тарифів](/uk/tsiny).`,
     },
     {
       q: 'Чи обмежена кількість галерей?',
@@ -197,10 +197,10 @@ const tsiny: ProductPageContent = {
   path: '/tsiny',
   crumb: 'Тарифи',
   seoTitle: 'Тарифи онлайн-галереї для фотографа — проЯв',
-  description: `Тарифи проЯв у гривні: ${P.free.storageGb} ГБ безкоштовно назавжди, далі ${P.basic.priceUahMonth}, ${P.plus.priceUahMonth} або ${P.pro.priceUahMonth} ₴ на місяць за місце. Річна оплата — два місяці в подарунок. Скасування будь-коли.`,
+  description: `Тарифи проЯв у гривні: ${P.free.storageGb} ГБ безкоштовно, далі ${P.basic.priceUahMonth}, ${P.plus.priceUahMonth} або ${P.pro.priceUahMonth} ₴ на місяць за місце. Річна оплата — два місяці в подарунок. Скасування будь-коли.`,
   kicker: 'Тарифи',
   h1: 'Тарифи онлайн-галереї: платите лише за місце',
-  lede: `Відбір фото клієнтом, пароль і термін дії є на всіх тарифах. Платні знімають наш брендинг і додають місце та відео, а з Плюса — ще й статистику. Почати можна безкоштовно — ${P.free.storageGb} ГБ назавжди, без картки.`,
+  lede: `Відбір фото клієнтом, пароль і термін дії є на всіх тарифах. Платні знімають наш брендинг і додають місце та відео, а з Плюса — ще й статистику. Почати можна безкоштовно — ${P.free.storageGb} ГБ без картки, кожна галерея відкрита 30 днів.`,
   ogTitle: 'Тарифи онлайн-галереї проЯв',
   withOffers: true,
   secondary: { label: 'Що вміє галерея', href: '/uk/halerei' },
@@ -287,7 +287,7 @@ const tsiny: ProductPageContent = {
   faq: [
     {
       q: 'Чи є пробний період?',
-      a: `Замість пробного періоду — безкоштовний тариф без терміну: ${P.free.storageGb} ГБ назавжди і без картки при реєстрації.`,
+      a: `Так, безкоштовний тариф: ${P.free.storageGb} ГБ без картки при реєстрації. Кожна безкоштовна галерея відкрита для клієнтів 30 днів — за 7 і за 1 день ми нагадаємо листом. На будь-якому платному тарифі цього обмеження немає.`,
     },
     {
       q: 'Що буде з файлами, якщо я не продовжу підписку?',
@@ -309,7 +309,6 @@ const tsiny: ProductPageContent = {
   related: [
     { label: 'Що вміє онлайн-галерея', href: '/uk/halerei' },
     { label: 'Скільки коштує зберігати фото', href: '/uk/blog/skilky-koshtuie-zberihaty-foto' },
-    { label: 'Порівняння з іншими сервісами', href: '/uk/porivniannia' },
   ],
 }
 
@@ -557,7 +556,7 @@ const vesilni: ProductPageContent = {
 const PROIAV_FACTS = {
   lang: 'українська (клієнтам — ще 8 мов)',
   currency: 'гривня',
-  free: `${P.free.storageGb} ГБ назавжди, без картки`,
+  free: `${P.free.storageGb} ГБ без картки, галерея — 30 днів`,
   paid: `${P.basic.priceUahMonth} / ${P.plus.priceUahMonth} / ${P.pro.priceUahMonth} ₴ на місяць`,
   selection: 'так, сердечками, без реєстрації',
   password: 'так, на всіх тарифах',
@@ -790,6 +789,8 @@ const gallery4you = comparison({
 const porivnianniaHub: ProductPageContent = {
   id: 'porivniannia',
   path: '/porivniannia',
+  // Hidden with the per-service pages until the competitor facts are confirmed.
+  draft: true,
   crumb: 'Порівняння',
   seoTitle: 'Порівняння сервісів галерей для фотографів — проЯв',
   description:

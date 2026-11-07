@@ -5,6 +5,8 @@ import { verifyPassword } from '@/lib/password'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
+// Next to Supabase (eu-central-1) — same region as the public gallery page.
+export const preferredRegion = 'fra1'
 
 /**
  * Password gate for public galleries. On a correct password the response sets
@@ -38,13 +40,18 @@ export async function POST(request: NextRequest, { params }: { params: { slug: s
     return NextResponse.redirect(galleryUrl, { status: 303 })
   }
 
-  if (gallery.password_hash && !verifyPassword(password, gallery.password_hash)) {
+  // No password set: nothing to unlock, the gallery page is open anyway.
+  if (!gallery.password_hash) {
+    return NextResponse.redirect(galleryUrl, { status: 303 })
+  }
+
+  if (!verifyPassword(password, gallery.password_hash)) {
     galleryUrl.searchParams.set('error', 'password')
     return NextResponse.redirect(galleryUrl, { status: 303 })
   }
 
   const response = NextResponse.redirect(galleryUrl, { status: 303 })
-  response.cookies.set(unlockCookieName(gallery.id), unlockCookieValue(gallery.id), {
+  response.cookies.set(unlockCookieName(gallery.id), unlockCookieValue(gallery.id, gallery.password_hash), {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',

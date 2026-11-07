@@ -80,8 +80,11 @@ export class S3CompatProvider implements StorageProvider {
     // CDN when configured — cached at the edge, fast even on a weak connection,
     // and free egress from B2. Forced downloads (originals) stay presigned:
     // short-lived, private, never cached publicly.
+    // Originals (…/o/<uuid>-name) never go through the CDN, even when fetched
+    // inline (the «download all» archive): a CDN URL is unsigned and lives
+    // forever, which would leak a password gallery's originals (CL-04).
     const cdn = process.env.MEDIA_CDN_URL
-    if (cdn && !options?.downloadFileName) {
+    if (cdn && !options?.downloadFileName && !isOriginalKey(key)) {
       return `${cdn.replace(/\/+$/, '')}/${key}`
     }
 
@@ -279,4 +282,9 @@ export class B2Provider extends S3CompatProvider {
       bucket: config.bucket,
     })
   }
+}
+
+/** Original uploads live under `…/o/` (see originalKey in ./index.ts). */
+function isOriginalKey(key: string): boolean {
+  return /\/o\/[^/]+$/.test(key)
 }

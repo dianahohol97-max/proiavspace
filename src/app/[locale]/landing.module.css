@@ -176,7 +176,15 @@
   padding: 9px; font-size: 9.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
 }
 .pBook .slot { background: #fff; }
+/* Both product cards share the row height: the booking mock grows and centres
+   instead of leaving an empty block under the shorter card. */
+.prodGrid > * { display: flex; }
+.prodGrid > * > .prod { flex: 1; }
+.pBook { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.pBook > div { padding: 14px 16px; font-size: 13px; margin-bottom: 10px; border-radius: 12px; }
+.pBook > div:last-child { margin-bottom: 0; font-size: 12px; }
 .pBook .slotOn { background: var(--color-fg); }
+.slotTaken { composes: slot; background: transparent !important; color: var(--color-muted); text-decoration: line-through; opacity: .6; }
 
 /* bento */
 .bento { padding: clamp(40px, 7vw, 80px) 0 clamp(64px, 10vw, 110px); }
@@ -205,6 +213,13 @@
 .chipsMini span {
   border-radius: 999px; background: var(--color-bg); font-size: 11px; font-weight: 700;
   color: var(--color-muted); padding: 5px 11px;
+}
+.bSel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 14px 0 auto; }
+.bSel > div { aspect-ratio: 3 / 4; border-radius: 10px; }
+.bSel i {
+  position: absolute; top: 6px; right: 6px; z-index: 1; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; color: var(--color-accent); font-style: normal; font-size: 11px;
+  display: grid; place-items: center;
 }
 .bMutedText { font-size: 12.5px !important; color: var(--color-muted) !important; font-weight: 600 !important; }
 
@@ -254,6 +269,8 @@
 .yr { margin: 10px 0 0; font-size: 12px; color: var(--color-muted); font-weight: 600; }
 .plan ul, .planHot ul { list-style: none; margin: 24px 0 28px; padding: 0; font-size: 13.5px; font-weight: 600; color: #45443f; display: flex; flex-direction: column; gap: 10px; }
 .plan ul li::before, .planHot ul li::before { content: "→ "; color: var(--color-accent); }
+/* The shared .plan ul colour above overrode the light text on the dark card. */
+.planHot ul { color: #e4e2da; }
 .planCta { margin-top: auto; justify-content: center; }
 .fineprint { margin-top: 22px; font-size: 12px; color: var(--color-muted); text-align: center; font-weight: 600; }
 
@@ -314,7 +331,7 @@
   .bentoGrid {
     grid-template-columns: 1fr 1fr;
     grid-auto-rows: auto;
-    grid-auto-flow: row;
+    grid-auto-flow: row dense;
   }
   .bTall { grid-row: auto; }
   .bWide { grid-column: span 2; }
@@ -332,6 +349,23 @@
     padding: 10px 16px; font-size: 12.5px; gap: 6px;
   }
 }
+/* Phones: the stat card is ~150px wide — keep «30 000+» on one line and the
+   caption short enough not to slide under the booking card. */
+@media (max-width: 520px) {
+  .statCard { padding: 12px 14px; top: 3%; }
+  .statNum { font-size: 21px; white-space: nowrap; }
+  .statCard p { font-size: 10.5px; margin-top: 6px; line-height: 1.4; }
+}
+/* The smallest phones (320–360px): shrink the floating mocks so nothing overlaps. */
+@media (max-width: 360px) {
+  .statCard { padding: 10px 11px; width: 44%; }
+  .statNum { font-size: 17px; }
+  .statCard p { font-size: 9.5px; }
+  .mockBooking { width: 52%; right: 0; padding: 8px; }
+  .mockBooking .slot, .mockBooking .slotOn { font-size: 9px; padding: 6px 8px; white-space: nowrap; }
+  .mockBooking .pay { font-size: 8.5px; padding: 7px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card, .marquee { animation: none; }
   .b:hover, .prod:hover, .pill:hover { transform: none; }

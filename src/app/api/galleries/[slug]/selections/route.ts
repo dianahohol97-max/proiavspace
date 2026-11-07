@@ -4,6 +4,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { SelectionKind } from '@/lib/types'
 
 export const runtime = 'nodejs'
+// Next to Supabase (eu-central-1) — same region as the public gallery page.
+export const preferredRegion = 'fra1'
 
 interface ToggleBody {
   assetId: string
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest, { params }: { params: { slug: s
   if (!gallery) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
-  if (!isGalleryUnlocked(gallery)) {
+  if (!(await isGalleryUnlocked(gallery))) {
     return NextResponse.json({ error: 'locked' }, { status: 403 })
   }
 
