@@ -54,14 +54,31 @@ export function originalKey(ownerId: string, galleryId: string, fileName: string
 }
 
 // 'poster' is a still frame for a video, shown in the grid so the tile never
-// pulls the full original just to render.
-export const VARIANT_NAMES = ['preview', 'thumb', 'poster'] as const
+// pulls the full original just to render. 'mobile' is a ~1080 px WebP for the
+// gallery grid on phones (docs/MOBILE_PREVIEWS.md); older assets don't have it
+// and the grid falls back to 'preview'.
+export const VARIANT_NAMES = ['preview', 'thumb', 'poster', 'mobile'] as const
 export type VariantName = (typeof VARIANT_NAMES)[number]
 
 export function isVariantName(value: string): value is VariantName {
   return (VARIANT_NAMES as readonly string[]).includes(value)
 }
 
-export function variantKey(ownerId: string, galleryId: string, variant: VariantName): string {
-  return `${galleryPrefix(ownerId, galleryId)}v/${crypto.randomUUID()}-${variant}.jpg`
+/** Renditions are made in the browser as JPEG, or WebP for 'mobile'. */
+export function isVariantContentType(contentType: string): boolean {
+  return contentType === 'image/jpeg' || contentType === 'image/webp'
+}
+
+/** File extension of a rendition: WebP where the browser could encode it, else JPEG. */
+export function variantExtension(contentType?: string): 'webp' | 'jpg' {
+  return contentType === 'image/webp' ? 'webp' : 'jpg'
+}
+
+export function variantKey(
+  ownerId: string,
+  galleryId: string,
+  variant: VariantName,
+  contentType?: string
+): string {
+  return `${galleryPrefix(ownerId, galleryId)}v/${crypto.randomUUID()}-${variant}.${variantExtension(contentType)}`
 }

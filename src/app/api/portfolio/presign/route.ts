@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
-import { getStorage, isVariantName } from '@/lib/storage'
+import { getStorage, isVariantContentType, isVariantName, variantExtension } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -48,6 +48,9 @@ export async function POST(request: NextRequest) {
   if (body.variant !== undefined && !isVariantName(body.variant)) {
     return NextResponse.json({ error: 'unknown_variant' }, { status: 400 })
   }
+  if (body.variant !== undefined && !isVariantContentType(body.contentType)) {
+    return NextResponse.json({ error: 'unsupported_type' }, { status: 415 })
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   const safeName = body.fileName.normalize('NFKD').replace(/[^\w.\-]+/g, '_').slice(-80)
   const key = body.variant
-    ? `u/${user.id}/portfolio/v/${crypto.randomUUID()}-${body.variant}.jpg`
+    ? `u/${user.id}/portfolio/v/${crypto.randomUUID()}-${body.variant}.${variantExtension(body.contentType)}`
     : `u/${user.id}/portfolio/${crypto.randomUUID()}-${safeName}`
   const { url } = await getStorage().getUploadUrl({
     key,

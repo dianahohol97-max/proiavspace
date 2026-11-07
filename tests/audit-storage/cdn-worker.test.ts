@@ -43,11 +43,40 @@ const get = (path: string, init?: RequestInit) => handle(new Request(`https://pr
 
 describe('CDN-Worker: які ключі віддає', () => {
   test('прев’ю, тумби й постери галереї та портфоліо — так', () => {
-    for (const v of ['preview', 'thumb', 'poster']) {
+    for (const v of ['preview', 'thumb', 'poster', 'mobile']) {
       assert.ok(isServableKey(`u/${U}/g/${G}/v/${V}-${v}.jpg`), v)
       assert.ok(isServableKey(`u/${U}/portfolio/v/${V}-${v}.jpg`), v)
     }
   })
+
+  test('легке прев’ю для телефонів …-mobile.webp — так; інші .webp і чужі розширення — ні', () => {
+    assert.ok(isServableKey(`u/${U}/g/${G}/v/${V}-mobile.webp`))
+    assert.ok(isServableKey(`u/${U}/portfolio/v/${V}-mobile.webp`))
+    for (const key of [
+      `u/${U}/g/${G}/v/${V}-preview.webp`,
+      `u/${U}/g/${G}/v/${V}-thumb.webp`,
+      `u/${U}/g/${G}/o/${V}-mobile.webp`,
+      `u/${U}/g/${G}/v/${V}-mobile.png`,
+      `u/${U}/g/${G}/v/${V}-mobile.webp.jpg/x`,
+      `u/${U}/g/${G}/v/${V}-mobile.webpx`,
+    ]) {
+      assert.equal(isServableKey(key), false, key)
+    }
+  })
+
+  test('mobile.webp віддається з типом із B2 (image/webp) і довгим кешем', async () => {
+    const calls: string[] = []
+    globalThis.fetch = (async (url: string) => {
+      calls.push(String(url))
+      return new Response('webpbytes', { status: 200, headers: { 'Content-Type': 'image/webp', ETag: '"w"' } })
+    }) as typeof fetch
+    const res = await get(`u/${U}/g/${G}/v/${V}-mobile.webp`)
+    assert.equal(res.status, 200)
+    assert.equal(res.headers.get('Content-Type'), 'image/webp')
+    assert.equal(res.headers.get('Cache-Control'), 'public, max-age=31536000, immutable')
+    assert.equal(new URL(calls[0]).pathname, `/proiav-media/u/${U}/g/${G}/v/${V}-mobile.webp`)
+  })
+
 
   test('оригінали /o/, лого, відео для соцмереж, оригінали портфоліо, обхід шляху — ні', () => {
     for (const key of [
@@ -191,6 +220,8 @@ describe('застосунок з MEDIA_CDN_URL', () => {
     assert.equal(await provider().getSignedReadUrl(key), `https://proiav-media.x.workers.dev/${key}`)
     const pkey = `u/${U}/portfolio/v/${V}-thumb.jpg`
     assert.equal(await provider().getSignedReadUrl(pkey), `https://proiav-media.x.workers.dev/${pkey}`)
+    const mkey = `u/${U}/g/${G}/v/${V}-mobile.webp`
+    assert.equal(await provider().getSignedReadUrl(mkey), `https://proiav-media.x.workers.dev/${mkey}`)
   })
 
   test('оригінали, лого, відео для соцмереж, оригінали портфоліо — підписані посилання на B2', async () => {

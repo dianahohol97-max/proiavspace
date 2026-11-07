@@ -1,6 +1,7 @@
 /**
  * proiav media CDN — a Cloudflare Worker in front of the PRIVATE Backblaze B2
- * bucket. Serves only gallery/portfolio variants (…/v/<uuid>-preview|thumb|poster.jpg)
+ * bucket. Serves only gallery/portfolio variants (…/v/<uuid>-preview|thumb|poster|mobile.jpg,
+ * and the WebP phone tile …/v/<uuid>-mobile.webp)
  * and caches them at Cloudflare's edge. Originals (…/o/…) and every other key
  * answer 404: they stay behind short-lived presigned URLs issued by the app.
  *
@@ -37,9 +38,12 @@ interface Ctx {
   waitUntil(promise: Promise<unknown>): void
 }
 
-/** Only variants: u/<user>/g/<gallery>/v/<uuid>-<variant>.jpg or u/<user>/portfolio/v/<uuid>-<variant>.jpg */
+/**
+ * Only variants: u/<user>/g/<gallery>/v/<uuid>-<variant>.jpg or u/<user>/portfolio/v/<uuid>-<variant>.jpg,
+ * plus the phone grid tile <uuid>-mobile.webp (JPEG where the browser couldn't encode WebP).
+ */
 const VARIANT_KEY =
-  /^u\/[A-Za-z0-9-]{1,64}\/(?:g\/[A-Za-z0-9-]{1,64}\/|portfolio\/)v\/[A-Za-z0-9-]{1,64}-(?:preview|thumb|poster)\.jpg$/
+  /^u\/[A-Za-z0-9-]{1,64}\/(?:g\/[A-Za-z0-9-]{1,64}\/|portfolio\/)v\/[A-Za-z0-9-]{1,64}-(?:(?:preview|thumb|poster|mobile)\.jpg|mobile\.webp)$/
 
 const BROWSER_CACHE = 'public, max-age=31536000, immutable'
 // 7 days, not longer: previews are unsigned through the CDN, so after a gallery

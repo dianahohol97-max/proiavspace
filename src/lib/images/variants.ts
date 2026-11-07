@@ -12,9 +12,13 @@
  * explicit download endpoint.
  */
 
+export type RenditionName = 'preview' | 'thumb' | 'mobile'
+
 export interface GeneratedVariant {
-  name: 'preview' | 'thumb'
+  name: RenditionName
   blob: Blob
+  /** 'image/jpeg', or 'image/webp' for the mobile rendition where supported. */
+  contentType: 'image/jpeg' | 'image/webp'
 }
 
 /** Renditions + the (orientation-corrected) pixel size from the same decode. */
@@ -24,18 +28,50 @@ export interface GeneratedRenditions {
   height?: number
 }
 
-const TARGETS: { name: 'preview' | 'thumb'; maxDim: number; quality: number }[] = [
-  { name: 'preview', maxDim: 2048, quality: 0.85 },
+interface Target {
+  name: RenditionName
+  maxDim: number
+  quality: number
+  webp?: boolean
+  /** Carries the watermark (the renditions clients browse). */
+  watermark?: boolean
+}
+
+const TARGETS: Target[] = [
+  { name: 'preview', maxDim: 2048, quality: 0.85, watermark: true },
   { name: 'thumb', maxDim: 512, quality: 0.8 },
 ]
 
-function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob | null> {
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
+/**
+ * Light grid tile for phones (docs/MOBILE_PREVIEWS.md): ~80–180 KB instead of
+ * the 0.4–1 MB preview. Only gallery uploads ask for it; the lightbox keeps
+ * using `preview`.
+ */
+const MOBILE_TARGET: Target = { name: 'mobile', maxDim: 1080, quality: 0.8, webp: true, watermark: true }
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality))
+}
+
+/**
+ * WebP where the browser can encode it. Some Safari versions can't and quietly
+ * hand back a PNG instead — then the tile is a JPEG of the same size.
+ */
+async function encode(
+  canvas: HTMLCanvasElement,
+  target: Target
+): Promise<{ blob: Blob; contentType: 'image/jpeg' | 'image/webp' } | null> {
+  if (target.webp) {
+    const webp = await canvasToBlob(canvas, 'image/webp', target.quality)
+    if (webp && webp.type === 'image/webp') return { blob: webp, contentType: 'image/webp' }
+  }
+  const jpeg = await canvasToBlob(canvas, 'image/jpeg', target.quality)
+  return jpeg ? { blob: jpeg, contentType: 'image/jpeg' } : null
 }
 
 /**
  * Optional watermark: the photographer's name stamped bottom-right on the
- * PREVIEW rendition only. Originals and downloads stay untouched — the
+ * renditions clients browse (preview and the mobile grid tile) only. Originals and downloads stay untouched — the
  * watermark exists exactly where clients browse, not where they buy.
  */
 function stampWatermark(
@@ -56,7 +92,8 @@ function stampWatermark(
 
 export async function generateImageVariants(
   file: File,
-  watermarkText?: string
+  watermarkText?: string,
+  options: { mobile?: boolean } = {}
 ): Promise<GeneratedRenditions> {
   if (!file.type.startsWith('image/')) return { variants: [] }
 
@@ -72,7 +109,8 @@ export async function generateImageVariants(
   const size = { width: bitmap.width, height: bitmap.height }
   const variants: GeneratedVariant[] = []
   try {
-    for (const target of TARGETS) {
+    const targets = options.mobile ? [...TARGETS, MOBILE_TARGET] : TARGETS
+    for (const target of targets) {
       const scale = target.maxDim / Math.max(bitmap.width, bitmap.height)
       // A watermarked preview must exist even for small originals, otherwise
       // the viewer would fall back to the clean original.
@@ -86,12 +124,12 @@ export async function generateImageVariants(
       const context = canvas.getContext('2d')
       if (!context) continue
       context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-      if (target.name === 'preview' && watermarkText) {
+      if (target.watermark && watermarkText) {
         stampWatermark(context, canvas.width, canvas.height, watermarkText)
       }
 
-      const blob = await canvasToJpeg(canvas, target.quality)
-      if (blob) variants.push({ name: target.name, blob })
+      const encoded = await encode(canvas, target)
+      if (encoded) variants.push({ name: target.name, ...encoded })
     }
   } finally {
     bitmap.close()
