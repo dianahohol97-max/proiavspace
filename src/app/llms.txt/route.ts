@@ -39,8 +39,11 @@ UI, hryvnia pricing, free ${P.free.storageGb} GB tier.
 - Client galleries: favorites, password protection, expiry dates, one-click
   zip download, view/download stats, video support, fullscreen slideshow.
   Originals stored byte-for-byte, never recompressed.
-- Додатково: сторінка бронювання зйомки з оплатою напряму на картку
-  фотографа (Monobank еквайринг, WayForPay, банка, реквізити).
+- AI-відбір кадрів у браузері фотографа: розмиті кадри, повтори в серіях,
+  заплющені очі. Лише підказки — від клієнта ховається тільки те, що
+  фотограф підтвердив.
+- Статус зйомки для клієнта: поки фото в обробці, за посиланням на галерею
+  видно етапи «Зйомка → Обробка → Готово» і орієнтовну дату.
 - Реферальна програма: 10% кредитом з кожної оплати запрошеного колеги.
 
 ## Кому підходить / Who it's for
