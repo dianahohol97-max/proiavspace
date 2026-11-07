@@ -404,6 +404,7 @@ export const en: Dictionary = {
     themeLyst: 'Lyst',
     themePortret: 'Portret',
     themeSviato: 'Sviato',
+    themeRozvorot: 'Rozvorot',
     heroLegend: 'Hero',
     heroTitle: 'Headline (your name or a tagline)',
     heroSubtitle: 'Subtitle (genre and city)',

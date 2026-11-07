@@ -419,6 +419,7 @@ export const uk = {
     themeLyst: 'Лист',
     themePortret: 'Портрет',
     themeSviato: 'Свято',
+    themeRozvorot: 'Розворот',
     heroLegend: 'Головний екран',
     heroTitle: 'Заголовок (наприклад, ваше ім’я або слоган)',
     heroSubtitle: 'Підзаголовок (жанр і місто)',

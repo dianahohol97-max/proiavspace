@@ -24,6 +24,8 @@ import { STUDIO_FONT_VARS } from './portret/fonts'
 import { ThemePortret } from './portret/ThemePortret'
 import { PARTY_FONT_VARS } from './sviato/fonts'
 import { ThemeSviato } from './sviato/ThemeSviato'
+import { SPREAD_FONT_VARS } from './rozvorot/fonts'
+import { ThemeRozvorot } from './rozvorot/ThemeRozvorot'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -383,6 +385,7 @@ export function SiteRenderer({
     lyst: { Component: ThemeLyst, fonts: LETTER_FONT_VARS },
     portret: { Component: ThemePortret, fonts: STUDIO_FONT_VARS },
     sviato: { Component: ThemeSviato, fonts: PARTY_FONT_VARS },
+    rozvorot: { Component: ThemeRozvorot, fonts: SPREAD_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {

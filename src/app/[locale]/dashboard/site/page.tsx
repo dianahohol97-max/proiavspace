@@ -126,6 +126,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     lyst: dict.site.themeLyst,
     portret: dict.site.themePortret,
     sviato: dict.site.themeSviato,
+    rozvorot: dict.site.themeRozvorot,
   }
 
   return (

@@ -25,6 +25,7 @@ export const THEME_IDS = [
   'lyst',
   'portret',
   'sviato',
+  'rozvorot',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -199,6 +200,15 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Party Sans", "Party Sans Fallback", Arial, sans-serif',
     },
   },
+  rozvorot: {
+    id: 'rozvorot',
+    tokens: {
+      ...base,
+      // «Розворот»: quiet luxury — stone paper, warm black, bronze (5.5:1).
+      bg: '#efebe4', fg: '#1e1c19', muted: '#665f55', accent: '#6f5b3e', line: '#ddd6cb',
+      fontDisplay: '"Spread Serif", "Spread Serif Fallback", Georgia, serif',
+    },
+  },
 }
 
 /**
@@ -212,6 +222,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   lyst: { theme: 'tysha', mode: 'light' },
   portret: { theme: 'galereia', mode: 'light' },
   sviato: { theme: 'tysha', mode: 'night' },
+  rozvorot: { theme: 'tysha', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -298,4 +309,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'lyst', theme: 'lyst', mode: 'light' },
   { value: 'portret', theme: 'portret', mode: 'light' },
   { value: 'sviato', theme: 'sviato', mode: 'light' },
+  { value: 'rozvorot', theme: 'rozvorot', mode: 'light' },
 ]
