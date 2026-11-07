@@ -168,6 +168,12 @@ export async function setGalleryDelivery(
     if (error) console.error('setGalleryDelivery failed', galleryId, error.message)
     return { ok: false }
   }
+  // «Готово» for the first time + the client's address → «Ваші фото готові»
+  // (0066). Once per gallery; a failed letter never fails the status save.
+  if (deliveryStatus === 'ready') {
+    const { notifyClientIfReady } = await import('@/lib/gallery/ready-email-store')
+    await notifyClientIfReady(supabase, user, galleryId)
+  }
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
   return { ok: true }
 }
@@ -177,7 +183,7 @@ export async function setGalleryPublished(
   galleryId: string,
   published: boolean
 ): Promise<void> {
-  const { supabase } = await requireUser()
+  const { supabase, user } = await requireUser()
 
   // RLS restricts the update to the owner's rows.
   const { error } = await supabase
@@ -186,6 +192,12 @@ export async function setGalleryPublished(
     .eq('id', galleryId)
 
   if (error) throw new Error(`Failed to update gallery: ${error.message}`)
+  // Status «Готово» set while the gallery was still a draft: the letter
+  // waited for a working link (0066). No-op when already sent / no address.
+  if (published) {
+    const { notifyClientIfReady } = await import('@/lib/gallery/ready-email-store')
+    await notifyClientIfReady(supabase, user, galleryId)
+  }
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
 }
 

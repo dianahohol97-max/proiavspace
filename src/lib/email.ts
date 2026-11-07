@@ -18,6 +18,8 @@ export interface EmailInput {
   text: string
   /** The HTML part; by default the text wrapped in the проЯв layout. */
   html?: string
+  /** Where replies go; the support address by default. */
+  replyTo?: string
 }
 
 export interface EmailResult {
@@ -67,7 +69,7 @@ export async function sendEmailDetailed(input: EmailInput): Promise<EmailResult>
         // support address rather than bouncing off a no-reply.
         htmlContent: input.html ?? wrapText(input.text, input.subject),
         textContent: input.text,
-        replyTo: { email: supportEmail() },
+        replyTo: { email: input.replyTo ?? supportEmail() },
       }),
     })
     const body = (await response.text().catch(() => '')).slice(0, 500)
