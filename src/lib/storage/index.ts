@@ -82,3 +82,40 @@ export function variantKey(
 ): string {
   return `${galleryPrefix(ownerId, galleryId)}v/${crypto.randomUUID()}-${variant}.${variantExtension(contentType)}`
 }
+
+/* ---- portfolio (photographer site) -------------------------------------- */
+
+/** Everything a photographer's site portfolio stores lives under this prefix. */
+export function portfolioPrefix(ownerId: string): string {
+  return `u/${ownerId}/portfolio/`
+}
+
+/**
+ * Key of a portfolio rendition: …/portfolio/v/<uuid>-<variant>.jpg, or .webp
+ * for the `mobile` phone copy — the same …/v/ shape as gallery variants, so
+ * the CDN Worker serves it.
+ */
+export function portfolioVariantKey(ownerId: string, variant: VariantName, contentType?: string): string {
+  return `${portfolioPrefix(ownerId)}v/${crypto.randomUUID()}-${variant}.${variantExtension(contentType)}`
+}
+
+/** /api/portfolio/complete: the original and every rendition must be the caller's own. */
+export function portfolioKeysOwned(ownerId: string, key: string, variants: Record<string, string> = {}): boolean {
+  const prefix = portfolioPrefix(ownerId)
+  return [key, ...Object.values(variants)].every((k) => typeof k === 'string' && k.startsWith(prefix))
+}
+
+/**
+ * What deleting one portfolio photo removes from storage: the original and
+ * every rendition in `variants` (preview, thumb, mobile…), never anything
+ * outside the owner's portfolio prefix.
+ */
+export function portfolioDeleteKeys(
+  ownerId: string,
+  asset: { r2_key: string; variants: Record<string, string> | null }
+): string[] {
+  const prefix = portfolioPrefix(ownerId)
+  return [asset.r2_key, ...Object.values(asset.variants ?? {})].filter(
+    (key) => typeof key === 'string' && key.startsWith(prefix)
+  )
+}

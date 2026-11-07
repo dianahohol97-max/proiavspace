@@ -4,7 +4,9 @@ import { getDictionary } from '@/lib/i18n'
 import { isLocale, localeLabels, type Locale } from '@/lib/i18n/config'
 import { jsonLdScript } from '@/lib/jsonld'
 import { localizedSiteContent, parseSiteContent } from '@/lib/site/content'
+import { mobilePreviewSrcSet } from '@/lib/images/srcset'
 import { leadFormLabelsFromDict, siteLabelsFromDict } from '@/lib/site/labels'
+import { loadSiteOwnerExtras } from '@/lib/site/owner'
 import { isThemeId } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -21,8 +23,6 @@ interface SiteRow {
   content: unknown
   display_name: string | null
   logo_key: string | null
-  /** Since migration 0053; undefined until it is applied → treated as paid. */
-  site_plan?: string | null
 }
 
 interface PortfolioRow {
@@ -138,17 +138,36 @@ export default async function PublicSitePage({
     ? await storage.getSignedReadUrl(site.logo_key, { expiresInSeconds: 60 * 60 })
     : null
 
+  // The owner's site plan (for the free-plan credit) and the light `mobile`
+  // renditions are read with the service role — see loadSiteOwnerExtras.
+  const portfolioRows = (portfolioData as PortfolioRow[] | null) ?? []
+  const owner = await loadSiteOwnerExtras(
+    params.handle,
+    portfolioRows.map((row) => row.id)
+  )
   const portfolio: PortfolioItem[] = await Promise.all(
-    ((portfolioData as PortfolioRow[] | null) ?? []).map(async (row) => ({
-      id: row.id,
-      previewUrl: row.preview_key
+    portfolioRows.map(async (row) => {
+      const previewUrl = row.preview_key
         ? await storage.getSignedReadUrl(row.preview_key, { expiresInSeconds: 60 * 60 })
-        : null,
-      category: row.category,
-      caption: row.caption,
-      width: row.width,
-      height: row.height,
-    }))
+        : null
+      const mobileKey = owner.mobileKeys[row.id]
+      const mobileUrl = mobileKey
+        ? await storage.getSignedReadUrl(mobileKey, { expiresInSeconds: 60 * 60 })
+        : null
+      return {
+        id: row.id,
+        previewUrl,
+        category: row.category,
+        caption: row.caption,
+        width: row.width,
+        height: row.height,
+        // «mobile 1080w, preview 2048w»; photos uploaded before the mobile
+        // rendition existed keep just the preview.
+        srcSet: previewUrl
+          ? mobilePreviewSrcSet({ mobileUrl, previewUrl, width: row.width, height: row.height })
+          : undefined,
+      }
+    })
   )
 
   // Structured data for the PHOTOGRAPHER (their business, not ours). A richer
@@ -254,7 +273,7 @@ export default async function PublicSitePage({
         logoUrl={logoUrl}
         portfolio={portfolio}
         booking={booking}
-        platformCredit={site.site_plan === 'site_trial'}
+        platformCredit={owner.sitePlan === 'site_trial'}
         footer={{
           brand: site.display_name ?? (content.hero.title || params.handle),
           year: new Date().getFullYear(),

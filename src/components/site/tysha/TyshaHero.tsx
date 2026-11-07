@@ -79,7 +79,7 @@ export function HeroSlides({ slides }: { slides: HeroSlide[] }) {
         return (
           <div key={slide.id} className={t.slide} data-state={state} aria-hidden="true">
             <div className={t.kb} style={{ '--kb-origin': ORIGINS[i % ORIGINS.length] } as React.CSSProperties}>
-              <Picture src={slide.src} srcSet={slide.srcSet} avifSrcSet={slide.avifSrcSet} sizes="100vw" alt="" />
+              <Picture src={slide.src} srcSet={slide.srcSet} avifSrcSet={slide.avifSrcSet} sizes="(max-width: 760px) 360px, 100vw" alt="" />
             </div>
           </div>
         )

@@ -354,13 +354,13 @@ export function SiteEditor({
     setUploading(files.length)
     for (const file of files) {
       try {
-        const presign = async (variant?: string, blob?: Blob) => {
+        const presign = async (variant?: string, blob?: Blob, variantType = 'image/jpeg') => {
           const response = await fetch('/api/portfolio/presign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              fileName: variant ? `${variant}.jpg` : file.name,
-              contentType: variant ? 'image/jpeg' : file.type,
+              fileName: variant ? `${variant}.${variantType === 'image/webp' ? 'webp' : 'jpg'}` : file.name,
+              contentType: variant ? variantType : file.type,
               sizeBytes: blob ? blob.size : file.size,
               variant,
             }),
@@ -378,13 +378,15 @@ export function SiteEditor({
         if (!put.ok) throw new Error('put failed')
 
         const variants: Record<string, string> = {}
-        // One decode yields renditions AND the pixel size.
-        const rendered = await generateImageVariants(file)
+        // One decode yields renditions AND the pixel size. `mobile` is the
+        // light ~1080 px WebP (JPEG where the browser can't encode WebP) that
+        // the site serves to phones; like the portfolio preview, no watermark.
+        const rendered = await generateImageVariants(file, undefined, { mobile: true })
         for (const rendition of rendered.variants) {
-          const target = await presign(rendition.name, rendition.blob)
+          const target = await presign(rendition.name, rendition.blob, rendition.contentType)
           const putVariant = await fetch(target.uploadUrl, {
             method: 'PUT',
-            headers: { 'Content-Type': 'image/jpeg' },
+            headers: { 'Content-Type': rendition.contentType },
             body: rendition.blob,
           })
           if (putVariant.ok) variants[rendition.name] = target.key

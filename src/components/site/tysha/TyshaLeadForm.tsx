@@ -10,6 +10,11 @@ import t from './Tysha.module.css'
 export const PACK_EVENT = 'tysha:pack'
 
 /**
+ * Form controls carry suppressHydrationWarning: password managers and
+ * autofill extensions decorate inputs (style, data-*) before React hydrates,
+ * which React reports as «Extra attributes from the server». It only silences
+ * attribute differences on that one element, never its children or values.
+ *
  * «Тиша» enquiry form: hairline fields with floating labels (real <label>s),
  * separate email / phone (at least one), shoot date and type. It posts the
  * same three fields as every other theme — date and type are folded into the
@@ -74,7 +79,13 @@ export function TyshaLeadForm({
   }
 
   const id = (name: string) => `${uid}-${name}`
-  const today = new Date().toISOString().slice(0, 10)
+  // `min` only after mount: the server's «today» may be another day than the
+  // visitor's (time zones), which would be a hydration mismatch.
+  const [today, setToday] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    const d = new Date()
+    setToday(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+  }, [])
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -120,6 +131,7 @@ export function TyshaLeadForm({
         >
           <div className={`${t.field} ${t.formFull}`}>
             <input
+              suppressHydrationWarning
               id={id('name')}
               name="name"
               className={t.input}
@@ -134,6 +146,7 @@ export function TyshaLeadForm({
           </div>
           <div className={t.field}>
             <input
+              suppressHydrationWarning
               id={id('email')}
               name="email"
               type="email"
@@ -151,6 +164,7 @@ export function TyshaLeadForm({
           </div>
           <div className={t.field}>
             <input
+              suppressHydrationWarning
               id={id('phone')}
               name="phone"
               type="tel"
@@ -167,7 +181,15 @@ export function TyshaLeadForm({
             </label>
           </div>
           <div className={t.field}>
-            <input id={id('date')} name="date" type="date" min={today} className={t.input} autoComplete="off" />
+            <input
+              suppressHydrationWarning
+              id={id('date')}
+              name="date"
+              type="date"
+              min={today}
+              className={t.input}
+              autoComplete="off"
+            />
             <label htmlFor={id('date')} className={`${t.floatLabel} ${t.floatLabelUp}`}>
               {labels.date ?? 'Дата'}
             </label>
@@ -175,6 +197,7 @@ export function TyshaLeadForm({
           <div className={t.field}>
             {options.length > 0 ? (
               <select
+                suppressHydrationWarning
                 id={id('type')}
                 name="type"
                 className={t.input}
@@ -189,7 +212,14 @@ export function TyshaLeadForm({
                 ))}
               </select>
             ) : (
-              <input id={id('type')} name="type" className={t.input} maxLength={80} placeholder=" " />
+              <input
+                suppressHydrationWarning
+                id={id('type')}
+                name="type"
+                className={t.input}
+                maxLength={80}
+                placeholder=" "
+              />
             )}
             <label
               htmlFor={id('type')}
@@ -200,6 +230,7 @@ export function TyshaLeadForm({
           </div>
           <div className={`${t.field} ${t.formFull}`}>
             <textarea
+              suppressHydrationWarning
               id={id('message')}
               name="message"
               rows={3}

@@ -32,6 +32,13 @@ const GRID_MAX = 9
 const HERO_FRAMES = 4
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
+/**
+ * Full-width frames on phones: «360px», not «100vw». A 3× iPhone would ask
+ * for 390 × 3 = 1170 px and skip the 1080 px `mobile` rendition for the
+ * 2048 px preview; 1080 is 92% of that — indistinguishable, a fraction of
+ * the bytes. Desktops still get the preview.
+ */
+const PHONE_FULL = '(max-width: 760px) 360px'
 type Photo = PortfolioItem & { previewUrl: string }
 const isLandscape = (p: Photo) => !!p.width && !!p.height && p.width >= p.height
 /** What the lightboxes need — keeps the client payload (and the HTML) lean. */
@@ -222,7 +229,7 @@ export function ThemeTysha({
                     src={lead.src}
                     srcSet={lead.srcSet}
                     avifSrcSet={lead.avifSrcSet}
-                    sizes="100vw"
+                    sizes={`${PHONE_FULL}, 100vw`}
                     alt={lead.alt}
                     priority
                   />
@@ -289,7 +296,7 @@ export function ThemeTysha({
                       src={item.previewUrl!}
                       srcSet={item.srcSet}
                       alt={item.caption || item.category || title}
-                      sizes={`(max-width: 760px) ${mobile.full ? '100vw' : '50vw'}, ${Math.round((desk.span / 12) * 92)}vw`}
+                      sizes={`(max-width: 760px) ${mobile.full ? '360px' : '50vw'}, ${Math.round((desk.span / 12) * 92)}vw`}
                       objectPosition="50% 38%"
                     />
                   </div>
@@ -322,7 +329,7 @@ export function ThemeTysha({
                   src={momentPhoto.previewUrl}
                   srcSet={momentPhoto.srcSet}
                   avifSrcSet={momentPhoto.avifSrcSet}
-                  sizes="100vw"
+                  sizes={`${PHONE_FULL}, 100vw`}
                   alt={content.moment.text ? '' : momentPhoto.caption || title}
                   className={t.momentImg}
                 />
