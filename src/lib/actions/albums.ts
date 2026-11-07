@@ -146,7 +146,7 @@ export async function createAlbumProject(input: {
     const title = input.title.trim().slice(0, 120)
     if (!title) throw new Error('Вкажіть назву альбому')
     const spec = normalizeSpec(input.spec)
-    // One RPC (0064): checks the gallery is the caller's, or creates the
+    // One RPC (0065): checks the gallery is the caller's, or creates the
     // album's own unpublished service gallery and marks it — that mark keeps
     // the gallery out of the Free 30-day cleanup while the album exists.
     const { data, error } = await supabase.rpc('album_create_project', {

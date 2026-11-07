@@ -51,7 +51,7 @@ function spreadJson(id: string, projectId: string, assetId: string | null, slots
 }
 
 describe('альбоми: міграції 0061–0062', () => {
-  test('накочуються без помилок (разом з 0064)', { skip: skip() }, () => {
+  test('накочуються без помилок (разом з 0065)', { skip: skip() }, () => {
     const failed = Object.keys(pg!.failedMigrations).filter((f) => f.startsWith('006'))
     assert.deepEqual(failed, [])
   })
@@ -150,7 +150,7 @@ describe('альбоми: міграції 0061–0062', () => {
   })
 })
 
-describe('альбоми: 0064 — текст, поворот, корінець, службова галерея', () => {
+describe('альбоми: 0065 — текст, поворот, корінець, службова галерея', () => {
   const create = (userId: string, gallery: string | null) =>
     as('authenticated', userId, `select public.album_create_project('Весілля', ${SPEC}, null, ${gallery ? `'${gallery}'` : 'null'})`)
   const galleryOf = (projectId: string) => pg!.sql(`select gallery_id from public.album_projects where id = '${projectId}'`)

@@ -148,7 +148,7 @@ export interface PrintProfileRow {
   cover_height_mm: number | string | null
   cover_bleed_mm: number | string
   cover_spine_mm: number | string
-  /** 0064; absent before the migration. */
+  /** 0065; absent before the migration. */
   cover_spine_per_spread_mm?: number | string | null
 }
 
