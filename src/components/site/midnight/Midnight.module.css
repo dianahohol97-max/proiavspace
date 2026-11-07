@@ -34,9 +34,16 @@
   --n-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
   --n-pad: clamp(20px, 5vw, 72px);
   --n-max: 1440px;
-  --n-section: clamp(96px, 11vw, 168px);
+  --n-section: clamp(72px, 11vw, 168px);
   --t-nav-h: 76px;
   --n-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --card-bg: var(--n-bg);
+  --card-fg: var(--n-fg);
+  --card-muted: var(--n-muted);
+  --card-line: var(--n-line);
+  --card-accent: var(--n-gold);
+  --card-display: var(--n-serif);
+  --card-label: var(--n-sans);
 
   position: relative;
   background: var(--n-bg);
@@ -72,7 +79,7 @@
 @media (max-width: 760px) {
   .root {
     --t-nav-h: 64px;
-    --n-section: 84px;
+    --n-section: 64px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -659,7 +666,11 @@
 /* ------------------------------------------------- the strip of lights --- */
 
 .strip {
-  margin-top: var(--n-section);
+  margin-top: clamp(48px, 6vw, 96px);
+}
+/* inside the portfolio block the film runs edge to edge */
+.strip .film {
+  margin-inline: calc(-1 * var(--n-pad));
 }
 .stripHead {
   display: flex;
@@ -858,172 +869,6 @@
   }
   .aboutPortrait {
     width: 62%;
-  }
-}
-
-/* ------------------------------------------------------------- series --- */
-
-.series {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: clamp(20px, 5vw, 96px);
-  row-gap: clamp(56px, 7vw, 112px);
-}
-.seriesItem {
-  margin: 0;
-  min-width: 0;
-}
-.seriesItem:nth-child(2n) {
-  margin-top: clamp(0px, 9vw, 140px);
-}
-.seriesCover {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 5;
-  padding: 0;
-  border: 0;
-  overflow: hidden;
-  cursor: pointer;
-  background: #000;
-}
-.seriesCover img {
-  transition: transform 1.6s var(--n-ease);
-}
-.seriesCover::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 60%, rgba(255, 168, 84, 0.18), transparent 60%);
-  opacity: 0;
-  transition: opacity 0.8s var(--n-ease);
-}
-@media (hover: hover) {
-  .seriesItem:hover .seriesCover img {
-    transform: scale(1.045);
-  }
-  .seriesItem:hover .seriesCover::after {
-    opacity: 1;
-  }
-}
-.seriesCover:focus-visible {
-  outline: 1px solid var(--n-gold);
-  outline-offset: 4px;
-}
-.seriesMeta {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 18px;
-  align-items: baseline;
-  margin-top: 20px;
-}
-.seriesNo {
-  font-family: var(--n-mono);
-  font-size: 13px;
-  color: var(--n-gold);
-}
-.seriesName {
-  margin: 0;
-  font-family: var(--n-serif);
-  font-weight: 400;
-  font-size: clamp(28px, 3vw, 44px);
-  line-height: 1.08;
-}
-.seriesCount {
-  grid-column: 2;
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 24px;
-  align-items: center;
-}
-.textLink {
-  position: relative;
-  background: none;
-  border: 0;
-  padding: 4px 0;
-  color: var(--n-fg);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  cursor: pointer;
-  text-decoration: none;
-}
-.textLink::after {
-  transform: scaleX(0.3);
-  transform-origin: left;
-}
-.textLink:hover::after,
-.textLink:focus-visible::after,
-.seriesItem:hover .textLink::after {
-  transform: scaleX(1);
-}
-.allLink {
-  font-size: 12px;
-  color: var(--n-gold);
-}
-@media (max-width: 760px) {
-  .series {
-    column-gap: 12px;
-    row-gap: 34px;
-  }
-  .seriesItem:nth-child(2n) {
-    margin-top: 44px;
-  }
-  .seriesMeta {
-    column-gap: 8px;
-    margin-top: 12px;
-  }
-  .seriesName {
-    font-size: 22px;
-  }
-  .seriesCount .label {
-    display: none;
-  }
-}
-
-/* ------------------------------------------------------------ process --- */
-
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(28px, 4vw, 56px) clamp(24px, 5vw, 96px);
-}
-.step {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: clamp(18px, 2vw, 32px);
-  align-items: start;
-  padding-top: 24px;
-  border-top: 1px solid var(--n-line);
-}
-.stepNo {
-  font-family: var(--n-serif);
-  font-size: clamp(44px, 5vw, 76px);
-  line-height: 0.9;
-  color: var(--n-gold);
-}
-.stepTitle {
-  margin: 4px 0 8px;
-  font-family: var(--n-serif);
-  font-weight: 400;
-  font-size: clamp(22px, 2vw, 28px);
-}
-.stepText {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.7;
-  color: color-mix(in srgb, var(--n-fg) 78%, var(--n-bg));
-  max-width: 40ch;
-}
-@media (max-width: 760px) {
-  .steps {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -1454,4 +1299,42 @@ select.input option {
 .footLinks a:hover,
 .footRow > a:hover {
   color: var(--n-gold);
+}
+
+/* ------------------------------------------------ visiting-card blocks --- */
+.filterChipOn {
+  background: var(--n-gold);
+  border-color: var(--n-gold);
+  color: #0d0b09;
+}
+.giftCta {
+  color: var(--n-gold);
+}
+.gift {
+  background: color-mix(in srgb, var(--n-fg) 3%, transparent);
+}
+.termsLabel {
+  color: var(--n-gold);
+}
+
+/* phones: what a package includes reads as one line of text, not a table */
+@media (max-width: 760px) {
+  .packList {
+    margin: 14px 0 20px;
+    line-height: 1.6;
+  }
+  .packList li {
+    display: inline;
+    padding: 0;
+    border: 0;
+  }
+  .packList li + li::before {
+    content: ' · ';
+    color: var(--n-gold);
+  }
+}
+@media (max-width: 760px) {
+  .strip .frameImg {
+    height: 220px;
+  }
 }

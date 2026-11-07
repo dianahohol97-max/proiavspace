@@ -2,7 +2,6 @@ import type { SiteContent } from '@/lib/site/content'
 import { BASE_URL } from '@/lib/seo/site'
 import type { LeadFormLabels } from '../LeadForm'
 import {
-  groupPortfolio,
   type BookingNav,
   type LangSwitch,
   type PortfolioItem,
@@ -13,10 +12,10 @@ import { ParallaxImage } from '../motion/ParallaxImage'
 import { Picture } from '../motion/Picture'
 import { ScrollLitText } from '../motion/ScrollLitText'
 import type { NavLink } from '../tysha/TyshaNav'
+import { ContactLinks, FilterBar, GiftsBlock, HeroFacts, TermsBlock } from '../card/blocks'
+import { buildCard, filtersFor, ratioOf as ratio, type Photo } from '../card/data'
 import { MIDNIGHT_FONT_URL } from './fonts'
 import {
-  MidnightAlbums,
-  MidnightAllPortfolio,
   MidnightLeadForm,
   MidnightNav,
   MidnightPackCta,
@@ -27,11 +26,9 @@ import { layoutMidnight } from './layout'
 import m from './Midnight.module.css'
 
 const GRID_MAX = 9
-const STRIP_MAX = 10
+const STRIP_MAX = 6
 const pad2 = (n: number) => String(n).padStart(2, '0')
-type Photo = PortfolioItem & { previewUrl: string }
-const lean = (p: Photo): PortfolioItem => ({ id: p.id, previewUrl: p.previewUrl, caption: p.caption ?? null, category: p.category ?? null })
-const ratioOf = (p: Photo) => (p.width && p.height ? `${p.width} / ${p.height}` : '3 / 2')
+const ratioOf = (p: Photo) => ratio(p, '3 / 2')
 /** Full-width frames on phones: 360px so a 3× screen still takes the 1080 px `mobile`. */
 const PHONE_FULL = '(max-width: 760px) 360px'
 
@@ -68,74 +65,29 @@ export function ThemeOpivnich({
   bookingNav?: BookingNav
   platformCredit?: boolean
 }) {
-  const brand = displayName || content.hero.title || ''
-  const title = content.hero.title || brand
-  const photos = portfolio.filter((p): p is Photo => !!p.previewUrl)
-  const byId = (id: string) => (id ? photos.find((p) => p.id === id) : undefined)
-  const shown = new Set<string>()
+  const card = buildCard({ content, displayName, portfolio, labels, leadForm: !!leadForm, bookingNav, gridMax: GRID_MAX + STRIP_MAX })
+  const { brand, title, photos, lead, portrait, bookHref, reviews, packs } = card
 
-  const lead = byId(content.hero.imageId) ?? photos[0]
-  if (lead) shown.add(lead.id)
-  const portrait = byId(content.about.imageId)
-  if (portrait) shown.add(portrait.id)
-
-  const pool = photos.length >= 7 ? photos.filter((p) => !shown.has(p.id)) : photos
-  const gridItems = pool.slice(0, GRID_MAX)
-  gridItems.forEach((p) => shown.add(p.id))
+  // Best frames: the grid (frames rising out of black), then the last few
+  // as a short «strip of lights» — one portfolio block, one filter for both.
+  const gridItems = card.grid.slice(0, GRID_MAX)
+  const strip = card.grid.slice(GRID_MAX)
   const spread = layoutMidnight(gridItems)
-
-  // The strip shows what the page has not shown yet; with a small portfolio,
-  // the whole portfolio.
-  const unseen = photos.filter((p) => !shown.has(p.id))
-  const strip = (unseen.length >= 4 ? unseen : photos).slice(0, STRIP_MAX)
-
-  const groups = groupPortfolio(photos)
-  const hasSeries = groups.some((g) => g.category !== null)
-  const covers: Record<string, { src: string; srcSet?: string }> = {}
-  for (const g of groups) {
-    const chosen = g.items.find((it) => it.id === content.albumCovers[g.category ?? ''])
-    const fresh = chosen && !shown.has(chosen.id) ? chosen : g.items.find((it) => !shown.has(it.id))
-    const cover = (fresh ?? chosen ?? g.items[0]) as Photo | undefined
-    if (cover) covers[g.category ?? ''] = { src: cover.previewUrl, srcSet: cover.srcSet }
-  }
-  const leanGroups = groups.map((g) => ({ category: g.category, items: (g.items as Photo[]).map(lean) }))
-
-  const steps = content.process.steps
-  const reviews = content.testimonials.items
-  const packs = content.pricing.items
-  const contact = content.contact
-  const instagram = contact.instagram.replace(/^@/, '')
+  const filters = filtersFor(card.grid, card.directions)
 
   const L = {
-    book: labels.bookEvening ?? labels.bookDate ?? labels.book,
+    ...card.L,
+    book: labels.bookEvening ?? card.L.bookDate,
     scroll: labels.scrollHint ?? 'Гортайте',
-    menu: labels.menu ?? 'Меню',
-    process: labels.process ?? 'Як ми працюємо',
     selected: labels.selectedWork ?? labels.portfolio,
-    series: labels.series ?? labels.portfolio,
-    testimonials: labels.testimonials ?? 'Відгуки',
-    popular: labels.popular ?? 'Найчастіше обирають',
-    choose: labels.choosePack ?? labels.book,
-    madeOn: labels.madeOn ?? 'Сайт на проЯв',
-    all: labels.allPortfolio ?? labels.portfolio,
+    choose: card.L.choosePack,
     strip: labels.filmStrip ?? 'Стрічка вогнів',
     swipe: labels.swipeHint ?? 'Гортайте вбік',
     prev: labels.prev ?? '‹',
     next: labels.next ?? '›',
   }
-  const bookHref = leadForm ? '#contact' : contact.bookingUrl || bookingNav?.href || '#contact'
-  const navLinks: NavLink[] = [
-    ...(photos.length > 0 ? [{ href: '#portfolio', label: labels.portfolio }] : []),
-    ...(content.about.text ? [{ href: '#about', label: labels.about }] : []),
-    ...(packs.length > 0 ? [{ href: '#pricing', label: labels.pricing }] : []),
-    { href: '#contact', label: labels.contacts },
-    ...(bookingNav ? [bookingNav] : []),
-  ]
-  const contactLinks: NavLink[] = [
-    ...(contact.phone ? [{ href: `tel:${contact.phone.replace(/[^\d+]/g, '')}`, label: contact.phone }] : []),
-    ...(contact.email ? [{ href: `mailto:${contact.email}`, label: contact.email }] : []),
-    ...(instagram ? [{ href: `https://instagram.com/${instagram}`, label: `@${instagram}` }] : []),
-  ]
+  const navLinks: NavLink[] = card.navLinks
+  const contactLinks: NavLink[] = card.contactLinks
 
   let sectionNo = 0
   const head = (label: string, heading: string, extra?: React.ReactNode) => {
@@ -157,7 +109,7 @@ export function ThemeOpivnich({
   // first paint; readers and crawlers get the plain string.
   let letter = 0
   const heroName = (
-    <h1 className={m.heroTitle} aria-label={title}>
+    <h1 className={m.heroTitle} aria-label={title} data-card="name">
       {title.split(/\s+/).filter(Boolean).map((word, wi) => (
         <span key={wi} aria-hidden="true">
           {wi > 0 && ' '}
@@ -213,13 +165,16 @@ export function ThemeOpivnich({
           <div className={`${m.wrap} ${m.heroInner}`}>
             <div className={m.heroCopy}>
               {heroName}
+              <div className={m.heroFade} style={afterName}>
+                <HeroFacts card={card} s={m} />
+              </div>
               <div className={m.heroRow}>
                 {content.hero.subtitle && (
                   <p className={`${m.heroSub} ${m.heroFade}`} style={afterName}>
                     {content.hero.subtitle}
                   </p>
                 )}
-                <div className={m.heroFade} style={afterName}>
+                <div className={m.heroFade} style={afterName} data-card="book">
                   <MagneticButton href={bookHref} className={m.ctaGold}>
                     {L.book} <span className={m.arrow}>→</span>
                   </MagneticButton>
@@ -237,7 +192,9 @@ export function ThemeOpivnich({
         {/* ---- portfolio: frames out of the dark ---- */}
         {spread.length > 0 && (
           <section id="portfolio" className={`${m.section} ${m.wrap}`}>
-            {head(labels.portfolio, L.selected, <span className={m.label}>{pad2(photos.length)}</span>)}
+            {head(labels.portfolio, L.selected, <span className={m.label}>{pad2(card.grid.length)}</span>)}
+            <FilterBar card={{ ...card, filters }} gridId="midnight-works" s={m} />
+            <div id="midnight-works" className={m.works}>
             <div className={m.grid}>
               {spread.map(({ item, row, desk, mobile }, i) => (
                 <Reveal
@@ -246,6 +203,7 @@ export function ThemeOpivnich({
                   className={`${m.work} ${row === 'pause' ? m.pause : ''} ${desk.bleed ? m.bleed : ''}`}
                   delay={desk.offset * 0.08}
                   y={0}
+                  cat={item.category ?? ''}
                   style={
                     {
                       '--col': desk.col,
@@ -274,31 +232,12 @@ export function ThemeOpivnich({
                 </Reveal>
               ))}
             </div>
-            {photos.length > gridItems.length && (
-              <div className={m.allRow}>
-                <MidnightAllPortfolio
-                  skin={m}
-                  items={photos.map(lean)}
-                  label={L.all}
-                  labels={{ portfolio: L.all, photos: labels.photos, locale: labels.locale, close: labels.close }}
-                />
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* ---- signature: the strip of lights ---- */}
-        {strip.length >= 3 && (
-          <section className={m.strip} aria-labelledby="midnight-strip-title">
-            <div className={`${m.wrap} ${m.stripHead}`}>
+            {strip.length > 0 && (
+              <div className={m.strip}>
+            <div className={m.stripHead}>
               <div>
                 <span className={m.label}>{L.strip}</span>
-                <RevealText
-                  as="h2"
-                  id="midnight-strip-title"
-                  text={content.moment.text || L.strip}
-                  className={m.stripTitle}
-                />
+                {content.moment.text && <p className={m.stripTitle}>{content.moment.text}</p>}
               </div>
               <div className={m.stripNav}>
                 <span className={m.label}>{L.swipe} →</span>
@@ -314,7 +253,7 @@ export function ThemeOpivnich({
             <div className={m.film}>
               <ol id="midnight-strip" className={m.stripScroller} tabIndex={0} aria-label={L.strip}>
                 {strip.map((p, i) => (
-                  <li key={p.id} data-frame="" className={m.frame}>
+                  <li key={p.id} data-frame="" data-cat={p.category ?? ''} className={m.frame}>
                     <div className={m.frameEdge} aria-hidden="true">
                       <span>▸ {i + 1}</span>
                       <span>{i + 1}A</span>
@@ -330,8 +269,49 @@ export function ThemeOpivnich({
                 ))}
               </ol>
             </div>
+              </div>
+            )}
+            </div>
           </section>
         )}
+
+        {/* ---- pricing ---- */}
+        {packs.length > 0 && (
+          <section id="pricing" className={`${m.section} ${m.wrap}`}>
+            {head(labels.pricing, labels.pricing)}
+            <div className={m.packs}>
+              {packs.map((pack, i) => (
+                <Reveal key={pack.name} delay={i * 0.1}>
+                  <article className={`${m.pack} ${pack.featured ? m.packFeatured : ''}`} data-pack={pack.name}>
+                    {pack.featured && <span className={m.packBadge}>{L.popular}</span>}
+                    <h3 className={m.packName}>{pack.name}</h3>
+                    {pack.price && <p className={m.packPrice}>{pack.price}</p>}
+                    {pack.includes.length > 0 && (
+                      <ul className={m.packList}>
+                        {pack.includes.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className={m.packCta}>
+                      <MidnightPackCta pack={pack.name} href={bookHref} className={pack.featured ? m.ctaGoldFull : m.ctaLine}>
+                        {L.choose} <span className={m.arrow}>→</span>
+                      </MidnightPackCta>
+                    </div>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+            <TermsBlock card={card} s={m} />
+          </section>
+        )}
+
+        {/* ---- gifts & prints (optional) ---- */}
+        <GiftsBlock
+          card={card}
+          s={{ ...m, gifts: `${m.section} ${m.wrap} ${m.gifts}` }}
+          heading={head(L.giftsTitle, L.giftsTitle)}
+        />
 
         {/* ---- about: the quote catches the candle light ---- */}
         {content.about.text && (
@@ -357,47 +337,13 @@ export function ThemeOpivnich({
           </section>
         )}
 
-        {/* ---- series ---- */}
-        {hasSeries && (
-          <section id="series" className={`${m.section} ${m.wrap}`}>
-            {head(L.series, L.series, <span className={m.label}>{pad2(groups.length)}</span>)}
-            <MidnightAlbums
-              skin={m}
-              reveal="dark"
-              groups={leanGroups}
-              covers={covers}
-              labels={{ portfolio: labels.portfolio, photos: labels.photos, locale: labels.locale, viewSeries: labels.viewSeries, close: labels.close }}
-            />
-          </section>
-        )}
-
-        {/* ---- how we work ---- */}
-        {steps.length > 0 && (
-          <section id="process" className={`${m.section} ${m.wrap}`}>
-            {head(L.process, L.process)}
-            <ol className={m.steps}>
-              {steps.map((step, i) => (
-                <Reveal key={i} as="li" className={m.step} delay={i * 0.1}>
-                  <span className={m.stepNo} aria-hidden="true">
-                    {pad2(i + 1)}
-                  </span>
-                  <div>
-                    {step.title && <h3 className={m.stepTitle}>{step.title}</h3>}
-                    {step.text && <p className={m.stepText}>{step.text}</p>}
-                  </div>
-                </Reveal>
-              ))}
-            </ol>
-          </section>
-        )}
-
         {/* ---- testimonials ---- */}
         {reviews.length > 0 && (
           <section id="reviews" className={`${m.section} ${m.wrap}`}>
             {head(L.testimonials, L.testimonials)}
             <div className={m.reviews}>
               {reviews.map((review, i) => {
-                const photo = byId(review.photoId)
+                const photo = review.photo
                 return (
                   <Reveal key={i} as="figure" className={m.review}>
                     <blockquote className={m.reviewText}>«{review.text}»</blockquote>
@@ -418,59 +364,16 @@ export function ThemeOpivnich({
           </section>
         )}
 
-        {/* ---- pricing ---- */}
-        {packs.length > 0 && (
-          <section id="pricing" className={`${m.section} ${m.wrap}`}>
-            {head(labels.pricing, labels.pricing)}
-            <div className={m.packs}>
-              {packs.map((pack, i) => (
-                <Reveal key={pack.name} delay={i * 0.1}>
-                  <article className={`${m.pack} ${pack.featured ? m.packFeatured : ''}`}>
-                    {pack.featured && <span className={m.packBadge}>{L.popular}</span>}
-                    <h3 className={m.packName}>{pack.name}</h3>
-                    {pack.price && <p className={m.packPrice}>{pack.price}</p>}
-                    {pack.includes.length > 0 && (
-                      <ul className={m.packList}>
-                        {pack.includes.map((line) => (
-                          <li key={line}>{line}</li>
-                        ))}
-                      </ul>
-                    )}
-                    <div className={m.packCta}>
-                      <MidnightPackCta pack={pack.name} href={bookHref} className={pack.featured ? m.ctaGoldFull : m.ctaLine}>
-                        {L.choose} <span className={m.arrow}>→</span>
-                      </MidnightPackCta>
-                    </div>
-                  </article>
-                </Reveal>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* ---- contact + enquiry form ---- */}
         <section id="contact" className={`${m.section} ${m.wrap}`}>
           <div className={m.contact}>
             <div className={m.contactSide}>
               <span className={m.label}>{labels.contacts}</span>
               <RevealText as="h2" text={leadForm ? leadForm.labels.title : labels.contacts} className={m.contactTitle} />
-              {contactLinks.length > 0 && (
-                <ul className={m.contactList}>
-                  {contactLinks.map((link) => (
-                    <li key={link.href}>
-                      <a
-                        href={link.href}
-                        {...(link.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                      >
-                        {link.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {contact.bookingUrl && (
+              <ContactLinks card={card} s={m} />
+              {content.contact.bookingUrl && (
                 <div className={m.contactBook}>
-                  <a href={contact.bookingUrl} className={m.ctaLine}>
+                  <a href={content.contact.bookingUrl} className={m.ctaLine}>
                     {labels.book} <span className={m.arrow}>→</span>
                   </a>
                 </div>
@@ -482,7 +385,8 @@ export function ThemeOpivnich({
                   skin={m}
                   handle={leadForm.handle}
                   labels={leadForm.labels}
-                  shootTypes={packs.map((p) => p.name)}
+                  shootTypes={card.topics}
+                  certificateTopic={card.certificateTopic}
                 />
               </div>
             )}
