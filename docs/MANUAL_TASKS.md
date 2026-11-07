@@ -22,3 +22,71 @@
 
 Міграція не потрібна: поля вже є. Запускати сервісним ключем з локальної машини або разової
 функції, не з браузера.
+
+## B2: CORS для докачування великих файлів (реліз 5, план 4.3)
+
+**Статус:** не зроблено. Код працює і без цього, але з одним зайвим запитом на файл.
+
+**Навіщо.** З релізу 5 файли більші за 16 МБ (тобто майже всі PNG/RAW-експорти й великі JPEG) йдуть
+у B2 частинами по 8 МБ (S3 multipart) і докачуються після обриву. Браузер читає `ETag` кожної
+частини з відповіді B2. Якщо CORS-правило бакета не віддає цей заголовок (`ExposeHeaders`),
+браузер його не бачить. Тоді:
+
+- файл усе одно завершується: сервер сам питає в B2 список частин (`ListParts`) і збирає файл з них;
+- у консолі браузера з'являється попередження `[upload] Storage CORS does not expose the ETag header…`
+  і (якщо ввімкнено Sentry) одне повідомлення рівня warning на сесію;
+- ціна — один зайвий запит `ListParts` на кожен великий файл (B2 Class C, копійки, але зайвий хід).
+
+**Що зробити (B2, бакет з `B2_BUCKET`, регіон `us-east-005`).** У веб-інтерфейсі B2 у CORS є лише
+готові варіанти без `exposeHeaders`, тож правило задається через B2 CLI (`pip install b2`,
+`b2 account authorize` ключем із правом `writeBuckets`):
+
+```bash
+b2 bucket get <B2_BUCKET>
+```
+
+Подивитись поточні `corsRules` і `lifecycleRules`: команда нижче ЗАМІНЮЄ весь список CORS-правил,
+тож якщо там є щось своє (наприклад, для CDN Worker), додай його в масив.
+
+```bash
+b2 bucket update <B2_BUCKET> --cors-rules '[
+  {
+    "corsRuleName": "browser-uploads",
+    "allowedOrigins": ["https://proiav.space", "https://www.proiav.space", "http://localhost:3000"],
+    "allowedOperations": ["s3_put", "s3_get", "s3_head"],
+    "allowedHeaders": ["content-type", "content-length"],
+    "exposeHeaders": ["ETag"],
+    "maxAgeSeconds": 3600
+  }
+]'
+```
+
+Перевірка (preflight має повернути `Access-Control-Expose-Headers: ETag` або дозволити PUT):
+
+```bash
+curl -si -X OPTIONS "https://s3.us-east-005.backblazeb2.com/<B2_BUCKET>/u/test" -H "Origin: https://proiav.space" -H "Access-Control-Request-Method: PUT" | grep -i access-control
+```
+
+Після деплою: завантажити в галерею один файл > 16 МБ, у DevTools → Network відкрити будь-який
+`PUT …?partNumber=…` і переконатися, що в Response Headers є `ETag`, а в консолі немає
+попередження `[upload] Storage CORS…`.
+
+**Необов'язково, страховка до крону.** Незавершені multipart прибирає `/api/cron/storage-cleanup`
+(старші за 24 год). Як другий рівень захисту в B2 можна додати lifecycle-правило
+`"daysFromStartingToCancelingUnfinishedLargeFiles": 2` на префікс `u/` — так, щоб не зачепити
+наявні lifecycle-правила (додати в масив, не замінити). Менше за 2 дні не ставити: браузер
+продовжує завантаження до 20 год від початку.
+
+## Міграція 0063: резерв місця під незавершені завантаження (реліз 5)
+
+**Статус:** файл `supabase/migrations/0063_upload_reservations.sql`, не накочено. Накотити до мержу
+релізу 5 у `main`.
+
+**Що дає.** Поки великий файл вантажиться частинами (а з докачуванням це може тривати години),
+його розмір зарезервовано в `upload_reservations` і враховано в ліміті тарифу на старті наступних
+завантажень. Резерв знімається на `complete`/`abort`, а крон видаляє резерви старші за 24 год.
+Без міграції код працює як раніше (резерви пропускаються, у логах помилок немає).
+
+**Перевірка після накочування:** почати завантаження файлу > 16 МБ і, не чекаючи кінця,
+`select * from upload_reservations order by created_at desc limit 5;` — рядок є; після
+завершення — зник.

@@ -48,6 +48,13 @@ export interface UploadedPart {
   etag: string
 }
 
+/** A part the storage already holds for an open multipart upload (ListParts). */
+export interface StoredPart {
+  partNumber: number
+  etag: string
+  sizeBytes: number
+}
+
 export interface UnfinishedMultipartUpload {
   key: string
   uploadId: string
@@ -90,6 +97,15 @@ export interface StorageProvider {
   completeMultipartUpload(key: string, uploadId: string, parts: UploadedPart[]): Promise<void>
 
   abortMultipartUpload(key: string, uploadId: string): Promise<void>
+
+  /**
+   * Parts already stored for an open multipart upload, sorted by number, or
+   * null when the upload no longer exists (completed, aborted by the cleanup
+   * cron). Lets the browser resume after a dropped network or a reloaded tab,
+   * and lets the server complete an upload without trusting — or even
+   * receiving — the browser's ETags.
+   */
+  listParts(key: string, uploadId: string): Promise<StoredPart[] | null>
 
   /**
    * Multipart uploads that were started but never completed or aborted (a

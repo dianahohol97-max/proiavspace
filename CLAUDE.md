@@ -16,7 +16,9 @@
     - `0058` — бронювання (`release/6`, `0058_booking_all_day_slots.sql`), не застосована
     - `0059` — AI-відбір кадрів (`release/7`, `0059_culling_decisions.sql`: рішення відбору в акаунті), не застосована; код `release/7` без неї працює (IndexedDB)
     - `0060` — захист БД (`feat/db-hardening` → `release/4`, `0060_db_hardening.sql`): search_path для `normalize_email`/`plan_storage_bytes`; без EXECUTE для anon: `profiles_clear_free_expiry` (також authenticated), `owner_has_paid_plan`; `release_expired_slots` лише власнику; не застосована
-    - `0061`–`0063` — зайняті іншими гілками (за словами власниці)
-    - `0064` — теми сайтів v2 (`release/4`, `0064_site_themes_v2.sql`: розширює `sites_theme_check` 13 новими id тем), не застосована; без неї збереження нової теми в редакторі падає на CHECK, решта коду працює
+    - `0061`–`0062` — конструктор альбомів, етап 1 (`release/8`: `0061_album_print_profiles_projects.sql`, `0062_album_spreads_slots.sql`), не застосовані
+    - `0063` — резерв місця під незавершені multipart-завантаження (`release/5`, `0063_upload_reservations.sql`), не застосована; код `release/5` без неї працює (резерв пропускається)
+    - `0064` — **⚠ зайнятий двічі:** теми сайтів v2 (`release/4`, `0064_site_themes_v2.sql`: розширює `sites_theme_check` 13 новими id тем; без неї збереження нової теми в редакторі падає на CHECK, решта коду працює) **і** конструктор альбомів, етап 1.1 (`release/8`, `0064_album_texts_rotation_cover_retention.sql`); обидві не застосовані. Одна з гілок має перейменувати свою на `0065`+ до мержу в `main`, інакше друга з однаковим номером не накотиться через CLI
+    - У кандидаті `release/galleries` (= `release/4` + `release/5`) лежать файли `0053`–`0057`, `0059`, `0060`, `0063`, `0064_site_themes_v2`; `0058` (`release/6`), `0061`, `0062`, `0064_album_…` (`release/8`) — ні
     - **наступний вільний номер — `0065`**
   - Нова міграція має бути безпечною для коду, що зараз на проді (нові колонки з дефолтами, `create or replace` з тими самими сигнатурами). Якщо код без міграції падає, написати це в PR явно.

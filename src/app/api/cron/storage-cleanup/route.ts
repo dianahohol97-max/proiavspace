@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getStorage } from '@/lib/storage'
 import { orphanKeys, referencedKeys, staleMultipartUploads } from '@/lib/storage/cleanup'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { pruneReservations } from '@/lib/upload/reservations'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -56,17 +57,26 @@ export async function GET(request: NextRequest) {
     .reduce((sum, object) => sum + object.sizeBytes, 0)
   if (orphans.length > 0) await storage.delete(orphans)
 
-  // 3. Multipart uploads left open for more than a day.
+  // 3. Multipart uploads left open for more than a day (AbortMultipartUpload).
+  //    Resumable uploads keep their parts on purpose for up to ~20 h; past the
+  //    24 h mark nobody resumes them. Their bytes were reserved against the
+  //    owner's quota (migration 0063) — the reservations go in step 4.
   const stale = staleMultipartUploads(await storage.listMultipartUploads('u/'))
   let aborted = 0
+  let abortedBytes = 0
   for (const upload of stale) {
     try {
+      const parts = await storage.listParts(upload.key, upload.uploadId).catch(() => null)
       await storage.abortMultipartUpload(upload.key, upload.uploadId)
       aborted += 1
+      abortedBytes += (parts ?? []).reduce((sum, part) => sum + part.sizeBytes, 0)
     } catch (cause) {
       console.error('storage cleanup: abort failed', upload.key, cause)
     }
   }
+
+  // 4. Quota reservations of uploads older than a day: released.
+  const releasedReservations = await pruneReservations(admin)
 
   const summary = {
     scanned: objects.length,
@@ -74,6 +84,8 @@ export async function GET(request: NextRequest) {
     deletedOrphans: orphans.length,
     deletedBytes: orphanBytes,
     abortedMultipart: aborted,
+    abortedMultipartBytes: abortedBytes,
+    releasedReservations,
     truncated: orphans.length === MAX_DELETES_PER_RUN,
   }
   console.log('storage cleanup:', JSON.stringify(summary))

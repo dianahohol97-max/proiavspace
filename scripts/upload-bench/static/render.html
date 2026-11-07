@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><input id="f" type="file" multiple>
+<script type="module">
+const v = new URLSearchParams(location.search).get('v')
+let maxLag = 0, last = performance.now(), lt = 0, ltMax = 0, ltMs = 0
+setInterval(() => { const n = performance.now(); maxLag = Math.max(maxLag, n - last - 50); last = n }, 50)
+new PerformanceObserver((l) => { for (const e of l.getEntries()) { lt++; ltMs += e.duration; ltMax = Math.max(ltMax, e.duration) } }).observe({ type: 'longtask' })
+await import(`/${v}/render.js`)
+window.go = async () => { maxLag = 0; lt = 0; ltMax = 0; ltMs = 0; last = performance.now(); const t = performance.now(); const files = [...document.getElementById('f').files]; const r = await window.render(files); return { ms: Math.round(performance.now() - t), ...r, maxLag: Math.round(maxLag), longTasks: lt, longestTask: Math.round(ltMax), longTaskMs: Math.round(ltMs) } }
+window.ready = true
+</script>

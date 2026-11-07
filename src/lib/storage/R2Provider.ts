@@ -8,6 +8,7 @@ import {
   ListMultipartUploadsCommand,
   ListObjectVersionsCommand,
   ListObjectsV2Command,
+  ListPartsCommand,
   PutObjectCommand,
   S3Client,
   UploadPartCommand,
@@ -18,6 +19,7 @@ import type {
   SignedReadUrlOptions,
   StorageObject,
   StorageProvider,
+  StoredPart,
   UnfinishedMultipartUpload,
   UploadedPart,
   UploadUrlOptions,
@@ -198,6 +200,43 @@ export class S3CompatProvider implements StorageProvider, PurgeStorage {
     await this.client.send(
       new AbortMultipartUploadCommand({ Bucket: this.bucket, Key: key, UploadId: uploadId })
     )
+  }
+
+  async listParts(key: string, uploadId: string): Promise<StoredPart[] | null> {
+    const parts: StoredPart[] = []
+    let marker: string | undefined
+    try {
+      do {
+        const response = await this.client.send(
+          new ListPartsCommand({
+            Bucket: this.bucket,
+            Key: key,
+            UploadId: uploadId,
+            PartNumberMarker: marker,
+          })
+        )
+        for (const part of response.Parts ?? []) {
+          if (!part.PartNumber || !part.ETag) continue
+          parts.push({
+            partNumber: part.PartNumber,
+            etag: part.ETag.replaceAll('"', ''),
+            sizeBytes: part.Size ?? 0,
+          })
+        }
+        marker = response.IsTruncated ? response.NextPartNumberMarker : undefined
+      } while (marker)
+    } catch (cause) {
+      const err = cause as { name?: string; Code?: string; $metadata?: { httpStatusCode?: number } }
+      if (
+        err.name === 'NoSuchUpload' ||
+        err.Code === 'NoSuchUpload' ||
+        err.$metadata?.httpStatusCode === 404
+      ) {
+        return null
+      }
+      throw cause
+    }
+    return parts.sort((a, b) => a.partNumber - b.partNumber)
   }
 
   async listMultipartUploads(prefix: string): Promise<UnfinishedMultipartUpload[]> {

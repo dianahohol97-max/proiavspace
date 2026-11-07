@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { galleryPrefix, getStorage } from '@/lib/storage'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { releaseReservation } from '@/lib/upload/reservations'
 
 export const runtime = 'nodejs'
 
@@ -21,7 +23,8 @@ function isAbortBody(value: unknown): value is AbortBody {
 }
 
 /**
- * Multipart cleanup on client-side failure. A missed abort (closed tab) is
+ * Multipart cleanup when the browser gives up for good (quota, duplicate,
+ * plan) — a network error does NOT abort: the parts stay for resume. A missed abort (closed tab) is
  * not lost either: B2 keeps — and bills — the parts until aborted, so the
  * daily /api/cron/storage-cleanup sweeps uploads left open for over a day.
  */
@@ -43,5 +46,6 @@ export async function POST(request: NextRequest) {
   }
 
   await getStorage().abortMultipartUpload(body.key, body.uploadId)
+  await releaseReservation(createSupabaseAdminClient(), body.uploadId)
   return NextResponse.json({ ok: true })
 }

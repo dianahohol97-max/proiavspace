@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { getStorage, originalKey } from '@/lib/storage'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { reserveUpload, reservedBytes } from '@/lib/upload/reservations'
 import { authorizeUpload } from '@/lib/uploads'
 
 export const runtime = 'nodejs'
@@ -24,9 +26,12 @@ function isCreateBody(value: unknown): value is CreateBody {
 }
 
 /**
- * Multipart flow (large videos), step 1: open the upload on R2 after the same
- * ownership + quota gate as the single-PUT path. The browser then requests
- * part URLs, PUTs parts straight to R2, and finalizes via .../complete.
+ * Multipart flow (files over 16 MB, lib/upload/multipart.ts), step 1: open the
+ * upload in storage after the same ownership + quota gate as the single-PUT
+ * path. Bytes of this account's other open uploads count as used, and this
+ * one's declared size is reserved until complete/abort/the 24 h sweep
+ * (migration 0063). The browser then requests part URLs, PUTs parts straight
+ * to storage (resuming via .../list-parts) and finalizes via .../complete.
  */
 export async function POST(request: NextRequest) {
   const supabase = createSupabaseServerClient()
@@ -42,7 +47,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
-  const check = await authorizeUpload(supabase, user.id, body)
+  const admin = createSupabaseAdminClient()
+  const reserved = admin ? await reservedBytes(admin, user.id) : 0
+  const check = await authorizeUpload(supabase, user.id, body, { reservedBytes: reserved })
   if (!check.ok) {
     return NextResponse.json({ error: check.error }, { status: check.status })
   }
@@ -52,6 +59,16 @@ export async function POST(request: NextRequest) {
     key,
     contentType: body.contentType,
   })
+
+  if (admin) {
+    await reserveUpload(admin, {
+      uploadId,
+      ownerId: user.id,
+      galleryId: body.galleryId,
+      key,
+      sizeBytes: body.sizeBytes,
+    })
+  }
 
   return NextResponse.json({ key, uploadId })
 }
