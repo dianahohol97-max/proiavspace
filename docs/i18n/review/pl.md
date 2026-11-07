@@ -44,3 +44,13 @@ Format: `klucz / miejsce — tłumaczenie — dlaczego niepewne`
 - landing.bento.cards.languages — „do wyboru jest dziewięć” — brzmienie.
 - help upload item 1 — „Brak połączenia” — etykieta, której nie znalazłem w słowniku (prawdopodobnie zaszyta w komponencie przesyłania); trzeba zsynchronizować z rzeczywistym tekstem.
 - designer.picksFavorite / picksRetouch — „serduszko”, „retusz” — małe litery, bo trafiają do eksportu CSV/TXT („serduszko + retusz”).
+
+## Delta 3 (redesign panelu)
+
+- publicGallery.shareReady / shareInProgress / shareSubject — wiadomość fotografa do klienta przerobiona na bezosobową („Galeria „{title}” jest gotowa”) zamiast „Twoja galeria”; w prywatnej wiadomości może brzmieć zbyt oficjalnie — może „Pana/Pani galeria”?
+- publicGallery.sharePassword — „hasło wyślę w osobnej wiadomości” — pierwsza osoba (fotograf), jak w oryginale.
+- dashboard.galleriesCount — „{n} galeria / galerie / galerii” — zmieniono styl z „Galerie: {n}” na odmianę liczebnika; sprawdzić w nagłówku listy.
+- galleryManage.accessDownloadsCount — „Dotąd 5 pobrań” — szyk; alternatywa „Pobrania do tej pory: {n}” (bez odmiany).
+- galleryManage.tabDesign / hintGoDesign — „Wygląd” / „Dopracuj wygląd” — „Design” jako „Wygląd”; czy zakładka nie powinna nazywać się „Projekt”/„Styl”?
+- galleryManage.shareQrHint — „Można go wydrukować na kartce albo otworzyć galerię na telefonie” — dość luźne oddanie oryginału.
+- dashboard.onboardStep2 / onboardStep3 — tryb rozkazujący w krokach onboardingu („Prześlij…”, „Udostępnij…”) — traktowane jak przyciski/kroki.
