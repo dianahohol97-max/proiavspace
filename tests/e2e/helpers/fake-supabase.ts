@@ -91,11 +91,18 @@ export function startFakeSupabase(state: FakeState, port = 54321): Promise<Serve
       }
       if (p === '/rest/v1/booking_slots') {
         if (req.method === 'POST') {
-          const list: Row[] = Array.isArray(body) ? body : [body]
+          const prefer = String(req.headers.prefer ?? '')
+          const incoming: Row[] = Array.isArray(body) ? body : [body]
+          // ON CONFLICT (owner_id, starts_at) DO NOTHING, like the 0058 unique index.
+          const taken = (r: Row) =>
+            state.slots.some((s) => s.owner_id === r.owner_id && s.starts_at === r.starts_at)
+          const list = prefer.includes('ignore-duplicates') ? incoming.filter((r) => !taken(r)) : incoming
           state.inserts.push(list)
+          const created: Row[] = []
           for (const r of list) {
+            created.push({ id: crypto.randomUUID(), ...r })
             state.slots.push({
-              id: crypto.randomUUID(),
+              id: created[created.length - 1].id,
               status: 'free',
               client_name: null,
               client_phone: null,
@@ -104,7 +111,7 @@ export function startFakeSupabase(state: FakeState, port = 54321): Promise<Serve
             })
           }
           state.slots.sort((a, b) => String(a.starts_at).localeCompare(String(b.starts_at)))
-          return send(201, undefined)
+          return send(201, prefer.includes('return=representation') ? created.map((r) => ({ id: r.id })) : undefined)
         }
         if (req.method === 'DELETE') {
           const ids = /^in\.\((.*)\)$/.exec(url.searchParams.get('id') ?? '')?.[1]?.split(',') ?? []

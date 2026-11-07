@@ -13,6 +13,7 @@ import {
   type TemplateError,
 } from '@/lib/booking/slotTemplate'
 import { DEFAULT_BOOKING_TIME_ZONE, addDays, parseDate, slotKey } from '@/lib/booking/time'
+import { insertSlotsSkippingDuplicates } from '@/lib/booking/slotInsert'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
 
@@ -81,24 +82,16 @@ export async function addBookingSlot(locale: Locale, formData: FormData): Promis
     throw new Error('Date, time, duration and price are required')
   }
 
-  const startsAt = slotKey(`${date}T${time}`)
-  const { data: same } = await supabase
-    .from('booking_slots')
-    .select('id')
-    .eq('owner_id', user.id)
-    .eq('starts_at', startsAt)
-    .limit(1)
-  if (same && same.length > 0) {
-    revalidatePath(`/${locale}/dashboard/booking`)
-    return // a slot with this start already exists — never create a duplicate
-  }
-
-  const { error } = await supabase.from('booking_slots').insert({
-    owner_id: user.id,
-    starts_at: startsAt,
-    duration_minutes: Math.round(duration),
-    price_uah: price,
-  })
+  // A slot with this start may already exist (double click, second tab):
+  // that is "already there", not an error.
+  const { error } = await insertSlotsSkippingDuplicates(supabase, [
+    {
+      owner_id: user.id,
+      starts_at: slotKey(`${date}T${time}`),
+      duration_minutes: Math.round(duration),
+      price_uah: price,
+    },
+  ])
   if (error) throw new Error(`Failed to add slot: ${error.message}`)
 
   revalidatePath(`/${locale}/dashboard/booking`)
@@ -319,9 +312,13 @@ export async function createSlotsFromTemplate(
   if (result.errors.length > 0) return { ok: false, created: 0, ...counts, errors: result.errors }
   if (result.slots.length === 0) return { ok: true, created: 0, ...counts, errors: [] }
 
-  const { error } = await supabase
-    .from('booking_slots')
-    .insert(result.slots.map((slot) => ({ owner_id: user.id, ...slot })))
+  // Races with another tab are caught by the unique index (0058) and come
+  // back as duplicates, not as an error.
+  const inserted = await insertSlotsSkippingDuplicates(
+    supabase,
+    result.slots.map((slot) => ({ owner_id: user.id, ...slot }))
+  )
+  const error = inserted.error
   if (error) {
     // 23514 = CHECK violation: slots longer than 8 h until migration 0058.
     const tooLong = result.slots.some((s) => s.duration_minutes > DB_MAX_SLOT_MINUTES)
@@ -334,7 +331,13 @@ export async function createSlotsFromTemplate(
   }
 
   revalidatePath(`/${locale}/dashboard/booking`)
-  return { ok: true, created: result.slots.length, ...counts, errors: [] }
+  return {
+    ok: true,
+    created: inserted.created,
+    ...counts,
+    duplicates: counts.duplicates + inserted.duplicates,
+    errors: [],
+  }
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

@@ -494,3 +494,73 @@ describe('/api/booking/book з Google', () => {
     assert.deepEqual(rpcCalls, ['slot-1'])
   })
 })
+
+describe('вставка слотів: дубль = «вже існує», не помилка (індекс 0058)', () => {
+  type Err = { code?: string; message: string } | null
+  function client(opts: { upsertError?: Err; insertError?: Err; existing?: string[] }) {
+    const calls: string[] = []
+    const existing = new Set(opts.existing ?? [])
+    const c = {
+      from: () => ({
+        upsert: (rows: { starts_at: string }[], o: { onConflict: string; ignoreDuplicates: boolean }) => ({
+          select: async () => {
+            calls.push(`upsert:${o.onConflict}:${o.ignoreDuplicates}`)
+            if (opts.upsertError) return { data: null, error: opts.upsertError }
+            const fresh = rows.filter((r) => !existing.has(r.starts_at))
+            return { data: fresh.map((_, i) => ({ id: String(i) })), error: null }
+          },
+        }),
+        insert: async () => {
+          calls.push('insert')
+          return { error: opts.insertError ?? null }
+        },
+      }),
+    }
+    return { supabase: c as unknown as SupabaseClient, calls }
+  }
+  const rows = ['10:00', '13:00', '16:00'].map((t) => ({
+    owner_id: OWNER,
+    starts_at: `2027-03-01T${t}:00`,
+    duration_minutes: 60,
+    price_uah: 0,
+  }))
+  let insert: typeof import('@/lib/booking/slotInsert').insertSlotsSkippingDuplicates
+  before(async () => {
+    insert = (await import('@/lib/booking/slotInsert')).insertSlotsSkippingDuplicates
+  })
+
+  test('ON CONFLICT (owner_id, starts_at) DO NOTHING: створено 2, пропущено 1', async () => {
+    const { supabase, calls } = client({ existing: ['2027-03-01T13:00:00'] })
+    assert.deepEqual(await insert(supabase, rows), { created: 2, duplicates: 1, error: null })
+    assert.deepEqual(calls, ['upsert:owner_id,starts_at:true'])
+  })
+
+  test('подвійний клік: усе вже вставила інша вкладка → 0 створено, без помилки', async () => {
+    const { supabase } = client({ existing: rows.map((r) => r.starts_at) })
+    assert.deepEqual(await insert(supabase, rows), { created: 0, duplicates: 3, error: null })
+  })
+
+  test('23505 від бази — теж «вже існує»', async () => {
+    const { supabase } = client({ upsertError: { code: '23505', message: 'duplicate key' } })
+    assert.deepEqual(await insert(supabase, rows), { created: 0, duplicates: 3, error: null })
+  })
+
+  test('0058 ще не застосована (42P10) → звичайна вставка, як раніше', async () => {
+    const { supabase, calls } = client({ upsertError: { code: '42P10', message: 'no unique constraint' } })
+    assert.deepEqual(await insert(supabase, rows), { created: 3, duplicates: 0, error: null })
+    assert.deepEqual(calls, ['upsert:owner_id,starts_at:true', 'insert'])
+  })
+
+  test('інші помилки (напр. CHECK 23514 для слотів > 8 год) не ховаються', async () => {
+    const { supabase } = client({ upsertError: { code: '23514', message: 'check' } })
+    const r = await insert(supabase, rows)
+    assert.equal(r.created, 0)
+    assert.equal(r.error?.code, '23514')
+  })
+
+  test('порожній список — без запиту', async () => {
+    const { supabase, calls } = client({})
+    assert.deepEqual(await insert(supabase, []), { created: 0, duplicates: 0, error: null })
+    assert.deepEqual(calls, [])
+  })
+})
