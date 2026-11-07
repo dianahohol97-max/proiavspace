@@ -9,6 +9,7 @@ import { resolveGalleryTheme } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { parseGalleryStyle } from '@/lib/gallery/style'
+import { galleryLabels } from '@/lib/gallery/labels'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
 import { LangPicker } from '@/components/LangPicker'
 import type { Asset } from '@/lib/types'
@@ -209,6 +210,12 @@ export default async function PublicGalleryPage({
       previewUrl: await storage.getSignedReadUrl(asset.variants.preview ?? asset.r2_key, {
         expiresInSeconds: 60 * 60,
       }),
+      // Light ~1080 px WebP for the grid (docs/MOBILE_PREVIEWS.md); older
+      // assets have none and the grid keeps using the preview.
+      gridUrl: asset.variants.mobile
+        ? await storage.getSignedReadUrl(asset.variants.mobile, { expiresInSeconds: 60 * 60 })
+        : null,
+      contentType: asset.content_type ?? null,
       // For videos, a still frame so the grid never streams the original.
       posterUrl: asset.variants.poster
         ? await storage.getSignedReadUrl(asset.variants.poster, { expiresInSeconds: 60 * 60 })
@@ -268,19 +275,7 @@ export default async function PublicGalleryPage({
       theme={theme}
       mode={mode}
       style={parseGalleryStyle(gallery.style)}
-      labels={{
-        scrollHint: dict.publicGallery.scrollHint,
-        selected: dict.publicGallery.selected,
-        downloadAll: dict.publicGallery.downloadAll,
-        downloadHint: dict.publicGallery.downloadHint,
-        preparingArchive: dict.publicGallery.preparingArchive,
-        archiveError: dict.publicGallery.archiveError,
-        savePart: dict.publicGallery.savePart,
-        downloadOriginal: dict.publicGallery.downloadOriginal,
-        favoriteToggle: dict.publicGallery.favoriteToggle,
-        madeOn: dict.publicGallery.madeOn,
-        tip: dict.publicGallery.tip,
-      }}
+      labels={galleryLabels(dict)}
     />
   )
 }

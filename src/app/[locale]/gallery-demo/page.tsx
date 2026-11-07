@@ -8,6 +8,8 @@ import { breadcrumbNode, graph } from '@/lib/seo/structured-data'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { THEME_DEMOS } from '@/lib/site/demoContent'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
+import { galleryLabels } from '@/lib/gallery/labels'
+import type { GalleryStyle } from '@/lib/gallery/style'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,12 +67,15 @@ const PHOTOS: { n: number; v?: true; fx: number; fy: number }[] = [
 /** Close-up of the couple, forehead to forehead — the gallery cover. */
 const COVER = 7
 
+const MAX_DEMO_ITEMS = 2000
+const LAYOUTS: NonNullable<GalleryStyle['layout']>[] = ['masonry', 'square', 'portrait', 'collage', 'editorial']
+
 export default async function GalleryDemoPage({
   params,
   searchParams,
 }: {
   params: { locale: string }
-  searchParams: { theme?: string }
+  searchParams: { theme?: string; n?: string; layout?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -80,8 +85,14 @@ export default async function GalleryDemoPage({
   // The gallery inherits its palette/typography from the chosen theme.
   const active = THEME_DEMOS.find((d) => d.value === searchParams.theme) ?? THEME_DEMOS[0]
 
-  const items: GalleryItem[] = PHOTOS.map(({ n, v, fx, fy }) => ({
-    id: String(n),
+  // ?n=1500 repeats the 24 frames into a big gallery (load check of the
+  // virtualized grid); ?layout= shows the other grid layouts.
+  const count = Math.min(Math.max(Number.parseInt(searchParams.n ?? '', 10) || PHOTOS.length, 1), MAX_DEMO_ITEMS)
+  const layout = LAYOUTS.find((l) => l === searchParams.layout)
+  const frames = Array.from({ length: count }, (_, i) => ({ ...PHOTOS[i % PHOTOS.length], i }))
+
+  const items: GalleryItem[] = frames.map(({ n, v, fx, fy, i }) => ({
+    id: i < PHOTOS.length ? String(n) : `${n}-${i}`,
     kind: 'photo',
     width: v ? 1333 : 2000,
     height: v ? 2000 : 1333,
@@ -146,20 +157,8 @@ export default async function GalleryDemoPage({
         theme={active.theme}
         mode={active.mode}
         // Cover focal: the couple's faces sit just above the middle.
-        style={{ focalX: 48, focalY: 35 }}
-        labels={{
-          scrollHint: dict.publicGallery.scrollHint,
-          selected: dict.publicGallery.selected,
-          downloadAll: dict.publicGallery.downloadAll,
-          downloadHint: dict.publicGallery.downloadHint,
-          preparingArchive: dict.publicGallery.preparingArchive,
-          archiveError: dict.publicGallery.archiveError,
-          savePart: dict.publicGallery.savePart,
-          downloadOriginal: dict.publicGallery.downloadOriginal,
-          favoriteToggle: dict.publicGallery.favoriteToggle,
-          madeOn: dict.publicGallery.madeOn,
-          tip: dict.publicGallery.tip,
-        }}
+        style={{ focalX: 48, focalY: 35, ...(layout ? { layout } : {}) }}
+        labels={galleryLabels(dict)}
       />
     </>
   )

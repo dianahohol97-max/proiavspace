@@ -171,6 +171,25 @@
   .roundBtn { opacity: 1; transform: none; }
 }
 
+/* ---------- virtualized grid (GalleryGrid.tsx) ----------
+   The grid classes above still set padding, max-width and the per-tile rules;
+   the host itself is a plain block whose children are absolutely placed rows. */
+.virtualHost { display: block !important; columns: auto !important; }
+.vHost { position: relative; width: 100%; }
+.vCell, .vChunk {
+  position: absolute; top: 0; left: 0;
+  box-sizing: border-box; will-change: transform;
+}
+.vChunk {
+  width: 100%;
+  display: grid; gap: var(--g-gap, 14px);
+}
+.gridCollage .vChunk { grid-auto-flow: dense; }
+.virtualHost .shot { margin: 0; }
+/* masonry tile with a known aspect ratio: the box is sized exactly */
+.shotFill { height: 100%; }
+.shotFill .shotMedia { height: 100%; object-fit: cover; }
+
 /* ---------- footer ---------- */
 .foot { text-align: center; padding: 44px 24px 56px; }
 .sig {
@@ -197,45 +216,36 @@
 }
 .badge:hover { color: var(--g-fg); }
 
-/* ---------- lightbox ---------- */
-.lb {
-  position: fixed; inset: 0; z-index: 90;
-  background: rgba(10, 9, 11, 0.94);
-  display: flex; align-items: center; justify-content: center;
-  padding: 4vh 4vw;
+/* ---------- lightbox (yet-another-react-lightbox, GalleryLightbox.tsx) ----------
+   Dark in every theme, as before; type and accent come from the gallery. */
+.lightbox {
+  --yarl__color_backdrop: rgba(10, 9, 11, 0.97);
+  --yarl__thumbnails_container_background_color: rgba(10, 9, 11, 0.97);
+  --yarl__thumbnails_thumbnail_background: rgba(250, 249, 247, 0.06);
+  --yarl__thumbnails_thumbnail_active_border_color: #f7f4ee;
+  --yarl__counter_color: rgba(247, 244, 238, 0.7);
+  --yarl__slide_title_color: #f7f4ee;
+  font-family: var(--g-body);
 }
-.lbMedia {
-  max-width: min(82vw, 1000px); max-height: 78vh;
-  border-radius: 8px; object-fit: contain;
-}
-.lbBtn {
-  position: absolute; width: 44px; height: 44px;
-  border: none; border-radius: 50%; cursor: pointer;
-  background: rgba(250, 249, 247, 0.1); color: #f7f4ee;
-  font-size: 17px; display: grid; place-items: center;
-  transition: background 0.2s;
-}
-.lbBtn:hover { background: rgba(250, 249, 247, 0.22); }
-.lbClose { composes: lbBtn; top: 22px; right: 22px; }
-.lbPrev { composes: lbBtn; left: 16px; top: 50%; transform: translateY(-50%); }
-.lbNext { composes: lbBtn; right: 16px; top: 50%; transform: translateY(-50%); }
-.lbTools { position: absolute; top: 22px; right: 22px; z-index: 2; display: flex; gap: 10px; }
-.lbTool { composes: lbBtn; position: static; }
-.lbFoot {
-  position: absolute; bottom: 18px; left: 0; right: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-}
-.lbDl {
-  border: none; border-radius: 999px; cursor: pointer;
-  background: #f7f4ee; color: #17161a; padding: 12px 26px;
-  font-family: var(--g-label); font-weight: 800; font-size: 11px;
-  letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none;
-}
-.lbDl:hover { background: #fff; }
-.lbCap {
-  font-family: var(--g-label); font-size: 10.5px; font-weight: 700;
+.lbCounter {
+  font-family: var(--g-label); font-size: 10.5px !important; font-weight: 700;
   letter-spacing: 0.18em; text-transform: uppercase;
-  color: rgba(247, 244, 238, 0.6);
+}
+.lightbox .lbHeart { font-size: 22px; line-height: 1; color: #f7f4ee; }
+.lightbox .lbHeartOn { color: var(--g-accent); }
+.lightbox .lbDownload {
+  display: inline-flex; align-items: center; gap: 8px; align-self: center;
+  margin: 0 6px; text-decoration: none; filter: none;
+  border-radius: 999px; background: #f7f4ee; color: #17161a;
+  padding: 9px 18px;
+  font-family: var(--g-label); font-weight: 800; font-size: 11px; line-height: 1;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.lightbox .lbDownload:hover { background: #fff; }
+@media (max-width: 700px) {
+  /* phones: a round icon, the toolbar has no room for the label */
+  .lightbox .lbDownloadText { display: none; }
+  .lightbox .lbDownload { padding: 9px 12px; font-size: 15px; margin: 0 2px; }
 }
 
 @media (max-width: 900px) {

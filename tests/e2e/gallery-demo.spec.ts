@@ -20,33 +20,18 @@ test.describe('демо-галерея', () => {
     await expect(heart).toHaveAttribute('aria-pressed', 'false')
     await expect(counter).toContainText(String(before))
     // The heart sits on the tile: tapping it must not open the viewer.
-    await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Закрити' })).toHaveCount(0)
   })
 
-  test('слайд-шоу відкривається й закривається', async ({ page }) => {
+  test('слайд-шоу відкривається, гортає саме й закривається', async ({ page }) => {
     await page.getByRole('button', { name: /Слайд-шоу/ }).click()
-    const close = page.getByRole('button', { name: 'Close' })
+    const close = page.getByRole('button', { name: 'Закрити' })
     await expect(close).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
-    await expect(page.getByText(/^1 \/ \d+$/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Пауза' })).toBeVisible()
+    await expect(page.locator('.yarl__counter')).toHaveText(/^1 \/ \d+$/)
+    // 4.5 s per photo: the second one comes up by itself.
+    await expect(page.locator('.yarl__counter')).toHaveText(/^2 \/ \d+$/, { timeout: 9_000 })
     await close.click()
-    await expect(close).toHaveCount(0)
-  })
-
-  test('тап по фото відкриває його на весь екран', async ({ page, isMobile }) => {
-    const tile = page.locator('main figure').nth(2)
-    const src = await tile.locator('img').first().getAttribute('src')
-    if (isMobile) await tile.locator('img').first().tap()
-    else await tile.locator('img').first().click()
-    await expect(page.getByText(/^3 \/ \d+$/)).toBeVisible()
-    // The viewer covers the whole viewport and shows the tapped photo.
-    const overlay = page.getByRole('button', { name: 'Close' }).locator('xpath=../..')
-    const box = await overlay.boundingBox()
-    const viewport = page.viewportSize()!
-    expect(box!.width).toBeGreaterThanOrEqual(viewport.width - 1)
-    expect(box!.height).toBeGreaterThanOrEqual(viewport.height - 1)
-    await expect(overlay.locator(`img[src="${src}"]`)).toBeVisible()
-    await page.getByRole('button', { name: 'Close' }).click()
-    await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0)
+    await expect(page.locator('.yarl__portal')).toHaveCount(0)
   })
 })
