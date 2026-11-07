@@ -1,113 +1,40 @@
-# CORS для бакета B2 `proiav-media` (us-east-005)
+# CORS для бакета B2 `proiav-media` (us-east-005) — для експорту альбомів
 
-Навіщо це потрібно. Експорт альбому (JPEG/PDF/PSD) збирає розвороти **у браузері**. Для цього він робить `fetch()` оригіналів за підписаними B2-посиланнями, отриманими від `signAlbumOriginals`, — це звичайний S3 SigV4 URL, наприклад `https://proiav-media.s3.us-east-005.backblazeb2.com/u/…/o/…jpg?X-Amz-…`.
+Експорт альбому (JPEG/PDF/PSD) збирає розвороти **у браузері**. Для цього він робить `fetch()` оригіналів за підписаними B2-посиланнями від `signAlbumOriginals`, наприклад `https://proiav-media.s3.us-east-005.backblazeb2.com/u/…/o/…jpg?X-Amz-…`.
 
-На відміну від `<img>`, `fetch()` прочитає відповідь лише тоді, коли B2 поверне `Access-Control-Allow-Origin` з нашим доменом. Без правила CORS експорт зупиниться з повідомленням «Сховище не дозволяє браузеру читати оригінали (CORS)».
+На відміну від `<img>`, `fetch()` прочитає відповідь лише тоді, коли B2 поверне `Access-Control-Allow-Origin` з нашим доменом. Тому бакету потрібне правило GET/HEAD для `https://proiav.space` і `https://www.proiav.space`. Це те саме правило, на якому тримається «Завантажити все» в галереях.
 
-Запит простий (GET без власних заголовків), тому preflight (OPTIONS) для експорту не потрібен. Правило з `PUT` лишаємо, бо на ньому тримаються завантаження фото й частини multipart.
+## Основний шлях: відкрити адмінську сторінку
 
-> ⚠️ Оновлення CORS **замінює весь набір правил** бакета. Якщо залишити лише GET/HEAD, перестануть працювати завантаження (браузер робить `PUT` напряму в B2). Нижче — повний набір: читання і завантаження.
-
-> Адмінський маршрут `/api/admin/storage-cors` ставить одне спільне правило (GET/PUT/HEAD, ті самі домени плюс `*.vercel.app` і `localhost:3000`). Воно теж покриває експорт альбомів. Якщо ви колись його відкривали, CORS, імовірно, вже є — перевірка нижче. Після ручного застосування правил цей маршрут **не відкривайте**: він перезапише їх своїм набором.
-
-## Варіант 1. S3 API (`PutBucketCors`) — той самий шлях, що в адмін-маршруті
-
-`cors-s3.json`:
-
-```json
-{
-  "CORSRules": [
-    {
-      "AllowedOrigins": ["https://proiav.space", "https://www.proiav.space"],
-      "AllowedMethods": ["GET", "HEAD"],
-      "AllowedHeaders": ["*"],
-      "ExposeHeaders": ["Content-Length", "Content-Type", "ETag"],
-      "MaxAgeSeconds": 86400
-    },
-    {
-      "AllowedOrigins": ["https://proiav.space", "https://www.proiav.space"],
-      "AllowedMethods": ["PUT"],
-      "AllowedHeaders": ["*"],
-      "ExposeHeaders": ["ETag"],
-      "MaxAgeSeconds": 86400
-    }
-  ]
-}
-```
-
-Застосувати (AWS CLI з ключем B2, у якого є `writeBuckets`):
-
-```bash
-aws s3api put-bucket-cors --endpoint-url https://s3.us-east-005.backblazeb2.com --bucket proiav-media --cors-configuration file://cors-s3.json
-```
-
-Перевірити, що збереглося:
-
-```bash
-aws s3api get-bucket-cors --endpoint-url https://s3.us-east-005.backblazeb2.com --bucket proiav-media
-```
-
-## Варіант 2. b2 CLI (нативні правила B2)
-
-`cors-b2.json`. Операції `s3_*` відповідають запитам через S3 API, а саме ними ходять і завантаження, і експорт:
-
-```json
-[
-  {
-    "corsRuleName": "proiavRead",
-    "allowedOrigins": ["https://proiav.space", "https://www.proiav.space"],
-    "allowedOperations": ["s3_get", "s3_head"],
-    "allowedHeaders": ["*"],
-    "exposeHeaders": ["Content-Length", "Content-Type", "ETag"],
-    "maxAgeSeconds": 86400
-  },
-  {
-    "corsRuleName": "proiavUpload",
-    "allowedOrigins": ["https://proiav.space", "https://www.proiav.space"],
-    "allowedOperations": ["s3_put"],
-    "allowedHeaders": ["*"],
-    "exposeHeaders": ["ETag"],
-    "maxAgeSeconds": 86400
-  }
-]
-```
-
-b2 CLI 4.x:
-
-```bash
-b2 bucket update --cors-rules "$(cat cors-b2.json)" proiav-media allPrivate
-```
-
-b2 CLI 3.x (стара форма команди):
-
-```bash
-b2 update-bucket --corsRules "$(cat cors-b2.json)" proiav-media allPrivate
-```
-
-Бакет лишається приватним (`allPrivate`): CORS лише дозволяє браузеру прочитати те, на що в нього вже є підписане посилання.
-
-### Прев'ю-деплої й локальна розробка (за потреби)
-
-Щоб завантаження й експорт працювали на `*.vercel.app` і `localhost`, додайте в обидва правила ці origin-и:
+Увійдіть адмінським акаунтом і відкрийте:
 
 ```
-"https://*.vercel.app", "http://localhost:3000"
+https://proiav.space/api/admin/storage-cors
 ```
 
-B2 дозволяє одну зірочку в origin. Для проду вони не потрібні.
+Одним викликом сторінка виставляє **повний** набір правил бакета:
+- завантаження: `PUT`, `ExposeHeaders: ETag` — потрібно для докачування частинами в `release/5`;
+- читання: `GET`/`HEAD` з `https://proiav.space` і `https://www.proiav.space` — «Завантажити все» та експорт альбомів.
+
+Сторінка показує правила «Було» і «Стало». Якщо вони вже збігаються, вона нічого не пише, тож відкривати повторно безпечно.
+
+Правила записано в `src/lib/storage/cors.ts`. Повна довідка, зокрема про потрібні права ключа B2, — `docs/STORAGE_CORS.md`.
+
+## Запасний шлях: CLI
+
+Якщо ключ B2 у Vercel не має прав на налаштування бакета, застосуйте той самий набір через `aws s3api put-bucket-cors` або b2 CLI. Готовий JSON і команди — у `docs/STORAGE_CORS.md`, розділ «Запасний шлях: CLI».
+
+> ⚠️ Запис CORS замінює **весь** набір правил бакета, тому завжди пишіть повний набір: і завантаження, і читання. Інакше зламаються або завантаження, або експорт.
 
 ## Як перевірити
 
-1. Візьміть будь-яке підписане посилання на оригінал. Наприклад: кабінет → галерея → «Завантажити» на фото, потім скопіюйте адресу, на яку переадресовує `/api/assets/<id>/download`. Або запустіть експорт альбому з відкритими DevTools → Network.
-2. Виконайте:
-
 ```bash
-curl -s -D - -o /dev/null -H "Origin: https://proiav.space" "<підписане посилання>" | grep -i '^access-control'
+curl -s -D - -o /dev/null -H "Origin: https://proiav.space" "<підписане посилання на оригінал>" | grep -i '^access-control'
 ```
 
-Має бути щонайменше `access-control-allow-origin: https://proiav.space`. Якщо рядків немає — правило не застосувалось або origin записано з помилкою: без `/` у кінці, саме `https://`.
+Має бути `access-control-allow-origin: https://proiav.space`. Потім на `https://proiav.space` експорт будь-якого розвороту має дійти до «Готово».
 
-3. У браузері на `https://proiav.space` експорт будь-якого розвороту має дійти до «Готово».
+На прев'ю-деплоях (`*.vercel.app`) і локально експорт оригіналів не прочитає: читання дозволене лише з прод-доменів. Демо `/uk/e2e/albums` бере фото з того самого сайту, тож CORS йому не потрібен.
 
 ## Що показує експорт, коли щось не так
 
