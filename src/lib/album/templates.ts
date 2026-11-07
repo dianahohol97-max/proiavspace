@@ -49,6 +49,8 @@ export const PAGE_TEMPLATES: LayoutTemplate[] = [
   t('p1-bleed', '1 фото під обріз', 'page', true, [1], [1], [{ c: 0, r: 0 }]),
   t('p1-margin', '1 фото з полями', 'page', false, [1], [1], [{ c: 0, r: 0 }]),
   t('p1-center', '1 фото по центру', 'page', false, [1, 4, 1], [1, 4, 1], [{ c: 1, r: 1 }]),
+  // A portrait frame on a landscape page (40×30 albums): no blank page, no cropping a portrait to landscape.
+  t('p1-portrait', '1 вертикальне по центру', 'page', false, [1, 2, 1], [1], [{ c: 1, r: 0 }]),
   t('p2-v', '2 поруч', 'page', false, [1, 1], [1], grid(2, 1)),
   t('p2-h', '2 одне над одним', 'page', false, [1], [1, 1], grid(1, 2)),
   t('p2-bleed-v', '2 поруч під обріз', 'page', true, [1, 1], [1], grid(2, 1)),

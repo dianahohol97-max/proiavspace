@@ -193,6 +193,13 @@ describe('автозаповнення', () => {
     assert.deepEqual([...portraits.assetIds].sort(), ['a', 'b', 'c'])
   })
 
+  test('2 вертикальні кадри на альбомному 40×30 — без порожньої сторінки', () => {
+    const f = formatFor(spec4030, 'spread')
+    const pick = pickLayout([photo('a', 2000, 3000), photo('b', 2000, 3000)], f, { marginMm: 14, gapMm: 5 })
+    assert.doesNotMatch(pick.layout, /p0/)
+    for (const r of pick.rects) assert.ok(r.h > r.w, 'вертикальний слот')
+  })
+
   test('автозаповнення розвороту ставить кожне фото рівно раз і бере фокус з галереї', () => {
     const photos = [
       photo('a', 3000, 2000, { focalX: 0.2, focalY: 0.3 }),

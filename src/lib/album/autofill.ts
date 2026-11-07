@@ -43,7 +43,7 @@ function layoutPenalty(layout: string): number {
   const r = parsed.right.cells.length
   let penalty = Math.abs(l - r) * 0.08
   // An empty page is a deliberate choice, not an auto-fill default.
-  if (l === 0 || r === 0) penalty += 0.6
+  if (l === 0 || r === 0) penalty += 1.2
   // Tiny centred photo wastes the page.
   if (parsed.left.id === 'p1-center' || parsed.right.id === 'p1-center') penalty += 0.3
   return penalty

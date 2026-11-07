@@ -409,9 +409,9 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
                     <SpreadView spread={s} spec={spec} photos={photosById} scale={thumbScale} thumbs />
                   </button>
                   <div className="mt-0.5 flex items-center justify-between px-1">
-                    <span className="text-[11px] font-semibold text-muted">{spreadLabel(s, i, spreads)}</span>
+                    <span className="whitespace-nowrap text-[11px] font-semibold text-muted">{spreadLabel(s, i, spreads)}</span>
                     {active && (
-                      <span className="flex">
+                      <span className="flex [&>button]:px-1.5">
                         <button className={btnGhost} onClick={() => moveSpread(s.id, -1)} aria-label="Перемістити вище" title="Вище">↑</button>
                         <button className={btnGhost} onClick={() => moveSpread(s.id, 1)} aria-label="Перемістити нижче" title="Нижче">↓</button>
                         <button
@@ -683,7 +683,7 @@ function PhoneViewer({
             const f = sheetSizeMm(formatFor(spec, s.kind))
             return (
               <figure key={s.id}>
-                <SpreadView spread={s} spec={spec} photos={photos} scale={size.width / f.widthMm} />
+                <SpreadView spread={s} spec={spec} photos={photos} scale={size.width / f.widthMm} plain />
                 <figcaption className="mt-1 text-xs text-muted">{spreadLabel(s, i, spreads)}</figcaption>
               </figure>
             )

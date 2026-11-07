@@ -35,6 +35,8 @@ interface Props {
   handlers?: SpreadViewHandlers
   /** Thumbnails: use small renditions, no DPI badges. */
   thumbs?: boolean
+  /** Read-only viewing (phone): no DPI badges. */
+  plain?: boolean
 }
 
 let gestureSeq = 0
@@ -55,7 +57,7 @@ function SlotImage({ slot, photo, wPx, hPx, thumbs }: { slot: AlbumSlot; photo: 
   )
 }
 
-function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, selectedSlotId, handlers, thumbs }: Props) {
+function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, selectedSlotId, handlers, thumbs, plain }: Props) {
   const format = formatFor(spec, spread.kind)
   const sheet = sheetSizeMm(format)
   const b = format.bleedMm
@@ -112,7 +114,7 @@ function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, sele
             dragAccepts={dragAccepts}
           >
             {photo && <SlotImage slot={slot} photo={photo} wPx={wPx} hPx={hPx} thumbs={thumbs} />}
-            {!thumbs && photo && level !== 'ok' && (
+            {!thumbs && !plain && photo && level !== 'ok' && (
               <span
                 className={`pointer-events-none absolute right-1.5 top-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold text-white ${level === 'bad' ? 'bg-red-600' : 'bg-amber-500'}`}
                 data-testid="dpi-warning"
