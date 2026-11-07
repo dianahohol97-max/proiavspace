@@ -16,6 +16,10 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
+import { CullingPanel } from '@/components/gallery/CullingPanel'
+import type { CullingPhoto } from '@/lib/culling/types'
+import { HIDE_FROM_CLIENT_ENABLED } from '@/lib/culling/config'
+import { setHiddenFromClient } from '@/lib/actions/culling'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
@@ -136,6 +140,28 @@ export default async function ManageGalleryPage({
       return { asset, url }
     })
   )
+
+  // AI culling reads only the light renditions (thumb ~512 px → mobile →
+  // preview), never originals. Photos without any rendition are skipped.
+  const cullingPhotos: CullingPhoto[] = (
+    await Promise.all(
+      previews.map(async ({ asset, url }, order): Promise<CullingPhoto | null> => {
+        if (asset.kind !== 'photo') return null
+        const key = asset.variants.thumb ?? asset.variants.mobile ?? asset.variants.preview
+        if (!key) return null
+        const shownKey = asset.variants.poster ?? asset.variants.thumb ?? asset.variants.preview
+        let analysisUrl = key === shownKey ? url : ''
+        if (!analysisUrl) {
+          try {
+            analysisUrl = await storage.getSignedReadUrl(key, { expiresInSeconds: 60 * 60 })
+          } catch {
+            return null
+          }
+        }
+        return analysisUrl ? { id: asset.id, url: analysisUrl, order, takenAt: null, name: assetFileName(asset) } : null
+      })
+    )
+  ).filter((p): p is CullingPhoto => p !== null)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const publicUrl = `${appUrl}/${locale}/g/${gallery.slug}`
@@ -352,6 +378,17 @@ export default async function ManageGalleryPage({
           )}
         </div>
       </section>
+
+      {cullingPhotos.length > 0 && (
+        // «Сховати від клієнта» stays disabled until assets.hidden_from_client
+        // (branch db/1) is applied and NEXT_PUBLIC_CULLING_HIDE=1 — see docs/AI_CULLING.md.
+        <CullingPanel
+          galleryId={gallery.id}
+          locale={locale}
+          photos={cullingPhotos}
+          onHide={HIDE_FROM_CLIENT_ENABLED ? setHiddenFromClient.bind(null, locale, gallery.id) : undefined}
+        />
+      )}
 
       <section className="mt-12">
         {previews.length > 0 && (
