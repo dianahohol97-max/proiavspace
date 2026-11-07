@@ -132,6 +132,37 @@ function pha(id: string, n: string, category: string, caption: string, [width, h
   }
 }
 
+/**
+ * A /public/themes frame as WebP with its 1080 px phone copy when there is one
+ * (01–24). Used by the v2 themes while their own demo photos are on the way.
+ */
+function pht(
+  id: string,
+  n: number,
+  category: string,
+  caption: string,
+  [width, height]: [number, number],
+  /** First-screen frame: has 828/1280 WebP + AVIF copies next to it. */
+  hero = false
+): PortfolioItem {
+  const base = `/themes/${String(n).padStart(2, '0')}`
+  return {
+    id,
+    previewUrl: `${base}.webp`,
+    visible: true,
+    category,
+    caption,
+    width,
+    height,
+    srcSet: hero
+      ? `${base}-828.webp 828w, ${base}-1280.webp 1280w, ${base}.webp ${width}w`
+      : n <= 24
+        ? `${base}-1080.webp 1080w, ${base}.webp ${width}w`
+        : undefined,
+    ...(hero ? { avifSrcSet: `${base}-828.avif 828w, ${base}-1280.avif 1280w` } : {}),
+  }
+}
+
 type Hero = SiteContent['hero']
 type Contact = SiteContent['contact']
 function content(
@@ -415,6 +446,67 @@ export const THEME_DEMOS: ThemeDemo[] = [
       pha('19', '19', 'Сімейні', 'Біля моря', [2400, 3600]),
       pha('20', '20', 'Сімейні', 'Перед заходом', [2400, 1600]),
       pha('21', '21', 'Сімейні', 'Ірина', [2400, 3609]),
+    ],
+  },
+  {
+    value: 'start',
+    theme: 'start',
+    mode: 'light',
+    name: 'Старт',
+    suits: 'Перше портфоліо, до 10 кадрів',
+    displayName: 'Марко Вереск',
+    content: content({
+      hero: {
+        title: 'Марко Вереск',
+        subtitle: 'Прості й чесні кадри — без пафосу і довгих поз',
+        imageId: '2',
+        city: 'Київ',
+        directions: ['Love story', 'Портрет', 'Сімейні'],
+      },
+      about: {
+        text: 'Я знімаю другий рік і досі радію кожній зйомці, як першій. Люблю природне світло, прогулянки і людей, які не вміють позувати, — разом ми впораємося. Беру небагато зйомок на місяць, щоб на кожну був час.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '500 ₴, решта — після зйомки',
+        delivery: 'усі фото за 7 днів',
+        travel: 'Київ — без доплат',
+        bring: 'дві зміни одягу й гарний настрій',
+      },
+      testimonials: {
+        items: [
+          { names: 'Аня і Тарас', text: 'Було легко й весело, а фото вийшли саме про нас. Дякуємо, що не мучив позами!', photoId: '3' },
+          { names: 'Олена', text: 'Отримала фото вже за п’ять днів — і всі як на підбір. Рекомендую подругам.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Портрет', price: '2 000 ₴', includes: ['1 година', 'одна локація', '30 фото з обробкою'] },
+          {
+            name: 'Love story',
+            price: '3 500 ₴',
+            includes: ['до 2 годин', 'дві локації', '60 фото з обробкою'],
+            featured: true,
+          },
+          { name: 'Сімейна', price: '3 000 ₴', includes: ['1.5 години', 'парк або дім', '50 фото з обробкою'] },
+        ],
+      },
+      contact: { email: 'marko@example.com', phone: '+380 93 500 00 00', instagram: '@marko.veresk', telegram: 'marko_veresk', bookingUrl: '' },
+    }),
+    // Exactly ten frames: «Старт» must look good with a small portfolio.
+    // TEMPORARY (until assets/start): 02–19 are the mountain couple of the
+    // «Тиша» set; 31 is Старт's own. See docs/THEMES_LOG.md.
+    portfolio: [
+      pht('1', 2, 'Love story', 'Вітер у горах', [2000, 1335]),
+      pht('2', 31, 'Сімейні', 'Захід сонця', [2000, 1333], true),
+      pht('3', 9, 'Портрет', 'Погляд', [1450, 2000]),
+      pht('4', 3, 'Love story', 'Удвох', [2000, 1335]),
+      pht('5', 10, 'Портрет', 'Тиша', [1335, 2000]),
+      pht('6', 8, 'Love story', 'Дорога', [2000, 1335]),
+      pht('7', 19, 'Портрет', 'Світло', [1335, 2000]),
+      pht('8', 11, 'Love story', 'Серед трав', [2000, 1335]),
+      pht('9', 14, 'Love story', 'Сміх', [2000, 1335]),
+      pht('10', 17, 'Love story', 'Вечір', [2000, 1335]),
     ],
   },
   {

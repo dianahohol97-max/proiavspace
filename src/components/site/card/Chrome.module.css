@@ -1,0 +1,324 @@
+/*
+ * Shared «chrome» of the visiting-card themes: the sticky nav with its phone
+ * menu (TyshaNav) and the enquiry form (TyshaLeadForm), on the --card-*
+ * variables a theme sets on its root (plus --card-pad, --card-ease,
+ * --card-radius, --t-nav-h). A theme passes mergeSkin(chrome, itsModule) as
+ * the skin, so its own classes of the same name come after these and win.
+ * Derived from «Повітря».
+ */
+/* ---------------------------------------------------------------- nav --- */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: var(--t-nav-h);
+  color: var(--card-fg);
+  transition:
+    transform 0.6s var(--card-ease),
+    background-color 0.5s var(--card-ease);
+}
+.nav[data-solid='true'] {
+  background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.nav[data-hidden='true'] {
+  transform: translateY(-100%);
+}
+.navInner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.wordmark {
+  font-family: var(--card-display);
+  font-size: 24px;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.wordmark img {
+  display: block;
+  max-height: 34px;
+  width: auto;
+}
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 2.2vw, 32px);
+}
+.navLink {
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 6px 0;
+}
+.navLink::after,
+.textLink::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--card-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s var(--card-ease);
+}
+.navLink:hover::after,
+.navLink:focus-visible::after {
+  transform: scaleX(1);
+}
+.navCta {
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--card-on-accent, #fff);
+  background: var(--card-accent);
+  border-radius: var(--card-btn-radius, 999px);
+  padding: 10px 20px;
+  transition: transform 0.4s var(--card-ease);
+}
+.navCta:hover {
+  transform: translateY(-1px);
+}
+.lang {
+  font-size: 13px;
+}
+.menuBtn {
+  display: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 0 12px 12px;
+  cursor: pointer;
+  align-items: center;
+  gap: 10px;
+}
+.menuBtnLines {
+  display: inline-grid;
+  gap: 5px;
+  width: 22px;
+}
+.menuBtnLines span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+@media (max-width: 960px) {
+  .navLinks {
+    display: none;
+  }
+  .menuBtn {
+    display: inline-flex;
+  }
+}
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: linear-gradient(180deg, var(--card-menu-bg, var(--card-bg)), var(--card-bg) 60%);
+  color: var(--card-fg);
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--card-pad) max(28px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+.menuTop {
+  height: var(--t-nav-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.menuList {
+  list-style: none;
+  margin: auto 0;
+  padding: 32px 0;
+  display: grid;
+  gap: 8px;
+}
+.menuItem {
+  overflow: hidden;
+}
+.menuItem a {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-family: var(--card-display);
+  font-size: clamp(36px, 10vw, 58px);
+  line-height: 1.15;
+  text-decoration: none;
+}
+.menuItem a span {
+  font-family: var(--card-label);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--card-accent);
+}
+.menuFoot {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--card-line);
+  padding-top: 20px;
+  font-size: 15px;
+}
+.menuFoot a {
+  text-decoration: none;
+}
+
+
+/* --------------------------------------------------------------- form --- */
+
+.form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+.formFull {
+  grid-column: 1 / -1;
+}
+@media (max-width: 560px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+}
+.field {
+  position: relative;
+}
+.input {
+  display: block;
+  width: 100%;
+  border: 1.5px solid var(--card-input-line, var(--card-line));
+  border-radius: var(--card-field-radius, 14px);
+  background: var(--card-input-bg, color-mix(in srgb, var(--card-fg) 3%, var(--card-bg)));
+  color: var(--card-fg);
+  font-family: var(--card-label);
+  font-size: 16px;
+  line-height: 1.4;
+  padding: 24px 16px 10px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.3s var(--card-ease);
+}
+.input:focus {
+  border-color: var(--card-accent);
+  background: var(--card-input-focus, var(--card-bg));
+}
+textarea.input {
+  resize: vertical;
+  min-height: 120px;
+}
+select.input {
+  cursor: pointer;
+  padding-right: 32px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 55%,
+    calc(100% - 13px) 55%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+.input[type='date'] {
+  min-height: 60px;
+}
+.floatLabel {
+  position: absolute;
+  left: 17px;
+  top: 18px;
+  font-size: 16px;
+  color: var(--card-muted);
+  pointer-events: none;
+  transform-origin: left top;
+  transition:
+    transform 0.35s var(--card-ease),
+    color 0.35s var(--card-ease);
+}
+.input:focus + .floatLabel,
+.input:not(:placeholder-shown) + .floatLabel,
+.floatLabelUp {
+  transform: translateY(-10px) scale(0.75);
+}
+.input:focus + .floatLabel {
+  color: var(--card-accent);
+}
+.formHint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--card-muted);
+}
+.formActions {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+}
+.submit {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  border: 0;
+  border-radius: var(--card-btn-radius, 999px);
+  background: var(--card-accent);
+  color: var(--card-on-accent, #fff);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 16px 30px;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--card-accent) 25%, transparent);
+}
+.submit:disabled {
+  cursor: progress;
+}
+.submitProgress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  transform-origin: left;
+}
+.formError {
+  margin: 0;
+  font-size: 14px;
+  color: #b3261e;
+}
+.sent {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding: 20px 0;
+  color: var(--card-accent);
+}
+.sentMark {
+  width: 60px;
+  height: 60px;
+}
+.sentText {
+  margin: 0;
+  font-family: var(--card-display);
+  font-size: clamp(24px, 2.2vw, 32px);
+  line-height: 1.3;
+  color: var(--card-fg);
+  max-width: 24ch;
+}
+

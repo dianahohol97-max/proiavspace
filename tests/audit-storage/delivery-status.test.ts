@@ -24,7 +24,7 @@ import {
   parseDeliveryEta,
   parseDeliveryStatus,
 } from '@/lib/gallery/delivery'
-import { THEME_CATALOG, resolveGalleryTokens } from '@/lib/site/themes'
+import { GALLERY_CATALOG as THEME_CATALOG, resolveGalleryTokens } from '@/lib/site/themes'
 import { uk } from '@/lib/i18n/dictionaries/uk'
 import { en } from '@/lib/i18n/dictionaries/en'
 

@@ -413,6 +413,7 @@ export const uk = {
     themeGalereia: 'Галерея',
     themeArkhiv: 'Архів',
     themeProdakshn: 'Продакшн',
+    themeStart: 'Старт',
     heroLegend: 'Головний екран',
     heroTitle: 'Заголовок (наприклад, ваше ім’я або слоган)',
     heroSubtitle: 'Підзаголовок (жанр і місто)',
