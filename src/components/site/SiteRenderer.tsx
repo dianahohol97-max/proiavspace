@@ -7,13 +7,17 @@ import { LeadForm, type LeadFormLabels } from './LeadForm'
 import { SiteLangSwitch } from './SiteLangSwitch'
 import { ThemeGallery } from './ThemeGallery'
 import { ThemeSilence } from './ThemeSilence'
+import { AIR_FONT_VARS } from './air/fonts'
+import { ThemePovitria } from './air/ThemePovitria'
+import { JOURNAL_FONT_VARS } from './journal/fonts'
+import { ThemeZhurnal } from './journal/ThemeZhurnal'
 import { MIDNIGHT_FONT_VARS } from './midnight/fonts'
+import { START_FONT_VARS } from './start/fonts'
+import { ThemeStart } from './start/ThemeStart'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
-  ThemeAir,
   ThemeArchive,
   ThemeFilm,
-  ThemeJournal,
   ThemeProduction,
   type ThemeProps,
 } from './ThemeVariants'
@@ -112,6 +116,29 @@ export interface SiteLabels {
   swipeHint?: string
   prev?: string
   next?: string
+  inThisIssue?: string
+  /** «Зима,Весна,Літо,Осінь» — «Журнал»'s issue line. */
+  seasons?: string
+  editorLetter?: string
+  spread?: string
+  pageShort?: string
+  bookShoot?: string
+  dayInLight?: string
+  photographer?: string
+  termsTitle?: string
+  termsPrepayment?: string
+  termsDelivery?: string
+  termsTravel?: string
+  termsBring?: string
+  giftsTitle?: string
+  giftCertificate?: string
+  giftCertificateText?: string
+  giftBook?: string
+  giftBookText?: string
+  giftPrints?: string
+  giftPrintsText?: string
+  order?: string
+  filterAll?: string
 }
 
 /** One selectable language in a site's switcher. */
@@ -132,7 +159,7 @@ export interface LangSwitch {
  * pricing, contact. Every theme renders THESE blocks — themes only change
  * the CSS custom properties (see lib/site/themes.ts). No platform branding
  * anywhere on the page — with one exception: on the FREE site plan
- * ('site_trial') «Тиша» and «Опівніч» print a small «Сайт на проЯв» credit
+ * ('site_trial') «Тиша», «Опівніч», «Журнал» and «Повітря» print a small «Сайт на проЯв» credit
  * in their footer (`platformCredit`). Paid sites never show it.
  */
 export function SiteRenderer({
@@ -281,6 +308,70 @@ export function SiteRenderer({
       </div>
     )
   }
+  if (theme === 'povitria') {
+    return (
+      <div style={{ ...vars, ...AIR_FONT_VARS } as CSSProperties}>
+        <ThemePovitria
+          content={content}
+          displayName={displayName}
+          logoUrl={logoUrl}
+          portfolio={portfolio}
+          labels={labels}
+          langSwitch={langSwitch}
+          leadForm={leadForm}
+          bookingNav={bookingNav}
+          platformCredit={platformCredit}
+        />
+        {bookingSectionEl}
+        {footerEl}
+      </div>
+    )
+  }
+  if (theme === 'zhurnal') {
+    return (
+      <div style={{ ...vars, ...JOURNAL_FONT_VARS } as CSSProperties}>
+        <ThemeZhurnal
+          content={content}
+          displayName={displayName}
+          logoUrl={logoUrl}
+          portfolio={portfolio}
+          labels={labels}
+          langSwitch={langSwitch}
+          leadForm={leadForm}
+          bookingNav={bookingNav}
+          platformCredit={platformCredit}
+        />
+        {bookingSectionEl}
+        {footerEl}
+      </div>
+    )
+  }
+  // v2 one-page «візитка» themes: same props, own layout and type.
+  type CardThemeProps = Parameters<typeof ThemeStart>[0]
+  const cardThemes: Partial<Record<ThemeId, { Component: (p: CardThemeProps) => React.ReactElement; fonts: object }>> = {
+    start: { Component: ThemeStart, fonts: START_FONT_VARS },
+  }
+  const cardTheme = cardThemes[theme]
+  if (cardTheme) {
+    const { Component, fonts } = cardTheme
+    return (
+      <div style={{ ...vars, ...fonts } as CSSProperties}>
+        <Component
+          content={content}
+          displayName={displayName}
+          logoUrl={logoUrl}
+          portfolio={portfolio}
+          labels={labels}
+          langSwitch={langSwitch}
+          leadForm={leadForm}
+          bookingNav={bookingNav}
+          platformCredit={platformCredit}
+        />
+        {bookingSectionEl}
+        {footerEl}
+      </div>
+    )
+  }
   if (theme === 'galereia') {
     return (
       <div style={vars}>
@@ -300,9 +391,7 @@ export function SiteRenderer({
     )
   }
   const variant: Partial<Record<ThemeId, (p: ThemeProps) => React.ReactElement>> = {
-    povitria: ThemeAir,
     plivka: ThemeFilm,
-    zhurnal: ThemeJournal,
     arkhiv: ThemeArchive,
     prodakshn: ThemeProduction,
   }

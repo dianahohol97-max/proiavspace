@@ -4,6 +4,8 @@ import {
   deleteGallery,
   setAssetFocal,
   setGalleryCover,
+  sortGalleryAssets,
+  setGalleryDelivery,
   setGalleryPublished,
   setGalleryTheme,
   updateGallerySettings,
@@ -14,18 +16,32 @@ import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
-import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
+import { GallerySortControl } from '@/components/gallery/GallerySortControl'
+import { CullingPanel } from '@/components/gallery/CullingPanel'
+import type { CullingPhoto } from '@/lib/culling/types'
+import { setHiddenFromClient } from '@/lib/actions/culling'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
+import { DeliveryStatusControl } from '@/components/gallery/DeliveryStatusControl'
+import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
+import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
+import { sendClientReadyEmailAgain, setClientEmail } from '@/lib/actions/client-email'
+import {
+  PICK_LABELS,
+  assetOriginalName,
+  buildClientPicks,
+  lightroomFilterLine,
+  picksCsv,
+  picksTxt,
+} from '@/lib/gallery/client-picks'
+import { loadClientEmailState } from '@/lib/gallery/ready-email-store'
+import { parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
+import { HowItWorks } from '@/components/gallery/HowItWorks'
+import { galleryHelp } from '@/lib/gallery/help'
 import { daysLeft, purgeDate } from '@/lib/free-expiry'
 import type { Asset, Gallery } from '@/lib/types'
-
-/** Original filename as the client knows it: r2 basename minus the uuid- prefix. */
-function assetFileName(asset: Asset): string {
-  return (asset.r2_key.split('/').pop() ?? asset.id).replace(/^[0-9a-f-]{37}/, '')
-}
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +53,7 @@ export default async function ManageGalleryPage({
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const dict = await getDictionary(locale)
+  const help = galleryHelp(locale)
 
   const supabase = createSupabaseServerClient()
   const {
@@ -47,7 +64,7 @@ export default async function ManageGalleryPage({
   const { data: gallery } = await supabase
     .from('galleries')
     .select(
-      'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme, style'
+      'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme, style, delivery_status, delivery_eta'
     )
     .eq('id', params.id)
     .eq('owner_id', user.id)
@@ -69,7 +86,7 @@ export default async function ManageGalleryPage({
   const watermarkText =
     planRow?.watermark_enabled && planRow.display_name ? planRow.display_name : undefined
 
-  const [{ data: assets }, { count: downloadCount }, { data: selections }] = await Promise.all([
+  const [{ data: assets }, { count: downloadCount }, { data: selections }, clientEmail] = await Promise.all([
     supabase
       .from('assets')
       .select('*')
@@ -87,6 +104,7 @@ export default async function ManageGalleryPage({
       .select('asset_id, kind, client_token')
       .eq('gallery_id', gallery.id)
       .returns<{ asset_id: string; kind: string; client_token: string }[]>(),
+    loadClientEmailState(params.id, user.id),
   ])
 
   const favoriteCounts = new Map<string, number>()
@@ -97,6 +115,14 @@ export default async function ManageGalleryPage({
     favoriteClients.add(selection.client_token)
   }
   const totalFavorites = [...favoriteCounts.values()].reduce((sum, n) => sum + n, 0)
+
+  // «Обране клієнта»: hearts AND retouch requests, in gallery order, with the
+  // original file names (lib/gallery/client-picks) — for Lightroom and the list.
+  const picks = buildClientPicks(assets ?? [], selections ?? [])
+  const pickClients = new Set((selections ?? []).map((s) => s.client_token))
+  const retouchCount = picks.filter((p) => p.retouch > 0).length
+  const lightroom = lightroomFilterLine(picks)
+  const pickLabels = PICK_LABELS[locale === 'uk' ? 'uk' : 'en']
 
   // Per-photo engagement (a «Плюс»+ stat): download and view events carry the
   // asset id in meta, so we can show views + downloads on each individual photo.
@@ -137,6 +163,37 @@ export default async function ManageGalleryPage({
     })
   )
 
+  // AI culling reads only the light renditions (thumb ~512 px → mobile →
+  // preview), never originals. Photos without any rendition are skipped.
+  const cullingPhotos: CullingPhoto[] = (
+    await Promise.all(
+      previews.map(async ({ asset, url }, order): Promise<CullingPhoto | null> => {
+        if (asset.kind !== 'photo') return null
+        const key = asset.variants.thumb ?? asset.variants.mobile ?? asset.variants.preview
+        if (!key) return null
+        const shownKey = asset.variants.poster ?? asset.variants.thumb ?? asset.variants.preview
+        let analysisUrl = key === shownKey ? url : ''
+        if (!analysisUrl) {
+          try {
+            analysisUrl = await storage.getSignedReadUrl(key, { expiresInSeconds: 60 * 60 })
+          } catch {
+            return null
+          }
+        }
+        return analysisUrl
+          ? {
+              id: asset.id,
+              url: analysisUrl,
+              order,
+              takenAt: asset.taken_at ? Date.parse(asset.taken_at) : null,
+              name: assetOriginalName(asset),
+              hidden: asset.hidden_from_client === true,
+            }
+          : null
+      })
+    )
+  ).filter((p): p is CullingPhoto => p !== null)
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const publicUrl = `${appUrl}/${locale}/g/${gallery.slug}`
 
@@ -144,6 +201,7 @@ export default async function ManageGalleryPage({
   const deleteAction = deleteGallery.bind(null, locale, gallery.id)
   const themeAction = setGalleryTheme.bind(null, locale, gallery.id)
   const settingsAction = updateGallerySettings.bind(null, locale, gallery.id)
+  const deliveryAction = setGalleryDelivery.bind(null, locale, gallery.id)
   const hasPassword = gallery.has_password
   const expiryDefault = gallery.expires_at ? gallery.expires_at.slice(0, 10) : ''
 
@@ -251,6 +309,72 @@ export default async function ManageGalleryPage({
         />
       </header>
 
+      <DeliveryStatusControl
+        initialStatus={parseDeliveryStatus(gallery.delivery_status)}
+        initialEta={parseDeliveryEta(gallery.delivery_eta)}
+        save={deliveryAction}
+        labels={{
+          title: dict.galleryManage.deliveryTitle,
+          hint: dict.galleryManage.deliveryHint,
+          teaser: dict.galleryManage.deliveryTeaserHint,
+          none: dict.galleryManage.deliveryNone,
+          shot: dict.galleryManage.deliveryShot,
+          editing: dict.galleryManage.deliveryEditing,
+          ready: dict.galleryManage.deliveryReady,
+          etaLabel: dict.galleryManage.deliveryEtaLabel,
+          etaHint: dict.galleryManage.deliveryEtaHint,
+          etaClear: dict.galleryManage.deliveryEtaClear,
+          saving: dict.galleryManage.deliverySaving,
+          saved: dict.galleryManage.deliverySaved,
+          error: dict.galleryManage.deliveryError,
+        }}
+      />
+      <HowItWorks help={help.delivery} testId="help-delivery" />
+
+      <ClientEmailControl
+        available={clientEmail.available}
+        initialEmail={clientEmail.email}
+        sentAtText={
+          clientEmail.sentAt
+            ? new Date(clientEmail.sentAt).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+                timeZone: 'Europe/Kyiv',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : null
+        }
+        isReady={gallery.delivery_status === 'ready'}
+        isPublished={gallery.is_published}
+        save={setClientEmail.bind(null, locale, gallery.id)}
+        sendAgain={sendClientReadyEmailAgain.bind(null, locale, gallery.id)}
+        labels={{
+          title: dict.galleryManage.clientEmailTitle,
+          hint: dict.galleryManage.clientEmailHint,
+          label: dict.galleryManage.clientEmailLabel,
+          consent: dict.galleryManage.clientEmailConsent,
+          save: dict.galleryManage.clientEmailSave,
+          remove: dict.galleryManage.clientEmailRemove,
+          saving: dict.galleryManage.clientEmailSaving,
+          saved: dict.galleryManage.clientEmailSaved,
+          invalid: dict.galleryManage.clientEmailInvalid,
+          needConsent: dict.galleryManage.clientEmailNeedConsent,
+          error: dict.galleryManage.clientEmailError,
+          unavailable: dict.galleryManage.clientEmailUnavailable,
+          sentAt: dict.galleryManage.clientEmailSentAt,
+          waitReady: dict.galleryManage.clientEmailWaitReady,
+          waitPublish: dict.galleryManage.clientEmailWaitPublish,
+          sendAgain: dict.galleryManage.clientEmailSendAgain,
+          sendNow: dict.galleryManage.clientEmailSendNow,
+          sending: dict.galleryManage.clientEmailSending,
+          sent: dict.galleryManage.clientEmailSent,
+          tooSoon: dict.galleryManage.clientEmailTooSoon,
+          sendFailed: dict.galleryManage.clientEmailSendFailed,
+        }}
+      />
+
       {(gallery.free_expires_at || gallery.free_expired_at) && (
         <section className="mt-8 rounded-2xl border border-line bg-white p-5 text-sm leading-relaxed">
           <p className="font-extrabold text-fg">
@@ -351,7 +475,21 @@ export default async function ManageGalleryPage({
           />
           )}
         </div>
+        <HowItWorks help={help.upload} testId="help-upload" />
       </section>
+
+      {cullingPhotos.length > 0 && (
+        // «Сховати від клієнта» / «Повернути клієнту»: assets.hidden_from_client
+        // (0054). The action re-checks ownership on the server.
+        <CullingPanel
+          galleryId={gallery.id}
+          locale={locale}
+          photos={cullingPhotos}
+          onSetHidden={setHiddenFromClient.bind(null, locale, gallery.id)}
+          ownerId={user.id}
+        />
+      )}
+      {cullingPhotos.length > 0 && <HowItWorks help={help.culling} testId="help-culling" />}
 
       <section className="mt-12">
         {previews.length > 0 && (
@@ -360,6 +498,14 @@ export default async function ManageGalleryPage({
               ? 'Клацни по фото, щоб задати фокус кадру — яку частину показувати в розкладках з кадруванням (Квадрати / Портрет / Колаж / Едіторіал). Кнопка «Обкладинка» робить фото головним.'
               : 'Click a photo to set its crop focus — which part stays in frame in cropped layouts (Squares / Portrait / Collage / Editorial). The “Cover” button makes a photo the album cover.'}
           </p>
+        )}
+        {previews.length > 1 && (
+          <GallerySortControl
+            locale={locale}
+            total={previews.length}
+            withTakenAt={previews.filter(({ asset }) => asset.taken_at).length}
+            action={sortGalleryAssets.bind(null, locale, gallery.id)}
+          />
         )}
         {previews.length === 0 ? (
           <p className="max-w-xl leading-relaxed text-muted">{dict.galleryManage.noAssets}</p>
@@ -402,6 +548,24 @@ export default async function ManageGalleryPage({
                       )}
                     </span>
                   )}
+                  {asset.hidden_from_client && (
+                    // Hidden by the photographer (culling): the client never
+                    // sees it; one click puts it back.
+                    <form
+                      action={setHiddenFromClient.bind(null, locale, gallery.id, [asset.id], false)}
+                      className="absolute left-2 top-2 flex flex-col items-start gap-1"
+                    >
+                      <span className="rounded-full bg-neutral-900/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                        {locale === 'uk' ? 'Сховано від клієнта' : 'Hidden from client'}
+                      </span>
+                      <button
+                        type="submit"
+                        className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-900 hover:text-accent"
+                      >
+                        {locale === 'uk' ? 'Повернути клієнту' : 'Show to client'}
+                      </button>
+                    </form>
+                  )}
                   {isCover ? (
                     <span className="absolute bottom-2 left-2 rounded-full bg-fg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-bg">
                       {dict.galleryManage.coverBadge}
@@ -428,39 +592,64 @@ export default async function ManageGalleryPage({
         )}
       </section>
 
-      <section className="mt-16 border-t border-line pt-10">
+      <section className="mt-16 border-t border-line pt-10" data-testid="client-picks">
         <h2 className="font-display text-2xl">{dict.galleryManage.favoritesTitle}</h2>
-        {totalFavorites === 0 ? (
+        {picks.length === 0 ? (
           <p className="mt-4 max-w-xl leading-relaxed text-muted">
             {dict.galleryManage.favoritesEmpty}
           </p>
         ) : (
           <>
-            <div className="mt-4 flex flex-wrap items-center gap-4">
-              <span className="text-sm text-muted">
-                {dict.galleryManage.statsFavorites}: {totalFavorites} ·{' '}
-                {dict.galleryManage.favoritesClients}: {favoriteClients.size}
-              </span>
-              <ExportFavoritesButton
-                fileNames={previews
-                  .filter(({ asset }) => favoriteCounts.has(asset.id))
-                  .map(({ asset }) => assetFileName(asset))}
-                label={dict.galleryManage.exportFavorites}
-                copiedLabel={dict.galleryManage.exportCopied}
-              />
-            </div>
+            <p className="mt-4 text-sm text-muted">
+              {dict.galleryManage.statsFavorites}: {totalFavorites} · {dict.galleryManage.picksRetouch}:{' '}
+              {retouchCount} · {dict.galleryManage.favoritesClients}: {pickClients.size}
+            </p>
+            <ClientPicksExport
+              line={lightroom.text}
+              count={lightroom.count}
+              skipped={lightroom.skipped}
+              txt={picksTxt(picks, pickLabels)}
+              csv={picksCsv(picks, pickLabels)}
+              fileBase={`${gallery.slug}-picks`}
+              labels={{
+                copy: dict.galleryManage.picksCopy,
+                copied: dict.galleryManage.picksCopied,
+                copyFailed: dict.galleryManage.picksCopyFailed,
+                hint: dict.galleryManage.picksHint,
+                substringNote: dict.galleryManage.picksSubstringNote,
+                lineLabel: dict.galleryManage.picksLineLabel,
+                skipped: dict.galleryManage.picksSkipped,
+                download: dict.galleryManage.picksDownload,
+              }}
+            />
             <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
-              {previews
-                .filter(({ asset }) => favoriteCounts.has(asset.id))
-                .map(({ asset, url }) => (
-                  <div key={asset.id} className="relative aspect-square overflow-hidden bg-line">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                    <span className="absolute right-2 top-2 bg-bg/90 px-2 py-0.5 text-xs text-accent">
-                      ♥ {favoriteCounts.get(asset.id)}
-                    </span>
-                  </div>
-                ))}
+              {picks.map((pick) => {
+                const url = previews.find((p) => p.asset.id === pick.assetId)?.url ?? ''
+                return (
+                  <figure key={pick.assetId} className="min-w-0">
+                    <div className="relative aspect-square overflow-hidden bg-line">
+                      {url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      )}
+                      <span className="absolute right-2 top-2 flex flex-col items-end gap-1">
+                        {pick.favorites > 0 && (
+                          <span className="bg-bg/90 px-2 py-0.5 text-xs text-accent">♥ {pick.favorites}</span>
+                        )}
+                        {pick.retouch > 0 && (
+                          <span className="bg-bg/90 px-2 py-0.5 text-xs text-fg">
+                            {locale === 'uk' ? 'ретуш' : 'retouch'}
+                            {pick.retouch > 1 ? ` ×${pick.retouch}` : ''}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <figcaption className="mt-1 truncate text-xs text-muted" title={pick.name}>
+                      {pick.name}
+                    </figcaption>
+                  </figure>
+                )
+              })}
             </div>
           </>
         )}

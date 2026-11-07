@@ -16,6 +16,15 @@ const nextConfig = {
   // gallery/RSVP app). It sets basePath '/vistela', so the prefix is kept on
   // the way through and its assets resolve.
   // Blog slugs moved to the official Ukrainian transliteration — old URLs 301.
+  // Self-hosted MediaPipe (AI culling): versioned paths, so cache forever.
+  async headers() {
+    return [
+      {
+        source: '/vendor/mediapipe/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+    ]
+  },
   async redirects() {
     const locales = 'uk|en|pl|de|es|fr|it|ro|pt'
     const out = []

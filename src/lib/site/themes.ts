@@ -18,6 +18,8 @@ export const THEME_IDS = [
   'galereia',
   'arkhiv',
   'prodakshn',
+  // v2 one-page «візитка» themes (sites only; migration 0064)
+  'start',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -84,7 +86,9 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     id: 'povitria',
     tokens: {
       ...base,
-      bg: '#fdfcfa', fg: '#1b1a1f', muted: '#8f8c94', accent: '#1b1a1f', line: '#e8e5df',
+      // «Повітря»: warm daylight paper, ink, a sky blue. On the paper: fg ≈ 15:1,
+      // muted ≈ 5.4:1, sky ≈ 5.5:1 (AA).
+      bg: '#fbfaf6', fg: '#1d2129', muted: '#636873', accent: '#3f6a92', line: '#e7e4dc',
     },
   },
   plivka: {
@@ -100,7 +104,9 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     id: 'zhurnal',
     tokens: {
       ...base,
-      bg: '#fffdf8', fg: '#26242a', muted: '#8f8b90', accent: '#26242a', line: '#e9e5dd',
+      // «Журнал»: cream paper, ink, editorial red. On the paper: fg ≈ 17:1,
+      // muted ≈ 5.5:1, red ≈ 7.4:1 (AA).
+      bg: '#fffdf8', fg: '#1c1a1d', muted: '#6b666c', accent: '#a8151a', line: '#e6e1d8',
     },
   },
   galereia: {
@@ -129,11 +135,46 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       displayTransform: 'uppercase', displayWeight: 700, displayTracking: '-0.01em',
     },
   },
+  start: {
+    id: 'start',
+    tokens: {
+      ...base,
+      // «Старт»: warm white, graphite, a brick-orange accent. On the paper:
+      // fg ≈ 17:1, muted ≈ 6:1, accent ≈ 5:1 (AA).
+      bg: '#f7f6f2', fg: '#17181b', muted: '#5b5f66', accent: '#b8461f', line: '#e3e1da',
+      fontDisplay: '"Start Sans", "Start Sans Fallback", Arial, sans-serif',
+    },
+  },
+}
+
+/**
+ * v2 site themes are site styles only: a gallery of a photographer on one of
+ * them keeps one of the existing gallery styles («Стилі галерей не змінюємо»).
+ */
+export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: SiteMode }>> = {
+  start: { theme: 'tysha', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
   const def = THEMES[theme]
   return mode === 'night' && def.night ? def.night : def.tokens
+}
+
+/**
+ * Galleries keep the palettes they had before the site themes were redrawn
+ * («Стилі галерей не змінюємо»): «Повітря» and «Журнал» site pages got new
+ * accents, galleries do not. «Опівніч» gold was reviewed for galleries too.
+ */
+const GALLERY_FROZEN: Partial<Record<ThemeId, Pick<ThemeTokens, 'bg' | 'fg' | 'muted' | 'accent' | 'line'>>> = {
+  povitria: { bg: '#fdfcfa', fg: '#1b1a1f', muted: '#8f8c94', accent: '#1b1a1f', line: '#e8e5df' },
+  zhurnal: { bg: '#fffdf8', fg: '#26242a', muted: '#8f8b90', accent: '#26242a', line: '#e9e5dd' },
+}
+
+/** Tokens for gallery pages — the site tokens, minus the v2 site repaints. */
+export function resolveGalleryTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
+  const t = resolveTokens(theme, mode)
+  const frozen = mode === 'light' ? GALLERY_FROZEN[theme] : undefined
+  return frozen ? { ...t, ...frozen } : t
 }
 
 /** CSS custom properties consumed by the shared blocks. */
@@ -166,17 +207,19 @@ export function resolveGalleryTheme(
   siteMode: string | null | undefined
 ): { theme: ThemeId; mode: SiteMode } {
   if (galleryTheme) {
-    const entry = THEME_CATALOG.find((item) => item.value === galleryTheme)
+    const entry = GALLERY_CATALOG.find((item) => item.value === galleryTheme)
     if (entry) return { theme: entry.theme, mode: entry.mode }
   }
   if (siteTheme && isThemeId(siteTheme)) {
+    const mapped = GALLERY_STYLE_OF[siteTheme]
+    if (mapped) return mapped
     return { theme: siteTheme, mode: siteMode === 'night' ? 'night' : 'light' }
   }
   return { theme: 'tysha', mode: 'light' }
 }
 
-/** Catalog entries shown in the editor: 8 items, «Опівніч» = tysha+night. */
-export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
+/** Gallery styles (galleries.theme, CHECK in 0008): the original 8, «Опівніч» = tysha+night. */
+export const GALLERY_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
   { value: 'tysha', theme: 'tysha', mode: 'light' },
   { value: 'opivnich', theme: 'tysha', mode: 'night' },
   { value: 'povitria', theme: 'povitria', mode: 'light' },
@@ -185,4 +228,10 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'galereia', theme: 'galereia', mode: 'light' },
   { value: 'arkhiv', theme: 'arkhiv', mode: 'light' },
   { value: 'prodakshn', theme: 'prodakshn', mode: 'light' },
+]
+
+/** Site themes in the editor: the gallery styles plus the v2 «візитка» themes. */
+export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
+  ...GALLERY_CATALOG,
+  { value: 'start', theme: 'start', mode: 'light' },
 ]

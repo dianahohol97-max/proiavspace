@@ -31,6 +31,28 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     swipeHint: p.swipeHint,
     prev: p.prev,
     next: p.next,
+    inThisIssue: p.inThisIssue,
+    seasons: p.seasons,
+    editorLetter: p.editorLetter,
+    spread: p.spread,
+    pageShort: p.pageShort,
+    bookShoot: p.bookShoot,
+    dayInLight: p.dayInLight,
+    photographer: p.photographer,
+    termsTitle: p.termsTitle,
+    termsPrepayment: p.termsPrepayment,
+    termsDelivery: p.termsDelivery,
+    termsTravel: p.termsTravel,
+    termsBring: p.termsBring,
+    giftsTitle: p.giftsTitle,
+    giftCertificate: p.giftCertificate,
+    giftCertificateText: p.giftCertificateText,
+    giftBook: p.giftBook,
+    giftBookText: p.giftBookText,
+    giftPrints: p.giftPrints,
+    giftPrintsText: p.giftPrintsText,
+    order: p.order,
+    filterAll: p.filterAll,
   }
 }
 
@@ -51,5 +73,8 @@ export function leadFormLabelsFromDict(dict: Dictionary): LeadFormLabels {
     shootOther: p.leadShootOther,
     contactHint: p.leadContactHint,
     sending: p.leadSending,
+    certNominal: p.certNominal,
+    certTo: p.certTo,
+    certFrom: p.certFrom,
   }
 }
