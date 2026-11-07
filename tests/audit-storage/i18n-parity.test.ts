@@ -253,6 +253,29 @@ describe('i18n: лендинг, юридичні тексти, AI-відбір, 
 })
 
 describe('i18n: множина через Intl.PluralRules', () => {
+  test('рядки з plural-синтаксисом не підставляються через .replace() (лише formatMessage / fill)', async () => {
+    const { readFileSync, readdirSync, statSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const root = join(__dirname, '..', '..', 'src')
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((name) => {
+        const path = join(dir, name)
+        return statSync(path).isDirectory() ? walk(path) : /\.tsx?$/.test(name) ? [path] : []
+      })
+    const pluralKeys = new Set<string>()
+    for (const dict of [en, uk, ...Object.values(DICTS)] as Record<string, Record<string, string> | undefined>[]) {
+      for (const keys of Object.values(dict)) {
+        for (const [key, value] of Object.entries(keys ?? {})) if (/,\s*plural\s*,/.test(value)) pluralKeys.add(key)
+      }
+    }
+    const bad: string[] = []
+    for (const file of walk(root).filter((f) => !f.includes('/dictionaries/'))) {
+      const text = readFileSync(file, 'utf8')
+      for (const key of pluralKeys) if (new RegExp(`\\.${key}\\s*\\.replace\\(`).test(text)) bad.push(`${file}: ${key}`)
+    }
+    assert.deepEqual(bad, [], 'рядок з {n, plural, …} треба форматувати через formatMessage(…, locale)')
+  })
+
   const tpl = '{n, plural, one {# zdjęcie} few {# zdjęcia} many {# zdjęć} other {# zdjęcia}}'
   test('польська: 1 / 2 / 5 / 22 — різні форми', () => {
     assert.equal(formatMessage(tpl, { n: 1 }, 'pl'), '1 zdjęcie')

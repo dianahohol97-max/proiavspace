@@ -607,7 +607,7 @@ export default async function ManageGalleryPage({
         <p className="mt-2 text-sm leading-relaxed text-muted">{m.accessDownloadsText}</p>
         {statsOn && (
           <p className="mt-2 text-sm font-bold text-fg">
-            {m.accessDownloadsCount.replace('{n}', String(downloadCount ?? 0))}
+            {formatMessage(m.accessDownloadsCount, { n: downloadCount ?? 0 }, locale)}
           </p>
         )}
       </section>

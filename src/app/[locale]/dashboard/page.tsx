@@ -112,7 +112,7 @@ export default async function DashboardPage({ params }: { params: { locale: stri
         <div className="min-w-0 flex-1">
           <h1 className="font-brand text-2xl sm:text-3xl">{d.title}</h1>
           {cards.length > 0 && (
-            <p className="mt-1 text-sm font-semibold text-muted">{d.galleriesCount.replace('{n}', String(cards.length))}</p>
+            <p className="mt-1 text-sm font-semibold text-muted">{formatMessage(d.galleriesCount, { n: cards.length }, locale)}</p>
           )}
         </div>
         {cards.length > 0 && (
