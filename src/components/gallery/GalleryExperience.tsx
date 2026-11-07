@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Zip, ZipPassThrough } from 'fflate'
+import { buildZipBlob, splitIntoParts, writeZipToStream, type ArchiveFile } from '@/lib/gallery/archive'
 import { resolveTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import { fontFamily, type GalleryStyle } from '@/lib/gallery/style'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
@@ -30,62 +30,33 @@ export interface GalleryLabels {
   downloadHint: string
   preparingArchive: string
   archiveError: string
+  /** «Зберегти частину {i} з {n}» — shown when the archive comes in parts. */
+  savePart: string
   downloadOriginal: string
   favoriteToggle: string
   madeOn: string
   tip: string
 }
 
-/* ---------- zero-egress zip (streams to disk on Chromium) ---------- */
+/* ---------- zero-egress zip: see src/lib/gallery/archive.ts ---------- */
 
-interface ArchiveFile {
-  name: string
-  url: string
+/** Without a save-file stream each part lives in memory — keep it phone-sized. */
+const PART_BYTES = 500 * 1024 * 1024
+
+interface PartReady {
+  index: number
+  count: number
+  /** Called from the tap: starts this part's download and builds the next. */
+  save: () => void
 }
 
-interface ZipSink {
-  write(chunk: Uint8Array<ArrayBuffer>): Promise<void> | void
-}
-
-async function streamGalleryZip(
-  files: ArchiveFile[],
-  sink: ZipSink,
-  onFileDone: () => void
-): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    let writeChain: Promise<void> = Promise.resolve()
-    const zip = new Zip((error, chunk, final) => {
-      if (error) {
-        reject(error)
-        return
-      }
-      const copy = new Uint8Array(chunk.length)
-      copy.set(chunk)
-      writeChain = writeChain.then(() => sink.write(copy))
-      if (final) writeChain.then(resolve, reject)
-    })
-    void (async () => {
-      try {
-        for (const file of files) {
-          const entry = new ZipPassThrough(file.name)
-          zip.add(entry)
-          const response = await fetch(file.url)
-          if (!response.ok || !response.body) throw new Error(`fetch ${file.name}`)
-          const reader = response.body.getReader()
-          for (;;) {
-            const { done, value } = await reader.read()
-            if (done) break
-            entry.push(value)
-          }
-          entry.push(new Uint8Array(0), true)
-          onFileDone()
-        }
-        zip.end()
-      } catch (error) {
-        reject(error instanceof Error ? error : new Error('zip failed'))
-      }
-    })()
-  })
+function saveBlobUrl(url: string, name: string): void {
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = name
+  anchor.click()
+  // Give the browser a moment to start reading before the memory is freed.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 /* ---------- the experience ---------- */
@@ -143,6 +114,7 @@ export function GalleryExperience({
   const [archive, setArchive] = useState<'idle' | 'working' | 'error'>('idle')
   const [done, setDone] = useState(0)
   const [total, setTotal] = useState(0)
+  const [partReady, setPartReady] = useState<PartReady | null>(null)
   const lbRef = useRef<HTMLDivElement | null>(null)
   const uk = locale === 'uk'
 
@@ -183,6 +155,7 @@ export function GalleryExperience({
       const onFileDone = () => setDone((previous) => previous + 1)
 
       if (window.showSaveFilePicker) {
+        // Chromium on a computer: one zip streamed straight to disk.
         let handle: FileSystemFileHandle
         try {
           handle = await window.showSaveFilePicker({ suggestedName: `${slug}.zip` })
@@ -192,21 +165,37 @@ export function GalleryExperience({
         }
         const writable = await handle.createWritable()
         try {
-          await streamGalleryZip(files, { write: (chunk) => writable.write(chunk) }, onFileDone)
-          await writable.close()
+          await writeZipToStream(files, writable, onFileDone)
         } catch (error) {
           await writable.abort().catch(() => {})
           throw error
         }
       } else {
-        const chunks: Uint8Array<ArrayBuffer>[] = []
-        await streamGalleryZip(files, { write: (chunk) => void chunks.push(chunk) }, onFileDone)
-        const url = URL.createObjectURL(new Blob(chunks, { type: 'application/zip' }))
-        const anchor = document.createElement('a')
-        anchor.href = url
-        anchor.download = `${slug}.zip`
-        anchor.click()
-        URL.revokeObjectURL(url)
+        // Safari, Firefox, phones: parts of ~500 MB, one in memory at a time.
+        const parts = splitIntoParts(files, PART_BYTES)
+        for (let index = 0; index < parts.length; index++) {
+          const blob = await buildZipBlob(parts[index], onFileDone)
+          const url = URL.createObjectURL(blob)
+          const name = parts.length === 1 ? `${slug}.zip` : `${slug}-${index + 1}.zip`
+          if (parts.length === 1) {
+            saveBlobUrl(url, name)
+          } else {
+            // A browser only lets a tap start a download, so every part waits
+            // for its own tap (the save runs inside that tap's handler); the
+            // next part is built only after that.
+            await new Promise<void>((resume) =>
+              setPartReady({
+                index: index + 1,
+                count: parts.length,
+                save: () => {
+                  saveBlobUrl(url, name)
+                  resume()
+                },
+              })
+            )
+            setPartReady(null)
+          }
+        }
       }
       setArchive('idle')
     } catch {
@@ -385,18 +374,30 @@ export function GalleryExperience({
             ▶ {uk ? 'Слайд-шоу' : 'Slideshow'}
           </button>
         )}
-        <button
-          type="button"
-          className={s.dlAll}
-          disabled={archive === 'working'}
-          onClick={() => void downloadAll()}
-        >
-          {archive === 'working'
-            ? `${labels.preparingArchive} ${done}/${total || '…'}`
-            : archive === 'error'
-              ? labels.archiveError
-              : `${labels.downloadAll} · ${items.length}`}
-        </button>
+        {partReady ? (
+          <button
+            type="button"
+            className={s.dlAll}
+            onClick={() => partReady.save()}
+          >
+            {labels.savePart
+              .replace('{i}', String(partReady.index))
+              .replace('{n}', String(partReady.count))}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={s.dlAll}
+            disabled={archive === 'working'}
+            onClick={() => void downloadAll()}
+          >
+            {archive === 'working'
+              ? `${labels.preparingArchive} ${done}/${total || '…'}`
+              : archive === 'error'
+                ? labels.archiveError
+                : `${labels.downloadAll} · ${items.length}`}
+          </button>
+        )}
       </div>
 
       {/* download hint — so clients never have to ask how to save photos */}

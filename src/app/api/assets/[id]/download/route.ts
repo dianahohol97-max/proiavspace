@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   } = await supabase.auth.getUser()
   const isOwner = user?.id === asset.owner_id
 
-  if (!isOwner && !isGalleryUnlocked({ id: gallery.id, has_password: gallery.has_password })) {
+  if (!isOwner && !(await isGalleryUnlocked({ id: gallery.id, has_password: gallery.has_password }))) {
     return NextResponse.json({ error: 'locked' }, { status: 403 })
   }
 

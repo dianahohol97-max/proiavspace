@@ -7,7 +7,8 @@ import type { Gallery } from './types'
 /**
  * Access control for password-protected public galleries.
  * After a correct password the client gets an httpOnly cookie holding an
- * HMAC of the gallery id — no session table needed, nothing sensitive stored.
+ * HMAC of the gallery id and the current password hash — no session table
+ * needed, nothing sensitive stored, and a new password revokes old cookies.
  */
 
 function unlockSecret(): string {
@@ -26,15 +27,31 @@ export function unlockCookieName(galleryId: string): string {
   return `g_unlock_${galleryId}`
 }
 
-export function unlockCookieValue(galleryId: string): string {
-  return createHmac('sha256', unlockSecret()).update(galleryId).digest('hex')
+/**
+ * The cookie is bound to the current password hash: when the photographer
+ * changes the password, every cookie handed out for the old one stops working
+ * at once instead of living out its 30 days (CL-05).
+ */
+export function unlockCookieValue(galleryId: string, passwordHash: string): string {
+  return createHmac('sha256', unlockSecret()).update(`${galleryId}:${passwordHash}`).digest('hex')
 }
 
 /** True when the gallery has no password or the visitor holds a valid unlock cookie. */
-export function isGalleryUnlocked(gallery: Pick<Gallery, 'id' | 'has_password'>): boolean {
+export async function isGalleryUnlocked(gallery: Pick<Gallery, 'id' | 'has_password'>): Promise<boolean> {
   if (!gallery.has_password) return true
   const cookie = cookies().get(unlockCookieName(gallery.id))
-  return cookie?.value === unlockCookieValue(gallery.id)
+  if (!cookie) return false
+  // The hash is revoked from anon/authenticated at the column level, so only
+  // the service role can read it. Without it, fail closed.
+  const admin = createSupabaseAdminClient()
+  if (!admin) return false
+  const { data } = await admin
+    .from('galleries')
+    .select('password_hash')
+    .eq('id', gallery.id)
+    .single<{ password_hash: string | null }>()
+  if (!data?.password_hash) return false
+  return cookie.value === unlockCookieValue(gallery.id, data.password_hash)
 }
 
 /**

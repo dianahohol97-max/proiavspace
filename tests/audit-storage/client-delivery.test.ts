@@ -1,13 +1,14 @@
 /**
  * Блок 3 (очима клієнта) + 1.1 presign: як видаються URL на файли, пароль
  * галереї, архів «завантажити все». Мережі не потрібно: presign — це
- * локальний підпис, zip збирається в пам'яті.
+ * локальний підпис, zip збирається в пам'яті (fetch підмінено).
  */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
-import { Zip, ZipPassThrough } from 'fflate'
+import { BlobReader, ZipReader } from '@zip.js/zip.js'
+import { buildZipBlob, splitIntoParts, writeZipToStream } from '@/lib/gallery/archive'
 import { B2Provider } from '@/lib/storage/R2Provider'
 
 const ROOT = join(__dirname, '..', '..')
@@ -100,10 +101,10 @@ describe('presigned URL (B2, S3 SigV4)', () => {
 })
 
 describe('галерея з паролем', () => {
-  test('cookie розблокування = HMAC(galleryId), підробити без секрету не можна', async () => {
+  test('cookie розблокування = HMAC(galleryId, хеш пароля), підробити без секрету не можна', async () => {
     const { unlockCookieValue } = await import('@/lib/gallery-access')
-    const a = unlockCookieValue('11111111-1111-1111-1111-111111111111')
-    const b = unlockCookieValue('22222222-2222-2222-2222-222222222222')
+    const a = unlockCookieValue('11111111-1111-1111-1111-111111111111', 'hash-1')
+    const b = unlockCookieValue('22222222-2222-2222-2222-222222222222', 'hash-1')
     assert.match(a, /^[0-9a-f]{64}$/)
     assert.notEqual(a, b)
   })
@@ -115,12 +116,15 @@ describe('галерея з паролем', () => {
     assert.equal(verifyPassword('весілля2026', stored), false)
   })
 
-  test('[CL-05] зміна пароля галереї має відкликати видані cookie (зараз вони живуть 30 днів)', async () => {
+  test('[CL-05] зміна пароля галереї відкликає видані cookie', async () => {
     const { unlockCookieValue } = await import('@/lib/gallery-access')
+    const id = '11111111-1111-1111-1111-111111111111'
+    // Той самий id, інший хеш (новий пароль) → старе cookie вже не підходить.
+    assert.notEqual(unlockCookieValue(id, 'scrypt$old'), unlockCookieValue(id, 'scrypt$new'))
     const route = source('src/app/api/galleries/[slug]/unlock/route.ts')
-    // Значення cookie залежить лише від id галереї — пароль/хеш у підпис не входить.
-    assert.equal(unlockCookieValue.length, 1)
-    assert.match(route, /password_hash[^\n]*unlockCookieValue|unlockCookieValue\([^)]*hash/, 'cookie не прив’язане до хешу пароля')
+    assert.match(route, /unlockCookieValue\([^)]*password_hash/, 'cookie не прив’язане до хешу пароля')
+    const access = source('src/lib/gallery-access.ts')
+    assert.match(access, /select\('password_hash'\)/, 'перевірка cookie не читає поточний хеш')
   })
 
   test('[RL-01] перебір пароля: /unlock має обмеження частоти (Vercel Firewall)', () => {
@@ -163,62 +167,78 @@ describe('галерея з паролем', () => {
   })
 })
 
-describe('архів «завантажити все» (fflate у браузері)', () => {
-  test('кілька файлів — коректний zip (сигнатури, кількість записів)', () => {
-    const chunks: Uint8Array[] = []
-    const zip = new Zip((error, chunk) => {
-      if (error) throw error
-      chunks.push(chunk)
-    })
-    for (const name of ['001-a.jpg', '002-b.jpg', '003-c.mp4']) {
-      const entry = new ZipPassThrough(name)
-      zip.add(entry)
-      entry.push(new Uint8Array(1024).fill(7), true)
-    }
-    zip.end()
-    const out = Buffer.concat(chunks)
-    const eocd = out.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
-    assert.ok(eocd > 0)
-    assert.equal(out.readUInt16LE(eocd + 10), 3)
+describe('архів «завантажити все» (zip.js у браузері)', () => {
+  const bytes = (n: number, fill = 7) => new Uint8Array(new ArrayBuffer(n)).fill(fill)
+  const fakeFetch = (bodies: Record<string, Uint8Array<ArrayBuffer>>) => async (url: string) =>
+    new Response(bodies[url])
+
+  test('кілька файлів — коректний zip, читається назад з тими самими байтами', async () => {
+    const files = ['001-a.jpg', '002-b.jpg', '003-c.mp4'].map((name, i) => ({ name, url: `u${i}` }))
+    let done = 0
+    const blob = await buildZipBlob(
+      files,
+      () => done++,
+      fakeFetch({ u0: bytes(1024, 1), u1: bytes(2048, 2), u2: bytes(10, 3) })
+    )
+    assert.equal(done, 3)
+    const entries = await new ZipReader(new BlobReader(blob)).getEntries()
+    assert.deepEqual(entries.map((e) => e.filename), ['001-a.jpg', '002-b.jpg', '003-c.mp4'])
+    assert.deepEqual(entries.map((e) => e.uncompressedSize), [1024, 2048, 10])
+  })
+
+  test('частини для Safari/Firefox/телефонів: не більше ліміту, великий файл — окремо', () => {
+    const f = (name: string, size: number) => ({ name, url: name, size })
+    const parts = splitIntoParts([f('a', 300), f('b', 300), f('c', 900), f('d', 100), f('e', 100)], 500)
+    assert.deepEqual(parts.map((p) => p.map((x) => x.name)), [['a'], ['b'], ['c'], ['d', 'e']])
+    assert.deepEqual(splitIntoParts([], 500), [])
   })
 
   test(
     '[CL-01] галерея > 4 ГБ: zip має лишатися читабельним (ZIP64)',
-    { timeout: 120_000 },
-    () => {
+    { timeout: 240_000 },
+    async () => {
       // Типова весільна галерея — 10–30 ГБ оригіналів. Женемо 4 ГБ + 1 байт
       // нулів потоком (нічого не тримаємо в пам'яті, крім хвоста).
+      const block = new Uint8Array(64 * 1024 * 1024)
+      const bigStream = () => {
+        let left = 4 * 1024 ** 3 + 1
+        return new ReadableStream<Uint8Array>({
+          pull(controller) {
+            if (left <= 0) return controller.close()
+            const n = Math.min(left, block.length)
+            controller.enqueue(n === block.length ? block : block.subarray(0, n))
+            left -= n
+          },
+        })
+      }
       let total = 0
       let tail = Buffer.alloc(0)
-      const zip = new Zip((error, chunk) => {
-        if (error) throw error
-        total += chunk.length
-        tail = Buffer.concat([tail, Buffer.from(chunk)]).subarray(-4096)
+      const sink = new WritableStream<Uint8Array>({
+        write(chunk) {
+          total += chunk.length
+          tail = Buffer.concat([tail, Buffer.from(chunk)]).subarray(-4096)
+        },
       })
-      const big = new ZipPassThrough('001-video.mp4')
-      zip.add(big)
-      const block = new Uint8Array(64 * 1024 * 1024)
-      let left = 4 * 1024 ** 3 + 1
-      while (left > 0) {
-        const n = Math.min(left, block.length)
-        big.push(n === block.length ? block : block.subarray(0, n))
-        left -= n
-      }
-      big.push(new Uint8Array(0), true)
-      const small = new ZipPassThrough('002-photo.jpg')
-      zip.add(small)
-      small.push(new Uint8Array(10), true)
-      zip.end()
-
-      const eocd = tail.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
-      const cdSize = tail.readUInt32LE(eocd + 12)
-      const cdOffsetRecorded = tail.readUInt32LE(eocd + 16)
-      const cdOffsetReal = total - 22 - cdSize
-      assert.equal(
-        cdOffsetRecorded,
-        cdOffsetReal,
-        `у zip записано зсув ${cdOffsetRecorded}, справжній ${cdOffsetReal} — 32-бітне переповнення, архів битий`
+      const fetcher = async (url: string) =>
+        url === 'big' ? new Response(bigStream()) : new Response(bytes(10))
+      await writeZipToStream(
+        [
+          { name: '001-video.mp4', url: 'big' },
+          { name: '002-photo.jpg', url: 'small' },
+        ],
+        sink,
+        () => {},
+        fetcher
       )
+
+      // ZIP64: справжні зсуви лежать у zip64-записі кінця центрального каталогу.
+      const zip64Eocd = tail.lastIndexOf(Buffer.from([0x50, 0x4b, 0x06, 0x06]))
+      assert.ok(zip64Eocd >= 0, 'немає zip64 end of central directory — архів понад 4 ГБ битий')
+      const cdSize = Number(tail.readBigUInt64LE(zip64Eocd + 40))
+      const cdOffset = Number(tail.readBigUInt64LE(zip64Eocd + 48))
+      const zip64EocdAbsolute = total - tail.length + zip64Eocd
+      assert.equal(cdOffset + cdSize, zip64EocdAbsolute, 'зсув центрального каталогу не збігається — архів битий')
+      assert.ok(cdOffset > 4 * 1024 ** 3, 'каталог має лежати за межею 4 ГБ')
     }
   )
 
@@ -229,6 +249,7 @@ describe('архів «завантажити все» (fflate у браузер
       false,
       'fallback складає весь zip у масив chunks → 10–30 ГБ у пам’яті вкладки'
     )
+    assert.match(ui, /splitIntoParts\(/, 'без save-file stream архів має йти частинами')
   })
 
   test('[CL-03] посилання архіву мають жити довше, ніж качається велика галерея', () => {
