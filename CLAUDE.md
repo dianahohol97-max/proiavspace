@@ -16,5 +16,6 @@
     - `0058` — бронювання (`release/6`, `0058_booking_all_day_slots.sql`), не застосована
     - `0059` — AI-відбір кадрів (`release/7`, `0059_culling_decisions.sql`: рішення відбору в акаунті), не застосована; код `release/7` без неї працює (IndexedDB)
     - `0060` — захист БД (`feat/db-hardening` → `release/4`, `0060_db_hardening.sql`): search_path для `normalize_email`/`plan_storage_bytes`; без EXECUTE для anon: `profiles_clear_free_expiry` (також authenticated), `owner_has_paid_plan`; `release_expired_slots` лише власнику; не застосована
-    - **наступний вільний номер — `0061`**
+    - `0061` — дата зйомки (`feat/gallery-grid` → `release/4`, `0061_asset_taken_at.sql`): `assets.taken_at` + `sort_gallery_assets(uuid, text)` для «Порядок: за часом зйомки»; не застосована; без неї код працює (завантаження пише фото без дати, кнопка сортування каже, що потрібна міграція)
+    - **наступний вільний номер — `0062`**
   - Нова міграція має бути безпечною для коду, що зараз на проді (нові колонки з дефолтами, `create or replace` з тими самими сигнатурами). Якщо код без міграції падає, написати це в PR явно.

@@ -1,7 +1,22 @@
 'use client'
 
-import { generateImageVariants } from '@/lib/images/variants'
+import { readPhotoExif, type PhotoExif } from '@/lib/images/exif'
+import { generateImageVariants, looksLikeHeic } from '@/lib/images/variants'
 import { generateVideoPoster } from '@/lib/images/videoPoster'
+import { mimeFromName } from '@/lib/import/zip-plan'
+
+/**
+ * The file's MIME type. Chrome on Windows/Android reports HEIC (and some
+ * other formats) with an empty type: fall back to the extension, or to the
+ * HEIC brand in the first bytes, so the server accepts it as a photo.
+ */
+export async function resolveContentType(file: File): Promise<string> {
+  if (file.type) return file.type
+  const byName = mimeFromName(file.name)
+  if (byName) return byName
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer().catch(() => new ArrayBuffer(0)))
+  return looksLikeHeic('', file.name, head) ? 'image/heic' : 'application/octet-stream'
+}
 
 /**
  * Browser-side upload of ONE file into a gallery, shared by the gallery
@@ -40,12 +55,13 @@ const PART_RETRIES = 3
 function putWithProgress(
   url: string,
   file: File,
+  contentType: string,
   onProgress: (percent: number) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('PUT', url)
-    xhr.setRequestHeader('Content-Type', file.type)
+    xhr.setRequestHeader('Content-Type', contentType)
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         onProgress(Math.round((event.loaded / event.total) * 100))
@@ -195,6 +211,8 @@ export interface RegisterExtra {
   originalName?: string
   importId?: string
   position?: number
+  /** Capture time from EXIF (exif.ts: wall clock as UTC); sorts the gallery «by shot time». */
+  takenAt?: string
 }
 
 async function presign(
@@ -223,9 +241,13 @@ export async function uploadFileToGallery(options: {
   extra?: RegisterExtra
 }): Promise<void> {
   const { galleryId, file, watermarkText, onProgress } = options
-  const extra = options.extra ?? {}
-  const contentType = file.type || 'application/octet-stream'
+  const contentType = await resolveContentType(file)
   const isVideo = contentType.startsWith('video/')
+  // EXIF (capture time, orientation) is read once, from the first ~64 KB.
+  const exif: PhotoExif = isVideo
+    ? { takenAt: null, orientation: null }
+    : await readPhotoExif(file)
+  const extra: RegisterExtra = { ...(options.extra ?? {}), ...(exif.takenAt ? { takenAt: exif.takenAt } : {}) }
 
   // A video gets a lightweight poster still so the gallery grid never
   // streams the full original just to render a tile. Optional — a failed
@@ -265,13 +287,16 @@ export async function uploadFileToGallery(options: {
   // renditions and the pixel size, and runs while the original uploads.
   const renditionsPromise = isVideo
     ? Promise.resolve({ variants: [] } as Awaited<ReturnType<typeof generateImageVariants>>)
-    : generateImageVariants(file, watermarkText, { mobile: true })
+    : generateImageVariants(file, watermarkText, {
+        mobile: true,
+        hints: { orientation: exif.orientation, rawWidth: exif.rawWidth, rawHeight: exif.rawHeight },
+      })
 
   const { uploadUrl, key } = await presign(galleryId, file.name, contentType, file.size)
 
   // The original dominates the transfer — its PUT drives the bar to 90%,
   // the (much smaller) renditions fill the rest.
-  await putWithProgress(uploadUrl, file, (progress) =>
+  await putWithProgress(uploadUrl, file, contentType, (progress) =>
     onProgress(Math.round(progress * 0.9))
   )
 

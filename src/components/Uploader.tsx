@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PlanVideoRequiredError, uploadFileToGallery } from '@/lib/upload/client'
+import { mimeFromName } from '@/lib/import/zip-plan'
 
 /**
  * Direct-to-storage uploader. The per-file pipeline (presign → PUT → in-browser
@@ -95,9 +96,11 @@ export function Uploader({
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault()
       setDragOver(false)
-      const files = Array.from(event.dataTransfer.files).filter(
-        (file) => file.type.startsWith('image/') || file.type.startsWith('video/')
-      )
+      // HEIC from Windows/Android comes with an empty type: go by the extension.
+      const files = Array.from(event.dataTransfer.files).filter((file) => {
+        const type = file.type || mimeFromName(file.name) || ''
+        return type.startsWith('image/') || type.startsWith('video/')
+      })
       if (files.length > 0) void startUploads(files)
     },
     [startUploads]
@@ -128,7 +131,7 @@ export function Uploader({
         ref={inputRef}
         type="file"
         multiple
-        accept="image/*,video/*"
+        accept="image/*,video/*,.heic,.heif"
         className="hidden"
         onChange={(event) => {
           const files = Array.from(event.target.files ?? [])

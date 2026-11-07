@@ -266,3 +266,26 @@ export async function signOut(locale: Locale): Promise<void> {
   await supabase.auth.signOut()
   redirect(`/${locale}`)
 }
+
+export type SortMode = 'taken' | 'uploaded'
+export type SortResult = { ok: true; changed: number } | { ok: false; error: 'not_ready' | 'failed' }
+
+/**
+ * «Впорядкувати за часом зйомки» / «за часом завантаження»: rewrites the
+ * gallery's order (assets.position) in one call to sort_gallery_assets
+ * (migration 0061), which checks ownership itself. Photos from several
+ * cameras end up interleaved by capture time; ones without EXIF time go last.
+ */
+export async function sortGalleryAssets(locale: Locale, galleryId: string, mode: SortMode): Promise<SortResult> {
+  if (mode !== 'taken' && mode !== 'uploaded') return { ok: false, error: 'failed' }
+  const { supabase } = await requireUser()
+  const { data, error } = await supabase.rpc('sort_gallery_assets', { p_gallery: galleryId, p_mode: mode })
+  if (error) {
+    // Migration 0061 not applied yet: the function doesn't exist.
+    const missing = error.code === 'PGRST202' || error.code === '42883' || /sort_gallery_assets/.test(error.message ?? '')
+    console.error('sort_gallery_assets failed', galleryId, error.message)
+    return { ok: false, error: missing ? 'not_ready' : 'failed' }
+  }
+  revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  return { ok: true, changed: typeof data === 'number' ? data : 0 }
+}

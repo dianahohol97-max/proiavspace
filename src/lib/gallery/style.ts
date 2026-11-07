@@ -18,9 +18,10 @@ export interface GalleryStyle {
    * Grid layout: masonry keeps every photo's real aspect ratio (default);
    * square / portrait crop tiles to a uniform 1:1 / 3:4 wall; collage is a
    * square wall where every 6th photo becomes a big 2×2 accent tile;
-   * editorial alternates a wide hero tile with squares, row by row.
+   * editorial alternates a wide hero tile with squares, row by row; rows
+   * («Рядки», justified) lines photos up in rows of one height, uncropped.
    */
-  layout?: 'masonry' | 'square' | 'portrait' | 'collage' | 'editorial'
+  layout?: 'masonry' | 'square' | 'portrait' | 'collage' | 'editorial' | 'rows'
   /** Gap between photos in px (0–30); breathing room of the grid. */
   gap?: number
   /** Cover treatment: classic centred hero, bottom-left title, or a plain
@@ -87,7 +88,7 @@ export const FONT_PRESETS: { value: string; label: string; family: string | null
 /** Grid layouts: real proportions vs uniform crops. '' is not valid here —
  *  masonry IS the default, stored explicitly only when the user picked it. */
 export const LAYOUT_CHOICES: {
-  value: 'masonry' | 'square' | 'portrait' | 'collage' | 'editorial'
+  value: 'masonry' | 'square' | 'portrait' | 'collage' | 'editorial' | 'rows'
   label: string
 }[] = [
   { value: 'masonry', label: 'Мозаїка' },
@@ -95,6 +96,7 @@ export const LAYOUT_CHOICES: {
   { value: 'portrait', label: 'Портрет 3:4' },
   { value: 'collage', label: 'Колаж' },
   { value: 'editorial', label: 'Едіторіал' },
+  { value: 'rows', label: 'Рядки' },
 ]
 
 export const COLUMN_CHOICES = [2, 3, 4]
