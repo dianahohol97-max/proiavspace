@@ -20,6 +20,31 @@ export interface FaceInfo {
   size: number
   blinkLeft: number
   blinkRight: number
+  /**
+   * Face box in image fractions (0..1, top-left origin). Added for the album
+   * «Магічна збірка» (focal point, hero frames); absent in analyses cached
+   * before it — those are re-run when the album needs them.
+   */
+  x?: number
+  y?: number
+  w?: number
+  h?: number
+}
+
+/** One dominant colour of a frame (CIE L*a*b*, D65) and its share of the pixels. */
+export interface PaletteColor {
+  l: number
+  a: number
+  b: number
+  weight: number
+}
+
+/** Where the frame's crisp detail is: the main subject when there is no face. Fractions 0..1. */
+export interface SubjectInfo {
+  x: number
+  y: number
+  /** Share of the frame the crisp region covers (bounding box area, 0..1). */
+  size: number
 }
 
 /** What the browser measured for one photo. Cached in IndexedDB. */
@@ -32,6 +57,10 @@ export interface PhotoAnalysis {
   hash: string
   /** Faces found by the landmarker; undefined = the eyes pass has not run. */
   faces?: FaceInfo[]
+  /** Dominant colours (album colour harmony). Absent in analyses cached before it. */
+  palette?: PaletteColor[]
+  /** Crisp-detail centroid (album focal point when there is no face). Absent in older caches. */
+  subject?: SubjectInfo
   /** The rendition could not be fetched/decoded. */
   error?: string
 }

@@ -97,3 +97,51 @@ export function sharpness(
   const score = picked.length ? picked.reduce((s, v) => s + v, 0) / picked.length : global
   return { score, global }
 }
+
+/**
+ * Where the crisp detail is — the main subject when the face model found no
+ * face (a ring, a bouquet, a couple far away on a road). The Laplacian energy
+ * on a 12×12 grid: the centroid of the tiles above half of the sharpest one,
+ * and the share of the frame their bounding box covers. Intentional bokeh
+ * makes this work well: the background has no energy.
+ */
+export function subjectOf(gray: Float32Array, width: number, height: number, grid = 12): { x: number; y: number; size: number } {
+  const lap = laplacian(gray, width, height)
+  const energy: number[] = []
+  for (let ty = 0; ty < grid; ty++) {
+    for (let tx = 0; tx < grid; tx++) {
+      const x0 = Math.max(1, Math.floor((tx * width) / grid))
+      const x1 = Math.min(width - 1, Math.floor(((tx + 1) * width) / grid))
+      const y0 = Math.max(1, Math.floor((ty * height) / grid))
+      const y1 = Math.min(height - 1, Math.floor(((ty + 1) * height) / grid))
+      energy.push(x1 > x0 && y1 > y0 ? regionVariance(lap, width, x0, y0, x1, y1) : 0)
+    }
+  }
+  const max = Math.max(...energy)
+  if (!(max > 0)) return { x: 0.5, y: 0.5, size: 1 }
+  let sx = 0
+  let sy = 0
+  let sw = 0
+  let minX = grid
+  let maxX = -1
+  let minY = grid
+  let maxY = -1
+  energy.forEach((e, i) => {
+    if (e < max * 0.5) return
+    const tx = i % grid
+    const ty = Math.floor(i / grid)
+    sx += (tx + 0.5) * e
+    sy += (ty + 0.5) * e
+    sw += e
+    minX = Math.min(minX, tx)
+    maxX = Math.max(maxX, tx)
+    minY = Math.min(minY, ty)
+    maxY = Math.max(maxY, ty)
+  })
+  const r = (v: number) => Math.round(v * 1000) / 1000
+  return {
+    x: r(sx / sw / grid),
+    y: r(sy / sw / grid),
+    size: r(((maxX - minX + 1) * (maxY - minY + 1)) / (grid * grid)),
+  }
+}

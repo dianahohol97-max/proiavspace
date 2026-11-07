@@ -62,7 +62,9 @@ export function pickLayout(
   photos: Shape[],
   format: SpreadFormat,
   options: LayoutOptions,
-  avoidLayout?: string
+  avoidLayout?: string,
+  /** Extra cost of a candidate (style preferences, heads cut by a crop…); order = photo index per slot. */
+  extraCost?: (layout: string, rects: Rect[], order: number[]) => number
 ): PickedLayout {
   const chosen = photos.slice(0, MAX_PHOTOS_PER_SPREAD)
   if (chosen.length === 0) return { layout: 'blank', rects: [], assetIds: [], cost: 0 }
@@ -70,7 +72,7 @@ export function pickLayout(
   for (const layout of layoutsWithCount(chosen.length)) {
     const rects = resolveLayout(layout, format, options)
     const { order, cost: shapeCost } = matchByAspect(chosen, rects)
-    const cost = shapeCost + layoutPenalty(layout) + (layout === avoidLayout ? 0.25 : 0)
+    const cost = shapeCost + layoutPenalty(layout) + (layout === avoidLayout ? 0.25 : 0) + (extraCost ? extraCost(layout, rects, order) : 0)
     if (!best || cost < best.cost - 1e-9) {
       best = { layout, rects, assetIds: order.map((i) => (i >= 0 ? chosen[i]!.id : null)), cost }
     }

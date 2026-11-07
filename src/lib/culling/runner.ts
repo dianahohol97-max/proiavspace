@@ -194,7 +194,13 @@ export async function runCulling(options: RunOptions): Promise<void> {
           )
           if (signal.aborted) break
           const analysis: PhotoAnalysis = reply.ok
-            ? { sharpness: reply.sharpness!, globalSharpness: reply.globalSharpness!, hash: reply.hash! }
+            ? {
+                sharpness: reply.sharpness!,
+                globalSharpness: reply.globalSharpness!,
+                hash: reply.hash!,
+                ...(reply.palette ? { palette: reply.palette } : {}),
+                ...(reply.subject ? { subject: reply.subject } : {}),
+              }
             : { sharpness: NaN, globalSharpness: NaN, hash: '', error: reply.error ?? 'error' }
           fresh[photo.id] = analysis
           onResult(photo.id, analysis)

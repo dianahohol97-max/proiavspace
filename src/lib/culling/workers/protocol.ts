@@ -1,5 +1,5 @@
 /** Messages between the culling runner (main thread) and its Web Workers. */
-import type { FaceInfo } from '../types'
+import type { FaceInfo, PaletteColor, SubjectInfo } from '../types'
 
 export interface MeasureRequest {
   type: 'measure'
@@ -16,6 +16,8 @@ export interface MeasureResponse {
   sharpness?: number
   globalSharpness?: number
   hash?: string
+  palette?: PaletteColor[]
+  subject?: SubjectInfo
   error?: string
 }
 

@@ -17,6 +17,8 @@ const FACE_MAX_SIDE = 768
 
 let landmarker: FaceLandmarker | null = null
 
+const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1)
+
 async function init({ wasmLoaderPath, wasmBinaryPath, modelUrl }: FacesInit) {
   const { FaceLandmarker } = await import('@mediapipe/tasks-vision')
   // An explicit fileset: no feature probing, no CDN — only our own files.
@@ -50,9 +52,13 @@ async function detect({ jobId, url }: FacesRequest) {
     const faces: FaceInfo[] = result.faceLandmarks.map((points, i) => {
       let minX = 1
       let maxX = 0
+      let minY = 1
+      let maxY = 0
       for (const p of points) {
         if (p.x < minX) minX = p.x
         if (p.x > maxX) maxX = p.x
+        if (p.y < minY) minY = p.y
+        if (p.y > maxY) maxY = p.y
       }
       const categories = result.faceBlendshapes?.[i]?.categories ?? []
       const score = (name: string) => categories.find((c) => c.categoryName === name)?.score ?? 0
@@ -60,6 +66,11 @@ async function detect({ jobId, url }: FacesRequest) {
         size: ((maxX - minX) * width) / shorter,
         blinkLeft: score('eyeBlinkLeft'),
         blinkRight: score('eyeBlinkRight'),
+        // Box for the album focal point (landmarks are normalised to the frame).
+        x: clamp01(minX),
+        y: clamp01(minY),
+        w: clamp01(maxX) - clamp01(minX),
+        h: clamp01(maxY) - clamp01(minY),
       }
     })
     post({ type: 'faces', jobId, ok: true, faces })
