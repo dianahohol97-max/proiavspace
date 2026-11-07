@@ -22,6 +22,21 @@ export class DuplicateAssetError extends Error {}
 /** The server refused a video because the plan has no video (Free). */
 export class PlanVideoRequiredError extends Error {}
 
+/**
+ * The server refused the file (quota, size, type, closed gallery…). `code` is
+ * the API's error string, so the uploader can say why in plain words.
+ */
+export class UploadRefusedError extends Error {
+  constructor(readonly code: string) {
+    super(code)
+  }
+}
+
+async function throwRefused(response: Response, fallback: string): Promise<never> {
+  const body = (await response.clone().json().catch(() => null)) as { error?: string } | null
+  throw new UploadRefusedError(body?.error ?? `${fallback}_${response.status}`)
+}
+
 /** Turn a 403 plan_video_required answer into PlanVideoRequiredError. */
 async function throwIfVideoNotInPlan(response: Response): Promise<void> {
   if (response.status !== 403) return
@@ -210,7 +225,7 @@ async function presign(
     body: JSON.stringify({ galleryId, fileName, contentType, sizeBytes, variant }),
   })
   await throwIfVideoNotInPlan(response)
-  if (!response.ok) throw new Error(`presign ${response.status}`)
+  if (!response.ok) await throwRefused(response, 'presign')
   return (await response.json()) as { uploadUrl: string; key: string }
 }
 
@@ -316,5 +331,5 @@ export async function uploadFileToGallery(options: {
   })
   if (completeResponse.status === 409) throw new DuplicateAssetError(file.name)
   await throwIfVideoNotInPlan(completeResponse)
-  if (!completeResponse.ok) throw new Error(`complete ${completeResponse.status}`)
+  if (!completeResponse.ok) await throwRefused(completeResponse, 'complete')
 }
