@@ -16,6 +16,8 @@ import { START_FONT_VARS } from './start/fonts'
 import { ThemeStart } from './start/ThemeStart'
 import { TENDER_FONT_VARS } from './nizhnist/fonts'
 import { ThemeNizhnist } from './nizhnist/ThemeNizhnist'
+import { FEED_FONT_VARS } from './kontent/fonts'
+import { ThemeKontent } from './kontent/ThemeKontent'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -66,6 +68,9 @@ export interface PortfolioItem {
    *  `srcSet` in WebP/JPEG, `avifSrcSet` in AVIF, both «url 828w, …». */
   srcSet?: string
   avifSrcSet?: string
+  /** Optional short vertical clip (MP4, muted) — themes that play video
+   *  («Контент») show it, with previewUrl as the poster; others ignore it. */
+  videoUrl?: string
 }
 
 /** Portfolio grouped into labeled collections, preserving first-seen order. */
@@ -353,6 +358,7 @@ export function SiteRenderer({
   const cardThemes: Partial<Record<ThemeId, { Component: (p: CardThemeProps) => React.ReactElement; fonts: object }>> = {
     start: { Component: ThemeStart, fonts: START_FONT_VARS },
     nizhnist: { Component: ThemeNizhnist, fonts: TENDER_FONT_VARS },
+    kontent: { Component: ThemeKontent, fonts: FEED_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {

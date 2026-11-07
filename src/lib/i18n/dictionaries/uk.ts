@@ -415,6 +415,7 @@ export const uk = {
     themeProdakshn: 'Продакшн',
     themeStart: 'Старт',
     themeNizhnist: 'Ніжність',
+    themeKontent: 'Контент',
     heroLegend: 'Головний екран',
     heroTitle: 'Заголовок (наприклад, ваше ім’я або слоган)',
     heroSubtitle: 'Підзаголовок (жанр і місто)',

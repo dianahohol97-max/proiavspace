@@ -400,6 +400,7 @@ export const en: Dictionary = {
     themeProdakshn: 'Prodakshn',
     themeStart: 'Start',
     themeNizhnist: 'Nizhnist',
+    themeKontent: 'Kontent',
     heroLegend: 'Hero',
     heroTitle: 'Headline (your name or a tagline)',
     heroSubtitle: 'Subtitle (genre and city)',

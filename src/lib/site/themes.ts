@@ -21,6 +21,7 @@ export const THEME_IDS = [
   // v2 one-page «візитка» themes (sites only; migration 0064)
   'start',
   'nizhnist',
+  'kontent',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -156,6 +157,16 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Tender Round", "Tender Round Fallback", Arial, sans-serif',
     },
   },
+  kontent: {
+    id: 'kontent',
+    tokens: {
+      ...base,
+      // «Контент»: app-white, ink, an electric indigo (7.4:1) and a lime
+      // highlight used only behind dark text (16.7:1).
+      bg: '#f3f3f0', fg: '#0f0f10', muted: '#5c5c63', accent: '#3a2fd6', line: '#e2e2dc',
+      fontDisplay: '"Feed Sans", "Feed Sans Fallback", Arial, sans-serif',
+    },
+  },
 }
 
 /**
@@ -165,6 +176,7 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
 export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: SiteMode }>> = {
   start: { theme: 'tysha', mode: 'light' },
   nizhnist: { theme: 'povitria', mode: 'light' },
+  kontent: { theme: 'galereia', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -247,4 +259,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   ...GALLERY_CATALOG,
   { value: 'start', theme: 'start', mode: 'light' },
   { value: 'nizhnist', theme: 'nizhnist', mode: 'light' },
+  { value: 'kontent', theme: 'kontent', mode: 'light' },
 ]
