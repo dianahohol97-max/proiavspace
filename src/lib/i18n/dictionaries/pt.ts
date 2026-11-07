@@ -321,6 +321,7 @@ export const pt: PartialDictionary = {
     themeArkhiv: 'Arkhiv',
     themeProdakshn: 'Prodakshn',
     themeStart: 'Start',
+    themeNizhnist: 'Nizhnist',
     heroLegend: 'Destaque',
     heroTitle: 'Título (o seu nome ou um slogan)',
     heroSubtitle: 'Subtítulo (género e cidade)',
@@ -374,8 +375,7 @@ export const pt: PartialDictionary = {
     giftPrice: 'Preço, p. ex. «desde 2500 ₴»',
     giftPhoto: 'Foto do cartão (opcional)',
     momentLegend: 'Foto de assinatura',
-    momentHint:
-      'Uma foto grande entre o portefólio e «Sobre mim», que se abre em ecrã inteiro, com uma frase curta por cima (tema «Tysha»).',
+    momentHint: "Uma fotografia e uma frase curta que cada tema mostra à sua maneira: «Opivnich» como legenda da faixa de luzes, «Nizhnist» como bloco «Segurança na sessão». Se ficar vazio, nada é mostrado.",
     momentText: 'Uma frase curta, p. ex. «O silêncio entre as fotos também conta uma história»',
     momentPhoto: 'Foto (de preferência na horizontal)',
     photoAuto: 'Automática',

@@ -322,6 +322,7 @@ export const ro: PartialDictionary = {
     themeArkhiv: 'Arkhiv',
     themeProdakshn: 'Prodakshn',
     themeStart: 'Start',
+    themeNizhnist: 'Nizhnist',
     heroLegend: 'Prima secțiune',
     heroTitle: 'Titlu (numele dumneavoastră sau un slogan)',
     heroSubtitle: 'Subtitlu (gen și oraș)',
@@ -375,8 +376,7 @@ export const ro: PartialDictionary = {
     giftPrice: 'Preț, de ex. „de la 2.500 ₴”',
     giftPhoto: 'Fotografia cardului (opțional)',
     momentLegend: 'Cadrul-semnătură',
-    momentHint:
-      'O fotografie mare între portofoliu și „Despre mine”, care se deschide pe tot ecranul, cu o frază scurtă peste ea (tema «Тиша»).',
+    momentHint: "O fotografie și o frază scurtă pe care fiecare temă le afișează în felul ei: «Опівніч» – ca legendă a benzii de lumini, «Ніжність» – ca bloc „Siguranța la ședință”. Dacă rămâne gol, nu se afișează nimic.",
     momentText: 'O frază scurtă, de ex. „Liniștea dintre cadre e tot o poveste”',
     momentPhoto: 'Fotografie (cel mai bine, orizontală)',
     photoAuto: 'Automat',
