@@ -57,7 +57,7 @@ export function ThemeStart({
   const head = (label: string, heading: string, extra?: React.ReactNode) => (
     <div className={s.sectionHead}>
       <div>
-        <span className={s.label}>{label}</span>
+        {label !== heading && <span className={s.label}>{label}</span>}
         <h2 className={s.sectionTitle}>{heading}</h2>
       </div>
       {extra}

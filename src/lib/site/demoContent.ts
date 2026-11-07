@@ -163,6 +163,34 @@ function pht(
   }
 }
 
+/** A landing /public/showcase frame (WebP, no smaller copies). */
+function phs(
+  id: string,
+  n: string,
+  category: string,
+  caption: string,
+  [width, height]: [number, number],
+  /** First-screen frame: has 828/1280 WebP + AVIF copies next to it. */
+  hero = false
+): PortfolioItem {
+  const base = `/showcase/${n}`
+  return {
+    id,
+    previewUrl: `${base}.webp`,
+    visible: true,
+    category,
+    caption,
+    width,
+    height,
+    ...(hero
+      ? {
+          srcSet: `${base}-828.webp 828w, ${base}-1280.webp 1280w, ${base}.webp ${width}w`,
+          avifSrcSet: `${base}-828.avif 828w, ${base}-1280.avif 1280w`,
+        }
+      : {}),
+  }
+}
+
 type Hero = SiteContent['hero']
 type Contact = SiteContent['contact']
 function content(
@@ -507,6 +535,82 @@ export const THEME_DEMOS: ThemeDemo[] = [
       pht('8', 11, 'Love story', 'Серед трав', [2000, 1335]),
       pht('9', 14, 'Love story', 'Сміх', [2000, 1335]),
       pht('10', 17, 'Love story', 'Вечір', [2000, 1335]),
+    ],
+  },
+  {
+    value: 'nizhnist',
+    theme: 'nizhnist',
+    mode: 'light',
+    name: 'Ніжність',
+    suits: 'Новонароджені, вагітність, рік малюка',
+    displayName: 'Соломія Тепла',
+    content: content({
+      hero: {
+        title: 'Соломія Тепла',
+        subtitle: 'Перший рік малюка — від перших днів до першої свічки на торті',
+        imageId: '1',
+        city: 'Львів',
+        directions: ['Рік малюка', 'Сімейні', 'Діти'],
+      },
+      about: {
+        text: 'Я мама двох дітей і вже шість років знімаю найменших. Теплу студію готую заздалегідь, працюю лише з денним світлом і ніколи не поспішаю: годування, сон і обійми — важливіші за кадр.',
+        imageId: '',
+      },
+      moment: {
+        text: 'Безпека на зйомці: студія прогріта до 26 °C, усі пози — лише з підстраховкою рук асистента, реквізит перевіряю перед кожною зйомкою, а перерви робимо стільки, скільки потрібно малюку.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '1 000 ₴ — і дата ваша',
+        delivery: 'превʼю за 3 дні, усі фото за 2 тижні',
+        travel: 'студія у Львові; виїзд додому — +600 ₴',
+        bring: 'улюблену ковдрочку, запасний одяг і все для годування',
+      },
+      gifts: {
+        enabled: true,
+        items: [
+          { kind: 'certificate', enabled: true, title: 'Подарунковий сертифікат', text: 'Для мами в декреті чи майбутніх батьків — на будь-яку зйомку або суму.', price: 'від 1 500 ₴', imageId: '' },
+          { kind: 'book', enabled: true, title: 'Фотокнига «Мій перший рік»', text: '20 розворотів, тверда льняна обкладинка, тиснення імені.', price: 'від 2 400 ₴', imageId: '' },
+          { kind: 'prints', enabled: true, title: 'Принти для дитячої', text: 'Мʼякий матовий папір, 20×30, у пастельних паспарту.', price: 'від 350 ₴', imageId: '' },
+        ],
+      },
+      testimonials: {
+        items: [
+          { names: 'Ірина, мама Марка', text: 'Я хвилювалася, як він витримає зйомку, а він проспав майже весь час у теплі. Кадри — найдорожче, що в нас є.', photoId: '' },
+          { names: 'Оля та Дмитро', text: 'Знімалися щоквартально весь перший рік — тепер у нас ціла книга про те, як Соня росла.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Новонароджений', price: 'від 4 500 ₴', includes: ['до 3 годин у теплій студії', 'реквізит і одяг', '25 фото з ретушшю'] },
+          {
+            name: 'Рік малюка',
+            price: 'від 14 000 ₴',
+            includes: ['4 зйомки: 1, 4, 8 і 12 місяців', '15 фото з кожної', 'фотокнига в подарунок'],
+            featured: true,
+          },
+          { name: 'Сімейна вдома', price: 'від 3 800 ₴', includes: ['1.5 години у вас удома', 'вся родина', '40 фото з обробкою'] },
+        ],
+      },
+      contact: { email: 'solomiia@example.com', phone: '+380 97 600 00 00', instagram: '@solomiia.tepla', telegram: 'solomiia_tepla', bookingUrl: '' },
+    }),
+    // TEMPORARY (until assets/nizhnist): family frames from the «Повітря» set
+    // that its page does not show (14–20) and four «Тиша» spares from
+    // /showcase. The «рік малюка» ribbon reads the «1 міс · …» captions.
+    portfolio: [
+      phs('1', '07', 'Сімейні', 'Перше літо', [1333, 2000], true),
+      pha('2', '20', 'Рік малюка', '1 міс · Перші тижні вдома', [2400, 1600]),
+      phs('3', '04', 'Рік малюка', '4 міс · На ковдрі в траві', [1333, 2000]),
+      pha('4', '14', 'Рік малюка', '8 міс · На татових руках', [2400, 1600]),
+      phs('5', '14', 'Рік малюка', '1 рік · Вище за всіх', [1333, 2000]),
+      pha('6', '15', 'Сімейні', 'Усі разом', [2400, 1600]),
+      pha('7', '17', 'Діти', 'Вітер', [2400, 3624]),
+      pha('8', '19', 'Сімейні', 'Біля моря', [2400, 3600]),
+      pha('9', '18', 'Діти', 'Стежка', [2400, 3360]),
+      pha('10', '16', 'Діти', 'У полі', [2400, 1600]),
+      phs('11', '16', 'Діти', 'Золота година', [2000, 1333]),
+      phs('12', '03', 'Сімейні', 'Липневе світло', [1333, 2000]),
+      phs('13', '08', 'Сімейні', 'Біля вікна', [1333, 2000]),
     ],
   },
   {
