@@ -56,6 +56,7 @@ export interface GalleryLabels {
   tip: string
   /** «Слайд-шоу» button in the bar. */
   slideshow?: string
+  contactPhotographer?: string
   /** Full-screen viewer controls (aria labels / tooltips). */
   viewer?: ViewerLabels
 }
@@ -198,7 +199,6 @@ export function GalleryExperience({
   const [done, setDone] = useState(0)
   const [total, setTotal] = useState(0)
   const [partReady, setPartReady] = useState<PartReady | null>(null)
-  const uk = locale === 'uk'
 
   async function toggleFavorite(assetId: string) {
     const selected = !favorites.has(assetId)
@@ -559,7 +559,7 @@ export function GalleryExperience({
         </span>
         {items.length > 0 && (
           <button type="button" className={s.slideBtn} onClick={startSlideshow}>
-            ▶ {labels.slideshow ?? (uk ? 'Слайд-шоу' : 'Slideshow')}
+            ▶ {labels.slideshow ?? 'Slideshow'}
           </button>
         )}
         {partReady ? (
@@ -632,7 +632,7 @@ export function GalleryExperience({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {uk ? 'Звʼязатися з фотографом' : 'Contact the photographer'}
+                {labels.contactPhotographer ?? 'Contact the photographer'}
               </a>
             )}
             {tipUrl && (

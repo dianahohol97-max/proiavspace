@@ -7,7 +7,7 @@ import type { ImportReport } from '@/app/api/import/finish/route'
 import { MAX_ZIP_BYTES, planZip, type ZipPlan } from '@/lib/import/zip-plan'
 import { DuplicateAssetError, uploadFileToGallery } from '@/lib/upload/client'
 import { MAX_FILE_BYTES } from '@/lib/upload/limits'
-import { formatDate, formatMessage, formatNumber } from '@/lib/i18n/format'
+import { formatDate, formatMessage, formatNumber, intlLocale } from '@/lib/i18n/format'
 
 const fill = (template: string, values: Record<string, string | number>, locale: string): string =>
   formatMessage(template, values, locale)
@@ -496,9 +496,7 @@ export function ZipImporter({
           {phase.report.promoEndsAt && (
             <p className="mt-6 rounded-xl bg-accent/10 p-4 text-sm leading-relaxed">
               {fill(t.promoGranted, {
-                date: new Date(phase.report.promoEndsAt).toLocaleDateString(
-                  locale === 'uk' ? 'uk-UA' : 'en-GB'
-                ),
+                date: new Date(phase.report.promoEndsAt).toLocaleDateString(intlLocale(locale)),
               }, locale)}{' '}
               <Link href={`/${locale}/dashboard/billing`}>{t.promoLink}</Link>
             </p>

@@ -374,6 +374,7 @@ export function CullingPanel({ galleryId, locale, photos, onSetHidden, ownerId }
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" data-testid="culling-grid">
               {visible.slice(0, limit).map((p) => (
                 <Tile
+                  locale={locale}
                   key={p.id}
                   photo={p}
                   verdict={verdicts[p.id]}
@@ -403,6 +404,7 @@ export function CullingPanel({ galleryId, locale, photos, onSetHidden, ownerId }
 
       {openSeries && series.get(openSeries) && (
         <SeriesView
+          locale={locale}
           ids={series.get(openSeries)!}
           byId={byId}
           verdicts={verdicts}
@@ -489,6 +491,7 @@ function Tile({
   decision,
   seriesSize,
   labels: l,
+  locale,
   hidden,
   busy,
   onDecide,
@@ -500,6 +503,7 @@ function Tile({
   decision: Decision | undefined
   seriesSize: number
   labels: Labels
+  locale: string
   hidden: boolean
   busy: boolean
   onDecide: (d: Decision | null) => void
@@ -559,6 +563,7 @@ function SeriesView({
   verdicts,
   decisions,
   labels: l,
+  locale,
   onClose,
   onBest,
   onDecide,
@@ -568,6 +573,7 @@ function SeriesView({
   verdicts: Record<string, PhotoVerdict>
   decisions: Record<string, Decision>
   labels: Labels
+  locale: string
   onClose: () => void
   onBest: (id: string) => void
   onDecide: (id: string, d: Decision | null) => void

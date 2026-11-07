@@ -51,8 +51,8 @@ export default async function E2EDeliveryPreview({
   const view = deliveryView(status, countVisibleAssets(assets))
   const etaText = formatDeliveryEta(searchParams.eta, locale)
   const labels = deliveryLabels(dict)
-  const title = locale === 'uk' ? 'Марта і Богдан' : 'Marta & Bohdan'
-  const brandName = locale === 'uk' ? 'Ольга Вишня' : 'Olha Vyshnia'
+  const title = dict.pages.demoCouple
+  const brandName = dict.pages.demoBrand
 
   if (view === 'screen' && status) {
     return (

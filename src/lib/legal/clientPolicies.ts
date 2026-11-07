@@ -7,6 +7,14 @@
  * photographer stays the data controller.
  */
 
+import { pl } from './client-policies/pl'
+import { de } from './client-policies/de'
+import { es } from './client-policies/es'
+import { fr } from './client-policies/fr'
+import { it } from './client-policies/it'
+import { ro } from './client-policies/ro'
+import { pt } from './client-policies/pt'
+
 export type PolicyDoc = 'privacy' | 'refund'
 
 export interface PolicyInput {
@@ -110,9 +118,21 @@ function en(name: string, email: string): Record<PolicyDoc, RenderedPolicy> {
   }
 }
 
+const BY_LOCALE: Record<string, ClientPolicyLocale> = {
+  uk: { defaultName: 'Фотограф', render: uk },
+  en: { defaultName: 'the Photographer', render: en },
+  pl,
+  de,
+  es,
+  fr,
+  it,
+  ro,
+  pt,
+}
+
 export function renderClientPolicy(doc: PolicyDoc, input: PolicyInput): RenderedPolicy {
-  const name = input.name.trim() || (input.locale === 'uk' ? 'Фотограф' : 'the Photographer')
+  const set = BY_LOCALE[input.locale] ?? BY_LOCALE.en
+  const name = input.name.trim() || set.defaultName
   const email = input.email?.trim() || ''
-  const set = input.locale === 'uk' ? uk(name, email) : en(name, email)
-  return set[doc]
+  return set.render(name, email)[doc]
 }

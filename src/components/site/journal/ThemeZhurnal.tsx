@@ -305,7 +305,7 @@ export function ThemeZhurnal({
                   skin={j}
                   items={photos.map(lean)}
                   label={L.all}
-                  labels={{ portfolio: L.all, photos: labels.photos, close: labels.close }}
+                  labels={{ portfolio: L.all, photos: labels.photos, locale: labels.locale, close: labels.close }}
                 />
               </div>
             )}
@@ -383,7 +383,7 @@ export function ThemeZhurnal({
               skin={j}
               groups={leanGroups}
               covers={covers}
-              labels={{ portfolio: labels.portfolio, photos: labels.photos, viewSeries: labels.viewSeries, close: labels.close }}
+              labels={{ portfolio: labels.portfolio, photos: labels.photos, locale: labels.locale, viewSeries: labels.viewSeries, close: labels.close }}
             />
           </section>
         )}

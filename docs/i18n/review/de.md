@@ -1,0 +1,34 @@
+# Review — Deutsch (de)
+
+Phrases I am not fully sure about. Format: `key or location — translation — why unsure`.
+
+- generic gender (whole UI) — „der Fotograf“, „Kunden“, „Ihren Fotografen“ — generic masculine used throughout; many users are women. Decide whether to switch to neutral forms („Fotograf:in“) or keep as is.
+- landing `hero.titleBefore/titleAccent/titleAfter` — „Alles, was **nach** dem Auslösen passiert“ — slogan; the accent word is only „nach“, check it reads well with the highlight.
+- landing `final.titleAccent` — „Übergeben Sie Ihr nächstes Shooting **mit Stil**“ — chose „mit Stil“ over a literal „schön“; check tone.
+- landing `bento.titleBefore/titleAccent` — „Die kleinen Dinge, die die Arbeit **entspannt machen**“ — accent spans two words; check layout.
+- landing `principles.items[3].title` — „Bezahlt = von der Bank bestätigt“ — rephrased from „Payment = the bank’s word“.
+- landing `principles.lede` — „Entscheidungen, an denen wir nicht rütteln“ — idiom, confirm it feels natural and not too casual.
+- jar (Monobank „банка“) — „Monobank-Sammeldose“ — no established German term; German-speaking clients may not know the feature.
+- `booking.cardLabel` / `publicBooking.payCard` — „Kartendaten (als Text)“ / „Per Überweisung zahlen“ — source means paying to card requisites (card-to-card transfer); „Überweisung“ may suggest IBAN transfer.
+- `billing.planBasic` etc. — plan names „Kostenlos / Basis / Plus / Maximum“, site trial „Test“ — „Basis“ vs keeping „Basic“; „Test“ vs „Testphase“.
+- `billing.autoRenewCancel` — „Kündigen“ — label is short; context is cancelling auto-renewal, not the whole account.
+- `billing.storage` — „Speicher“ — rendered after a number („10 GB Speicher“); check concatenation.
+- `designer.columnsShort` — „{n} Sp.“ — abbreviation for columns; may be unclear, „{n} Spalten“ if space allows.
+- `designer.theme` — „Farbschema“ — designer “Theme” (light/dark/cream) translated as colour scheme, while site themes stay „Theme“.
+- `designer.fontTheme` / `accentTheme` — „Wie im Theme“ — interpreted as “use the theme’s default”; verify.
+- `designer.fontSans` — „Grotesk“ — typographic term; „Serifenlos“ may be clearer for non-designers.
+- `studio.heroPhoto` / `heroPick` — „Aufmacherfoto“ / „Als Aufmacher verwenden“ — editorial term; „Titelfoto“ would clash with gallery „Titelbild“.
+- `site.heroLegend` — „Startbereich“ — for the hero block; alternatives „Header“, „Hero“.
+- `publicSite.filmStrip` — „Lichterkette“ — source “Strip of lights” is a theme-specific decorative label; context unclear.
+- `publicSite.spread` / `editorLetter` — „Die Doppelseite“ / „Editorial“ — magazine theme (Zhurnal) labels.
+- `publicSite.testimonials` — „Liebe Worte“ — warm but slightly unusual; „Kundenstimmen“ is the standard.
+- `publicSite.madeOn` / `publicGallery.madeOn` — „Website mit proiav“ / „Erstellt mit proiav“ — the gallery string previously used „Proiav“ (capitalized); unified to lowercase „proiav“.
+- `referrals.ambassadorBadge` — „Botschafter“ — maybe keep „Ambassador“ (common in German marketing).
+- `stats.mrr` — „Umsatz/Monat (geschätzt)“ — internal admin label.
+- culling `title` — „Bildsichtung“ — chose the German photographers’ term over „Culling“/„Aussortieren“; reject = „Ausschuss“.
+- legal `oferta.title` — „Öffentliches Angebot (Nutzungsbedingungen)“ — „Oferta“ has no exact German equivalent.
+- legal oferta §9 — „Steuergruppe: Zahler der Einheitssteuer, dritte Gruppe“ — Ukrainian simplified tax system; wording should be checked by a lawyer.
+- legal oferta §5 — „Verantwortlicher (Inhaber) dieser Daten“ — Ukrainian „володілець“ vs GDPR „Verantwortlicher“; kept both.
+- legal oferta §2 — „wie besehen“ — legal rendering of “as is”.
+- client policies `defaultName` — „der Fotograf“ — inserted mid-sentence, e.g. „wie der Fotograf („Fotograf“) …“; sentences were rephrased so the name is always nominative, but read once with the default.
+- client policies refund — „Nachbesserung“ — legal term for revision; may sound formal.

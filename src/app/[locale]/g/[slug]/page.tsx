@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { waitUntil } from '@vercel/functions'
@@ -194,7 +195,7 @@ export default async function PublicGalleryPage({
   // English-locale galleries show the Latin-script name when the photographer
   // set one — «Діана Гоголь» reads wrong under an English UI.
   const brandName =
-    (locale === 'en' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
+    (locale !== 'uk' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
   // Honour the grace window: once a canceled plan's grace expires, the public
   // gallery must fall back to free (badge returns, custom logo drops) instead of
   // keeping paid perks forever. grace_until comes from get_gallery_branding
@@ -296,7 +297,7 @@ export default async function PublicGalleryPage({
 
   const eventLine = [
     gallery.event_date
-      ? new Date(gallery.event_date).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+      ? new Date(gallery.event_date).toLocaleDateString(intlLocale(locale), {
           day: 'numeric',
           month: 'long',
           year: 'numeric',

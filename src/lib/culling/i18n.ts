@@ -1,10 +1,16 @@
 import { formatMessage } from '@/lib/i18n/format'
+import { pl } from './locales/pl'
+import { de } from './locales/de'
+import { es } from './locales/es'
+import { fr } from './locales/fr'
+import { it } from './locales/it'
+import { ro } from './locales/ro'
+import { pt } from './locales/pt'
 
 /**
  * Strings of the culling panel. Kept next to the feature (not in the shared
  * dictionaries) so parallel releases editing uk.ts/en.ts don't conflict.
- * Same fallback rule as the project: uk and en are full; every other locale
- * falls back to English (the dashboard is uk/en anyway).
+ * All 9 languages are full: uk and en here, the rest in ./locales.
  */
 const uk = {
   title: 'Відбір кадрів',
@@ -136,8 +142,10 @@ const en: CullingLabels = {
   preliminary: 'Flags are preliminary — the analysis is still running.',
 }
 
+const BY_LOCALE: Record<string, CullingLabels> = { uk, en, pl, de, es, fr, it, ro, pt }
+
 export function cullingLabels(locale: string): CullingLabels {
-  return locale === 'uk' ? uk : en
+  return BY_LOCALE[locale] ?? en
 }
 
 /** Fills placeholders; `{n, plural, …}` blocks follow the locale's plural rules. */

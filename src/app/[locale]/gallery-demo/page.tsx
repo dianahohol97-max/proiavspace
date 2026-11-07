@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
+import { formatDate } from '@/lib/i18n/format'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { ogImagePath } from '@/lib/seo/pages'
 import { breadcrumbNode, graph } from '@/lib/seo/structured-data'
@@ -13,18 +14,16 @@ import type { GalleryStyle } from '@/lib/gallery/style'
 
 export const dynamic = 'force-dynamic'
 
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale = isLocale(params.locale) ? params.locale : 'uk'
-  const uk = locale === 'uk'
+  const { pages } = await getDictionary(locale)
   return buildMetadata({
     locale,
     path: '/gallery-demo',
     languages: ['uk', 'en'],
-    title: uk ? 'Демо онлайн-галереї: як клієнт бачить фото' : 'Client gallery demo',
-    description: uk
-      ? 'Подивіться, як клієнт отримує зйомку в онлайн-галереї: обкладинка, відбір улюблених кадрів, слайдшоу й завантаження оригіналів. Спробуйте різні стилі.'
-      : 'See how a client receives a shoot in an online gallery: a cover, picking favourite frames, a slideshow and full-resolution downloads. Try every style.',
-    image: { url: ogImagePath('page.gallery-demo'), alt: uk ? 'Демо клієнтської галереї проЯв' : 'proiav client gallery demo' },
+    title: pages.demoTitle,
+    description: pages.demoDescription,
+    image: { url: ogImagePath('page.gallery-demo'), alt: pages.demoOgAlt },
   })
 }
 
@@ -122,14 +121,14 @@ export default async function GalleryDemoPage({
         data={graph(
           breadcrumbNode([
             { name: 'проЯв', path: `/${locale}` },
-            { name: uk ? 'Демо галереї' : 'Gallery demo', path: `/${locale}/gallery-demo` },
+            { name: dict.pages.demoBreadcrumb, path: `/${locale}/gallery-demo` },
           ])
         )}
       />
       {/* style switcher */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line bg-bg px-4 py-3">
         <span className="mr-1 text-xs font-semibold uppercase tracking-widest text-muted">
-          {uk ? 'Стиль:' : 'Style:'}
+          {dict.pages.demoStyle}
         </span>
         {THEME_DEMOS.map((d) => {
           const on = d.value === active.value
@@ -149,7 +148,7 @@ export default async function GalleryDemoPage({
           href={`/${locale}`}
           className="ml-auto text-sm text-accent no-underline hover:underline"
         >
-          ← {uk ? 'На головну' : 'Home'}
+          ← {dict.pages.backHome}
         </a>
       </div>
 
@@ -158,9 +157,9 @@ export default async function GalleryDemoPage({
         key={active.value}
         locale={locale}
         slug="demo"
-        title={uk ? 'Марта і Богдан' : 'Marta & Bohdan'}
-        eventLine={uk ? '14 вересня 2026 · Львів' : '14 September 2026 · Lviv'}
-        brandName="Ольга Вишня"
+        title={dict.pages.demoCouple}
+        eventLine={`${formatDate('2026-09-14T12:00:00Z', locale, { day: 'numeric', month: 'long', year: 'numeric' })} · ${dict.pages.demoCity}`}
+        brandName={dict.pages.demoBrand}
         logoUrl={null}
         coverUrl={img(COVER)}
         coverGridUrl={light(COVER)}

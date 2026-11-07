@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import {
@@ -189,9 +190,9 @@ export default async function ManageGalleryPage({
   // studio, so the picker is reduced to three clearly distinct moods. Legacy
   // stored themes stay valid and are normalized to the nearest mood below.
   const themeOptions: { value: string; label: string }[] = [
-    { value: 'tysha', label: locale === 'uk' ? 'Світла' : 'Light' },
-    { value: 'opivnich', label: locale === 'uk' ? 'Темна' : 'Dark' },
-    { value: 'plivka', label: locale === 'uk' ? 'Крем' : 'Cream' },
+    { value: 'tysha', label: dict.designer.themeLight },
+    { value: 'opivnich', label: dict.designer.themeDark },
+    { value: 'plivka', label: dict.designer.themeCream },
   ]
   const themeMood: Record<string, string> = {
     tysha: 'tysha',
@@ -276,15 +277,10 @@ export default async function ManageGalleryPage({
           galleryTitle={gallery.title}
           locale={locale}
           labels={{
+            ...dict.designer,
             styleLabel: dict.galleryManage.styleLabel,
             styleSave: dict.galleryManage.styleSave,
             styleSaved: dict.galleryManage.styleSaved,
-            accent: locale === 'uk' ? 'Акцент' : 'Accent',
-            columns: locale === 'uk' ? 'Колонки' : 'Columns',
-            radius: locale === 'uk' ? 'Кути' : 'Corners',
-            font: locale === 'uk' ? 'Шрифт' : 'Font',
-            preview: locale === 'uk' ? 'Превʼю' : 'Preview',
-            focal: locale === 'uk' ? 'Фокус обкладинки' : 'Cover focus',
           }}
         />
       </header>
@@ -318,7 +314,7 @@ export default async function ManageGalleryPage({
               : gallery.free_expired_at
                 ? `${dict.dashboard.freeClosed} · ${dict.dashboard.freePurgeOn.replace(
                     '{date}',
-                    purgeDate(gallery.free_expired_at).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+                    purgeDate(gallery.free_expired_at).toLocaleDateString(intlLocale(locale), {
                       timeZone: 'Europe/Kyiv',
                     })
                   )}`
@@ -451,7 +447,7 @@ export default async function ManageGalleryPage({
                     initialY={asset.focal_y ?? null}
                     action={setAssetFocal.bind(null, locale, asset.id)}
                     title={
-                      locale === 'uk' ? 'Клацни, щоб задати фокус кадру' : 'Click to set crop focus'
+                      dict.designer.focalHint
                     }
                   />
                   {(favoritedBy > 0 ||
@@ -481,13 +477,13 @@ export default async function ManageGalleryPage({
                       className="absolute left-2 top-2 flex flex-col items-start gap-1"
                     >
                       <span className="rounded-full bg-neutral-900/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                        {locale === 'uk' ? 'Сховано від клієнта' : 'Hidden from client'}
+                        {dict.designer.hiddenFromClient}
                       </span>
                       <button
                         type="submit"
                         className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-900 hover:text-accent"
                       >
-                        {locale === 'uk' ? 'Повернути клієнту' : 'Show to client'}
+                        {dict.designer.showToClient}
                       </button>
                     </form>
                   )}
