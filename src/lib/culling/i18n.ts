@@ -1,0 +1,148 @@
+/**
+ * Strings of the culling panel. Kept next to the feature (not in the shared
+ * dictionaries) so parallel releases editing uk.ts/en.ts don't conflict.
+ * Same fallback rule as the project: uk and en are full; every other locale
+ * falls back to English (the dashboard is uk/en anyway).
+ */
+const uk = {
+  title: 'Відбір кадрів',
+  intro:
+    'Сервіс у браузері позначить імовірний брак: розмиті кадри, повтори в серіях і заплющені очі. Це лише підказки — рішення завжди за вами, нічого не ховається автоматично.',
+  start: 'Відібрати кадри',
+  rerun: 'Проаналізувати ще раз',
+  resume: 'Доаналізувати нові',
+  cancel: 'Скасувати',
+  eyesToggle: 'Перевіряти заплющені очі (завантажить модель ~4 МБ)',
+  stepMeasure: 'Крок 1 з 2 · різкість і повтори',
+  stepMeasureOnly: 'Різкість і повтори',
+  stepModel: 'Завантаження моделі облич…',
+  stepFaces: 'Крок 2 з 2 · заплющені очі',
+  done: 'Готово',
+  paused: 'Пауза: вкладка прихована — продовжимо, щойно повернетесь',
+  eta: 'залишилось ~{t}',
+  seconds: '{n} с',
+  minutes: '{n} хв',
+  cancelled: 'Аналіз скасовано. Те, що встигли переглянути, збережено.',
+  facesFailed: 'Не вдалося завантажити модель облич — перевірку очей пропущено.',
+  failedCount: 'Не вдалося прочитати: {n}',
+  noPhotos: 'У галереї ще немає фото з прев’ю для аналізу.',
+  unsupported: 'Цей браузер не підтримує фоновий аналіз (потрібні Web Worker і OffscreenCanvas). Спробуйте свіжий Chrome, Edge, Firefox або Safari 17+.',
+  savedLocal: 'Збережено на цьому пристрої',
+  savedLocalHint: 'Поки що відбір зберігається лише в цьому браузері. На іншому пристрої його не буде.',
+  notSaved: 'Браузер не дозволяє зберегти відбір (приватне вікно?) — після перезавантаження його не буде.',
+  summary: 'Розмито: {blurry} · Повтори: {duplicate} (серій: {series}) · Очі: {eyes}',
+  filterAll: 'Усі',
+  filterFlagged: 'Потенційний брак',
+  filterBest: 'Кращі в серіях',
+  badgeBlurry: 'Розмито',
+  badgeDuplicate: 'Повтор',
+  badgeEyes: 'Очі',
+  badgeBest: 'Кращий у серії',
+  badgeConfirmed: 'Брак підтверджено',
+  badgeCleared: 'Позначку прибрано',
+  keep: 'Залишити позначку',
+  keepHint: 'Погоджуюсь: це брак. Кадр лишається в галереї, позначка зберігається.',
+  clear: 'Прибрати з позначки',
+  clearHint: 'Кадр нормальний — прибрати позначку.',
+  undo: 'Скасувати рішення',
+  series: 'Серія · {n}',
+  seriesTitle: 'Серія з {n} кадрів',
+  makeBest: 'Зробити кращим',
+  close: 'Закрити',
+  sharpnessLabel: 'Різкість відносно сусідніх кадрів',
+  hide: 'Сховати від клієнта',
+  hideHint: 'Сховати кадри з підтвердженим браком: клієнт їх не побачить, файли лишаються.',
+  hideNothing: 'Спершу підтвердьте брак: «Залишити позначку» на кадрі.',
+  hideOne: 'Сховати від клієнта',
+  hideConfirm: 'Сховати від клієнта кадрів: {n}? Файли не видаляються, ви й надалі бачитимете їх у кабінеті й зможете повернути.',
+  hidden: 'Сховано від клієнта: {n}',
+  unhidden: 'Повернуто клієнту: {n}',
+  hideFailed: 'Не вдалося змінити видимість кадрів. Спробуйте ще раз.',
+  unhide: 'Повернути клієнту',
+  badgeHidden: 'Сховано від клієнта',
+  filterHidden: 'Сховані від клієнта',
+  savedAccount: 'Збережено в акаунті',
+  savedAccountHint: 'Рішення відбору видно на всіх ваших пристроях. Виміри кадрів кешуються в цьому браузері.',
+  showMore: 'Показати ще',
+  emptyFilter: 'Тут порожньо.',
+  preliminary: 'Позначки попередні — аналіз ще триває.',
+} as const
+
+export type CullingLabels = { [K in keyof typeof uk]: string }
+
+const en: CullingLabels = {
+  title: 'Photo culling',
+  intro:
+    'The browser flags likely rejects: blurry frames, repeats within a burst and closed eyes. These are suggestions only — you always decide, nothing is hidden automatically.',
+  start: 'Cull photos',
+  rerun: 'Analyse again',
+  resume: 'Analyse new photos',
+  cancel: 'Cancel',
+  eyesToggle: 'Check for closed eyes (downloads a ~4 MB model)',
+  stepMeasure: 'Step 1 of 2 · sharpness and repeats',
+  stepMeasureOnly: 'Sharpness and repeats',
+  stepModel: 'Loading the face model…',
+  stepFaces: 'Step 2 of 2 · closed eyes',
+  done: 'Done',
+  paused: 'Paused: the tab is hidden — it resumes when you come back',
+  eta: '~{t} left',
+  seconds: '{n} s',
+  minutes: '{n} min',
+  cancelled: 'Analysis cancelled. What was already checked is kept.',
+  facesFailed: 'Could not load the face model — the eyes check was skipped.',
+  failedCount: 'Could not read: {n}',
+  noPhotos: 'This gallery has no photos with previews to analyse yet.',
+  unsupported: 'This browser cannot run the background analysis (Web Worker and OffscreenCanvas are needed). Try a recent Chrome, Edge, Firefox or Safari 17+.',
+  savedLocal: 'Saved on this device',
+  savedLocalHint: 'For now the review is stored in this browser only. It will not be on your other devices.',
+  notSaved: 'This browser will not let us store the review (private window?) — it will be gone after a reload.',
+  summary: 'Blurry: {blurry} · Repeats: {duplicate} ({series} bursts) · Eyes: {eyes}',
+  filterAll: 'All',
+  filterFlagged: 'Possible rejects',
+  filterBest: 'Best of bursts',
+  badgeBlurry: 'Blurry',
+  badgeDuplicate: 'Repeat',
+  badgeEyes: 'Eyes',
+  badgeBest: 'Best of burst',
+  badgeConfirmed: 'Reject confirmed',
+  badgeCleared: 'Flag removed',
+  keep: 'Keep flag',
+  keepHint: 'I agree, this is a reject. The photo stays in the gallery, the flag is kept.',
+  clear: 'Remove flag',
+  clearHint: 'The photo is fine — remove the flag.',
+  undo: 'Undo decision',
+  series: 'Burst · {n}',
+  seriesTitle: 'A burst of {n} frames',
+  makeBest: 'Make best',
+  close: 'Close',
+  sharpnessLabel: 'Sharpness compared with neighbouring frames',
+  hide: 'Hide from client',
+  hideHint: 'Hide confirmed rejects: the client will not see them, the files stay.',
+  hideNothing: 'Confirm a reject first: «Keep flag» on a photo.',
+  hideOne: 'Hide from client',
+  hideConfirm: 'Hide {n} photos from the client? Files are not deleted; you will still see them in your dashboard and can bring them back.',
+  hidden: 'Hidden from the client: {n}',
+  unhidden: 'Shown to the client again: {n}',
+  hideFailed: 'Could not change the photos’ visibility. Please try again.',
+  unhide: 'Show to client',
+  badgeHidden: 'Hidden from client',
+  filterHidden: 'Hidden from client',
+  savedAccount: 'Saved to your account',
+  savedAccountHint: 'Your culling decisions are visible on all your devices. Photo measurements are cached in this browser.',
+  showMore: 'Show more',
+  emptyFilter: 'Nothing here.',
+  preliminary: 'Flags are preliminary — the analysis is still running.',
+}
+
+export function cullingLabels(locale: string): CullingLabels {
+  return locale === 'uk' ? uk : en
+}
+
+export function fill(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (m, key) => (key in values ? String(values[key]) : m))
+}
+
+export function formatEta(ms: number, l: CullingLabels): string {
+  const s = Math.max(1, Math.round(ms / 1000))
+  return s < 90 ? fill(l.seconds, { n: s }) : fill(l.minutes, { n: Math.round(s / 60) })
+}
