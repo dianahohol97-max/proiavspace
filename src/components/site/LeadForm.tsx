@@ -10,6 +10,46 @@ export interface LeadFormLabels {
   send: string
   sent: string
   error: string
+  /* Optional — the «Тиша» form variant (split contact, date, type). */
+  email?: string
+  phone?: string
+  date?: string
+  shootType?: string
+  shootOther?: string
+  contactHint?: string
+  sending?: string
+}
+
+export type LeadStatus = 'idle' | 'busy' | 'sent' | 'error'
+
+/**
+ * Posting a lead to /api/sites/lead, shared by the default form and theme
+ * variants. `handle` null (editor preview) → nothing is sent.
+ */
+export function useLeadSubmit(handle: string | null) {
+  const [status, setStatus] = useState<LeadStatus>('idle')
+
+  async function send(
+    fields: { name: string; contact: string; message: string },
+    form: HTMLFormElement
+  ) {
+    if (!handle) return
+    setStatus('busy')
+    try {
+      const response = await fetch('/api/sites/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handle, ...fields }),
+      })
+      if (!response.ok) throw new Error(`lead ${response.status}`)
+      setStatus('sent')
+      form.reset()
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  return { status, send }
 }
 
 /**
@@ -24,31 +64,20 @@ export function LeadForm({
   handle: string | null
   labels: LeadFormLabels
 }) {
-  const [status, setStatus] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle')
+  const { status, send } = useLeadSubmit(handle)
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!handle) return
     const form = event.currentTarget
     const data = new FormData(form)
-    setStatus('busy')
-    try {
-      const response = await fetch('/api/sites/lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          handle,
-          name: String(data.get('name') ?? ''),
-          contact: String(data.get('contact') ?? ''),
-          message: String(data.get('message') ?? ''),
-        }),
-      })
-      if (!response.ok) throw new Error(`lead ${response.status}`)
-      setStatus('sent')
-      form.reset()
-    } catch {
-      setStatus('error')
-    }
+    await send(
+      {
+        name: String(data.get('name') ?? ''),
+        contact: String(data.get('contact') ?? ''),
+        message: String(data.get('message') ?? ''),
+      },
+      form
+    )
   }
 
   const field: React.CSSProperties = {

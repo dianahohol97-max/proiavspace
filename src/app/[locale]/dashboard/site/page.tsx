@@ -6,6 +6,7 @@ import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
 import { isSiteTrialExpired, siteTrialDaysLeft } from '@/lib/plans'
 import { parseSiteContent } from '@/lib/site/content'
+import { leadFormLabelsFromDict, siteLabelsFromDict } from '@/lib/site/labels'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { SiteEditor } from '@/components/site-editor/SiteEditor'
@@ -30,6 +31,8 @@ interface PortfolioRow {
   visible: boolean
   category: string | null
   caption: string | null
+  width: number | null
+  height: number | null
 }
 
 export default async function SiteEditorPage({ params }: { params: { locale: string } }) {
@@ -62,7 +65,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         }>(),
       supabase
         .from('portfolio_assets')
-        .select('id, r2_key, variants, visible, category, caption')
+        .select('id, r2_key, variants, visible, category, caption, width, height')
         .eq('owner_id', user.id)
         .order('position')
         .order('created_at')
@@ -89,6 +92,8 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
       visible: row.visible,
       category: row.category,
       caption: row.caption,
+      width: row.width,
+      height: row.height,
     }))
   )
 
@@ -185,25 +190,9 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         displayName={profile?.display_name ?? null}
         logoUrl={logoUrl}
         portfolio={portfolio}
-        siteLabels={{
-          portfolio: dict.publicSite.portfolio,
-          about: dict.publicSite.about,
-          pricing: dict.publicSite.pricing,
-          contacts: dict.publicSite.contacts,
-          book: dict.publicSite.book,
-          photos: locale === 'uk' ? 'фото' : 'photos',
-          viewSeries: locale === 'uk' ? 'Дивитись серію' : 'View series',
-          close: locale === 'uk' ? 'Закрити' : 'Close',
-        }}
-        leadFormLabels={{
-          title: dict.publicSite.leadTitle,
-          name: dict.publicSite.leadName,
-          contact: dict.publicSite.leadContact,
-          message: dict.publicSite.leadMessage,
-          send: dict.publicSite.leadSend,
-          sent: dict.publicSite.leadSent,
-          error: dict.publicSite.leadError,
-        }}
+        platformCredit={sitePlan === 'site_trial'}
+        siteLabels={siteLabelsFromDict(dict, locale)}
+        leadFormLabels={leadFormLabelsFromDict(dict)}
         labels={{
           publish: dict.site.publish,
           handleLabel: dict.site.handleLabel,
@@ -233,6 +222,26 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
           priceName: dict.site.priceName,
           priceAmount: dict.site.priceAmount,
           priceIncludes: dict.site.priceIncludes,
+          priceFeatured: dict.site.priceFeatured,
+          aboutPhoto: dict.site.aboutPhoto,
+          photoNone: dict.site.photoNone,
+          processLegend: dict.site.processLegend,
+          processHint: dict.site.processHint,
+          processTitle: dict.site.processTitle,
+          processText: dict.site.processText,
+          processAdd: dict.site.processAdd,
+          testimonialsLegend: dict.site.testimonialsLegend,
+          testimonialsHint: dict.site.testimonialsHint,
+          testimonialNames: dict.site.testimonialNames,
+          testimonialText: dict.site.testimonialText,
+          testimonialPhoto: dict.site.testimonialPhoto,
+          testimonialAdd: dict.site.testimonialAdd,
+          removeItem: dict.site.removeItem,
+          momentLegend: dict.site.momentLegend,
+          momentHint: dict.site.momentHint,
+          momentText: dict.site.momentText,
+          momentPhoto: dict.site.momentPhoto,
+          photoAuto: dict.site.photoAuto,
           contactLegend: dict.site.contactLegend,
           contactEmail: dict.site.contactEmail,
           contactPhone: dict.site.contactPhone,

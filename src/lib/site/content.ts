@@ -8,6 +8,23 @@ export interface PricingItem {
   price: string
   /** What the price includes — one line per item. */
   includes: string[]
+  /** Highlighted as «найчастіше обирають» (themes that support it). */
+  featured?: boolean
+}
+
+/** One step of the «Як ми працюємо» block. */
+export interface ProcessStep {
+  title: string
+  text: string
+}
+
+/** One couple's review in the «Відгуки» block. */
+export interface Testimonial {
+  /** Who wrote it, e.g. «Марта і Богдан». */
+  names: string
+  text: string
+  /** Optional portfolio asset id shown as a small round photo. */
+  photoId: string
 }
 
 /** The text blocks that can be translated per language (hero + about). */
@@ -20,8 +37,16 @@ export interface SiteContent {
   /** imageId = a portfolio asset id chosen as the hero photo (shared across
    *  languages). Empty → themes fall back to the first portfolio photo. */
   hero: { title: string; subtitle: string; imageId: string }
-  about: { text: string }
+  /** imageId = optional portfolio asset id used as the photographer's portrait. */
+  about: { text: string; imageId: string }
   pricing: { items: PricingItem[] }
+  /** Signature moment: one big frame + a short phrase (themes that have it,
+   *  e.g. «Тиша»). imageId empty → the theme picks an unused landscape frame. */
+  moment: { text: string; imageId: string }
+  /** «Як ми працюємо» — optional; themes render it only when non-empty. */
+  process: { steps: ProcessStep[] }
+  /** «Відгуки» — optional; themes render it only when non-empty. */
+  testimonials: { items: Testimonial[] }
   contact: {
     email: string
     phone: string
@@ -51,8 +76,11 @@ export interface SiteContent {
 
 export const EMPTY_CONTENT: SiteContent = {
   hero: { title: '', subtitle: '', imageId: '' },
-  about: { text: '' },
+  about: { text: '', imageId: '' },
   pricing: { items: [] },
+  moment: { text: '', imageId: '' },
+  process: { steps: [] },
+  testimonials: { items: [] },
   contact: { email: '', phone: '', instagram: '', bookingUrl: '' },
   albumCovers: {},
   translations: {},
@@ -76,7 +104,7 @@ export function localizedSiteContent(content: SiteContent, locale: string): Site
       // The hero photo is shared across languages — never overridden per locale.
       imageId: content.hero.imageId,
     },
-    about: { text: t.about.text || content.about.text },
+    about: { text: t.about.text || content.about.text, imageId: content.about.imageId },
   }
 }
 
@@ -105,6 +133,9 @@ export function parseSiteContent(value: unknown): SiteContent {
     typeof v.settings === 'object' && v.settings !== null ? v.settings : {}
   ) as Record<string, unknown>
   const items = Array.isArray(pricing.items) ? pricing.items : []
+  const momentRaw = (v.moment ?? {}) as Record<string, unknown>
+  const processRaw = (v.process ?? {}) as Record<string, unknown>
+  const testimonialsRaw = (v.testimonials ?? {}) as Record<string, unknown>
 
   // Per-language translations.
   const rawTranslations = (
@@ -141,7 +172,7 @@ export function parseSiteContent(value: unknown): SiteContent {
       subtitle: asString(hero.subtitle),
       imageId: asString(hero.imageId),
     },
-    about: { text: asString(about.text) },
+    about: { text: asString(about.text), imageId: asString(about.imageId) },
     pricing: {
       items: items
         .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
@@ -154,8 +185,22 @@ export function parseSiteContent(value: unknown): SiteContent {
               typeof i.description === 'string' && i.description
               ? [i.description]
               : [],
+          ...(i.featured === true ? { featured: true } : {}),
         }))
         .filter((i) => i.name),
+    },
+    moment: { text: asString(momentRaw.text), imageId: asString(momentRaw.imageId) },
+    process: {
+      steps: (Array.isArray(processRaw.steps) ? processRaw.steps : [])
+        .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
+        .map((i) => ({ title: asString(i.title), text: asString(i.text) }))
+        .filter((i) => i.title || i.text),
+    },
+    testimonials: {
+      items: (Array.isArray(testimonialsRaw.items) ? testimonialsRaw.items : [])
+        .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
+        .map((i) => ({ names: asString(i.names), text: asString(i.text), photoId: asString(i.photoId) }))
+        .filter((i) => i.text),
     },
     contact: {
       email: asString(contact.email),

@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation'
 import { isLocale } from '@/lib/i18n/config'
 import { THEME_DEMOS } from '@/lib/site/demoContent'
 import { SiteRenderer, type SiteLabels } from '@/components/site/SiteRenderer'
+import { getDictionary } from '@/lib/i18n'
+import { leadFormLabelsFromDict, siteLabelsFromDict } from '@/lib/site/labels'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +25,7 @@ export function generateMetadata({
 }
 
 /** Full-page live preview of a single theme's demo site (real size, scrollable). */
-export default function ThemePreviewPage({
+export default async function ThemePreviewPage({
   params,
 }: {
   params: { locale: string; value: string }
@@ -34,7 +36,11 @@ export default function ThemePreviewPage({
   const demo = THEME_DEMOS.find((d) => d.value === params.value)
   if (!demo) notFound()
 
+  // Theme-specific extras («Тиша»: hero CTA, process, reviews…) come from the
+  // dictionary; the base demo wording below stays as it was for every theme.
+  const dict = await getDictionary(locale)
   const labels: SiteLabels = {
+    ...siteLabelsFromDict(dict, locale),
     portfolio: uk ? 'Портфоліо' : 'Portfolio',
     about: uk ? 'Про мене' : 'About',
     pricing: uk ? 'Ціни' : 'Pricing',
@@ -45,6 +51,7 @@ export default function ThemePreviewPage({
     close: uk ? 'Закрити' : 'Close',
   }
   const leadFormLabels = {
+    ...leadFormLabelsFromDict(dict),
     title: uk ? 'Залишити заявку' : 'Get in touch',
     name: uk ? 'Ваше імʼя' : 'Your name',
     contact: uk ? 'Телефон або email' : 'Phone or email',

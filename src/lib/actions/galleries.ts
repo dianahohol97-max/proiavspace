@@ -140,6 +140,38 @@ export async function setGalleryTheme(
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
 }
 
+/**
+ * «Статус зйомки для клієнта» (0055): saved straight from the dashboard
+ * control on every change — no form, no submit button. Returns ok instead of
+ * throwing so the control can show «не вдалося зберегти» and keep the value.
+ * The owner check is RLS (galleries_owner_all) plus an explicit owner_id
+ * match, so a guessed gallery id updates nothing.
+ */
+export async function setGalleryDelivery(
+  locale: Locale,
+  galleryId: string,
+  status: string | null,
+  eta: string | null
+): Promise<{ ok: boolean }> {
+  const { supabase, user } = await requireUser()
+  const { parseDeliveryEta, parseDeliveryStatus } = await import('@/lib/gallery/delivery')
+  const deliveryStatus = parseDeliveryStatus(status)
+  if (status && !deliveryStatus) return { ok: false }
+  if (eta && !parseDeliveryEta(eta)) return { ok: false }
+  const { data, error } = await supabase
+    .from('galleries')
+    .update({ delivery_status: deliveryStatus, delivery_eta: parseDeliveryEta(eta) })
+    .eq('id', galleryId)
+    .eq('owner_id', user.id)
+    .select('id')
+  if (error || !data?.length) {
+    if (error) console.error('setGalleryDelivery failed', galleryId, error.message)
+    return { ok: false }
+  }
+  revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  return { ok: true }
+}
+
 export async function setGalleryPublished(
   locale: Locale,
   galleryId: string,

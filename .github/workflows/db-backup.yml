@@ -1,21 +1,27 @@
 name: DB — nightly backup to B2
 
 # Supabase Free keeps no backups at all (audit BK-01). Every night: pg_dump of
-# the public + auth schemas → gzip → a SEPARATE B2 bucket (never the media
-# bucket), then a restore check: the dump is restored into a throwaway
-# Postgres in this job and a few row counts are compared with production.
-# A dump that cannot be restored fails the workflow, so a broken backup never
-# sits unnoticed for months.
+# the public + auth schemas (custom format, compressed) → a SEPARATE B2 bucket
+# under the db/ prefix (never the media bucket), then a restore check: the
+# dump is restored into a throwaway Postgres in this job and a few row counts
+# are compared with production. A dump that cannot be restored fails the
+# workflow, so a broken backup never sits unnoticed for months.
+# Only the newest 14 dumps are kept (older ones are deleted after a
+# successful upload). How to restore: docs/DB_BACKUP_RESTORE.md.
+#
+# Without the SUPABASE_DB_URL secret the run is SKIPPED (green, with a
+# warning), not failed — e.g. on forks or before the secrets are set.
+# With SUPABASE_DB_URL but without the B2 secrets it fails: a half-configured
+# backup must be visible.
 #
 # Repository secrets:
 #   SUPABASE_DB_URL          — Supabase → Connect → Session pooler URI (IPv4 works
 #                              from GitHub runners; direct db.* host is IPv6-only)
 #   B2_BACKUP_KEY_ID / B2_BACKUP_APPLICATION_KEY — a B2 key scoped to the backup
-#                              bucket only (writeFiles + listFiles + readFiles)
-#   B2_BACKUP_BUCKET         — e.g. proiav-db-backups (Object Lock on, see
-#                              docs/AUDIT_STORAGE_LIFECYCLE.md § PR 1)
+#                              bucket only (listFiles, readFiles, writeFiles,
+#                              deleteFiles — delete is needed to keep 14 copies)
+#   B2_BACKUP_BUCKET         — e.g. proiav-db-backups
 #   B2_BACKUP_REGION         — e.g. eu-central-003
-# Retention is the bucket's lifecycle rule (30 days), not this workflow.
 
 on:
   schedule:
@@ -26,10 +32,35 @@ concurrency:
   group: db-backup
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
+env:
+  KEEP: '14'
+  PREFIX: db/
+
 jobs:
-  backup:
+  gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          HAS_DB_URL: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          if [ "$HAS_DB_URL" = "true" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=DB backup skipped::SUPABASE_DB_URL secret is not set — no backup was made."
+          fi
+
+  backup:
+    needs: gate
+    if: needs.gate.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       restore:
         image: postgres:17
@@ -48,6 +79,17 @@ jobs:
       BUCKET: ${{ secrets.B2_BACKUP_BUCKET }}
       RESTORE_URL: postgres://postgres:restore@localhost:5432/restore_check
     steps:
+      - name: Check the B2 secrets
+        run: |
+          missing=""
+          for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION BUCKET; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=DB backup misconfigured::SUPABASE_DB_URL is set but B2 secrets are missing:$missing (B2_BACKUP_KEY_ID / B2_BACKUP_APPLICATION_KEY / B2_BACKUP_REGION / B2_BACKUP_BUCKET)"
+            exit 1
+          fi
+
       - name: Install Postgres 17 client (matches the Supabase server)
         run: |
           sudo apt-get update -qq
@@ -97,14 +139,34 @@ jobs:
         run: |
           set -euo pipefail
           aws --endpoint-url "$B2_ENDPOINT" s3 cp "proiav-$STAMP.dump" \
-            "s3://$BUCKET/db/proiav-$STAMP.dump" --no-progress
-          aws --endpoint-url "$B2_ENDPOINT" s3 ls "s3://$BUCKET/db/" | tail -n 5
+            "s3://$BUCKET/${PREFIX}proiav-$STAMP.dump" --no-progress
 
       - name: Verify the upload
         run: |
           set -euo pipefail
           LOCAL=$(stat -c %s "proiav-$STAMP.dump")
           REMOTE=$(aws --endpoint-url "$B2_ENDPOINT" s3api head-object \
-            --bucket "$BUCKET" --key "db/proiav-$STAMP.dump" --query ContentLength --output text)
+            --bucket "$BUCKET" --key "${PREFIX}proiav-$STAMP.dump" --query ContentLength --output text)
           echo "local=$LOCAL remote=$REMOTE"
           test "$LOCAL" = "$REMOTE"
+
+      - name: Keep only the newest 14 dumps (KEEP)
+        run: |
+          set -euo pipefail
+          # Names carry a UTC timestamp, so lexical order = age order.
+          aws --endpoint-url "$B2_ENDPOINT" s3api list-objects-v2 \
+            --bucket "$BUCKET" --prefix "${PREFIX}proiav-" \
+            --query 'Contents[].Key' --output text | tr '\t' '\n' \
+            | grep -E "^${PREFIX}proiav-.*\.dump$" | sort > keys.txt || true
+          echo "dumps in the bucket: $(wc -l < keys.txt)"
+          # Never prune unless today's dump is in the listing.
+          grep -qx "${PREFIX}proiav-$STAMP.dump" keys.txt
+          head -n -"$KEEP" keys.txt > delete.txt
+          if [ ! -s delete.txt ]; then echo "nothing to delete"; exit 0; fi
+          while read -r key; do
+            echo "delete $key"
+            # Object Lock still on a version → B2 refuses; warn, retry tomorrow.
+            aws --endpoint-url "$B2_ENDPOINT" s3 rm "s3://$BUCKET/$key" \
+              || echo "::warning::could not delete $key (Object Lock?) — will retry next run"
+          done < delete.txt
+          aws --endpoint-url "$B2_ENDPOINT" s3 ls "s3://$BUCKET/$PREFIX" | tail -n "$KEEP"

@@ -6,6 +6,7 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   ListMultipartUploadsCommand,
+  ListObjectVersionsCommand,
   ListObjectsV2Command,
   ListPartsCommand,
   PutObjectCommand,
@@ -23,6 +24,7 @@ import type {
   UploadedPart,
   UploadUrlOptions,
 } from './StorageProvider'
+import type { ObjectVersion, PurgeStorage, VersionPage } from './purge'
 
 const DEFAULT_UPLOAD_TTL_SECONDS = 10 * 60
 const DEFAULT_READ_TTL_SECONDS = 60 * 60
@@ -44,7 +46,7 @@ export interface S3CompatConfig {
  * The bucket needs a CORS rule allowing PUT/GET from the app origin with
  * "etag" exposed — see README.
  */
-export class S3CompatProvider implements StorageProvider {
+export class S3CompatProvider implements StorageProvider, PurgeStorage {
   private readonly client: S3Client
   private readonly bucket: string
 
@@ -258,6 +260,60 @@ export class S3CompatProvider implements StorageProvider {
       uploadIdMarker = response.IsTruncated ? response.NextUploadIdMarker : undefined
     } while (keyMarker)
     return uploads
+  }
+
+  /**
+   * One page of every stored version and delete marker under a prefix. B2
+   * keeps old versions by default: deleting a key without a VersionId only
+   * hides it, the bytes stay (and are billed). Used by the account purge.
+   */
+  async listObjectVersions(
+    prefix: string,
+    options: { maxKeys: number; keyMarker?: string; versionIdMarker?: string }
+  ): Promise<VersionPage> {
+    const response = await this.client.send(
+      new ListObjectVersionsCommand({
+        Bucket: this.bucket,
+        Prefix: prefix,
+        MaxKeys: options.maxKeys,
+        KeyMarker: options.keyMarker,
+        VersionIdMarker: options.versionIdMarker,
+      })
+    )
+    const versions: ObjectVersion[] = []
+    for (const item of [...(response.Versions ?? []), ...(response.DeleteMarkers ?? [])]) {
+      if (!item.Key) continue
+      versions.push({ key: item.Key, versionId: item.VersionId ?? null })
+    }
+    return {
+      versions,
+      truncated: response.IsTruncated === true,
+      nextKeyMarker: response.NextKeyMarker,
+      nextVersionIdMarker: response.NextVersionIdMarker,
+    }
+  }
+
+  /** Permanently deletes exactly these versions; throws if any is refused. */
+  async deleteObjectVersions(versions: ObjectVersion[]): Promise<void> {
+    for (let i = 0; i < versions.length; i += 1000) {
+      const chunk = versions.slice(i, i + 1000)
+      const response = await this.client.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: {
+            Objects: chunk.map((v) => (v.versionId ? { Key: v.key, VersionId: v.versionId } : { Key: v.key })),
+            Quiet: true,
+          },
+        })
+      )
+      const errors = response.Errors ?? []
+      if (errors.length > 0) {
+        const first = errors[0]
+        throw new Error(
+          `B2 refused ${errors.length} of ${chunk.length} deletes (first: ${first.Key ?? '?'} ${first.Code ?? ''} ${first.Message ?? ''})`.trim()
+        )
+      }
+    }
   }
 
   async list(prefix: string): Promise<StorageObject[]> {

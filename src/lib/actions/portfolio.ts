@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { getStorage } from '@/lib/storage'
+import { getStorage, portfolioDeleteKeys } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
 
@@ -22,10 +22,9 @@ export async function deletePortfolioAsset(locale: Locale, assetId: string): Pro
     throw new Error('Portfolio photo not found')
   }
 
-  // Only objects under this user's own portfolio prefix are ever deleted.
-  const prefix = `u/${user.id}/portfolio/`
-  const variantKeys = Object.values(asset.variants as Record<string, string>)
-  await getStorage().delete([asset.r2_key, ...variantKeys].filter((key) => key.startsWith(prefix)))
+  // The original and every rendition (preview, thumb, mobile…) — only ever
+  // under this user's own portfolio prefix.
+  await getStorage().delete(portfolioDeleteKeys(user.id, asset))
 
   const { error } = await supabase.from('portfolio_assets').delete().eq('id', assetId)
   if (error) throw new Error(`Failed to delete portfolio photo: ${error.message}`)
