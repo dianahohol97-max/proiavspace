@@ -15,6 +15,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import {
   contrastRatio,
   countVisibleAssets,
+  deliveryCoverKey,
   deliveryPalette,
   deliveryStep,
   deliveryView,
@@ -71,6 +72,34 @@ describe('вибір: екран / плашка / звичайна галере�
   })
 })
 
+describe('обкладинка на фоні екрана статусу', () => {
+  const photo = (id: string, extra: object = {}) => ({
+    id,
+    kind: 'photo',
+    hidden_from_client: false,
+    variants: { mobile: `${id}/m.webp`, preview: `${id}/p.jpg` },
+    ...extra,
+  })
+
+  test('cover_asset_id, інакше перше видиме фото; лише легкий варіант', () => {
+    assert.equal(deliveryCoverKey([photo('a'), photo('b')], 'b'), 'b/m.webp')
+    assert.equal(deliveryCoverKey([photo('a'), photo('b')], null), 'a/m.webp')
+    assert.equal(deliveryCoverKey([photo('a', { variants: { preview: 'a/p.jpg' } })], null), 'a/p.jpg')
+  })
+
+  test('приховані не беруться: прихована обкладинка → наступне видиме, усі приховані → null', () => {
+    assert.equal(deliveryCoverKey([photo('a', { hidden_from_client: true }), photo('b')], 'a'), 'b/m.webp')
+    assert.equal(deliveryCoverKey([photo('a', { hidden_from_client: true })], 'a'), null)
+    assert.equal(deliveryCoverKey([], null), null)
+  })
+
+  test('ніколи не оригінал: без variants → null; відео → лише постер', () => {
+    assert.equal(deliveryCoverKey([{ id: 'a', kind: 'photo', variants: {} }], null), null)
+    assert.equal(deliveryCoverKey([{ id: 'v', kind: 'video', variants: { preview: 'v.mp4' } }], null), null)
+    assert.equal(deliveryCoverKey([{ id: 'v', kind: 'video', variants: { poster: 'v.jpg' } }], null), 'v.jpg')
+  })
+})
+
 describe('розбір значень', () => {
   test('статус: лише shot / editing / ready, решта → null', () => {
     assert.equal(parseDeliveryStatus('shot'), 'shot')
@@ -97,12 +126,12 @@ describe('розбір значень', () => {
 })
 
 describe('контраст ≥ 4.5:1 у всіх стилях галерей', () => {
-  const accents = (mode: string) => [mode === 'night' ? '#8fa2ff' : '#2f55ff', '#ffd400', '#c8331f', '#ffffff', '#000000']
+  const accents = (themeAccent: string) => [themeAccent, '#ffd400', '#c8331f', '#ffffff', '#000000', '#2f55ff']
 
   for (const entry of THEME_CATALOG) {
     test(`${entry.value} (${entry.mode})`, () => {
       const tokens = resolveTokens(entry.theme, entry.mode)
-      for (const accent of accents(entry.mode)) {
+      for (const accent of accents(tokens.accent)) {
         const p = deliveryPalette({ ...tokens, accent })
         for (const ground of [p.bg, p.surface]) {
           for (const [name, color] of [['fg', p.fg], ['muted', p.muted], ['accent', p.accent]] as const) {
@@ -116,10 +145,18 @@ describe('контраст ≥ 4.5:1 у всіх стилях галерей', (
     })
   }
 
-  test('«Опівніч» зберігає свій нічний фон і світлий текст', () => {
-    const p = deliveryPalette({ ...resolveTokens('tysha', 'night'), accent: '#8fa2ff' })
+  test('«Опівніч» зберігає свій нічний фон, світлий текст і золотий акцент теми', () => {
+    const tokens = resolveTokens('tysha', 'night')
+    const p = deliveryPalette(tokens)
     assert.equal(p.bg, '#0d0b09')
     assert.equal(p.fg, '#efe6d6')
+    assert.equal(p.accent, '#c9a26a')
+  })
+
+  test('акцент екрана й плашки — з теми галереї (або override фотографа), не платформний', () => {
+    const screen = source('src/components/gallery/DeliveryStatusScreen.tsx')
+    assert.match(screen, /style\?\.accent \?\? resolveTokens\(theme, mode\)\.accent/)
+    assert.doesNotMatch(screen, /#8fa2ff|#2f55ff/i)
   })
 
   test('ensureContrast не чіпає колір, який уже читається', () => {
@@ -163,6 +200,12 @@ describe('кабінет: збереження статусу', () => {
     assert.match(body, /parseDeliveryStatus\(status\)/)
     assert.match(body, /parseDeliveryEta\(eta\)/)
     assert.match(body, /\.eq\('owner_id', user\.id\)/)
+  })
+
+  test('у кабінеті й у самому перемикачі немає службового тексту (null / стан збереження)', () => {
+    assert.doesNotMatch(dashboard, /saved-state|\?\? 'null'/)
+    const control = source('src/components/gallery/DeliveryStatusControl.tsx')
+    assert.doesNotMatch(control, /'null'|JSON\.stringify/)
   })
 
   test('сторінка галереї в кабінеті показує перемикач і читає поля', () => {

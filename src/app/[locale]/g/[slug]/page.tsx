@@ -12,6 +12,7 @@ import { parseGalleryStyle } from '@/lib/gallery/style'
 import { deliveryLabels, galleryLabels } from '@/lib/gallery/labels'
 import {
   countVisibleAssets,
+  deliveryCoverKey,
   deliveryView,
   formatDeliveryEta,
   parseDeliveryStatus,
@@ -220,12 +221,17 @@ export default async function PublicGalleryPage({
   const dLabels = deliveryLabels(dict)
   const galleryStyle = parseGalleryStyle(gallery.style)
   if (view === 'screen' && deliveryStatus) {
+    const backdropKey = deliveryCoverKey(assets, gallery.cover_asset_id)
+    const backdropUrl = backdropKey
+      ? await storage.getSignedReadUrl(backdropKey, { expiresInSeconds: 60 * 60 }).catch(() => null)
+      : null
     return (
       <DeliveryStatusScreen
         locale={locale}
         title={gallery.title}
         brandName={brandName}
         logoUrl={logoUrl}
+        coverUrl={backdropUrl}
         status={deliveryStatus}
         etaText={etaText}
         contactUrl={branding?.contact_url ?? null}

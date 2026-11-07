@@ -65,7 +65,7 @@ test.describe('екран статусу для клієнта', () => {
   test('у кожному стилі: текст читається (≥ 4.5:1) і нічого не вилазить за екран', async ({ page }, info) => {
     test.skip(info.project.name === 'android', 'стилі перевіряємо на десктопі й iPhone')
     for (const theme of THEMES) {
-      await page.goto(`/uk/e2e/delivery?status=editing&theme=${theme}&eta=2026-12-14`)
+      await page.goto(`/uk/e2e/delivery?status=editing&theme=${theme}&eta=2026-12-14${theme.length % 2 ? '&cover=1' : ''}`)
       await expect(page.locator('[data-delivery="screen"]')).toBeVisible()
       await noHorizontalOverflow(page)
       const worst = await page.evaluate(() => {
@@ -101,6 +101,42 @@ test.describe('екран статусу для клієнта', () => {
       })
       expect(worst.min, `${theme}: «${worst.at}»`).toBeGreaterThanOrEqual(4.5)
     }
+  })
+})
+
+test.describe('акцент теми й обкладинка на фоні', () => {
+  const dotColor = (page: Page, selector: string) =>
+    page.locator(selector).first().evaluate((el) => getComputedStyle(el).backgroundColor)
+
+  test('«Опівніч»: поточний крок і крапка плашки — золото теми, не платформний синій', async ({ page }) => {
+    await page.goto('/uk/e2e/delivery?status=editing&theme=opivnich')
+    expect(await dotColor(page, 'li[aria-current="step"] span[aria-hidden]')).toBe('rgb(201, 162, 106)')
+    await page.goto('/uk/e2e/delivery?status=editing&theme=opivnich&photos=3')
+    expect(await dotColor(page, '[data-delivery="banner"] span[aria-hidden]')).toBe('rgb(201, 162, 106)')
+  })
+
+  test('«Тиша»: акцент теми (чорнило), не кобальт', async ({ page }) => {
+    await page.goto('/uk/e2e/delivery?status=shot&theme=tysha')
+    expect(await dotColor(page, 'li[aria-current="step"] span[aria-hidden]')).toBe('rgb(22, 21, 19)')
+  })
+
+  test('з обкладинкою: розмитий легкий варіант на фоні, картка поверх, текст ≥ 4.5:1; скріншот', async ({ page }, info) => {
+    for (const theme of ['opivnich', 'tysha']) {
+      await page.goto(`/uk/e2e/delivery?status=editing&theme=${theme}&eta=2026-12-14&cover=1`)
+      const img = page.locator('[data-delivery="cover"] img')
+      await expect(img).toHaveAttribute('src', /-1080\.webp$/)
+      expect(await img.evaluate((el) => getComputedStyle(el).filter)).toMatch(/blur/)
+      await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true)
+      await expect(page.locator('li[aria-current="step"]')).toContainText('Обробка')
+      await noHorizontalOverflow(page)
+      mkdirSync(SHOTS, { recursive: true })
+      await page.screenshot({ path: join(SHOTS, `screen-cover-${theme}-${info.project.name}.png`), fullPage: true })
+    }
+  })
+
+  test('без обкладинки — фону з фото немає', async ({ page }) => {
+    await page.goto('/uk/e2e/delivery?status=editing&theme=opivnich')
+    await expect(page.locator('[data-delivery="cover"]')).toHaveCount(0)
   })
 })
 
@@ -141,6 +177,9 @@ test.describe('кабінет: перемикач статусу', () => {
     await page.goto('/uk/e2e/delivery/control?reset=1')
     const group = page.getByRole('radiogroup', { name: 'Статус для клієнта' })
     await expect(group.getByRole('radio')).toHaveCount(4)
+    // Nothing but the control on the page: no «null», no service values.
+    await expect(page.locator('main')).not.toContainText('null')
+    expect((await page.locator('main').innerText()).trim().startsWith('Статус для клієнта')).toBe(true)
     await expect(group.getByRole('radio', { name: 'Без статусу' })).toHaveAttribute('aria-checked', 'true')
     await expect(page.getByLabel('Орієнтовна дата готовності')).toHaveCount(0)
 
@@ -159,7 +198,7 @@ test.describe('кабінет: перемикач статусу', () => {
     await expect(page.getByRole('status')).toHaveText('Збережено')
 
     await page.goto('/uk/e2e/delivery/control')
-    await expect(page.getByTestId('saved-state')).toHaveText(/^editing\|2026-12-14\|/)
+    await expect(page.getByTestId('saved-state')).toHaveAttribute('data-state', /^editing\|2026-12-14\|/)
     await expect(page.getByRole('radio', { name: 'Обробка' })).toHaveAttribute('aria-checked', 'true')
     await expect(page.getByLabel('Орієнтовна дата готовності')).toHaveValue('2026-12-14')
 
@@ -168,13 +207,13 @@ test.describe('кабінет: перемикач статусу', () => {
     await expect(page.getByRole('status')).toHaveText('Збережено')
     await expect(page.getByLabel('Орієнтовна дата готовності')).toHaveCount(0)
     await page.goto('/uk/e2e/delivery/control')
-    await expect(page.getByTestId('saved-state')).toHaveText(/^ready\|/)
+    await expect(page.getByTestId('saved-state')).toHaveAttribute('data-state', /^ready\|/)
 
     // Back to «Без статусу».
     await page.getByRole('radio', { name: 'Без статусу' }).click()
     await expect(page.getByRole('status')).toHaveText('Збережено')
     await page.goto('/uk/e2e/delivery/control')
-    await expect(page.getByTestId('saved-state')).toHaveText(/^null\|/)
+    await expect(page.getByTestId('saved-state')).toHaveAttribute('data-state', /^null\|/)
   })
 
   test('«Прибрати дату» очищує дату', async ({ page }) => {
@@ -183,10 +222,10 @@ test.describe('кабінет: перемикач статусу', () => {
     await page.getByLabel('Орієнтовна дата готовності').fill('2026-12-20')
     await expect(page.getByRole('status')).toHaveText('Збережено')
     await page.goto('/uk/e2e/delivery/control')
-    await expect(page.getByTestId('saved-state')).toHaveText(/^shot\|2026-12-20\|/)
+    await expect(page.getByTestId('saved-state')).toHaveAttribute('data-state', /^shot\|2026-12-20\|/)
     await page.getByRole('button', { name: 'Прибрати дату' }).click()
     await expect(page.getByRole('status')).toHaveText('Збережено')
     await page.goto('/uk/e2e/delivery/control')
-    await expect(page.getByTestId('saved-state')).toHaveText(/^shot\|null\|/)
+    await expect(page.getByTestId('saved-state')).toHaveAttribute('data-state', /^shot\|null\|/)
   })
 })

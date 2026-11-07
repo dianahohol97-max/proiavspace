@@ -29,10 +29,13 @@ export default async function E2EDeliveryControl({
   const state = await e2eDeliveryState()
   const t = dict.galleryManage
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
-      <p data-testid="saved-state" className="text-xs text-muted">
-        {state.status ?? 'null'}|{state.eta ?? 'null'}|{state.saves}
-      </p>
+    // The saved value is exposed to the test as an attribute only — nothing
+    // extra is printed on the page (the control must look as in the dashboard).
+    <main
+      className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16"
+      data-testid="saved-state"
+      data-state={`${state.status ?? 'null'}|${state.eta ?? 'null'}|${state.saves}`}
+    >
       <DeliveryStatusControl
         initialStatus={parseDeliveryStatus(state.status)}
         initialEta={parseDeliveryEta(state.eta)}

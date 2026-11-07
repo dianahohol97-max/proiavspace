@@ -25,15 +25,19 @@ export interface DeliveryLabels {
   madeOn: string
 }
 
-/** The gallery's accent, exactly as GalleryExperience picks it. */
-export function galleryAccent(mode: SiteMode, style?: GalleryStyle): string {
-  return style?.accent ?? (mode === 'night' ? '#8fa2ff' : '#2f55ff')
+/**
+ * Accent for the status screen and banner: the photographer's override, else
+ * the gallery theme's own accent («Опівніч» — flame gold, «Тиша» — ink), never
+ * the platform cobalt/lavender. deliveryPalette() then lifts it to ≥ 4.5:1.
+ */
+export function deliveryAccent(theme: ThemeId, mode: SiteMode, style?: GalleryStyle): string {
+  return style?.accent ?? resolveTokens(theme, mode).accent
 }
 
 /** CSS variables for the screen / banner in this gallery's own style. */
 export function deliveryVars(theme: ThemeId, mode: SiteMode, style?: GalleryStyle): CSSProperties {
   const tokens = resolveTokens(theme, mode)
-  const palette = deliveryPalette({ ...tokens, accent: galleryAccent(mode, style) })
+  const palette = deliveryPalette({ ...tokens, accent: deliveryAccent(theme, mode, style) })
   return {
     '--d-bg': palette.bg,
     '--d-fg': palette.fg,
@@ -62,6 +66,7 @@ export function DeliveryStatusScreen({
   title,
   brandName,
   logoUrl,
+  coverUrl = null,
   status,
   etaText,
   contactUrl,
@@ -75,6 +80,12 @@ export function DeliveryStatusScreen({
   title: string
   brandName: string | null
   logoUrl: string | null
+  /**
+   * The gallery cover (a light variant, never the original): shown behind
+   * the content, softly blurred and washed in the theme's background. null →
+   * the plain screen.
+   */
+  coverUrl?: string | null
   status: GalleryDeliveryStatus
   /** The ETA already formatted for the locale, or null. */
   etaText: string | null
@@ -89,7 +100,18 @@ export function DeliveryStatusScreen({
   const steps = [labels.stepShot, labels.stepEditing, labels.stepReady]
 
   return (
-    <main className={s.screen} style={deliveryVars(theme, mode, style)} data-delivery="screen">
+    <main
+      className={`${s.screen}${coverUrl ? ` ${s.withCover}` : ''}`}
+      style={deliveryVars(theme, mode, style)}
+      data-delivery="screen"
+    >
+      {coverUrl && (
+        <div className={s.backdrop} aria-hidden data-delivery="cover">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className={s.backdropImg} src={coverUrl} alt="" fetchPriority="high" />
+          <div className={s.backdropWash} />
+        </div>
+      )}
       <div className={`${s.caps} ${s.lang}`}>
         <LangPicker current={isLocale(locale) ? locale : ('uk' as Locale)} />
       </div>

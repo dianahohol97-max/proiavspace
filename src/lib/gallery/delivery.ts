@@ -49,6 +49,31 @@ export function countVisibleAssets(assets: readonly { hidden_from_client?: boole
   return (assets ?? []).filter((asset) => asset.hidden_from_client !== true).length
 }
 
+/**
+ * Storage key for the status screen's blurred backdrop: the gallery's cover
+ * (cover_asset_id) or else the first photo, never one hidden from the client,
+ * and only a light variant (mobile WebP → preview → video poster) — never the
+ * original r2_key. null → the plain screen.
+ */
+export function deliveryCoverKey(
+  assets:
+    | readonly {
+        id: string
+        kind?: string
+        hidden_from_client?: boolean | null
+        variants?: { mobile?: string; preview?: string; poster?: string } | null
+      }[]
+    | null
+    | undefined,
+  coverAssetId: string | null | undefined
+): string | null {
+  const visible = (assets ?? []).filter((asset) => asset.hidden_from_client !== true)
+  const cover = (coverAssetId && visible.find((asset) => asset.id === coverAssetId)) || visible[0]
+  if (!cover) return null
+  const v = cover.variants ?? {}
+  return (cover.kind === 'video' ? v.poster : v.mobile ?? v.preview ?? v.poster) ?? null
+}
+
 /** Step index on the «Зйомка → Обробка → Готово» line. */
 export function deliveryStep(status: GalleryDeliveryStatus): 0 | 1 | 2 {
   return status === 'shot' ? 0 : status === 'editing' ? 1 : 2

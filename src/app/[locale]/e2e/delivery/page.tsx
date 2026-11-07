@@ -21,6 +21,7 @@ import { GalleryExperience, type GalleryItem } from '@/components/gallery/Galler
  *
  *   ?status=shot|editing|ready  ?theme=<catalog value>  ?photos=N
  *   ?hidden=N (photos with hidden_from_client)  ?eta=YYYY-MM-DD
+ *   ?cover=1 (a cover behind the status screen, as a light 1080 px WebP)
  */
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,7 @@ export default async function E2EDeliveryPreview({
   searchParams,
 }: {
   params: { locale: string }
-  searchParams: { status?: string; theme?: string; photos?: string; hidden?: string; eta?: string }
+  searchParams: { status?: string; theme?: string; photos?: string; hidden?: string; eta?: string; cover?: string }
 }) {
   if (process.env.E2E_THEME_PREVIEW !== '1' || !isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -60,6 +61,7 @@ export default async function E2EDeliveryPreview({
         title={title}
         brandName={brandName}
         logoUrl={null}
+        coverUrl={searchParams.cover === '1' ? '/themes/07-1080.webp' : null}
         status={status}
         etaText={etaText}
         contactUrl="https://instagram.com/"
