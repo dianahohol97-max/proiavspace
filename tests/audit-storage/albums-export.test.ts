@@ -205,6 +205,43 @@ describe('PSD розвороту', () => {
     assert.equal(psd.imageResources!.resolutionInfo!.horizontalResolution, 300)
     assert.deepEqual(psd.imageResources!.iccProfile, iccProfile('srgb'))
   })
+
+  test('текст — живий текстовий шар Photoshop: шрифт, розмір у px документа, поворот', () => {
+    const bytes = buildSpreadPsd({
+      width: 64,
+      height: 32,
+      dpi: 300,
+      icc: iccProfile('srgb'),
+      composite: new Uint8ClampedArray(64 * 32 * 4).fill(255),
+      background: [255, 255, 255],
+      layers: [
+        {
+          name: 'Текст — Аня',
+          left: 10,
+          top: 4,
+          width: 20,
+          height: 10,
+          data: new Uint8ClampedArray(20 * 10 * 4),
+          text: {
+            text: 'Аня й Тарас\n2026',
+            fontPostscript: 'CormorantGaramond-Medium',
+            fontSizePx: 100,
+            color: { r: 255, g: 255, b: 255 },
+            justification: 'center',
+            leadingPx: 125,
+            transform: [0, 1, -1, 0, 30, 16],
+          },
+        },
+      ],
+    })
+    const psd = readPsd(bytes, { useImageData: true, skipThumbnail: true, skipCompositeImageData: true, skipLayerImageData: true })
+    const layer = psd.children![1]!
+    assert.equal(layer.text?.text.replace(/\r/g, '\n'), 'Аня й Тарас\n2026')
+    assert.equal(layer.text?.style?.font?.name, 'CormorantGaramond-Medium')
+    assert.equal(Math.round(layer.text?.style?.fontSize ?? 0), 100)
+    assert.deepEqual(layer.text?.transform?.map((v) => Math.round(v)), [0, 1, -1, 0, 30, 16])
+    assert.equal(layer.text?.paragraphStyle?.justification, 'center')
+  })
 })
 
 describe('PDF: живий текст з кирилицею', () => {

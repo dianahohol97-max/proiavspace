@@ -448,6 +448,37 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
 
   if (isPhone) return <PhoneViewer title={title} spec={spec} spreads={spreads} photos={photosById} basePath={basePath} />
 
+  const autodesignPanel = (
+    <div className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
+      <p className={label}>Автодизайн альбому</p>
+      <div className="flex gap-1 rounded-full bg-bg p-1" role="radiogroup" aria-label="Щільність">
+        {(
+          [
+            ['airy', 'Повітряно'],
+            ['normal', 'Звично'],
+            ['dense', 'Щільно'],
+          ] as [Density, string][]
+        ).map(([value, name]) => (
+          <button
+            key={value}
+            role="radio"
+            aria-checked={density === value}
+            onClick={() => setDensity(value)}
+            className={`flex-1 rounded-full px-2 py-1 text-xs font-bold ${density === value ? 'bg-white text-fg shadow-sm' : 'text-muted hover:text-fg'}`}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      <button className={btn} onClick={autofillAlbum} disabled={!photos.length}>
+        Автодизайн {picked.length ? `з обраних (${picked.length})` : 'з невикористаних'}
+      </button>
+      <p className="text-xs text-muted">
+        Серії кадрів (сусідні номери файлів, одна орієнтація) лишаються на одному розвороті; самотній горизонтальний кадр інколи отримує весь розворот.
+      </p>
+    </div>
+  )
+
   const stripPhotos = stripFilter === 'unused' ? photos.filter((p) => !usage.has(p.id)) : photos
 
   return (
@@ -584,7 +615,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
                   + Перший розворот
                 </button>
                 <button className={btn} onClick={autofillAlbum} disabled={!photos.length}>
-                  Автозаповнити альбом
+                  Автодизайн альбому
                 </button>
               </div>
             </div>
@@ -636,7 +667,10 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             {!current ? (
-              <p className="text-sm text-muted">Додайте розворот.</p>
+              <>
+                <p className="text-sm text-muted">Додайте розворот або розкладіть фото автоматично.</p>
+                {autodesignPanel}
+              </>
             ) : rightTab === 'templates' ? (
               <>
                 <TemplatePicker spread={current} spec={spec} onApply={setLayout} onCoverPreset={applyCover} />
@@ -652,34 +686,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
                     Позначте кадри в плівці клацанням і перетягніть їх разом на розворот — розкладка підбереться, а стрілками ← → можна перебрати варіанти.
                   </p>
                 </div>
-                <div className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
-                  <p className={label}>Автодизайн альбому</p>
-                  <div className="flex gap-1 rounded-full bg-bg p-1" role="radiogroup" aria-label="Щільність">
-                    {(
-                      [
-                        ['airy', 'Повітряно'],
-                        ['normal', 'Звично'],
-                        ['dense', 'Щільно'],
-                      ] as [Density, string][]
-                    ).map(([value, name]) => (
-                      <button
-                        key={value}
-                        role="radio"
-                        aria-checked={density === value}
-                        onClick={() => setDensity(value)}
-                        className={`flex-1 rounded-full px-2 py-1 text-xs font-bold ${density === value ? 'bg-white text-fg shadow-sm' : 'text-muted hover:text-fg'}`}
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                  <button className={btn} onClick={autofillAlbum} disabled={!photos.length}>
-                    Автодизайн {picked.length ? `з обраних (${picked.length})` : 'з невикористаних'}
-                  </button>
-                  <p className="text-xs text-muted">
-                    Серії кадрів (сусідні номери файлів, одна орієнтація) лишаються на одному розвороті; самотній горизонтальний кадр інколи отримує весь розворот.
-                  </p>
-                </div>
+                {autodesignPanel}
               </>
             ) : selectedText && current ? (
               <TextInspector

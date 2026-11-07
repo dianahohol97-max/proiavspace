@@ -171,6 +171,149 @@ test.describe('конструктор альбомів', () => {
     }
   })
 
+  /** Seeds an empty demo album with a cover whose spine grows 1 mm per spread. */
+  async function seedAlbum(page: Page, title: string): Promise<string> {
+    await freshStorage(page)
+    return page.evaluate((albumTitle) => {
+      const projectId = crypto.randomUUID()
+      window.localStorage.setItem(
+        'proiav-album-demo-v1',
+        JSON.stringify({
+          profiles: [],
+          projects: [
+            {
+              id: projectId,
+              title: albumTitle,
+              galleryId: 'demo-gallery',
+              profileId: null,
+              updatedAt: new Date().toISOString(),
+              // Low DPI keeps the CI export light; geometry is the same at 300.
+              spec: {
+                spreadWidthMm: 600, spreadHeightMm: 300, bleedMm: 3, safeMm: 8, marginMm: 12, gapMm: 4, dpi: 120, colorProfile: 'srgb',
+                cover: { widthMm: 610, heightMm: 300, bleedMm: 10, spineMm: 6, spinePerSpreadMm: 1 },
+              },
+              spreads: [],
+            },
+          ],
+        })
+      )
+      return projectId
+    }, title)
+  }
+
+  test('автодизайн, обкладинка з корінцем, поворот, текст, варіанти ←/→ → PDF з живим текстом у Web Worker', async ({ page, isMobile }, testInfo) => {
+    test.skip(isMobile, 'редагування — на ноутбуці')
+    test.setTimeout(240_000)
+    const id = await seedAlbum(page, 'Весілля Ані й Тараса')
+    await page.goto(`${BASE}/${id}`)
+    await expect(page.getByTestId('album-editor')).toBeVisible()
+    const filled = page.getByTestId('spread-sheet').locator('[data-testid="slot"][data-filled="true"]')
+
+    // Autodesign of all 16 demo frames.
+    await page.getByRole('radio', { name: 'Звично' }).click()
+    await page.getByRole('button', { name: /Автодизайн з невикористаних/ }).click()
+    const thumbs = page.getByTestId('spread-thumb')
+    await expect(thumbs.first()).toBeVisible()
+    const spreadCount = await thumbs.count()
+    expect(spreadCount).toBeGreaterThanOrEqual(4)
+    await page.getByRole('combobox', { name: 'Фільтр плівки' }).selectOption('unused')
+    await expect(page.getByTestId('strip-photo')).toHaveCount(0)
+    await page.getByRole('combobox', { name: 'Фільтр плівки' }).selectOption('all')
+
+    // Cover: spine = 6 mm + 1 mm × spreads; preset puts a title and the spine text.
+    await page.getByRole('button', { name: '+ Обкладинка' }).click()
+    await expect(page.getByTestId('spread-list')).toContainText(`Обкладинка · ${6 + spreadCount} мм`)
+    await page.getByRole('button', { name: 'Обкладинка: Фото на всю обкладинку' }).click()
+    await page.getByTestId('strip-photo').nth(4).dragTo(page.getByTestId('spread-sheet').getByTestId('slot').first(), { targetPosition: { x: 40, y: 40 } })
+    await expect(filled).toHaveCount(1)
+    await expect(page.getByTestId('spread-sheet').getByTestId('text-item')).toHaveCount(2)
+    await expect(page.getByTestId('spine-guide')).toBeVisible()
+
+    // Spread 1: rotate a photo 90° and straighten by −3°; add a script text.
+    await thumbs.nth(1).click()
+    await page.getByTestId('spread-sheet').getByTestId('slot').first().click()
+    await page.getByRole('button', { name: 'Повернути на 90° за годинниковою' }).click()
+    await page.getByLabel('Вільний поворот').fill('-3')
+    await expect(page.getByTestId('slot-inspector')).toContainText('Поворот · 87°')
+    await page.getByRole('button', { name: '+ Текст' }).click()
+    await page.locator('#text-content').fill('Наш день\n12.09.2026')
+    await page.getByTestId('text-inspector').getByLabel('Шрифт').selectOption('greatvibes')
+    await expect(page.getByTestId('spread-sheet').getByTestId('text-item')).toHaveCount(1)
+
+    // Spread 2: drop three marked photos at once → layout variants, flip with the arrow keys.
+    await thumbs.nth(2).click()
+    const before = await filled.count()
+    const strip = page.getByTestId('strip-photo')
+    for (const i of [13, 14, 15]) await strip.nth(i).click()
+    await strip.nth(14).dragTo(page.getByTestId('spread-sheet'), { targetPosition: { x: 5, y: 5 } })
+    await expect(page.getByTestId('variant-bar')).toBeVisible()
+    await expect(page.getByTestId('variant-counter')).toHaveText(/^Варіант 1 з \d+$/)
+    const total = await filled.count()
+    expect(total).toBeGreaterThan(before)
+    await page.keyboard.press('ArrowRight')
+    await expect(page.getByTestId('variant-counter')).toHaveText(/^Варіант 2 з \d+$/)
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowLeft')
+    await expect(page.getByTestId('variant-counter')).toHaveText(/^Варіант 2 з \d+$/)
+    await expect(filled).toHaveCount(total)
+    // All the flipping is a single undo step.
+    await page.getByRole('button', { name: 'Скасувати' }).click()
+    await expect(filled).toHaveCount(before)
+    await page.getByRole('button', { name: 'Повторити' }).click()
+    await expect(filled).toHaveCount(total)
+
+    // Autosave → reload → text and rotation survive.
+    await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved', { timeout: 15_000 })
+    await page.screenshot({ path: testInfo.outputPath('editor-text.png') })
+    await page.reload()
+    await thumbs.nth(1).click()
+    await expect(page.getByTestId('spread-sheet').getByTestId('text-item')).toHaveCount(1)
+    await page.getByTestId('spread-sheet').getByTestId('slot').first().click()
+    await expect(page.getByTestId('slot-inspector')).toContainText('Поворот · 87°')
+
+    // PDF of the whole album, rendered in the Web Worker; live text with embedded fonts.
+    await page.getByRole('button', { name: 'Експорт', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Експорт' })
+    await dialog.getByLabel(/PDF альбому/).check()
+    await dialog.getByLabel(/Усі розвороти/).check()
+    const download = page.waitForEvent('download')
+    await dialog.getByRole('button', { name: 'Експортувати' }).click()
+    const pdf = await download
+    await expect(dialog.getByTestId('export-done')).toHaveAttribute('data-engine', 'worker')
+    const pdfPath = testInfo.outputPath('album-text.pdf')
+    await pdf.saveAs(pdfPath)
+    const text = spawnSync('pdftotext', [pdfPath, '-'], { encoding: 'utf8' })
+    if (text.status === 0) {
+      const flat = text.stdout.replace(/\s+/g, ' ')
+      expect(flat).toContain('Наш день 12.09.2026')
+      expect(flat).toContain('Весілля Ані й Тараса')
+      const fonts = spawnSync('pdffonts', [pdfPath], { encoding: 'utf8' }).stdout
+      expect(fonts).toMatch(/GreatVibes-Regular\s+CID TrueType/)
+      expect(fonts).toMatch(/CormorantGaramond-Medium\s+CID TrueType/)
+      const pages = spawnSync('pdfinfo', [pdfPath], { encoding: 'utf8' }).stdout
+      expect(pages).toMatch(new RegExp(`Pages:\\s+${spreadCount + 1}\\b`))
+    }
+  })
+
+  test('сховище не віддає оригінали (CORS) — експорт пояснює, що налаштувати', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'експорт — на ноутбуці')
+    const id = await seedAlbum(page, 'CORS')
+    await page.goto(`${BASE}/${id}`)
+    await page.getByRole('button', { name: /Автодизайн з невикористаних/ }).click()
+    await expect(page.getByTestId('spread-thumb').first()).toBeVisible()
+    // From now on the «storage» refuses the originals the way a missing CORS rule looks to fetch().
+    await page.context().route('**/showcase/*.jpg', (route) => route.abort('accessdenied'))
+    await page.getByRole('button', { name: 'Експорт', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Експорт' })
+    await dialog.getByLabel(/JPEG розворотів/).check()
+    await dialog.getByLabel('Лише поточний').check()
+    await dialog.getByRole('button', { name: 'Експортувати' }).click()
+    const alert = dialog.getByRole('alert')
+    await expect(alert).toContainText('CORS')
+    await expect(alert).toContainText('docs/albums/B2-CORS.md')
+    await expect(dialog.getByRole('button', { name: 'Експортувати' })).toBeEnabled()
+  })
+
   test('телефон: альбом відкривається для перегляду', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'лише телефони')
     await freshStorage(page)
