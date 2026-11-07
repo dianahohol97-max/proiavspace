@@ -79,6 +79,12 @@ export interface RegisterAssetInput {
   width?: number
   height?: number
   variants?: Record<string, string>
+  /**
+   * The file's name exactly as on the photographer's disk (File.name), kept in
+   * assets.source_file_name (0066) for the Lightroom list of client picks —
+   * the storage key holds only a sanitized copy.
+   */
+  sourceFileName?: string
   /** Zip import only: the file's name inside the zip (duplicate guard). */
   originalName?: string
   /** Zip import only: the gallery_imports row this file belongs to. */
@@ -104,12 +110,36 @@ export function parseRegisterAssetInput(value: unknown): RegisterAssetInput | nu
     typeof v.sizeBytes === 'number' &&
     (v.width === undefined || typeof v.width === 'number') &&
     (v.height === undefined || typeof v.height === 'number') &&
+    (v.sourceFileName === undefined ||
+      (typeof v.sourceFileName === 'string' && v.sourceFileName.length <= 1024)) &&
     (v.originalName === undefined ||
       (typeof v.originalName === 'string' && v.originalName.length <= 512)) &&
     (v.importId === undefined || typeof v.importId === 'string') &&
     (v.position === undefined || (Number.isInteger(v.position) && (v.position as number) >= 0)) &&
     variantsOk
   return ok ? (v as unknown as RegisterAssetInput) : null
+}
+
+/**
+ * A file name fit for assets.source_file_name: no folders (some browsers or a
+ * folder drop hand over «a/b/IMG.jpg»), no control characters, NFC (macOS
+ * hands over decomposed Cyrillic «й»), at most 255 characters; '' → null.
+ */
+export function cleanSourceFileName(value: string | undefined | null): string | null {
+  if (typeof value !== 'string') return null
+  const base = value.split(/[\\/]/).pop() ?? ''
+  // eslint-disable-next-line no-control-regex
+  const clean = base.normalize('NFC').replace(/[\u0000-\u001f\u007f]/g, '').trim()
+  return clean ? Array.from(clean).slice(0, 255).join('') : null
+}
+
+/** PostgREST: the column is not in the schema (migration not applied yet). */
+function isUnknownColumn(error: { code?: string; message?: string } | null, column: string): boolean {
+  return (
+    !!error &&
+    (error.code === 'PGRST204' || error.code === '42703') &&
+    (error.message ?? '').includes(column)
+  )
 }
 
 export type RegisterResult =
@@ -182,30 +212,37 @@ export async function registerAsset(
 
   const kind = contentType.startsWith('video/') ? 'video' : 'photo'
 
-  const { data, error } = await admin
-    .from('assets')
-    .insert({
-      gallery_id: input.galleryId,
-      owner_id: userId,
-      r2_key: input.key,
-      kind,
-      content_type: contentType,
-      width: input.width ?? null,
-      height: input.height ?? null,
-      // Original size only; variant overhead (~5-10%) is deliberately not
-      // counted against the quota to keep accounting simple for now.
-      size_bytes: stored.sizeBytes,
-      variants: input.variants ?? {},
-      ...(input.importId
-        ? {
-            original_name: input.originalName ?? null,
-            import_id: input.importId,
-            position: input.position ?? 0,
-          }
-        : {}),
-    })
-    .select('id')
-    .single()
+  const sourceFileName = cleanSourceFileName(input.sourceFileName ?? input.originalName)
+  const row: Record<string, unknown> = {
+    gallery_id: input.galleryId,
+    owner_id: userId,
+    r2_key: input.key,
+    kind,
+    content_type: contentType,
+    width: input.width ?? null,
+    height: input.height ?? null,
+    // Original size only; variant overhead (~5-10%) is deliberately not
+    // counted against the quota to keep accounting simple for now.
+    size_bytes: stored.sizeBytes,
+    variants: input.variants ?? {},
+    ...(input.importId
+      ? {
+          original_name: input.originalName ?? null,
+          import_id: input.importId,
+          position: input.position ?? 0,
+        }
+      : {}),
+    ...(sourceFileName ? { source_file_name: sourceFileName } : {}),
+  }
+  const insert = (values: Record<string, unknown>) =>
+    admin.from('assets').insert(values).select('id').single()
+  let { data, error } = await insert(row)
+  if (sourceFileName && isUnknownColumn(error, 'source_file_name')) {
+    // 0066 not applied yet: register without the name (the list falls back
+    // to the storage key's name, as before) rather than fail the upload.
+    const { source_file_name: _dropped, ...withoutName } = row
+    ;({ data, error } = await insert(withoutName))
+  }
 
   if (error?.code === '23505' && input.importId) {
     // Same file name already in this gallery (two tabs importing one zip):
@@ -222,7 +259,7 @@ export async function registerAsset(
   if (error) {
     return { ok: false, status: 500, error: error.message }
   }
-  return { ok: true, assetId: data.id }
+  return { ok: true, assetId: (data as { id: string }).id }
 }
 
 /** The enforce_storage_quota trigger (0045) refused the insert. */
