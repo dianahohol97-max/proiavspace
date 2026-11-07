@@ -44,7 +44,8 @@ describe('тарифи (plans.ts — єдине джерело)', () => {
     assert.equal(GALLERY_PLANS.free.storageGb, 3)
     assert.match(source('supabase/migrations/0001_phase1_galleries.sql'), /default 3221225472/)
     // Місця, де «3 ГБ» прописано текстом, а не з plans.ts — мають збігатися.
-    for (const f of ['src/app/[locale]/page.tsx', 'src/lib/landing/copy.ts', 'src/lib/blog/linking.ts']) {
+    // Тексти головної переїхали зі сторінки в словники (розділ pages) — шукаємо там.
+    for (const f of ['src/lib/i18n/dictionaries/uk.ts', 'src/lib/i18n/dictionaries/en.ts', 'src/lib/landing/copy.ts', 'src/lib/blog/linking.ts']) {
       assert.match(source(f), /3 (ГБ|GB)/, f)
       assert.equal(/4 (ГБ|GB)/.test(source(f)), false, f)
     }
