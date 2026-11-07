@@ -18,7 +18,7 @@
     },
     {
       "path": "/api/cron/booking-release",
-      "schedule": "20 * * * *"
+      "schedule": "40 * * * *"
     }
   ]
 }
