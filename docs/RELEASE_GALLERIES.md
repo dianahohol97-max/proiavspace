@@ -77,7 +77,37 @@
 
 ## Перевірки кандидата
 
-<!-- CHECKS -->
+7.11.2026, HEAD `release/galleries`:
+
+| Перевірка | Результат |
+|---|---|
+| `npx tsc --noEmit` | ✅ без помилок |
+| `npm run test:audit` | ✅ 316/316 (до виправлення 315/316: тест статусу зйомки чекав `resolveTokens`, а з «Візиткою» код бере `resolveGalleryTokens` — оновлено тест) |
+| `npm run test:e2e` (desktop, iphone, android) | ✅ 207 пройдено, 0 падінь, 60 пропущено (тести, привʼязані до одного профілю через `test.skip`); `upload-resume` повторно після правок рев'ю — 4/4 |
+| `next build` | ✅; `/[locale]/g/[slug]` First Load JS 257 → 259 kB |
+
+**Lighthouse**, `/uk/gallery-demo` (той самий `GalleryExperience`, що й `/g/[slug]`; реальна галерея без бази не рендериться),
+`next start`, iPhone 390×844 @3x, iOS UA, simulated throttling, по 3 прогони, медіана:
+
+| | Perf | LCP | FCP | TBT | CLS | Вага |
+|---|---|---|---|---|---|---|
+| `main` (9f4af50) | 87 (85/89/87) | 3.34 s | 1.37 s | 230 ms | 0 | 1207 KB |
+| `release/galleries` | 89 (89/89/89) | 3.24 s | 1.37 s | 227 ms | 0 | 1211 KB |
+
+Регресії немає; різниця в межах шуму.
+
+## Рев'ю диффу `main...release/galleries`
+
+Виправлено в кандидаті (дрібниці):
+- `src/lib/upload/reservations.ts:57` — резерв місця видалявся лише за `upload_id`; тепер ще й за `owner_id` (чужий `uploadId` не знімає чужий резерв).
+- `src/app/api/uploads/multipart/abort/route.ts:46` — `NoSuchUpload` (уже завершено / прибрано кроном) давав 500 і резерв висів до 24 год; тепер ігнорується, резерв знімається.
+- `src/app/api/billing/renew/route.ts:528` — після 0056 рядки промо видалених акаунтів (`user_id NULL`) щодня займали б місця в пачці нагадувань; відфільтровано.
+
+Не виправлено — рішення за власницею:
+1. **`vercel.json:20-22`** — крон `/api/cron/storage-purge` щогодинний (`20 * * * *`). Якщо команда Vercel на Hobby, деплой відхилять («Hobby — лише щоденні крони»). План через API не видно. Якщо Hobby — поставити `20 4 * * *` (воркер продовжує з місця, де зупинився).
+2. **`supabase/migrations/0060_db_hardening.sql:61-64`** — перевірка `auth.uid() is distinct from p_owner` спрацьовує й усередині `get_free_slots` (0005:76), бо там `auth.uid()` — це відвідувач. Залогінений відвідувач `/b/<handle>` не звільняє прострочені неоплачені слоти й бачить їх зайнятими. Галерей не стосується, але 0060 у цьому релізі. Варіанти: накотити 0060 без пункту 4 (`release_expired_slots`), або переробити: прибрати перевірку, `revoke execute … from authenticated` і викликати з `dashboard/booking/page.tsx:41` через admin-клієнт.
+
+Перевірено й гаразд: `hidden_from_client` (RLS, RPC 0054, `/g/[slug]` для парольних галерей через service role, `archive-urls`, `/api/assets/[id]/download` до перевірки розблокування, обране); усі нові service-role шляхи перевіряють власника; purge-воркер (лише `u/<uuid>/`, без `..`, dry-run за замовчуванням); multipart-маршрути вимагають ключ `u/<me>/g/<gallery>/`; TTL підписаних URL: частини 10 хв, перегляд 60 хв, оригінал 5 хв, архів 6 год; без 0057/0059/0063 код деградує тихо; старі галереї (`delivery_status` NULL, без thumbhash/mobile) показуються як раніше.
 
 ## Що перевірити руками після деплою
 
