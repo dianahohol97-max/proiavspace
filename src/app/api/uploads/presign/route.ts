@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { getStorage, isVariantName, originalKey, variantKey } from '@/lib/storage'
+import { getStorage, isVariantContentType, isVariantName, originalKey, variantKey } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { authorizeUpload } from '@/lib/uploads'
 
@@ -53,9 +53,13 @@ export async function POST(request: NextRequest) {
   if (body.variant !== undefined && !isVariantName(body.variant)) {
     return NextResponse.json({ error: 'unknown_variant' }, { status: 400 })
   }
+  // Renditions are browser-made JPEG/WebP only — the CDN serves them as-is.
+  if (body.variant !== undefined && !isVariantContentType(body.contentType)) {
+    return NextResponse.json({ error: 'unsupported_type' }, { status: 415 })
+  }
 
   const key = body.variant
-    ? variantKey(user.id, body.galleryId, body.variant)
+    ? variantKey(user.id, body.galleryId, body.variant, body.contentType)
     : originalKey(user.id, body.galleryId, body.fileName)
   const { url } = await getStorage().getUploadUrl({
     key,

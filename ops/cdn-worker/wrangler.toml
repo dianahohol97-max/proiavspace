@@ -1,0 +1,16 @@
+# Cloudflare Worker: CDN for gallery previews/thumbs/posters from the private B2 bucket.
+# Deploy:  cd ops/cdn-worker && npx wrangler@4 deploy
+# Secrets: npx wrangler@4 secret put B2_KEY_ID
+#          npx wrangler@4 secret put B2_APPLICATION_KEY
+name = "proiav-media"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[vars]
+# Fill in before deploying (the same values as B2_BUCKET / B2_REGION in Vercel).
+B2_BUCKET = "CHANGE-ME"
+B2_REGION = "CHANGE-ME"   # e.g. us-east-005 — the part after "s3." in the B2 endpoint
+# Edge cache lifetime in seconds (7 days). Keys are immutable UUIDs, but previews are
+# unsigned via the CDN: a deleted gallery must leave the cache within a week.
+EDGE_CACHE_SECONDS = "604800"

@@ -1,20 +1,37 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { buildZipBlob, splitIntoParts, writeZipToStream, type ArchiveFile } from '@/lib/gallery/archive'
 import { resolveTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import { fontFamily, type GalleryStyle } from '@/lib/gallery/style'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { LangPicker } from '@/components/LangPicker'
+import { GalleryGrid, type GridTileInfo } from './GalleryGrid'
+import { gridSrc, gridSrcSet } from './gridLayout'
+import type { GalleryLightboxProps } from './GalleryLightbox'
 import s from './GalleryExperience.module.css'
+
+// The viewer is a separate chunk: the grid renders without waiting for it, and
+// it is fetched in the background once the page is idle.
+const loadLightbox = () => import('./GalleryLightbox')
+const GalleryLightbox = dynamic<GalleryLightboxProps>(loadLightbox, { ssr: false })
 
 export interface GalleryItem {
   id: string
   kind: 'photo' | 'video'
   width: number | null
   height: number | null
+  /** Full preview (2048 px JPEG) — the lightbox; for videos, the video itself. */
   previewUrl: string
+  /**
+   * Light grid tile (~1080 px WebP, the `mobile` variant). Missing on galleries
+   * uploaded before it existed — the grid then uses previewUrl, as before.
+   */
+  gridUrl?: string | null
+  /** MIME type of a video (the lightbox needs it for <source>). */
+  contentType?: string | null
   /** Video still frame for the grid tile; null for photos or older videos. */
   posterUrl?: string | null
   /** Crop focus (0–100%) for uniform layouts; null = center. */
@@ -36,6 +53,39 @@ export interface GalleryLabels {
   favoriteToggle: string
   madeOn: string
   tip: string
+  /** «Слайд-шоу» button in the bar. */
+  slideshow?: string
+  /** Full-screen viewer controls (aria labels / tooltips). */
+  viewer?: ViewerLabels
+}
+
+export interface ViewerLabels {
+  lightbox: string
+  close: string
+  prev: string
+  next: string
+  play: string
+  pause: string
+  fullscreen: string
+  exitFullscreen: string
+  zoomIn: string
+  zoomOut: string
+  /** «{index} з {total}» */
+  slideOf: string
+}
+
+const ENGLISH_VIEWER: ViewerLabels = {
+  lightbox: 'Photo viewer',
+  close: 'Close',
+  prev: 'Previous',
+  next: 'Next',
+  play: 'Play',
+  pause: 'Pause',
+  fullscreen: 'Full screen',
+  exitFullscreen: 'Exit full screen',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  slideOf: '{index} of {total}',
 }
 
 /* ---------- zero-egress zip: see src/lib/gallery/archive.ts ---------- */
@@ -69,6 +119,7 @@ export function GalleryExperience({
   brandName,
   logoUrl,
   coverUrl,
+  coverGridUrl = null,
   coverVideoUrl = null,
   items,
   initialFavorites,
@@ -88,6 +139,8 @@ export function GalleryExperience({
   brandName: string | null
   logoUrl: string | null
   coverUrl: string | null
+  /** Light (~1080 px WebP) rendition of a photo cover, for phones. */
+  coverGridUrl?: string | null
   /** When the cover asset is a video: a looping muted clip behind the title. */
   coverVideoUrl?: string | null
   items: GalleryItem[]
@@ -109,13 +162,33 @@ export function GalleryExperience({
   const focal = `${style?.focalX ?? 50}% ${style?.focalY ?? 50}%`
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites))
-  const [lightbox, setLightbox] = useState<number | null>(null)
-  const [playing, setPlaying] = useState(false)
+  // Viewer: mounted on first open and kept, so closing can animate out.
+  const [viewer, setViewer] = useState<{ open: boolean; index: number; slideshow: boolean } | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const coverRef = useRef<HTMLImageElement | null>(null)
+  // Grid photos load right away when nothing is above the grid; under a
+  // photo cover they are held until it has loaded (see renderTile).
+  const coverIsPhoto = (style?.cover ?? 'classic') !== 'minimal' && !!coverUrl && !coverVideoUrl
+  const [mediaReleased, setMediaReleased] = useState(!coverIsPhoto)
+  useEffect(() => {
+    if (mediaReleased) return
+    const cover = coverRef.current
+    const release = () => setMediaReleased(true)
+    if (!cover || cover.complete) return release()
+    cover.addEventListener('load', release)
+    cover.addEventListener('error', release)
+    // Never hold the grid hostage to a slow cover.
+    const timer = window.setTimeout(release, 4000)
+    return () => {
+      cover.removeEventListener('load', release)
+      cover.removeEventListener('error', release)
+      window.clearTimeout(timer)
+    }
+  }, [mediaReleased])
   const [archive, setArchive] = useState<'idle' | 'working' | 'error'>('idle')
   const [done, setDone] = useState(0)
   const [total, setTotal] = useState(0)
   const [partReady, setPartReady] = useState<PartReady | null>(null)
-  const lbRef = useRef<HTMLDivElement | null>(null)
   const uk = locale === 'uk'
 
   async function toggleFavorite(assetId: string) {
@@ -203,70 +276,49 @@ export function GalleryExperience({
     }
   }
 
-  const show = useCallback(
-    (index: number) => setLightbox(((index % items.length) + items.length) % items.length),
-    [items.length]
+  const openAt = useCallback(
+    (index: number) => setViewer({ open: true, index, slideshow: false }),
+    []
   )
 
-  const closeViewer = useCallback(() => {
-    setLightbox(null)
-    setPlaying(false)
-  }, [])
+  const closeViewer = useCallback(
+    () => setViewer((prev) => (prev ? { ...prev, open: false, slideshow: false } : prev)),
+    []
+  )
 
   const startSlideshow = useCallback(() => {
     if (items.length === 0) return
-    setLightbox(0)
-    setPlaying(true)
+    setViewer({ open: true, index: 0, slideshow: true })
   }, [items.length])
 
-  useEffect(() => {
-    if (lightbox === null) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeViewer()
-      if (event.key === 'ArrowLeft') show(lightbox - 1)
-      if (event.key === 'ArrowRight') show(lightbox + 1)
-      if (event.key === ' ') {
-        event.preventDefault()
-        setPlaying((p) => !p)
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [lightbox, show, closeViewer])
+  const onView = useCallback(
+    (index: number) => setViewer((prev) => (prev && prev.index !== index ? { ...prev, index } : prev)),
+    []
+  )
 
-  // Autoplay: advance photos on a timer; pause on a video so it can play out.
+  // Fetch the viewer's code once the page is idle, so the first tap opens it
+  // without a network round trip.
   useEffect(() => {
-    if (!playing || lightbox === null) return
-    if (items[lightbox]?.kind === 'video') return
-    const timer = setTimeout(() => show(lightbox + 1), 4500)
-    return () => clearTimeout(timer)
-  }, [playing, lightbox, items, show])
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback
+    const handle = idle ? idle(() => void loadLightbox()) : window.setTimeout(() => void loadLightbox(), 1500)
+    return () => {
+      if (!idle) window.clearTimeout(handle)
+    }
+  }, [])
 
   // Per-photo view tracking: record the opened/navigated-to photo once per
   // session (deduped) so the photographer sees which frames drew attention.
   const viewedRef = useRef<Set<string>>(new Set())
+  const viewedIndex = viewer?.open ? viewer.index : null
   useEffect(() => {
-    if (demo || lightbox === null) return
-    const id = items[lightbox]?.id
+    if (demo || viewedIndex === null) return
+    const id = items[viewedIndex]?.id
     if (!id || viewedRef.current.has(id)) return
     viewedRef.current.add(id)
     void createSupabaseBrowserClient()
       .rpc('record_photo_view', { p_slug: slug, p_asset: id })
       .then(() => undefined, () => undefined)
-  }, [lightbox, items, slug, demo])
-
-  // Go fullscreen when a slideshow starts; stay there while paused; release it
-  // only when the viewer closes.
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    if (lightbox === null) {
-      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
-      return
-    }
-    if (playing && lbRef.current && !document.fullscreenElement) {
-      lbRef.current.requestFullscreen?.().catch(() => {})
-    }
-  }, [playing, lightbox])
+  }, [viewedIndex, items, slug, demo])
 
   const vars = {
     '--g-bg': tokens.bg,
@@ -306,10 +358,119 @@ export function GalleryExperience({
           layout === 'collage' ? ` ${s.gridCollage}` : layout === 'editorial' ? ` ${s.gridEditorial}` : ''
         }`
 
-  const current = lightbox !== null ? items[lightbox] : null
+  const renderTile = (item: GalleryItem, index: number, tile: GridTileInfo) => {
+    const media = (item.kind === 'photo' ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          // Same src/srcset/sizes on the server and after hydration: the
+          // browser reuses the image it already has, nothing loads twice.
+          src={gridSrc(item)}
+          srcSet={gridSrcSet(item)}
+          sizes={item.gridUrl ? tile.sizes : undefined}
+          alt=""
+          loading={tile.eager ? 'eager' : 'lazy'}
+          fetchPriority={tile.priority ? 'high' : undefined}
+          decoding={tile.eager ? undefined : 'async'}
+          width={item.width ?? undefined}
+          height={item.height ?? undefined}
+          className={s.shotMedia}
+          style={tileFocus(item)}
+          onError={(event) => {
+            const image = event.currentTarget
+            // The light tile is missing (e.g. the CDN Worker isn't updated
+            // yet): fall back to the full preview once.
+            if (item.gridUrl && image.currentSrc !== item.previewUrl && !image.dataset.fallback) {
+              image.dataset.fallback = ''
+              image.removeAttribute('srcset')
+              image.src = item.previewUrl
+              return
+            }
+            // Storage refused the file (expired link, B2 cap): show the
+            // empty tile rather than the browser's broken-image glyph.
+            image.dataset.broken = ''
+          }}
+        />
+      ) : item.posterUrl ? (
+        // Video with a poster: show the still (never streams the original)
+        // with a play badge; the real video opens in the lightbox.
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.posterUrl}
+            alt=""
+            loading={tile.eager ? 'eager' : 'lazy'}
+            fetchPriority={tile.priority ? 'high' : undefined}
+            decoding={tile.eager ? undefined : 'async'}
+            className={s.shotMedia}
+            style={tileFocus(item)}
+          />
+          <span className={s.playBadge}>▶</span>
+        </>
+      ) : (
+        <video
+          src={item.previewUrl}
+          className={s.shotMedia}
+          style={tileFocus(item)}
+          muted
+          playsInline
+          preload="metadata"
+        />
+      ))
+    return (
+    <figure
+      key={item.id}
+      data-i={index}
+      className={`${s.shot}${tile.fill ? ` ${s.shotFill}` : ''}${tile.contain ? ` ${s.shotContain}` : ''}`}
+      // The proportions are known before the photo loads: the server-rendered
+      // grid has its final layout, with a placeholder background, at once.
+      style={tile.aspect ? { aspectRatio: tile.aspect } : undefined}
+      onClick={() => openAt(index)}
+    >
+      {
+        // Under a photo cover the tiles' photos wait until the cover has
+        // loaded, so the cover — the first thing a visitor sees — gets the
+        // whole connection. Without JavaScript <noscript> shows them at once.
+        mediaReleased ? media : <noscript>{media}</noscript>
+      }
+      <a
+        href={item.downloadHref}
+        className={s.dlOne}
+        title={labels.downloadOriginal}
+        onClick={(event) => event.stopPropagation()}
+      >
+        ↓
+      </a>
+      <button
+        type="button"
+        aria-label={labels.favoriteToggle}
+        aria-pressed={favorites.has(item.id)}
+        className={`${s.heart} ${favorites.has(item.id) ? s.heartOn : ''}`}
+        onClick={(event) => {
+          event.stopPropagation()
+          void toggleFavorite(item.id)
+        }}
+      >
+        ♥
+      </button>
+    </figure>
+    )
+  }
+
+  // Photos come from the media CDN (or presigned B2 URLs): open those
+  // connections while the HTML is still being parsed.
+  const mediaOrigins = Array.from(
+    new Set(
+      [coverUrl, items[0]?.gridUrl, items[0]?.previewUrl]
+        .map((url) => (url && /^https?:\/\//.test(url) ? new URL(url).origin : null))
+        .filter((origin): origin is string => !!origin)
+    )
+  ).slice(0, 2)
 
   return (
-    <div className={s.root} style={vars}>
+    <div ref={rootRef} className={s.root} style={vars}>
+      {mediaOrigins.map((origin) => (
+        <link key={origin} rel="preconnect" href={origin} />
+      ))}
       {/* -------- cover -------- */}
       <header className={`${s.cover}${cover === 'left' ? ` ${s.coverLeft}` : ''}${cover === 'minimal' ? ` ${s.coverMinimal}` : ''}`}>
         {cover !== 'minimal' &&
@@ -325,9 +486,20 @@ export function GalleryExperience({
               playsInline
             />
           ) : coverUrl ? (
-            <div
+            // A real <img>, not a CSS background: the browser finds it in the
+            // HTML at once and loads it first (it is the page's LCP element).
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              ref={coverRef}
               className={s.coverImg}
-              style={{ backgroundImage: `url("${coverUrl}")`, backgroundPosition: focal }}
+              src={coverUrl}
+              // Full-bleed hero: a phone (≤ 560 px, up to 3×) takes the light
+              // 1080 px WebP; a tablet or computer screen takes the 2048 px preview.
+              srcSet={coverGridUrl ? `${coverGridUrl} 1080w, ${coverUrl} 2048w` : undefined}
+              sizes={coverGridUrl ? '(max-width: 560px) 360px, 100vw' : undefined}
+              alt=""
+              fetchPriority="high"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: focal }}
             />
           ) : (
             <div className={s.coverImg} style={{ background: tokens.line }} />
@@ -371,7 +543,7 @@ export function GalleryExperience({
         </span>
         {items.length > 0 && (
           <button type="button" className={s.slideBtn} onClick={startSlideshow}>
-            ▶ {uk ? 'Слайд-шоу' : 'Slideshow'}
+            ▶ {labels.slideshow ?? (uk ? 'Слайд-шоу' : 'Slideshow')}
           </button>
         )}
         {partReady ? (
@@ -413,77 +585,16 @@ export function GalleryExperience({
         {labels.downloadHint}
       </p>
 
-      {/* -------- grid -------- */}
-      <main className={gridClass}>
-        {items.map((item, index) => (
-          <figure
-            key={item.id}
-            className={s.shot}
-            onClick={() => show(index)}
-          >
-            {item.kind === 'photo' ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={item.previewUrl}
-                alt=""
-                loading="lazy"
-                width={item.width ?? undefined}
-                height={item.height ?? undefined}
-                className={s.shotMedia}
-                style={tileFocus(item)}
-                // Storage refused the file (expired link, B2 cap): show the
-                // empty tile rather than the browser's broken-image glyph.
-                onError={(event) => {
-                  event.currentTarget.dataset.broken = ''
-                }}
-              />
-            ) : item.posterUrl ? (
-              // Video with a poster: show the still (never streams the original)
-              // with a play badge; the real video opens in the lightbox.
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.posterUrl}
-                  alt=""
-                  loading="lazy"
-                  className={s.shotMedia}
-                  style={tileFocus(item)}
-                />
-                <span className={s.playBadge}>▶</span>
-              </>
-            ) : (
-              <video
-                src={item.previewUrl}
-                className={s.shotMedia}
-                style={tileFocus(item)}
-                muted
-                playsInline
-                preload="metadata"
-              />
-            )}
-            <a
-              href={item.downloadHref}
-              className={s.dlOne}
-              title={labels.downloadOriginal}
-              onClick={(event) => event.stopPropagation()}
-            >
-              ↓
-            </a>
-            <button
-              type="button"
-              aria-label={labels.favoriteToggle}
-              aria-pressed={favorites.has(item.id)}
-              className={`${s.heart} ${favorites.has(item.id) ? s.heartOn : ''}`}
-              onClick={(event) => {
-                event.stopPropagation()
-                void toggleFavorite(item.id)
-              }}
-            >
-              ♥
-            </button>
-          </figure>
-        ))}
-      </main>
+      {/* -------- grid (virtualized: only rows near the screen are in the DOM) -------- */}
+      <GalleryGrid
+        items={items}
+        layout={layout}
+        columns={style?.columns ?? 3}
+        gap={style?.gap ?? 14}
+        aboveFold={cover === 'minimal'}
+        className={gridClass}
+        renderTile={renderTile}
+      />
 
       {/* -------- footer -------- */}
       <footer className={s.foot}>
@@ -523,55 +634,19 @@ export function GalleryExperience({
       </footer>
 
       {/* -------- lightbox / slideshow -------- */}
-      {current && (
-        <div
-          ref={lbRef}
-          className={s.lb}
-          onClick={(event) => {
-            if (event.target === event.currentTarget) closeViewer()
-          }}
-        >
-          <div className={s.lbTools}>
-            <button
-              type="button"
-              className={s.lbTool}
-              aria-label={playing ? 'Pause' : 'Play'}
-              onClick={() => setPlaying((p) => !p)}
-            >
-              {playing ? '⏸' : '▶'}
-            </button>
-            <button type="button" className={s.lbTool} aria-label="Close" onClick={closeViewer}>
-              ✕
-            </button>
-          </div>
-          <button type="button" className={s.lbPrev} onClick={() => show((lightbox ?? 0) - 1)}>
-            ←
-          </button>
-          {current.kind === 'photo' ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={current.previewUrl} alt="" className={s.lbMedia} />
-          ) : (
-            <video
-              src={current.previewUrl}
-              poster={current.posterUrl ?? undefined}
-              className={s.lbMedia}
-              controls
-              autoPlay
-              playsInline
-            />
-          )}
-          <button type="button" className={s.lbNext} onClick={() => show((lightbox ?? 0) + 1)}>
-            →
-          </button>
-          <div className={s.lbFoot}>
-            <a href={current.downloadHref} className={s.lbDl}>
-              ↓ {labels.downloadOriginal}
-            </a>
-            <span className={s.lbCap}>
-              {(lightbox ?? 0) + 1} / {items.length}
-            </span>
-          </div>
-        </div>
+      {viewer && (
+        <GalleryLightbox
+          items={items}
+          open={viewer.open}
+          index={viewer.index}
+          slideshow={viewer.slideshow}
+          favorites={favorites}
+          labels={{ ...labels, viewer: labels.viewer ?? ENGLISH_VIEWER }}
+          portalRoot={rootRef.current}
+          onClose={closeViewer}
+          onView={onView}
+          onToggleFavorite={(id) => void toggleFavorite(id)}
+        />
       )}
     </div>
   )

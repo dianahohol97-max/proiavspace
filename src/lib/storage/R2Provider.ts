@@ -76,15 +76,15 @@ export class S3CompatProvider implements StorageProvider {
   }
 
   async getSignedReadUrl(key: string, options?: SignedReadUrlOptions): Promise<string> {
-    // Inline reads (previews, thumbs, posters, covers, logos) go through the
-    // CDN when configured — cached at the edge, fast even on a weak connection,
-    // and free egress from B2. Forced downloads (originals) stay presigned:
-    // short-lived, private, never cached publicly.
-    // Originals (…/o/<uuid>-name) never go through the CDN, even when fetched
-    // inline (the «download all» archive): a CDN URL is unsigned and lives
-    // forever, which would leak a password gallery's originals (CL-04).
+    // Variants (…/v/<uuid>-preview|thumb|poster.jpg) go through the CDN when
+    // configured — cached at the edge, fast from any country. The CDN is the
+    // Cloudflare Worker in ops/cdn-worker: it serves ONLY …/v/ keys from the
+    // private bucket (it signs its own read-only requests) and 404s the rest.
+    // Everything else stays presigned: originals (…/o/, CL-04 — a CDN URL is
+    // unsigned and lives forever), logos, portfolio originals, social videos,
+    // and any forced download.
     const cdn = process.env.MEDIA_CDN_URL
-    if (cdn && !options?.downloadFileName && !isOriginalKey(key)) {
+    if (cdn && !options?.downloadFileName && isVariantKey(key)) {
       return `${cdn.replace(/\/+$/, '')}/${key}`
     }
 
@@ -284,7 +284,10 @@ export class B2Provider extends S3CompatProvider {
   }
 }
 
-/** Original uploads live under `…/o/` (see originalKey in ./index.ts). */
-function isOriginalKey(key: string): boolean {
-  return /\/o\/[^/]+$/.test(key)
+/**
+ * Variants live under `…/v/` (see variantKey in ./index.ts and the portfolio
+ * presign route); originals under `…/o/`. Only variants may use the CDN.
+ */
+function isVariantKey(key: string): boolean {
+  return /\/v\/[^/]+$/.test(key) && !/\/o\//.test(key)
 }

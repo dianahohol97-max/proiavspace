@@ -1,0 +1,62 @@
+name: Release checks
+
+# Every push to a release branch: typecheck, audit tests and browser tests.
+# Runs on GitHub only — Vercel builds nothing for release/* (it builds main only).
+
+on:
+  push:
+    branches: ['release/**']
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Sentry must stay off in CI.
+      NEXT_PUBLIC_SENTRY_DSN: ''
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        id: install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Audit tests
+        # Run every check even if an earlier one failed, so one push shows all results.
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run test:audit
+
+      - name: Install Playwright Chromium
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests (next dev, placeholder Supabase)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

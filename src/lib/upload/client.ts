@@ -265,7 +265,7 @@ export async function uploadFileToGallery(options: {
   // renditions and the pixel size, and runs while the original uploads.
   const renditionsPromise = isVideo
     ? Promise.resolve({ variants: [] } as Awaited<ReturnType<typeof generateImageVariants>>)
-    : generateImageVariants(file, watermarkText)
+    : generateImageVariants(file, watermarkText, { mobile: true })
 
   const { uploadUrl, key } = await presign(galleryId, file.name, contentType, file.size)
 
@@ -282,14 +282,14 @@ export async function uploadFileToGallery(options: {
     rendered.variants.map(async (rendition) => {
       const target = await presign(
         galleryId,
-        `${rendition.name}.jpg`,
-        'image/jpeg',
+        `${rendition.name}.${rendition.contentType === 'image/webp' ? 'webp' : 'jpg'}`,
+        rendition.contentType,
         rendition.blob.size,
         rendition.name
       )
       const put = await fetch(target.uploadUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': 'image/jpeg' },
+        headers: { 'Content-Type': rendition.contentType },
         body: rendition.blob,
       })
       if (!put.ok) throw new Error(`variant put ${put.status}`)

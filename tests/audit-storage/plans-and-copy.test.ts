@@ -162,7 +162,8 @@ describe('залишки старої логіки й тексти, що роз�
       'AUTOMATION_SETUP.md',
     ]
     const hits = [...files.map((f) => join(ROOT, f)), ...srcFiles].filter((f) =>
-      /resend/i.test(readFileSync(f, 'utf8'))
+      // Not glued to a preceding letter: Sentry's `beforeSend` option is not Resend.
+      /(?<![a-z])resend/i.test(readFileSync(f, 'utf8'))
     )
     assert.deepEqual(hits.map((f) => relative(ROOT, f)), [])
   })

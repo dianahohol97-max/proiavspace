@@ -1,5 +1,6 @@
 'use client'
 
+import { reportBoundaryError } from '@/lib/sentry/report'
 import { useEffect, useState } from 'react'
 
 /** Names whatever foreign code touched the DOM — shows up in screenshots. */
@@ -39,6 +40,7 @@ export default function DashboardError({
   const [markers, setMarkers] = useState('')
 
   useEffect(() => {
+    reportBoundaryError(error)
     // Surface it in the browser console too (visible in DevTools).
     console.error('dashboard error boundary:', error)
     setMarkers(domMarkers())

@@ -8,6 +8,8 @@ import { breadcrumbNode, graph } from '@/lib/seo/structured-data'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { THEME_DEMOS } from '@/lib/site/demoContent'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
+import { galleryLabels } from '@/lib/gallery/labels'
+import type { GalleryStyle } from '@/lib/gallery/style'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +31,11 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
 /** WebP for viewing; the "download" button hands out the original JPEG. */
 function img(n: number, ext: 'webp' | 'jpg' = 'webp'): string {
   return `/themes/${String(n).padStart(2, '0')}.${ext}`
+}
+
+/** The light ~1080 px WebP, as a real gallery's `mobile` rendition. */
+function light(n: number): string {
+  return `/themes/${String(n).padStart(2, '0')}-1080.webp`
 }
 
 // One wedding story in the Norwegian mountains (fence, fields, road, red
@@ -65,12 +72,16 @@ const PHOTOS: { n: number; v?: true; fx: number; fy: number }[] = [
 /** Close-up of the couple, forehead to forehead — the gallery cover. */
 const COVER = 7
 
+const MAX_DEMO_ITEMS = 2000
+const LAYOUTS: NonNullable<GalleryStyle['layout']>[] = ['masonry', 'square', 'portrait', 'collage', 'editorial']
+const COVERS: NonNullable<GalleryStyle['cover']>[] = ['classic', 'left', 'minimal']
+
 export default async function GalleryDemoPage({
   params,
   searchParams,
 }: {
   params: { locale: string }
-  searchParams: { theme?: string }
+  searchParams: { theme?: string; n?: string; layout?: string; cover?: string; nodims?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -80,12 +91,25 @@ export default async function GalleryDemoPage({
   // The gallery inherits its palette/typography from the chosen theme.
   const active = THEME_DEMOS.find((d) => d.value === searchParams.theme) ?? THEME_DEMOS[0]
 
-  const items: GalleryItem[] = PHOTOS.map(({ n, v, fx, fy }) => ({
-    id: String(n),
+  // ?n=1500 repeats the 24 frames into a big gallery (load check of the
+  // virtualized grid); ?layout= and ?cover= show the other grid layouts and
+  // cover treatments («minimal» puts the grid on the first screen).
+  const count = Math.min(Math.max(Number.parseInt(searchParams.n ?? '', 10) || PHOTOS.length, 1), MAX_DEMO_ITEMS)
+  const layout = LAYOUTS.find((l) => l === searchParams.layout)
+  const cover = COVERS.find((c) => c === searchParams.cover)
+  const frames = Array.from({ length: count }, (_, i) => ({ ...PHOTOS[i % PHOTOS.length], i }))
+
+  // ?nodims=3: photos 2, 5, 8 lose their stored size, like old HEIC uploads.
+  const noDims = Math.min(Math.max(Number.parseInt(searchParams.nodims ?? '', 10) || 0, 0), PHOTOS.length)
+  const unsized = (i: number) => i % 3 === 1 && (i - 1) / 3 < noDims
+
+  const items: GalleryItem[] = frames.map(({ n, v, fx, fy, i }) => ({
+    id: i < PHOTOS.length ? String(n) : `${n}-${i}`,
     kind: 'photo',
-    width: v ? 1333 : 2000,
-    height: v ? 2000 : 1333,
+    width: unsized(i) ? null : v ? 1333 : 2000,
+    height: unsized(i) ? null : v ? 2000 : 1333,
     previewUrl: img(n),
+    gridUrl: light(n),
     posterUrl: null,
     focalX: fx,
     focalY: fy,
@@ -139,6 +163,7 @@ export default async function GalleryDemoPage({
         brandName="Ольга Вишня"
         logoUrl={null}
         coverUrl={img(COVER)}
+        coverGridUrl={light(COVER)}
         items={items}
         initialFavorites={['11', '5']}
         showBadge
@@ -146,20 +171,8 @@ export default async function GalleryDemoPage({
         theme={active.theme}
         mode={active.mode}
         // Cover focal: the couple's faces sit just above the middle.
-        style={{ focalX: 48, focalY: 35 }}
-        labels={{
-          scrollHint: dict.publicGallery.scrollHint,
-          selected: dict.publicGallery.selected,
-          downloadAll: dict.publicGallery.downloadAll,
-          downloadHint: dict.publicGallery.downloadHint,
-          preparingArchive: dict.publicGallery.preparingArchive,
-          archiveError: dict.publicGallery.archiveError,
-          savePart: dict.publicGallery.savePart,
-          downloadOriginal: dict.publicGallery.downloadOriginal,
-          favoriteToggle: dict.publicGallery.favoriteToggle,
-          madeOn: dict.publicGallery.madeOn,
-          tip: dict.publicGallery.tip,
-        }}
+        style={{ focalX: 48, focalY: 35, ...(layout ? { layout } : {}), ...(cover ? { cover } : {}) }}
+        labels={galleryLabels(dict)}
       />
     </>
   )

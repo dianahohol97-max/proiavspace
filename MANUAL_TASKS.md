@@ -37,26 +37,29 @@ Environment Variables стоять оновлені значення (B2, Monoba
 
 ---
 
-## 🟡 CDN через Bunny.net (щоб фото відкривались миттєво)
-Код уже вміє віддавати прев'ю/обкладинки через CDN — треба лише ввімкнути
-змінною `MEDIA_CDN_URL`. Поки її нема, усе працює як раніше (presigned з B2).
+## 🟡 CDN через Cloudflare Worker (щоб фото швидко відкривались з будь-якої країни)
+Прев'ю, тумби й постери (`…/v/…`) роздає Cloudflare Worker `ops/cdn-worker` з кешем. Бакет B2
+**лишається приватним**: Worker сам підписує запити ключем лише на читання. Оригінали (`…/o/…`),
+лого й усе інше Worker не віддає (404), застосунок дає на них підписані посилання на B2, як і раніше.
+Поки `MEDIA_CDN_URL` не задано, усе працює як зараз (підписані посилання з B2).
 
-1. **Зробити B2-бакет публічним для читання:** Backblaze → Buckets → мій
-   бакет → Bucket Settings → **Files in Bucket are: Public**.
-   (Оригінали й далі захищені — публічні лінки на них короткоживучі й видаються
-   лише через застосунок; CDN кешує тільки прев'ю/тумби/постери/обкладинки/лого.)
-2. **Створити Pull Zone у Bunny:** [bunny.net](https://bunny.net) → CDN →
-   Add Pull Zone.
-   - Name: `proiav`
-   - Origin URL: `https://s3.<B2_REGION>.backblazeb2.com/<B2_BUCKET>`
-     (мій регіон і назву бакета взяти з Vercel env `B2_REGION`, `B2_BUCKET` —
-     напр. `https://s3.eu-central-003.backblazeb2.com/proyav-media`).
-3. **Перевірити:** взяти будь-який ключ файлу і відкрити
-   `https://proiav.b-cdn.net/<key>` — має віддати картинку.
-4. *(Опційно, гарніше)* Свій піддомен: DNS → CNAME `cdn` → `proiav.b-cdn.net`,
-   у Bunny → Pull Zone → Hostnames додати `cdn.proiav.space` і ввімкнути SSL.
-5. **Увімкнути:** Vercel → Environment Variables → `MEDIA_CDN_URL` =
-   `https://proiav.b-cdn.net` (або `https://cdn.proiav.space`) → **Redeploy**.
+⚠️ Бакет **не** робити Public, а Bunny Pull Zone на публічний бакет **не** створювати: це
+відкрило б оригінали за прямим посиланням (CL-04 в `docs/AUDIT_STORAGE_LIFECYCLE.md`).
+
+Покроково: **`ops/cdn-worker/README.md`**. Коротко:
+1. Акаунт Cloudflare (Free) → Workers & Pages → вибрати піддомен `workers.dev`.
+2. Backblaze → Application Keys → новий ключ **Read Only** лише на бакет медіа, prefix `u/`.
+3. Задеплоїти Worker (`npx wrangler@4 deploy` або вставити `ops/cdn-worker/dist/worker.js` у
+   дашборді), додати змінні `B2_BUCKET`, `B2_REGION` і секрети `B2_KEY_ID`, `B2_APPLICATION_KEY`.
+4. Перевірити: прев'ю через `https://proiav-media.<піддомен>.workers.dev/<ключ>` відкривається,
+   ключ з `/o/` дає 404.
+5. Vercel → **dianatracker-dtks** → `MEDIA_CDN_URL` = адреса Worker → Redeploy (або мерж релізу).
+
+## 🟡 Sentry: сповіщення про помилки з проду
+Код готовий і вмикається змінною `NEXT_PUBLIC_SENTRY_DSN`. Покроково: **`docs/SENTRY.md`**.
+1. Безкоштовний акаунт Sentry Developer (регіон EU) або GlitchTip → проєкт Next.js → скопіювати DSN.
+2. Vercel → **dianatracker-dtks** → Settings → Environment Variables → `NEXT_PUBLIC_SENTRY_DSN`
+   (Production) → **до** мержу релізу, бо змінна вбудовується під час збірки.
 
 ---
 
