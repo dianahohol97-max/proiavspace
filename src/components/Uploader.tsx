@@ -1,17 +1,23 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PlanVideoRequiredError, uploadFileToGallery } from '@/lib/upload/client'
+import { listResumes } from '@/lib/upload/resumeStore'
 
 /**
  * Direct-to-storage uploader. The per-file pipeline (presign → PUT → in-browser
  * renditions → complete) lives in lib/upload/client, shared with the zip
  * import; this component runs up to CONCURRENCY of them in parallel.
+ *
+ * CONCURRENCY is files in progress, not connections: every storage request of
+ * the page shares one limit of 6 (lib/upload/transfer.ts). A couple of files
+ * more than that keep the link busy while others wait for presign/complete or
+ * for their previews (docs/UPLOAD_PERF.md).
  */
 
-const CONCURRENCY = 5
+const CONCURRENCY = 8
 
 type FileStatus = 'queued' | 'uploading' | 'done' | 'error'
 
@@ -22,6 +28,8 @@ interface UploadItem {
   progress: number // 0..100
   /** Rejected because the plan has no video (Free). */
   videoPlan?: boolean
+  /** Paused: the network is gone, the upload continues when it is back. */
+  waiting?: boolean
 }
 
 export function Uploader({
@@ -31,9 +39,15 @@ export function Uploader({
   videoPlanNotice,
   videoPlanLink,
   billingHref,
+  resumeHint,
+  networkWait,
 }: {
   galleryId: string
   dropHint: string
+  /** «{count} unfinished uploads: choose the same files to continue.» */
+  resumeHint: string
+  /** Status of a file paused until the network is back. */
+  networkWait: string
   /** Shown when a video is refused on a plan without video, with a link to billing. */
   videoPlanNotice: string
   videoPlanLink: string
@@ -45,6 +59,18 @@ export function Uploader({
   const inputRef = useRef<HTMLInputElement>(null)
   const [items, setItems] = useState<UploadItem[]>([])
   const [dragOver, setDragOver] = useState(false)
+  // Multipart uploads interrupted by a reload/closed tab (IndexedDB). Choosing
+  // the same files continues them from the parts storage already has.
+  const [unfinished, setUnfinished] = useState<string[]>([])
+  useEffect(() => {
+    let alive = true
+    void listResumes(galleryId).then((records) => {
+      if (alive) setUnfinished(records.map((record) => record.fileName))
+    })
+    return () => {
+      alive = false
+    }
+  }, [galleryId])
 
   const updateItem = useCallback((id: string, patch: Partial<UploadItem>) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)))
@@ -59,10 +85,16 @@ export function Uploader({
           file: item.file,
           watermarkText,
           onProgress: (progress) => updateItem(item.id, { progress }),
+          onNetworkWait: (waiting) => updateItem(item.id, { waiting }),
         })
-        updateItem(item.id, { status: 'done', progress: 100 })
+        updateItem(item.id, { status: 'done', progress: 100, waiting: false })
+        setUnfinished((prev) => prev.filter((name) => name !== item.file.name))
       } catch (error) {
-        updateItem(item.id, { status: 'error', videoPlan: error instanceof PlanVideoRequiredError })
+        updateItem(item.id, {
+          status: 'error',
+          waiting: false,
+          videoPlan: error instanceof PlanVideoRequiredError,
+        })
       }
     },
     [galleryId, updateItem, watermarkText]
@@ -137,9 +169,25 @@ export function Uploader({
         }}
       />
 
+      {unfinished.length > 0 && (
+        <p className="mt-6 text-sm text-muted" data-testid="upload-resume-hint">
+          {resumeHint.replace('{count}', String(unfinished.length))}{' '}
+          <span className="text-fg">
+            {unfinished.slice(0, 5).join(', ')}
+            {unfinished.length > 5 ? '…' : ''}
+          </span>
+        </p>
+      )}
+
       {items.some((item) => item.videoPlan) && (
         <p className="mt-6 text-sm text-accent">
           {videoPlanNotice} <Link href={billingHref}>{videoPlanLink}</Link>
+        </p>
+      )}
+
+      {items.some((item) => item.waiting && item.status === 'uploading') && (
+        <p className="mt-6 text-sm text-accent" role="status">
+          {networkWait}
         </p>
       )}
 
@@ -158,8 +206,17 @@ export function Uploader({
                   />
                 </span>
               </span>
-              <span className="w-16 text-right text-xs uppercase tracking-widest text-muted">
-                {item.status === 'done' ? '✓' : item.status === 'error' ? '✕' : `${item.progress}%`}
+              <span
+                className="w-16 text-right text-xs uppercase tracking-widest text-muted"
+                title={item.waiting ? networkWait : undefined}
+              >
+                {item.status === 'done'
+                  ? '✓'
+                  : item.status === 'error'
+                    ? '✕'
+                    : item.waiting
+                      ? '…'
+                      : `${item.progress}%`}
               </span>
             </li>
           ))}

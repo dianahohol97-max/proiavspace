@@ -148,6 +148,8 @@ export const en: Dictionary = {
     dropHint: 'Drag files here or click to choose. Photos upload directly to storage.',
     videoPlanNotice: 'Video is available from the Basic plan.',
     videoPlanLink: 'Choose a plan',
+    uploadResumeHint: 'Unfinished uploads: {count}. Choose the same files to continue where they stopped:',
+    uploadNetworkWait: 'No connection — the upload will continue as soon as the network is back.',
     deleteGallery: 'Delete gallery',
     deleteConfirm: 'The gallery and all photos will be deleted forever. This cannot be undone.',
     settingsTitle: 'Password and expiry',

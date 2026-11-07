@@ -20,7 +20,14 @@ export type UploadCheck = { ok: true } | { ok: false; status: number; error: str
 export async function authorizeUpload(
   supabase: SupabaseClient,
   userId: string,
-  input: { galleryId: string; contentType: string; sizeBytes: number }
+  input: { galleryId: string; contentType: string; sizeBytes: number },
+  options: {
+    /**
+     * Bytes held by this account's other open multipart uploads (migration
+     * 0058, lib/upload/reservations.ts) — counted as used while they exist.
+     */
+    reservedBytes?: number
+  } = {}
 ): Promise<UploadCheck> {
   const isPhoto = input.contentType.startsWith('image/')
   const isVideo = input.contentType.startsWith('video/')
@@ -64,7 +71,8 @@ export async function authorizeUpload(
   }
 
   const effectiveLimit = Math.min(profile.storage_limit_bytes, planStorageBytes(plan))
-  if (profile.storage_used_bytes + input.sizeBytes > effectiveLimit) {
+  const reserved = options.reservedBytes ?? 0
+  if (profile.storage_used_bytes + reserved + input.sizeBytes > effectiveLimit) {
     return { ok: false, status: 403, error: 'storage_quota_exceeded' }
   }
 
@@ -141,6 +149,19 @@ export async function registerAsset(
     if (!running) {
       return { ok: false, status: 400, error: 'import_not_running' }
     }
+  }
+
+  // Idempotent: keys carry a fresh UUID, so an asset with this key is THIS
+  // upload, registered by an earlier attempt whose answer was lost (the
+  // browser retries /complete after a dropped connection). Answer the same.
+  const { data: already } = await supabase
+    .from('assets')
+    .select('id')
+    .eq('owner_id', userId)
+    .eq('r2_key', input.key)
+    .maybeSingle()
+  if (already) {
+    return { ok: true, assetId: (already as { id: string }).id }
   }
 
   // Never trust the client's own size/type: read what storage actually holds

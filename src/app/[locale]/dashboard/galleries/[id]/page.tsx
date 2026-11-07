@@ -347,6 +347,8 @@ export default async function ManageGalleryPage({
             watermarkText={watermarkText}
             videoPlanNotice={dict.galleryManage.videoPlanNotice}
             videoPlanLink={dict.galleryManage.videoPlanLink}
+            resumeHint={dict.galleryManage.uploadResumeHint}
+            networkWait={dict.galleryManage.uploadNetworkWait}
             billingHref={`/${locale}/dashboard/billing`}
           />
           )}
