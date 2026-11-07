@@ -1,10 +1,10 @@
 /**
- * Обране клієнта для Lightroom + лист «Ваші фото готові» (0064):
+ * Обране клієнта для Lightroom + лист «Ваші фото готові» (0066):
  * формат рядка для Lightroom Classic (Filename → Contains, «або»), дублікати,
  * порожній набір, назви з пробілами/комами, .txt/.csv; оригінальна назва
- * файлу зберігається при завантаженні (і завантаження не падає без 0064);
+ * файлу зберігається при завантаженні (і завантаження не падає без 0066);
  * лист іде один раз (і при двох одночасних збереженнях), «Надіслати ще раз»;
- * міграція 0064 на локальному Postgres (без бінарників — пропуск).
+ * міграція 0066 на локальному Postgres (без бінарників — пропуск).
  */
 import './helpers/fake-backend'
 import assert from 'node:assert/strict'
@@ -124,7 +124,7 @@ describe('обране: що потрапляє у список', () => {
     )
   })
 
-  test('назва: source_file_name (0064) → original_name (zip) → з ключа сховища без uuid-префікса', () => {
+  test('назва: source_file_name (0066) → original_name (zip) → з ключа сховища без uuid-префікса', () => {
     const key = 'u/1/g/2/o/3f2b8a1c-1111-4222-8333-444455556666-IMG_0042.jpg'
     assert.equal(assetOriginalName({ id: 'x', r2_key: key, source_file_name: 'IMG 0042.jpg' }), 'IMG 0042.jpg')
     assert.equal(assetOriginalName({ id: 'x', r2_key: key, original_name: 'Z.jpg' }), 'Z.jpg')
@@ -190,7 +190,7 @@ describe('оригінальна назва файлу при завантаже
     assert.equal('source_file_name' in db.assets[0], false)
   })
 
-  test('0064 ще не накочена (PGRST204) → asset реєструється без назви, завантаження не падає', async () => {
+  test('0066 ще не накочена (PGRST204) → asset реєструється без назви, завантаження не падає', async () => {
     const { userId, galleryId } = seedAccount({ plan: 'basic', usedBytes: 0, limitBytes: 100 * GB })
     const key = `${galleryPrefix(userId, galleryId)}o/${crypto.randomUUID()}-a.jpg`
     putObject(key, 1000)
@@ -427,7 +427,7 @@ before(() => {
 })
 after(() => pg?.stop())
 
-describe('міграція 0064 на локальному Postgres', () => {
+describe('міграція 0066 на локальному Postgres', () => {
   const skip = () => (pg ? false : 'немає Postgres-бінарників (initdb/pg_ctl/psql)')
 
   function gallery() {
@@ -438,7 +438,7 @@ describe('міграція 0064 на локальному Postgres', () => {
   }
 
   test('накочується без помилок', { skip: skip() }, () => {
-    assert.equal(pg!.failedMigrations['0064_client_picks_ready_email.sql'], undefined)
+    assert.equal(pg!.failedMigrations['0066_client_picks_ready_email.sql'], undefined)
   })
 
   test('дві однакові source_file_name в одній галереї — можна (на відміну від original_name)', { skip: skip() }, () => {

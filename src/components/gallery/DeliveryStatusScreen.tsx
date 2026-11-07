@@ -3,7 +3,7 @@ import { LangPicker } from '@/components/LangPicker'
 import { deliveryPalette, deliveryStep } from '@/lib/gallery/delivery'
 import { fontFamily, type GalleryStyle } from '@/lib/gallery/style'
 import { isLocale, type Locale } from '@/lib/i18n/config'
-import { resolveTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
+import { resolveGalleryTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import type { GalleryDeliveryStatus } from '@/lib/types'
 import s from './DeliveryStatus.module.css'
 
@@ -31,12 +31,12 @@ export interface DeliveryLabels {
  * the platform cobalt/lavender. deliveryPalette() then lifts it to ≥ 4.5:1.
  */
 export function deliveryAccent(theme: ThemeId, mode: SiteMode, style?: GalleryStyle): string {
-  return style?.accent ?? resolveTokens(theme, mode).accent
+  return style?.accent ?? resolveGalleryTokens(theme, mode).accent
 }
 
 /** CSS variables for the screen / banner in this gallery's own style. */
 export function deliveryVars(theme: ThemeId, mode: SiteMode, style?: GalleryStyle): CSSProperties {
-  const tokens = resolveTokens(theme, mode)
+  const tokens = resolveGalleryTokens(theme, mode)
   const palette = deliveryPalette({ ...tokens, accent: deliveryAccent(theme, mode, style) })
   return {
     '--d-bg': palette.bg,

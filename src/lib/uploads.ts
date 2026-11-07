@@ -81,7 +81,7 @@ export interface RegisterAssetInput {
   variants?: Record<string, string>
   /**
    * The file's name exactly as on the photographer's disk (File.name), kept in
-   * assets.source_file_name (0064) for the Lightroom list of client picks —
+   * assets.source_file_name (0066) for the Lightroom list of client picks —
    * the storage key holds only a sanitized copy.
    */
   sourceFileName?: string
@@ -238,7 +238,7 @@ export async function registerAsset(
     admin.from('assets').insert(values).select('id').single()
   let { data, error } = await insert(row)
   if (sourceFileName && isUnknownColumn(error, 'source_file_name')) {
-    // 0064 not applied yet: register without the name (the list falls back
+    // 0066 not applied yet: register without the name (the list falls back
     // to the storage key's name, as before) rather than fail the upload.
     const { source_file_name: _dropped, ...withoutName } = row
     ;({ data, error } = await insert(withoutName))

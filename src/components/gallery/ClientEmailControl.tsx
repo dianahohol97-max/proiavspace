@@ -29,7 +29,7 @@ export interface ClientEmailLabels {
 }
 
 /**
- * «Лист клієнтові» (0064) under the shoot status: the client's address
+ * «Лист клієнтові» (0066) under the shoot status: the client's address
  * (optional; saved only with the «клієнт погодився» tick), what happens next
  * («піде, щойно статус стане Готово» / «надіслано 7.11 о 14:05») and
  * «Надіслати ще раз». Status, publication and «sent at» come from the server

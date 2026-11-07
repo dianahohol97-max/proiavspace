@@ -21,7 +21,7 @@ import type { SelectionKind } from '@/lib/types'
 export interface PickAsset {
   id: string
   r2_key: string
-  /** The file's name exactly as it was on the photographer's disk (0064). */
+  /** The file's name exactly as it was on the photographer's disk (0066). */
   source_file_name?: string | null
   /** The file's name inside an imported zip (0037). */
   original_name?: string | null
@@ -52,7 +52,7 @@ function nameFromKey(r2Key: string, fallback: string): string {
 }
 
 /**
- * The name the photographer knows the file by. Uploads since 0064 store it
+ * The name the photographer knows the file by. Uploads since 0066 store it
  * verbatim (source_file_name); zip imports have it as original_name; older
  * uploads only have the storage key, whose name part is ASCII-sanitized
  * (camera names like IMG_0012.jpg survive intact, spaces/Cyrillic become «_»).

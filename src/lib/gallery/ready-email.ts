@@ -3,7 +3,7 @@ import type { EmailInput } from '@/lib/email'
 
 /**
  * Лист клієнтові «Ваші фото готові» (galleries.client_email /
- * ready_email_sent_at, migration 0064). The rules, in one place:
+ * ready_email_sent_at, migration 0066). The rules, in one place:
  *
  *   - automatic: when the shoot status becomes «Готово» (or a «Готово»
  *     gallery gets published) and the photographer gave the client's address
@@ -62,7 +62,7 @@ export const SEND_AGAIN_GAP_MS = 60 * 1000
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
-/** Trimmed address, or null for empty / invalid / too long (matches the 0064 check). */
+/** Trimmed address, or null for empty / invalid / too long (matches the 0066 check). */
 export function parseClientEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const email = value.trim()

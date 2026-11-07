@@ -169,7 +169,7 @@ export async function setGalleryDelivery(
     return { ok: false }
   }
   // «Готово» for the first time + the client's address → «Ваші фото готові»
-  // (0064). Once per gallery; a failed letter never fails the status save.
+  // (0066). Once per gallery; a failed letter never fails the status save.
   if (deliveryStatus === 'ready') {
     const { notifyClientIfReady } = await import('@/lib/gallery/ready-email-store')
     await notifyClientIfReady(supabase, user, galleryId)
@@ -193,7 +193,7 @@ export async function setGalleryPublished(
 
   if (error) throw new Error(`Failed to update gallery: ${error.message}`)
   // Status «Готово» set while the gallery was still a draft: the letter
-  // waited for a working link (0064). No-op when already sent / no address.
+  // waited for a working link (0066). No-op when already sent / no address.
   if (published) {
     const { notifyClientIfReady } = await import('@/lib/gallery/ready-email-store')
     await notifyClientIfReady(supabase, user, galleryId)

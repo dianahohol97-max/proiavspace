@@ -37,7 +37,7 @@ const ASSETS = [
   { id: 'b', r2_key: key('IMG_0015.jpg'), source_file_name: 'IMG_0015.jpg' },
   { id: 'c', r2_key: key('DSC 0101.jpg'), source_file_name: 'DSC 0101.jpg' },
   { id: 'd', r2_key: key('IMG_0012.png'), source_file_name: 'IMG_0012.png' },
-  // Uploaded before 0064: the name comes from the storage key.
+  // Uploaded before 0066: the name comes from the storage key.
   { id: 'e', r2_key: key('IMG_0200.JPG'), source_file_name: null },
   { id: 'g', r2_key: key('Весілля_007.JPG'), source_file_name: 'Весілля_007.JPG' },
   { id: 'f', r2_key: key('IMG_0099.jpg'), source_file_name: 'IMG_0099.jpg' },

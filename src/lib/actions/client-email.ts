@@ -1,7 +1,7 @@
 'use server'
 
 /**
- * «Лист клієнтові» in the gallery dashboard (0064): the client's address
+ * «Лист клієнтові» in the gallery dashboard (0066): the client's address
  * (optional, only with the client's consent) and «Надіслати ще раз». The
  * automatic letter itself is sent from setGalleryDelivery / setGalleryPublished
  * via notifyClientIfReady (lib/gallery/ready-email-store).
@@ -25,7 +25,7 @@ async function requireUser() {
 
 /**
  * Saves (or, with an empty value, removes) the client's address. A non-empty
- * address needs the «клієнт погодився» checkbox — the 0064 check enforces
+ * address needs the «клієнт погодився» checkbox — the 0066 check enforces
  * the same in the database.
  */
 export async function setClientEmail(

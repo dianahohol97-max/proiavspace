@@ -132,9 +132,15 @@ function pha(id: string, n: string, category: string, caption: string, [width, h
   }
 }
 
+type Hero = SiteContent['hero']
+type Contact = SiteContent['contact']
 function content(
-  partial: Omit<Partial<SiteContent>, 'about'> &
-    Pick<SiteContent, 'hero' | 'pricing' | 'contact'> & { about: { text: string; imageId?: string } }
+  partial: Omit<Partial<SiteContent>, 'about' | 'hero' | 'contact'> &
+    Pick<SiteContent, 'pricing'> & {
+      hero: Pick<Hero, 'title' | 'subtitle' | 'imageId'> & Partial<Hero>
+      about: { text: string; imageId?: string }
+      contact: Omit<Contact, 'telegram'> & Partial<Contact>
+    }
 ): SiteContent {
   return {
     albumCovers: {},
@@ -143,8 +149,12 @@ function content(
     moment: { text: '', imageId: '' },
     process: { steps: [] },
     testimonials: { items: [] },
+    terms: { prepayment: '', delivery: '', travel: '', bring: '' },
+    gifts: { enabled: false, items: [] },
     ...partial,
+    hero: { role: '', city: '', directions: [], ...partial.hero },
     about: { imageId: '', ...partial.about },
+    contact: { telegram: '', ...partial.contact },
   }
 }
 
@@ -157,32 +167,24 @@ export const THEME_DEMOS: ThemeDemo[] = [
     suits: 'Весільна та сімейна зйомка',
     displayName: 'Ольга Вишня',
     content: content({
-      hero: { title: 'Ольга Вишня', subtitle: 'Весільні історії у вашому темпі', imageId: '1' },
+      hero: {
+        title: 'Ольга Вишня',
+        subtitle: 'Весільні історії у вашому темпі',
+        imageId: '1',
+        city: 'Львів і Карпати',
+        directions: ['Весілля', 'Love story', 'Сімейні'],
+      },
+      terms: {
+        prepayment: '30% — і дата ваша',
+        delivery: 'перші кадри за 3 дні, уся галерея за 4 тижні',
+        travel: 'Львів і Карпати без доплат, далі — дорога за домовленістю',
+        bring: 'зручне взуття і все, що для вас важливе: листи, обручки, плед',
+      },
       about: {
         text: 'Я знімаю весілля такими, якими їх памʼятають самі наречені: світло крізь фіранку, мамині руки, що поправляють фату, тиша перед першим «так». Не ставлю в пози — спостерігаю й допомагаю почуватися вільно.',
         imageId: '17',
       },
       moment: { text: 'Найцінніше — між кадрами', imageId: '15' },
-      process: {
-        steps: [
-          {
-            title: 'Знайомство',
-            text: 'Зідзвонюємося або зустрічаємося на каву. Ви розповідаєте про свій день, я — про те, як працюю. Без поспіху й зобовʼязань.',
-          },
-          {
-            title: 'Підготовка',
-            text: 'Разом складаємо таймінг, обираємо локації та час із найкращим світлом. За тиждень до зйомки надсилаю короткий план дня.',
-          },
-          {
-            title: 'Зйомка',
-            text: 'Я поруч, але не заважаю: більше спостерігаю, ніж керую. Підказую лише там, де це справді допомагає.',
-          },
-          {
-            title: 'Галерея',
-            text: 'Спершу — кілька кадрів, щоб поділитися з рідними. Потім — повна онлайн-галерея з оригіналами, яку зручно переглядати й завантажувати.',
-          },
-        ],
-      },
       testimonials: {
         items: [
           {
@@ -222,7 +224,7 @@ export const THEME_DEMOS: ThemeDemo[] = [
           },
         ],
       },
-      contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', bookingUrl: '' },
+      contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', telegram: 'olga_vyshnia', bookingUrl: '' },
     }),
     portfolio: [
       // 1–4: landscape frames for the hero; then the grid's rhythm
@@ -232,11 +234,11 @@ export const THEME_DEMOS: ThemeDemo[] = [
       phw('3', '/themes/12', 'Весілля', 'Червоний дім на пагорбі', [2000, 1335]),
       phw('4', '/themes/04', 'Весілля', 'Дорога додому', [2000, 1335]),
       phw('5', '/themes/01', 'Весілля', 'Біля старого паркану', [2000, 1335]),
-      phw('6', '/themes/18', 'Пари', 'Тільки ми', [1335, 2000]),
-      phw('7', '/themes/13', 'Пари', 'Серед трав', [1335, 2000]),
+      phw('6', '/themes/18', 'Love story', 'Тільки ми', [1335, 2000]),
+      phw('7', '/themes/13', 'Love story', 'Серед трав', [1335, 2000]),
       phw('8', '/themes/16', 'Весілля', 'Перший погляд', [2000, 1335]),
       phw('9', '/themes/20', 'Весілля', 'Удвох', [2000, 1335]),
-      phw('10', '/showcase/01', 'Пари', 'Ліс після дощу', [1333, 2000]),
+      phw('10', '/showcase/01', 'Love story', 'Ліс після дощу', [1333, 2000]),
       phw('11', '/themes/05', 'Весілля', 'Під горами', [2000, 1335]),
       phw('12', '/themes/06', 'Весілля', 'Вітер з гір', [1335, 2000]),
       phw('13', '/showcase/09', 'Сімейні', 'Велика родина', [1333, 2000]),
@@ -244,7 +246,7 @@ export const THEME_DEMOS: ThemeDemo[] = [
       phw('15', '/showcase/16', 'Портрети', 'Золота година', [2000, 1333]),
       phw('16', '/showcase/14', 'Сімейні', 'На татових плечах', [1333, 2000]),
       phw('17', '/showcase/08', 'Портрети', 'Біля вікна', [1333, 2000]),
-      phw('18', '/showcase/03', 'Пари', 'Липневе світло', [1333, 2000]),
+      phw('18', '/showcase/03', 'Love story', 'Липневе світло', [1333, 2000]),
       phw('19', '/showcase/04', 'Сімейні', 'Неділя в полі', [1333, 2000]),
       phw('20', '/showcase/07', 'Сімейні', 'Перше літо', [1333, 2000]),
     ],
@@ -257,32 +259,32 @@ export const THEME_DEMOS: ThemeDemo[] = [
     suits: 'Вечірні та мистецькі зйомки',
     displayName: 'Ольга Вишня',
     content: content({
-      hero: { title: 'Ольга Вишня', subtitle: 'Світло, що зʼявляється в темряві', imageId: '1' },
+      hero: {
+        title: 'Ольга Вишня',
+        subtitle: 'Світло, що зʼявляється в темряві',
+        imageId: '1',
+        city: 'Київ',
+        directions: ['Весілля', 'Портрети', 'Світло і тінь'],
+      },
+      terms: {
+        prepayment: '30% — і вечір ваш',
+        delivery: '10 кадрів наступного ранку, галерея за 3 тижні',
+        travel: 'Київ і область без доплат',
+        bring: 'бенгальські вогні беру я; вам — улюблений плед на вечір',
+      },
+      gifts: {
+        enabled: true,
+        items: [
+          { kind: 'certificate', enabled: true, title: 'Сертифікат на вечірню зйомку', text: 'На річницю чи весілля друзів: годину живого світла й 60 кадрів.', price: 'від 3 000 ₴', imageId: '19' },
+          { kind: 'book', enabled: false, title: '', text: '', price: '', imageId: '' },
+          { kind: 'prints', enabled: true, title: 'Принти на матовому папері', text: 'Глибокі тіні на бавовняному папері, 20×30 і 30×45.', price: 'від 450 ₴', imageId: '18' },
+        ],
+      },
       about: {
         text: 'Я люблю вечір: гірлянди, свічки, бенгальські вогні й обличчя, на які падає тепле світло. Там, де інші вимикають камеру, для мене починається найцікавіше — темрява робить кожен кадр тихішим і чеснішим.',
         imageId: '11',
       },
       moment: { text: 'Вогні гаснуть — кадри лишаються', imageId: '' },
-      process: {
-        steps: [
-          {
-            title: 'Розмова про вечір',
-            text: 'Дізнаюся, яким ви бачите свято після заходу сонця: гірлянди, свічки, перший танець, вогні наприкінці.',
-          },
-          {
-            title: 'План світла',
-            text: 'Разом із координатором продумуємо, де буде тепле світло і в який момент запалити бенгальські вогні.',
-          },
-          {
-            title: 'Вечірня зйомка',
-            text: 'Працюю з живим світлом і мінімумом спалахів, щоб зберегти атмосферу вечора такою, якою ви її відчували.',
-          },
-          {
-            title: 'Галерея',
-            text: 'Кольори доводжу вручну, щоб зберегти теплі тони і глибокі тіні. Готову онлайн-галерею з оригіналами зручно переглядати й завантажувати.',
-          },
-        ],
-      },
       testimonials: {
         items: [
           {
@@ -317,24 +319,24 @@ export const THEME_DEMOS: ThemeDemo[] = [
           },
         ],
       },
-      contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', bookingUrl: '' },
+      contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', telegram: 'olga_vyshnia', bookingUrl: '' },
     }),
     portfolio: [
       // 1: hero; 11: the photographer's portrait; the next nine form the grid
       // (pair, trio, pause, trio); the rest feed the strip of lights.
       // No frame is shared with «Тиша»'s demo.
-      phn('1', '/themes/25', 'Вечірні весілля', 'Коридор із вогнів', [2000, 1333], true),
-      phn('2', '/themes/26', 'Вечірні весілля', 'Перший танець під гірляндами', [2000, 1335]),
-      phn('3', '/themes/27', 'Вечірні весілля', 'Поцілунок під іскрами', [1333, 2000]),
-      phn('4', '/themes/29', 'Вечірні весілля', 'Сукня в іскрах', [1333, 2000]),
-      phn('5', '/themes/28', 'Вечірні весілля', 'Щасливі', [1333, 2000]),
-      phn('6', '/themes/38', 'Свічки й портрети', 'Тепло на обличчі', [1416, 2000]),
+      phn('1', '/themes/25', 'Весілля', 'Коридор із вогнів', [2000, 1333], true),
+      phn('2', '/themes/26', 'Весілля', 'Перший танець під гірляндами', [2000, 1335]),
+      phn('3', '/themes/27', 'Весілля', 'Поцілунок під іскрами', [1333, 2000]),
+      phn('4', '/themes/29', 'Весілля', 'Сукня в іскрах', [1333, 2000]),
+      phn('5', '/themes/28', 'Весілля', 'Щасливі', [1333, 2000]),
+      phn('6', '/themes/38', 'Портрети', 'Тепло на обличчі', [1416, 2000]),
       phn('7', '/themes/30', 'Світло і тінь', 'Остання година сонця', [2000, 1374]),
-      phn('8', '/themes/39', 'Свічки й портрети', 'Вікно у вечір', [1600, 2000]),
-      phn('9', '/showcase/02', 'Свічки й портрети', 'Промінь', [1333, 2000]),
+      phn('8', '/themes/39', 'Портрети', 'Вікно у вечір', [1600, 2000]),
+      phn('9', '/showcase/02', 'Портрети', 'Промінь', [1333, 2000]),
       phn('11', '/showcase/06', 'Світло і тінь', 'Портрет', [1333, 2000]),
-      phn('12', '/themes/37', 'Свічки й портрети', 'Червоне світло', [2000, 1333]),
-      phn('14', '/themes/35', 'Свічки й портрети', 'Вогні міста', [1333, 2000]),
+      phn('12', '/themes/37', 'Портрети', 'Червоне світло', [2000, 1333]),
+      phn('14', '/themes/35', 'Портрети', 'Вогні міста', [1333, 2000]),
       phn('15', '/showcase/10', 'Світло і тінь', 'Сутінки', [1333, 2000]),
       phn('16', '/themes/36', 'Світло і тінь', 'Боке', [1500, 2000]),
       phn('17', '/showcase/12', 'Світло і тінь', 'Високі вікна', [1333, 2000]),

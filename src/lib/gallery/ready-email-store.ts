@@ -10,7 +10,7 @@ import {
 } from '@/lib/gallery/ready-email'
 
 /**
- * Supabase side of «Ваші фото готові» (0064). client_email and
+ * Supabase side of «Ваші фото готові» (0066). client_email and
  * ready_email_sent_at are not granted to anon/authenticated (personal data on
  * a publicly readable table), so they are read and written with the service
  * role — and every query is pinned to owner_id, which the caller took from
@@ -20,7 +20,7 @@ import {
 const GALLERY_COLUMNS =
   'id, title, slug, is_published, has_password, delivery_status, client_email, ready_email_sent_at'
 
-/** PostgREST / Postgres «column does not exist» — 0064 not applied yet. */
+/** PostgREST / Postgres «column does not exist» — 0066 not applied yet. */
 export function isMissingColumn(error: { code?: string; message?: string } | null | undefined): boolean {
   if (!error) return false
   return error.code === '42703' || error.code === 'PGRST204' || /column .* does not exist/i.test(error.message ?? '')
@@ -92,7 +92,7 @@ export async function ownerReadyEmailDeps(
 }
 
 export interface ClientEmailState {
-  /** false until migration 0064 is applied (or without a service role key). */
+  /** false until migration 0066 is applied (or without a service role key). */
   available: boolean
   email: string | null
   sentAt: string | null

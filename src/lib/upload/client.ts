@@ -181,7 +181,7 @@ async function uploadMultipart(
       sizeBytes: file.size,
       variants,
       ...dimensions,
-      // Verbatim name for the Lightroom list (assets.source_file_name, 0064).
+      // Verbatim name for the Lightroom list (assets.source_file_name, 0066).
       sourceFileName: file.name,
       ...extra,
     })
@@ -313,7 +313,7 @@ export async function uploadFileToGallery(options: {
       sizeBytes: file.size,
       variants,
       ...dimensions,
-      // Verbatim name for the Lightroom list (assets.source_file_name, 0064).
+      // Verbatim name for the Lightroom list (assets.source_file_name, 0066).
       sourceFileName: file.name,
       ...extra,
     }),
