@@ -10,16 +10,16 @@ import { expect, test, type Page } from '@playwright/test'
 
 type Row = { top: number; indices: number[]; heights: number[]; left: number; right: number; ratioError: number }
 
-/** Visible tiles grouped into rows, measured against the grid host. */
+/** Every rendered tile (head + virtualized rows near the screen) grouped into rows, measured against the grid host. */
 async function measureRows(page: Page): Promise<{ rows: Row[]; overlaps: number }> {
   return page.evaluate(() => {
     const host = document.querySelector('main [data-virtual]')!.getBoundingClientRect()
     const tiles = [...document.querySelectorAll<HTMLElement>('main figure')]
       .map((figure) => ({ figure, box: figure.getBoundingClientRect() }))
-      .filter(({ box }) => box.bottom > 0 && box.top < window.innerHeight && box.width > 0)
+      .filter(({ box }) => box.width > 0)
     const groups = new Map<number, typeof tiles>()
     for (const tile of tiles) {
-      const key = Math.round(tile.box.top)
+      const key = Math.round(tile.box.top + window.scrollY)
       groups.set(key, [...(groups.get(key) ?? []), tile])
     }
     let overlaps = 0
@@ -55,10 +55,10 @@ async function measureRows(page: Page): Promise<{ rows: Row[]; overlaps: number 
 }
 
 function expectJustified(rows: Row[], total: number) {
-  // Rows cut by the screen edge are skipped; the last gallery row is left-aligned.
-  const whole = rows.slice(1, -1)
-  expect(whole.length).toBeGreaterThan(0)
-  for (const row of whole) {
+  // Every rendered row is a whole row (the virtualizer renders rows, not tiles);
+  // only the gallery's final row is left-aligned instead of edge to edge.
+  expect(rows.length).toBeGreaterThan(2)
+  for (const row of rows) {
     expect(Math.max(...row.heights) - Math.min(...row.heights)).toBeLessThan(1)
     expect(row.left).toBeLessThan(1)
     if (!row.indices.includes(total - 1)) expect(Math.abs(row.right)).toBeLessThan(1.5)
@@ -115,7 +115,11 @@ test.describe('«Рядки»', () => {
     await page.goto('/uk/gallery-demo?layout=rows&n=200')
     await expect(page.locator('main [data-virtual]')).toHaveCount(1)
     const tile = page.locator('main figure[data-i="60"]')
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight / 4))
+    // Virtualized: the tile exists only near the screen — scroll down to it.
+    for (let step = 0; step < 60 && (await tile.count()) === 0; step++) {
+      await page.evaluate(() => window.scrollBy(0, window.innerHeight * 0.8))
+      await page.waitForTimeout(100)
+    }
     await tile.scrollIntoViewIfNeeded()
     const heart = tile.getByRole('button', { name: 'Додати до обраного' })
     if (isMobile) await heart.tap()
@@ -153,7 +157,7 @@ test.describe('«Рядки»', () => {
       await expect(first).toHaveCSS('border-top-left-radius', `${radius}px`)
       if (testInfo.project.name === 'desktop') {
         // more «columns» → lower rows → more photos per row
-        const perRow = rows.slice(1, -1).reduce((sum, row) => sum + row.indices.length, 0) / (rows.length - 2)
+        const perRow = rows.reduce((sum, row) => sum + row.indices.length, 0) / rows.length
         expect(perRow).toBeGreaterThan(cols === 4 ? 3 : 1.5)
       }
     })
