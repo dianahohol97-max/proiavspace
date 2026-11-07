@@ -2,7 +2,7 @@
 // ops/cdn-worker/src/index.ts
 var VARIANT_KEY = /^u\/[A-Za-z0-9-]{1,64}\/(?:g\/[A-Za-z0-9-]{1,64}\/|portfolio\/)v\/[A-Za-z0-9-]{1,64}-(?:preview|thumb|poster)\.jpg$/;
 var BROWSER_CACHE = "public, max-age=31536000, immutable";
-var DEFAULT_EDGE_SECONDS = 30 * 24 * 60 * 60;
+var DEFAULT_EDGE_SECONDS = 7 * 24 * 60 * 60;
 var SIGN_WINDOW_SECONDS = 6 * 24 * 60 * 60;
 var SIGN_EXPIRES_SECONDS = 7 * 24 * 60 * 60;
 function isServableKey(key) {

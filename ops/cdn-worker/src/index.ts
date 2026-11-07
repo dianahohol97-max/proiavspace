@@ -20,7 +20,7 @@
  * Env (wrangler.toml [vars] + secrets):
  *   B2_BUCKET, B2_REGION              — vars, e.g. "proiav-media", "us-east-005"
  *   B2_KEY_ID, B2_APPLICATION_KEY     — secrets, read-only key for this bucket
- *   EDGE_CACHE_SECONDS (optional)     — edge TTL, default 30 days
+ *   EDGE_CACHE_SECONDS (optional)     — edge TTL, default 7 days
  */
 
 export interface Env {
@@ -42,7 +42,9 @@ const VARIANT_KEY =
   /^u\/[A-Za-z0-9-]{1,64}\/(?:g\/[A-Za-z0-9-]{1,64}\/|portfolio\/)v\/[A-Za-z0-9-]{1,64}-(?:preview|thumb|poster)\.jpg$/
 
 const BROWSER_CACHE = 'public, max-age=31536000, immutable'
-const DEFAULT_EDGE_SECONDS = 30 * 24 * 60 * 60
+// 7 days, not longer: previews are unsigned through the CDN, so after a gallery
+// is deleted or its password changes they must drop out of the edge cache soon.
+const DEFAULT_EDGE_SECONDS = 7 * 24 * 60 * 60
 const SIGN_WINDOW_SECONDS = 6 * 24 * 60 * 60
 const SIGN_EXPIRES_SECONDS = 7 * 24 * 60 * 60 // SigV4 maximum
 

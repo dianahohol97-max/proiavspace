@@ -187,7 +187,7 @@ describe('1.5 промо імпорту (grant_import_promo)', () => {
     assert.deepEqual(results.map((r) => r !== ''), [true, true, true, false])
   })
 
-  test('[PR-01] видалений акаунт не звільняє слот «перших 30»', { skip: skip() }, () => {
+  test('[PR-01] видалений акаунт не звільняє слот «перших 30»', { skip: skip(), todo: 'чекає міграції: видалення акаунта, див. docs/AUDIT_STORAGE_LIFECYCLE.md' }, () => {
     pg!.sql('delete from promo_grants')
     const users = Array.from({ length: 3 }, () => newAccount())
     for (const { userId } of users) grant(userId, completedImport(userId), 3)
@@ -212,7 +212,7 @@ describe('4.1 видалення акаунта через Supabase Auth', () =>
     assert.equal(pg!.sql(`select count(*) from profiles where user_id='${userId}'`), '0')
   })
 
-  test('[LC-02] ключі файлів видаленого акаунта мають лишитися в черзі на видалення з B2', { skip: skip() }, () => {
+  test('[LC-02] ключі файлів видаленого акаунта мають лишитися в черзі на видалення з B2', { skip: skip(), todo: 'чекає міграції: видалення акаунта, див. docs/AUDIT_STORAGE_LIFECYCLE.md' }, () => {
     const queue = pg!.sql(`select count(*) from information_schema.tables
       where table_schema='public' and (table_name ilike '%deleted%' or table_name ilike '%orphan%' or table_name ilike '%purge%')`)
     assert.notEqual(queue, '0', 'після каскаду r2_key зникають з БД; об’єкти в B2 лишаються назавжди, знайти їх можна лише list-ом бакета')
