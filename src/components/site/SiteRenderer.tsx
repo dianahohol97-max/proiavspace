@@ -122,6 +122,21 @@ export interface SiteLabels {
   pageShort?: string
   bookShoot?: string
   dayInLight?: string
+  photographer?: string
+  termsTitle?: string
+  termsPrepayment?: string
+  termsDelivery?: string
+  termsTravel?: string
+  termsBring?: string
+  giftsTitle?: string
+  giftCertificate?: string
+  giftCertificateText?: string
+  giftBook?: string
+  giftBookText?: string
+  giftPrints?: string
+  giftPrintsText?: string
+  order?: string
+  filterAll?: string
 }
 
 /** One selectable language in a site's switcher. */

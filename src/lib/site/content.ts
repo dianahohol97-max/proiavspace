@@ -27,6 +27,34 @@ export interface Testimonial {
   photoId: string
 }
 
+/** «Подарунки та друк»: three fixed kinds of card, each optional. */
+export type GiftKind = 'certificate' | 'book' | 'prints'
+export const GIFT_KINDS: GiftKind[] = ['certificate', 'book', 'prints']
+
+export interface GiftItem {
+  kind: GiftKind
+  enabled: boolean
+  title: string
+  /** One or two lines: what it is. */
+  text: string
+  /** Free text, e.g. «від 2 500 ₴». */
+  price: string
+  /** Optional portfolio asset id for the card photo. */
+  imageId: string
+}
+
+/** Short conditions under the packages — each line optional. */
+export interface SiteTerms {
+  /** e.g. «30 % при бронюванні дати» */
+  prepayment: string
+  /** e.g. «Галерея за 2–4 тижні, перші кадри за 3 дні» */
+  delivery: string
+  /** e.g. «По Києву безкоштовно, область — за домовленістю» */
+  travel: string
+  /** e.g. «Зручне взуття, 2–3 образи, гарний настрій» */
+  bring: string
+}
+
 /** The text blocks that can be translated per language (hero + about). */
 export interface SiteTextBlocks {
   hero: { title: string; subtitle: string }
@@ -36,7 +64,18 @@ export interface SiteTextBlocks {
 export interface SiteContent {
   /** imageId = a portfolio asset id chosen as the hero photo (shared across
    *  languages). Empty → themes fall back to the first portfolio photo. */
-  hero: { title: string; subtitle: string; imageId: string }
+  hero: {
+    title: string
+    subtitle: string
+    imageId: string
+    /** Under the name, e.g. «Фотограф», «Фотографиня». Empty → the label «Фотограф». */
+    role: string
+    /** e.g. «Київ · виїзд по Україні». */
+    city: string
+    /** Directions shown on the first screen and as portfolio filters' order,
+     *  e.g. ['Весілля', 'Хрестини']. Empty → taken from portfolio categories. */
+    directions: string[]
+  }
   /** imageId = optional portfolio asset id used as the photographer's portrait. */
   about: { text: string; imageId: string }
   pricing: { items: PricingItem[] }
@@ -47,10 +86,16 @@ export interface SiteContent {
   process: { steps: ProcessStep[] }
   /** «Відгуки» — optional; themes render it only when non-empty. */
   testimonials: { items: Testimonial[] }
+  /** Conditions under the packages (prepayment, delivery, travel, what to bring). */
+  terms: SiteTerms
+  /** «Подарунки та друк» — off by default. */
+  gifts: { enabled: boolean; items: GiftItem[] }
   contact: {
     email: string
     phone: string
     instagram: string
+    /** Telegram username or link. */
+    telegram: string
     bookingUrl: string
   }
   /**
@@ -75,13 +120,15 @@ export interface SiteContent {
 }
 
 export const EMPTY_CONTENT: SiteContent = {
-  hero: { title: '', subtitle: '', imageId: '' },
+  hero: { title: '', subtitle: '', imageId: '', role: '', city: '', directions: [] },
   about: { text: '', imageId: '' },
   pricing: { items: [] },
   moment: { text: '', imageId: '' },
   process: { steps: [] },
   testimonials: { items: [] },
-  contact: { email: '', phone: '', instagram: '', bookingUrl: '' },
+  terms: { prepayment: '', delivery: '', travel: '', bring: '' },
+  gifts: { enabled: false, items: [] },
+  contact: { email: '', phone: '', instagram: '', telegram: '', bookingUrl: '' },
   albumCovers: {},
   translations: {},
   settings: { languages: [], leadForm: false, booking: false },
@@ -99,10 +146,10 @@ export function localizedSiteContent(content: SiteContent, locale: string): Site
   return {
     ...content,
     hero: {
+      ...content.hero,
       title: t.hero.title || content.hero.title,
       subtitle: t.hero.subtitle || content.hero.subtitle,
-      // The hero photo is shared across languages — never overridden per locale.
-      imageId: content.hero.imageId,
+      // The hero photo, role, city and directions are shared across languages.
     },
     about: { text: t.about.text || content.about.text, imageId: content.about.imageId },
   }
@@ -136,6 +183,11 @@ export function parseSiteContent(value: unknown): SiteContent {
   const momentRaw = (v.moment ?? {}) as Record<string, unknown>
   const processRaw = (v.process ?? {}) as Record<string, unknown>
   const testimonialsRaw = (v.testimonials ?? {}) as Record<string, unknown>
+  const termsRaw = (v.terms ?? {}) as Record<string, unknown>
+  const giftsRaw = (v.gifts ?? {}) as Record<string, unknown>
+  const giftList = (Array.isArray(giftsRaw.items) ? giftsRaw.items : []).filter(
+    (i): i is Record<string, unknown> => typeof i === 'object' && i !== null
+  )
 
   // Per-language translations.
   const rawTranslations = (
@@ -171,6 +223,11 @@ export function parseSiteContent(value: unknown): SiteContent {
       title: asString(hero.title),
       subtitle: asString(hero.subtitle),
       imageId: asString(hero.imageId),
+      role: asString(hero.role),
+      city: asString(hero.city),
+      directions: Array.isArray(hero.directions)
+        ? hero.directions.filter((d): d is string => typeof d === 'string' && !!d.trim()).map((d) => d.trim()).slice(0, 8)
+        : [],
     },
     about: { text: asString(about.text), imageId: asString(about.imageId) },
     pricing: {
@@ -206,7 +263,29 @@ export function parseSiteContent(value: unknown): SiteContent {
       email: asString(contact.email),
       phone: asString(contact.phone),
       instagram: asString(contact.instagram),
+      telegram: asString(contact.telegram),
       bookingUrl: asString(contact.bookingUrl),
+    },
+    terms: {
+      prepayment: asString(termsRaw.prepayment),
+      delivery: asString(termsRaw.delivery),
+      travel: asString(termsRaw.travel),
+      bring: asString(termsRaw.bring),
+    },
+    gifts: {
+      enabled: giftsRaw.enabled === true,
+      // Always the three kinds, in a fixed order; unknown kinds are dropped.
+      items: GIFT_KINDS.map((kind) => {
+        const g = giftList.find((i) => i.kind === kind) ?? {}
+        return {
+          kind,
+          enabled: (g as Record<string, unknown>).enabled !== false && Object.keys(g).length > 0,
+          title: asString((g as Record<string, unknown>).title),
+          text: asString((g as Record<string, unknown>).text),
+          price: asString((g as Record<string, unknown>).price),
+          imageId: asString((g as Record<string, unknown>).imageId),
+        }
+      }),
     },
     albumCovers,
     translations,
