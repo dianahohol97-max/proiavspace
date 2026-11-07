@@ -80,30 +80,97 @@ export function estimateChunkHeight(
   return Math.ceil(count / columns) * (cell * tileRatio(layout) + gap)
 }
 
-/** Masonry tile height for a known aspect ratio; null when the size is unknown. */
-export function masonryTileHeight(
-  width: number | null | undefined,
-  height: number | null | undefined,
-  columnWidth: number
-): number | null {
-  if (!width || !height) return null
-  return (columnWidth * height) / width
+/** Height ÷ width of a masonry tile; unknown sizes are shown as a square. */
+export function masonryRatio(width: number | null | undefined, height: number | null | undefined): number {
+  return width && height ? height / width : 1
 }
 
 /**
- * Grid tiles take the light ~1080 px WebP (`mobile`) whenever it is sharp
- * enough for the tile — always on phones — and the 2048 px preview only for a
- * big tile on a dense screen. Device pixel ratio is capped at 2: a 3× phone
- * screen gains nothing visible from a third more pixels in a grid tile.
+ * Masonry lane for every tile: the shortest column so far, measured in tile
+ * heights relative to the column width (plus a fixed allowance for the gap).
+ * It depends on the photos' proportions and the column count only — never on
+ * the pixel width — so the server-rendered fallback and the virtualized grid
+ * put every photo in the same column, and swapping one for the other moves
+ * nothing.
  */
-export const MOBILE_VARIANT_PX = 1080
+const GAP_ALLOWANCE = 0.04
 
-export function pickGridSrc(
-  item: { previewUrl: string; gridUrl?: string | null },
-  tileCssWidth: number,
-  devicePixelRatio: number
-): string {
-  if (!item.gridUrl) return item.previewUrl
-  const needed = tileCssWidth * Math.min(Math.max(devicePixelRatio, 1), 2)
-  return needed <= MOBILE_VARIANT_PX * 1.25 ? item.gridUrl : item.previewUrl
+export function assignMasonryLanes(
+  ratios: readonly number[],
+  columns: number
+): { lanes: number[][]; laneOf: number[] } {
+  const lanes: number[][] = Array.from({ length: columns }, () => [])
+  const ends = new Array<number>(columns).fill(0)
+  const laneOf = new Array<number>(ratios.length)
+  for (let index = 0; index < ratios.length; index++) {
+    let best = 0
+    for (let lane = 1; lane < columns; lane++) if (ends[lane] < ends[best] - 1e-9) best = lane
+    lanes[best].push(index)
+    laneOf[index] = best
+    ends[best] += ratios[index] + GAP_ALLOWANCE
+  }
+  return { lanes, laneOf }
+}
+
+/** Distinct masonry column counts across the breakpoints (phone, tablet, desktop). */
+export function masonryBreakpointColumns(desired: number): { phone: number; tablet: number; desktop: number } {
+  return {
+    phone: gridColumns('masonry', desired, 400),
+    tablet: gridColumns('masonry', desired, 800),
+    desktop: gridColumns('masonry', desired, 1280),
+  }
+}
+
+/** How many tiles the server renders before the grid is virtualized. */
+export const SSR_TILES = 24
+/** The first tiles load eagerly (they are on the first screen); the rest lazily. */
+export const EAGER_TILES = 6
+
+/**
+ * Columns a tile spans: collage makes every 6th tile 2×2, editorial makes
+ * tiles 4n+1 and 4n (1-based) wide. Index is the tile's position in the gallery
+ * (chunks are aligned to these patterns, so it equals the position in its chunk).
+ */
+export function tileSpan(layout: GridLayout, index: number): 1 | 2 {
+  if (layout === 'collage') return index % 6 === 0 ? 2 : 1
+  if (layout === 'editorial') return index % 4 === 0 || index % 4 === 3 ? 2 : 1
+  return 1
+}
+
+/**
+ * `sizes` for a grid tile, from the layout alone (no measurement), so the
+ * server and the browser pick the very same srcset candidate and no image is
+ * downloaded twice. Mirrors the CSS breakpoints; page padding is
+ * clamp(14px, 3vw, 32px) and the grid is at most 1280 px wide.
+ */
+export function gridSizes(layout: GridLayout, desired: number, gap: number, span: 1 | 2): string {
+  const width = (content: string, columns: number) => {
+    const cols = Math.min(span, columns)
+    // (content − (n−1)·gap) / n · span + (span−1)·gap
+    return `calc((${content} - ${(columns - 1) * gap}px) / ${columns} * ${cols} + ${(cols - 1) * gap}px)`
+  }
+  const phone = gridColumns(layout, desired, 400)
+  const tablet = gridColumns(layout, desired, 800)
+  const desktop = gridColumns(layout, desired, 1280)
+  return [
+    `(max-width: 560px) ${width('100vw - 28px', phone)}`,
+    `(max-width: 900px) ${width('94vw', tablet)}`,
+    `(min-width: 1280px) ${width('1216px', desktop)}`,
+    width('100vw - 64px', desktop),
+  ].join(', ')
+}
+
+/**
+ * Grid tiles offer both renditions; the browser picks by tile size and screen
+ * density. The light WebP is declared as 1350w (its real 1080 px plus 25 %
+ * slack): a phone tile — even 1 column on a 3× iPhone, ≈1200 device px —
+ * takes the ~150 KB WebP, and only a big tile on a dense desktop screen
+ * (editorial's wide frame, 2-column grids) takes the 2048 px preview.
+ */
+export function gridSrcSet(item: { previewUrl: string; gridUrl?: string | null }): string | undefined {
+  return item.gridUrl ? `${item.gridUrl} 1350w, ${item.previewUrl} 2048w` : undefined
+}
+
+export function gridSrc(item: { previewUrl: string; gridUrl?: string | null }): string {
+  return item.gridUrl || item.previewUrl
 }

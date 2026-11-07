@@ -1,12 +1,18 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import {
+  EAGER_TILES,
+  SSR_TILES,
+  assignMasonryLanes,
   chunkSize,
   estimateChunkHeight,
   gridColumns,
-  masonryTileHeight,
+  gridSizes,
+  masonryBreakpointColumns,
+  masonryRatio,
+  tileSpan,
   type GridLayout,
 } from './gridLayout'
 import s from './GalleryExperience.module.css'
@@ -14,10 +20,14 @@ import s from './GalleryExperience.module.css'
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 export interface GridTileInfo {
-  /** Tile width in CSS px — picks the light or the full preview. */
-  width: number
-  /** Masonry tile with a known aspect ratio: fill the fixed-height box. */
+  /** Masonry tile: fill a box of the photo's proportions (object-fit cover). */
   fill: boolean
+  /** Aspect ratio of that box («w / h»), for the server-rendered fallback. */
+  aspect?: string
+  /** `sizes` for the tile's srcset — the same on the server and in the browser. */
+  sizes: string
+  /** One of the first tiles: load at once instead of lazily. */
+  eager: boolean
 }
 
 interface Geometry {
@@ -28,19 +38,27 @@ interface Geometry {
   offset: number
 }
 
+type Tile = { id: string; width: number | null; height: number | null }
+type RenderTile<T> = (item: T, index: number, info: GridTileInfo) => ReactNode
+
 /**
- * The gallery grid, virtualized with TanStack Virtual: only the rows near the
- * viewport are in the DOM, so a 1500-photo gallery scrolls like a 30-photo one
- * on a phone. The page itself scrolls (window virtualizer), cover and sticky
- * bar stay as they are.
+ * The gallery grid.
  *
- *   - masonry → one virtual item per photo, placed in the shortest of N lanes
- *     (TanStack `lanes`). Heights come from the stored width/height, so nothing
- *     jumps. Photos read left-to-right instead of CSS columns' top-to-bottom.
- *   - square / portrait / collage / editorial → one virtual item per chunk of
- *     tiles; each chunk is a CSS grid with the very same classes as before.
+ * Server render / no JavaScript: the first SSR_TILES tiles as plain CSS — a
+ * CSS grid with the layout's own classes, or for masonry flex columns per
+ * breakpoint — with every tile's proportions known up front, so the first
+ * screen is never empty while the scripts load.
+ *
+ * After hydration (before the next paint): the same tiles, at the same
+ * positions and with the same image URLs, virtualized with TanStack Virtual:
+ * only rows near the viewport stay in the DOM, so 1500 photos scroll like 30.
+ *   - masonry → lanes come from assignMasonryLanes (proportions only, so they
+ *     match the fallback), and every lane is its own window virtualizer of
+ *     fixed-height tiles;
+ *   - square / portrait / collage / editorial → chunks of whole rows, each a
+ *     CSS grid with the same classes; chunks are measured.
  */
-export function GalleryGrid<T extends { id: string; width: number | null; height: number | null }>({
+export function GalleryGrid<T extends Tile>({
   items,
   layout,
   columns: desiredColumns,
@@ -54,7 +72,7 @@ export function GalleryGrid<T extends { id: string; width: number | null; height
   gap: number
   /** The grid's own classes (theme padding, uniform/collage/editorial). */
   className: string
-  renderTile: (item: T, index: number, info: GridTileInfo) => ReactNode
+  renderTile: RenderTile<T>
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [geometry, setGeometry] = useState<Geometry | null>(null)
@@ -88,100 +106,252 @@ export function GalleryGrid<T extends { id: string; width: number | null; height
     }
   }, [])
 
-  const width = geometry?.width ?? 0
-  const columns = gridColumns(layout, desiredColumns, geometry?.viewport ?? 1280)
   const masonry = layout === 'masonry'
-  const columnWidth = Math.max((width - gap * (columns - 1)) / columns, 1)
-  const perChunk = masonry ? 1 : chunkSize(layout, columns)
-  const count = masonry ? items.length : Math.ceil(items.length / perChunk)
-
-  const virtualizer = useWindowVirtualizer({
-    count: geometry ? count : 0,
-    lanes: masonry ? columns : 1,
-    overscan: masonry ? 4 * columns : 2,
-    scrollMargin: geometry?.offset ?? 0,
-    estimateSize: (index) => {
-      if (masonry) {
-        const item = items[index]
-        const height = masonryTileHeight(item?.width, item?.height, columnWidth)
-        return (height ?? columnWidth) + gap
-      }
-      const start = index * perChunk
-      return estimateChunkHeight(layout, items.slice(start, start + perChunk), columns, width, gap)
-    },
-    getItemKey: (index) => (masonry ? items[index]?.id ?? index : `${perChunk}:${index}`),
+  const ratios = useMemo(() => items.map((item) => masonryRatio(item.width, item.height)), [items])
+  const info = (index: number): GridTileInfo => ({
+    fill: masonry,
+    aspect: masonry ? `1 / ${ratios[index]}` : undefined,
+    sizes: gridSizes(layout, desiredColumns, gap, tileSpan(layout, index)),
+    eager: index < EAGER_TILES,
   })
 
-  // New column width or column count: every estimate changes.
+  let content: ReactNode
+  if (!geometry) {
+    content = masonry ? (
+      <MasonryFallback items={items} ratios={ratios} desired={desiredColumns} renderTile={renderTile} info={info} />
+    ) : (
+      <div className={s.ssrGrid}>
+        {items.slice(0, SSR_TILES).map((item, index) => renderTile(item, index, info(index)))}
+      </div>
+    )
+  } else if (masonry) {
+    content = (
+      <VirtualMasonry
+        items={items}
+        ratios={ratios}
+        columns={gridColumns(layout, desiredColumns, geometry.viewport)}
+        width={geometry.width}
+        gap={gap}
+        offset={geometry.offset}
+        renderTile={renderTile}
+        info={info}
+      />
+    )
+  } else {
+    content = (
+      <VirtualChunks
+        items={items}
+        layout={layout}
+        columns={gridColumns(layout, desiredColumns, geometry.viewport)}
+        width={geometry.width}
+        gap={gap}
+        offset={geometry.offset}
+        renderTile={renderTile}
+        info={info}
+      />
+    )
+  }
+
+  return (
+    <main className={`${className} ${s.virtualHost}`} data-layout={layout} data-count={items.length}>
+      <div ref={hostRef} className={s.vHost} data-virtual={geometry ? '' : undefined}>
+        {content}
+      </div>
+    </main>
+  )
+}
+
+/* ---------- server / no-JS fallback for masonry ---------- */
+
+function MasonryFallback<T extends Tile>({
+  items,
+  ratios,
+  desired,
+  renderTile,
+  info,
+}: {
+  items: T[]
+  ratios: number[]
+  desired: number
+  renderTile: RenderTile<T>
+  info: (index: number) => GridTileInfo
+}) {
+  const head = ratios.slice(0, SSR_TILES)
+  const { phone, tablet, desktop } = masonryBreakpointColumns(desired)
+  // One block per distinct column count; CSS shows the one for the viewport.
+  const variants: { columns: number; show: string }[] = []
+  for (const [columns, show] of [
+    [phone, s.ssrPhone],
+    [tablet, s.ssrTablet],
+    [desktop, s.ssrDesktop],
+  ] as const) {
+    const same = variants.find((v) => v.columns === columns)
+    if (same) same.show += ` ${show}`
+    else variants.push({ columns, show })
+  }
+  return (
+    <>
+      {variants.map(({ columns, show }) => (
+        <div key={columns} className={`${s.ssrMasonry} ${show}`}>
+          {assignMasonryLanes(head, columns).lanes.map((lane, laneIndex) => (
+            <div key={laneIndex} className={s.ssrLane}>
+              {lane.map((index) => renderTile(items[index], index, info(index)))}
+            </div>
+          ))}
+        </div>
+      ))}
+    </>
+  )
+}
+
+/* ---------- virtualized masonry: one window virtualizer per lane ---------- */
+
+function VirtualMasonry<T extends Tile>(props: {
+  items: T[]
+  ratios: number[]
+  columns: number
+  width: number
+  gap: number
+  offset: number
+  renderTile: RenderTile<T>
+  info: (index: number) => GridTileInfo
+}) {
+  // Remount when the column count changes: MasonryLanes calls one hook per
+  // lane, so the number of hooks must stay fixed for the component's life.
+  return <MasonryLanes key={props.columns} {...props} />
+}
+
+function MasonryLanes<T extends Tile>({
+  items,
+  ratios,
+  columns,
+  width,
+  gap,
+  offset,
+  renderTile,
+  info,
+}: {
+  items: T[]
+  ratios: number[]
+  columns: number
+  width: number
+  gap: number
+  offset: number
+  renderTile: RenderTile<T>
+  info: (index: number) => GridTileInfo
+}) {
+  const lanes = useMemo(() => assignMasonryLanes(ratios, columns).lanes, [ratios, columns])
+  const columnWidth = Math.max((width - gap * (columns - 1)) / columns, 1)
+
+  // One window virtualizer per lane (fixed count — see VirtualMasonry). Every
+  // height is known from the photo's proportions, so nothing is measured.
+  const virtualizers = lanes.map((lane) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useWindowVirtualizer({
+      count: lane.length,
+      overscan: 4,
+      scrollMargin: offset,
+      estimateSize: (row) => columnWidth * ratios[lane[row]] + gap,
+      getItemKey: (row) => items[lane[row]]?.id ?? row,
+    })
+  )
+  useEffect(() => {
+    for (const virtualizer of virtualizers) virtualizer.measure()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnWidth, gap, lanes])
+
+  // DOM in gallery order (tab order, screen readers), whatever the lane.
+  const cells: { index: number; key: string | number | bigint; lane: number; start: number; size: number }[] = []
+  virtualizers.forEach((virtualizer, laneIndex) => {
+    for (const row of virtualizer.getVirtualItems()) {
+      cells.push({ index: lanes[laneIndex][row.index], key: row.key, lane: laneIndex, start: row.start, size: row.size })
+    }
+  })
+  cells.sort((a, b) => a.index - b.index)
+
+  const total = Math.max(0, ...virtualizers.map((v) => v.getTotalSize())) - gap
+  return (
+    <div style={{ position: 'relative', height: Math.max(total, 0) }}>
+      {cells.map((cell) => {
+        const item = items[cell.index]
+        if (!item) return null
+        return (
+          <div
+            key={String(cell.key)}
+            className={s.vCell}
+            style={{
+              transform: `translate3d(${cell.lane * (columnWidth + gap)}px, ${cell.start - offset}px, 0)`,
+              width: columnWidth,
+              height: cell.size,
+              paddingBottom: gap,
+            }}
+          >
+            {renderTile(item, cell.index, info(cell.index))}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ---------- virtualized cropped layouts: chunks of whole rows ---------- */
+
+function VirtualChunks<T extends Tile>({
+  items,
+  layout,
+  columns,
+  width,
+  gap,
+  offset,
+  renderTile,
+  info,
+}: {
+  items: T[]
+  layout: GridLayout
+  columns: number
+  width: number
+  gap: number
+  offset: number
+  renderTile: RenderTile<T>
+  info: (index: number) => GridTileInfo
+}) {
+  const perChunk = chunkSize(layout, columns)
+  const virtualizer = useWindowVirtualizer({
+    count: Math.ceil(items.length / perChunk),
+    overscan: 2,
+    scrollMargin: offset,
+    estimateSize: (chunk) => {
+      const start = chunk * perChunk
+      return estimateChunkHeight(layout, items.slice(start, start + perChunk), columns, width, gap)
+    },
+    getItemKey: (chunk) => `${perChunk}:${chunk}`,
+  })
   useEffect(() => {
     virtualizer.measure()
-  }, [virtualizer, columnWidth, columns, perChunk, items])
+  }, [virtualizer, width, columns, perChunk, items])
 
-  const virtualItems = virtualizer.getVirtualItems()
-  const scrollMargin = virtualizer.options.scrollMargin
-
-  const content = !geometry
-    ? null
-    : virtualItems.map((row) => {
-      const top = row.start - scrollMargin
-      if (masonry) {
-        const item = items[row.index]
-        if (!item) return null
-        const height = masonryTileHeight(item.width, item.height, columnWidth)
+  return (
+    <div style={{ position: 'relative', height: Math.max(virtualizer.getTotalSize() - gap, 0) }}>
+      {virtualizer.getVirtualItems().map((row) => {
+        const start = row.index * perChunk
         return (
           <div
             key={row.key}
             data-index={row.index}
-            // Unknown size (rare: no stored dimensions) — let the browser lay
-            // it out and measure; known sizes are exact and never re-measured.
-            ref={height === null ? virtualizer.measureElement : undefined}
-            className={s.vCell}
+            ref={virtualizer.measureElement}
+            className={s.vChunk}
             style={{
-              transform: `translate3d(${row.lane * (columnWidth + gap)}px, ${top}px, 0)`,
-              width: columnWidth,
-              height: height === null ? undefined : height + gap,
+              transform: `translate3d(0, ${row.start - offset}px, 0)`,
+              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
               paddingBottom: gap,
             }}
           >
-            {renderTile(item, row.index, { width: columnWidth, fill: height !== null })}
+            {items
+              .slice(start, start + perChunk)
+              .map((item, inChunk) => renderTile(item, start + inChunk, info(start + inChunk)))}
           </div>
         )
-      }
-      const start = row.index * perChunk
-      const slice = items.slice(start, start + perChunk)
-      return (
-        <div
-          key={row.key}
-          data-index={row.index}
-          ref={virtualizer.measureElement}
-          className={s.vChunk}
-          style={{
-            transform: `translate3d(0, ${top}px, 0)`,
-            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-            paddingBottom: gap,
-          }}
-        >
-          {slice.map((item, offset) =>
-            renderTile(item, start + offset, { width: columnWidth, fill: false })
-          )}
-        </div>
-      )
-    })
-
-  return (
-    <main className={`${className} ${s.virtualHost}`} data-layout={layout} data-count={items.length}>
-      <div
-        ref={hostRef}
-        className={s.vHost}
-        style={{
-          // Before the first measurement (server render) keep the page roughly
-          // as tall as the grid will be, so the scroll position isn't lost.
-          height: geometry ? Math.max(virtualizer.getTotalSize() - gap, 0) : undefined,
-          minHeight: geometry ? undefined : '100vh',
-        }}
-      >
-        {content}
-      </div>
-    </main>
+      })}
+    </div>
   )
 }

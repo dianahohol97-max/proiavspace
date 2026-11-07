@@ -69,13 +69,14 @@ const COVER = 7
 
 const MAX_DEMO_ITEMS = 2000
 const LAYOUTS: NonNullable<GalleryStyle['layout']>[] = ['masonry', 'square', 'portrait', 'collage', 'editorial']
+const COVERS: NonNullable<GalleryStyle['cover']>[] = ['classic', 'left', 'minimal']
 
 export default async function GalleryDemoPage({
   params,
   searchParams,
 }: {
   params: { locale: string }
-  searchParams: { theme?: string; n?: string; layout?: string }
+  searchParams: { theme?: string; n?: string; layout?: string; cover?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -86,9 +87,11 @@ export default async function GalleryDemoPage({
   const active = THEME_DEMOS.find((d) => d.value === searchParams.theme) ?? THEME_DEMOS[0]
 
   // ?n=1500 repeats the 24 frames into a big gallery (load check of the
-  // virtualized grid); ?layout= shows the other grid layouts.
+  // virtualized grid); ?layout= and ?cover= show the other grid layouts and
+  // cover treatments («minimal» puts the grid on the first screen).
   const count = Math.min(Math.max(Number.parseInt(searchParams.n ?? '', 10) || PHOTOS.length, 1), MAX_DEMO_ITEMS)
   const layout = LAYOUTS.find((l) => l === searchParams.layout)
+  const cover = COVERS.find((c) => c === searchParams.cover)
   const frames = Array.from({ length: count }, (_, i) => ({ ...PHOTOS[i % PHOTOS.length], i }))
 
   const items: GalleryItem[] = frames.map(({ n, v, fx, fy, i }) => ({
@@ -157,7 +160,7 @@ export default async function GalleryDemoPage({
         theme={active.theme}
         mode={active.mode}
         // Cover focal: the couple's faces sit just above the middle.
-        style={{ focalX: 48, focalY: 35, ...(layout ? { layout } : {}) }}
+        style={{ focalX: 48, focalY: 35, ...(layout ? { layout } : {}), ...(cover ? { cover } : {}) }}
         labels={galleryLabels(dict)}
       />
     </>

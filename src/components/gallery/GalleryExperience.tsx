@@ -9,7 +9,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { LangPicker } from '@/components/LangPicker'
 import { GalleryGrid, type GridTileInfo } from './GalleryGrid'
-import { pickGridSrc } from './gridLayout'
+import { gridSrc, gridSrcSet } from './gridLayout'
 import type { GalleryLightboxProps } from './GalleryLightbox'
 import s from './GalleryExperience.module.css'
 
@@ -339,15 +339,22 @@ export function GalleryExperience({
     <figure
       key={item.id}
       className={tile.fill ? `${s.shot} ${s.shotFill}` : s.shot}
+      // The proportions are known before the photo loads: the server-rendered
+      // grid has its final layout, with a placeholder background, at once.
+      style={tile.aspect ? { aspectRatio: tile.aspect } : undefined}
       onClick={() => openAt(index)}
     >
       {item.kind === 'photo' ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={pickGridSrc(item, tile.width, typeof window === 'undefined' ? 1 : window.devicePixelRatio)}
+          // Same src/srcset/sizes on the server and after hydration: the
+          // browser reuses the image it already has, nothing loads twice.
+          src={gridSrc(item)}
+          srcSet={gridSrcSet(item)}
+          sizes={item.gridUrl ? tile.sizes : undefined}
           alt=""
-          loading="lazy"
-          decoding="async"
+          loading={tile.eager ? 'eager' : 'lazy'}
+          decoding={tile.eager ? undefined : 'async'}
           width={item.width ?? undefined}
           height={item.height ?? undefined}
           className={s.shotMedia}
@@ -356,8 +363,9 @@ export function GalleryExperience({
             const image = event.currentTarget
             // The light tile is missing (e.g. the CDN Worker isn't updated
             // yet): fall back to the full preview once.
-            if (item.gridUrl && image.src !== item.previewUrl && !image.dataset.fallback) {
+            if (item.gridUrl && image.currentSrc !== item.previewUrl && !image.dataset.fallback) {
               image.dataset.fallback = ''
+              image.removeAttribute('srcset')
               image.src = item.previewUrl
               return
             }
@@ -374,8 +382,8 @@ export function GalleryExperience({
           <img
             src={item.posterUrl}
             alt=""
-            loading="lazy"
-            decoding="async"
+            loading={tile.eager ? 'eager' : 'lazy'}
+            decoding={tile.eager ? undefined : 'async'}
             className={s.shotMedia}
             style={tileFocus(item)}
           />

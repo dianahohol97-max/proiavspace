@@ -186,6 +186,30 @@
 }
 .gridCollage .vChunk { grid-auto-flow: dense; }
 .virtualHost .shot { margin: 0; }
+/* Server-rendered fallback (before hydration, or without JavaScript): the
+   first tiles as plain CSS, columns by breakpoint; replaced in place by the
+   virtualized grid, at the same positions. */
+.ssrGrid {
+  display: grid; gap: var(--g-gap, 14px);
+  grid-template-columns: repeat(var(--g-cols, 3), minmax(0, 1fr));
+}
+.gridCollage .ssrGrid { grid-auto-flow: dense; }
+.gridEditorial .ssrGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ssrMasonry { display: none; align-items: flex-start; gap: var(--g-gap, 14px); }
+.ssrLane {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; gap: var(--g-gap, 14px);
+}
+.ssrDesktop { display: flex; }
+@media (max-width: 900px) {
+  .virtualHost .ssrGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ssrDesktop { display: none; }
+  .ssrTablet { display: flex; }
+}
+@media (max-width: 560px) {
+  .ssrTablet, .ssrDesktop { display: none; }
+  .ssrPhone { display: flex; }
+}
 /* masonry tile with a known aspect ratio: the box is sized exactly */
 .shotFill { height: 100%; }
 .shotFill .shotMedia { height: 100%; object-fit: cover; }
