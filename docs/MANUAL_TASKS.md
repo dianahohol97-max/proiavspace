@@ -150,12 +150,16 @@
 
 ## Крон звільнення прострочених броней `/api/cron/booking-release` (release/6)
 
-**Статус:** код готовий, у `vercel.json` розклад `7 * * * *` (щогодини о :07 UTC).
+**Статус:** код готовий, у `vercel.json` розклад `40 * * * *` (щогодини о :40 UTC — не разом
+зі `storage-purge` о :20 з release/4).
 
 - Захищений тим самим `CRON_SECRET`, що й інші крони — нова змінна не потрібна.
 - **Погодинні крони у Vercel є лише на тарифі Pro** (на Hobby — не частіше разу на день,
-  і деплой із таким розкладом не пройде). Якщо проєкт на Hobby — поставити `7 3 * * *`.
+  і деплой із таким розкладом не пройде). Якщо проєкт на Hobby — поставити `40 3 * * *`.
 - Використовує `release_expired_slots` з міграції 0060 (вже в release/6 через злиття
   release/4). Працює й до застосування 0060: стара версія з 0005 сервісну роль теж пускає.
 - Перевірка після деплою: Vercel → Project → Cron Jobs → booking-release → Run; відповідь
-  `{ ok: true, owners, released, eventsDeleted, eventsCleared, errors }`.
+  `{ booked, owners, released, errors, eventsDeleted, eventsCleared, eventErrors }`; 500 —
+  лише якщо не вдалося звільнення (збої Google ідуть у Sentry й повторюються наступної години).
+- Кроки: `src/lib/booking/releaseExpired.ts` (звільнення) → `src/lib/booking/releaseEvents.ts`
+  (видалення подій Google звільнених слотів, як у reopenSlot).

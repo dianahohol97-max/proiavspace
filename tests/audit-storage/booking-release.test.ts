@@ -1,207 +1,213 @@
 /**
- * Release 6 — погодинний крон звільняє прострочені неоплачені броні всіх
- * фотографів (/api/cron/booking-release → src/lib/booking/release.ts) і
- * видаляє їхні події в Google Календарі (як reopenSlot).
- * Supabase — фейк у пам'яті з правилом release_expired_slots з 0005/0060;
- * Google — мок fetch.
+ * Крон /api/cron/booking-release: щогодини звільняє прострочені неоплачені
+ * броні всіх фотографів сервісною роллю. До нього звільнення відбувалося лише
+ * тоді, коли фотограф відкривав кабінет бронювань.
+ *
+ * Роут ходить у справжні міграції на локальному Postgres
+ * (helpers/local-pg.ts): admin-клієнт підмінено тонким перекладачем
+ * supabase-js → SQL, що виконується від імені service_role. Після крону
+ * слот знову повертає get_free_slots для anon — те, що читає /b/<handle>.
+ * Без Postgres-бінарників SQL-частина пропускається.
  */
 import assert from 'node:assert/strict'
-import { after, before, beforeEach, describe, test } from 'node:test'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import { encryptSecret } from '@/lib/booking/secrets'
-import { serializeCalendarConfig } from '@/lib/booking/calendarConfig'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { after, before, describe, mock, test } from 'node:test'
+import { ownersWithExpiredBookings } from '@/lib/booking/releaseExpired'
+import { startLocalPg, type LocalPg } from './helpers/local-pg'
 
-type Row = Record<string, unknown>
-const db: { booking_slots: Row[]; booking_settings: Row[] } = { booking_slots: [], booking_settings: [] }
-const rpcCalls: string[] = []
 const NOW = Date.parse('2026-11-07T12:00:00Z')
 const hoursAgo = (h: number) => new Date(NOW - h * 3_600_000).toISOString()
 
-/** release_expired_slots as in 0060 (service role: no auth.uid()). */
-function releaseExpired(owner: string): number {
-  const s = db.booking_settings.find((x) => x.user_id === owner)
-  let n = 0
-  for (const b of db.booking_slots) {
-    if (
-      b.owner_id === owner &&
-      b.status === 'booked' &&
-      Number(b.price_uah) > 0 &&
-      s &&
-      Number(s.unpaid_release_hours) > 0 &&
-      Date.parse(String(b.booked_at)) < NOW - Number(s.unpaid_release_hours) * 3_600_000
-    ) {
-      Object.assign(b, {
-        status: 'free', client_name: null, client_phone: null, client_email: null,
-        booking_token: null, payment_method: null, invoice_id: null, booked_at: null,
-      }) // google_event_id is NOT cleared by the SQL function
-      n++
-    }
-  }
-  return n
-}
-
-class Q {
-  private f: ((r: Row) => boolean)[] = []
-  private patch: Row | null = null
-  constructor(private t: keyof typeof db) {}
-  select() { return this }
-  limit() { return this }
-  update(p: Row) { this.patch = p; return this }
-  eq(c: string, v: unknown) { this.f.push((r) => r[c] === v); return this }
-  gt(c: string, v: number) { this.f.push((r) => Number(r[c]) > v); return this }
-  lt(c: string, v: string) { this.f.push((r) => r[c] !== null && String(r[c]) < v); return this }
-  in(c: string, v: unknown[]) { this.f.push((r) => v.includes(r[c])); return this }
-  not(c: string, op: string, v: unknown) {
-    assert.equal(op, 'is'); assert.equal(v, null)
-    this.f.push((r) => r[c] !== null && r[c] !== undefined)
-    return this
-  }
-  then<A = { data: Row[]; error: null }, B = never>(
-    ok?: ((v: { data: Row[]; error: null }) => A | PromiseLike<A>) | null,
-    fail?: ((e: unknown) => B | PromiseLike<B>) | null
-  ): PromiseLike<A | B> {
-    const rows = db[this.t].filter((r) => this.f.every((fn) => fn(r)))
-    if (this.patch) for (const r of rows) Object.assign(r, this.patch)
-    return Promise.resolve({ data: rows.map((r) => ({ ...r })), error: null as null }).then(ok, fail)
-  }
-}
-const admin = {
-  from: (t: keyof typeof db) => new Q(t),
-  rpc: async (fn: string, args: { p_owner: string }) => {
-    assert.equal(fn, 'release_expired_slots')
-    rpcCalls.push(args.p_owner)
-    return { data: releaseExpired(args.p_owner), error: null }
-  },
-} as unknown as SupabaseClient
-
-const google = { down: false, deleted: [] as string[], tokenCalls: 0 }
-const realFetch = globalThis.fetch
-
-const A = 'aaaaaaaa-0000-4000-8000-000000000001' // Google підключено
-const B = 'bbbbbbbb-0000-4000-8000-000000000002' // Google відключено
-function slot(over: Row): Row {
-  return {
-    id: crypto.randomUUID(), owner_id: A, starts_at: '2026-11-20T10:00:00', duration_minutes: 60,
-    price_uah: 2000, status: 'booked', booked_at: hoursAgo(30), google_event_id: null,
-    client_name: 'Ія', client_phone: '+380', client_email: 'a@b.c', ...over,
-  }
-}
-
-describe('крон звільнення прострочених броней', () => {
-  let release: typeof import('@/lib/booking/release').releaseExpiredBookings
-  before(async () => {
-    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-      const url = String(input instanceof Request ? input.url : input)
-      if (url.startsWith('https://oauth2.googleapis.com/token')) {
-        google.tokenCalls++
-        if (google.down) return new Response('down', { status: 503 })
-        return Response.json({ access_token: 'at', expires_in: 3600, token_type: 'Bearer' })
-      }
-      if (url.includes('/calendar/v3/calendars/') && init?.method === 'DELETE') {
-        if (google.down) return new Response('down', { status: 503 })
-        google.deleted.push(decodeURIComponent(url.split('/events/')[1]))
-        return new Response(null, { status: 204 })
-      }
-      return realFetch(input as RequestInfo, init)
-    }) as typeof fetch
-    release = (await import('@/lib/booking/release')).releaseExpiredBookings
-  })
-  after(() => {
-    globalThis.fetch = realFetch
-  })
-  beforeEach(() => {
-    rpcCalls.length = 0
-    google.down = false
-    google.deleted = []
-    google.tokenCalls = 0
-    db.booking_settings = [
-      {
-        user_id: A, unpaid_release_hours: 24,
-        google_refresh_token: encryptSecret('1//0rt-a', 'google_refresh_token'),
-        google_calendar_id: serializeCalendarConfig({ write: 'work@group.calendar.google.com', busy: ['primary'] }),
-      },
-      { user_id: B, unpaid_release_hours: 2, google_refresh_token: null, google_calendar_id: 'primary' },
-    ]
-  })
-
-  test('звільняє прострочені неоплачені броні всіх власників; решту не чіпає', async () => {
-    db.booking_slots = [
-      slot({ id: 'a-expired', booked_at: hoursAgo(30) }),                     // 30 год > 24 → звільнити
-      slot({ id: 'a-fresh', booked_at: hoursAgo(5) }),                        // ще в межах 24 год
-      slot({ id: 'a-paid', status: 'paid', booked_at: hoursAgo(50) }),        // оплачено
-      slot({ id: 'a-free-price', price_uah: 0, booked_at: hoursAgo(50) }),    // безкоштовна — не чекає оплати
-      slot({ id: 'b-expired', owner_id: B, booked_at: hoursAgo(3) }),         // у B вікно 2 год
-    ]
-    const summary = await release(admin, { nowMs: NOW })
-    const status = Object.fromEntries(db.booking_slots.map((s) => [s.id, s.status]))
-    assert.deepEqual(status, {
-      'a-expired': 'free', 'a-fresh': 'booked', 'a-paid': 'paid', 'a-free-price': 'booked', 'b-expired': 'free',
-    })
-    assert.deepEqual(rpcCalls.sort(), [A, B].sort()) // лише власники з кандидатами
-    assert.equal(summary.released, 2)
-    assert.equal(db.booking_slots.find((s) => s.id === 'a-expired')!.client_name, null)
-  })
-
-  test('подія звільненого слота видаляється з Google (календар запису з налаштувань), id очищується', async () => {
-    db.booking_slots = [
-      slot({ id: 'a-expired', google_event_id: 'evt-a' }),
-      slot({ id: 'a-paid', status: 'paid', google_event_id: 'evt-paid' }),
-    ]
-    const summary = await release(admin, { nowMs: NOW })
-    assert.deepEqual(google.deleted, ['evt-a'])
-    assert.equal(db.booking_slots.find((s) => s.id === 'a-expired')!.google_event_id, null)
-    assert.equal(db.booking_slots.find((s) => s.id === 'a-paid')!.google_event_id, 'evt-paid')
-    assert.equal(summary.eventsDeleted, 1)
-  })
-
-  test('Google недоступний → слот однаково звільнено, id лишається для наступного запуску', async () => {
-    google.down = true
-    db.booking_slots = [slot({ id: 'a-expired', google_event_id: 'evt-a' })]
-    const summary = await release(admin, { nowMs: NOW })
-    const row = db.booking_slots[0]
-    assert.equal(row.status, 'free')
-    assert.equal(row.google_event_id, 'evt-a')
-    assert.equal(summary.errors, 1)
-    google.down = false
-    await release(admin, { nowMs: NOW })
-    assert.deepEqual(google.deleted, ['evt-a'])
-    assert.equal(row.google_event_id, null)
-  })
-
-  test('календар відключено → подію видалити нічим, id просто очищується', async () => {
-    db.booking_slots = [slot({ id: 'b-expired', owner_id: B, booked_at: hoursAgo(3), google_event_id: 'evt-b' })]
-    const summary = await release(admin, { nowMs: NOW })
-    assert.equal(db.booking_slots[0].status, 'free')
-    assert.equal(db.booking_slots[0].google_event_id, null)
-    assert.equal(summary.eventsCleared, 1)
-    assert.equal(google.tokenCalls, 0)
-  })
-
-  test('нічого простроченого → жодного виклику RPC чи Google', async () => {
-    db.booking_slots = [slot({ id: 'a-fresh', booked_at: hoursAgo(0.5) })]
-    const summary = await release(admin, { nowMs: NOW })
-    assert.deepEqual(rpcCalls, [])
-    assert.equal(google.tokenCalls, 0)
-    assert.deepEqual(summary, { owners: 0, released: 0, eventsDeleted: 0, eventsCleared: 0, errors: 0 })
+describe('кого звільняти (чиста функція)', () => {
+  test('лише платні броні, старші за unpaid_release_hours власника', () => {
+    const hours = new Map([
+      ['a', 24],
+      ['b', 24],
+      ['c', 0],
+    ])
+    const owners = ownersWithExpiredBookings(
+      [
+        { owner_id: 'a', booked_at: hoursAgo(25), price_uah: 500 }, // прострочена
+        { owner_id: 'b', booked_at: hoursAgo(23), price_uah: 500 }, // ще в межах
+        { owner_id: 'b', booked_at: hoursAgo(30), price_uah: '0' }, // безкоштовна
+        { owner_id: 'c', booked_at: hoursAgo(100), price_uah: 500 }, // авто-звільнення вимкнено
+        { owner_id: 'd', booked_at: hoursAgo(100), price_uah: 500 }, // без налаштувань
+        { owner_id: 'a', booked_at: null, price_uah: 500 },
+        { owner_id: 'a', booked_at: hoursAgo(48), price_uah: '1500.00' }, // дубль власника
+      ],
+      hours,
+      NOW
+    )
+    assert.deepEqual(owners, ['a'])
   })
 })
 
-describe('/api/booking-release: захист CRON_SECRET', () => {
-  test('без правильного Bearer → 401, нічого не робиться', async () => {
-    const env = process.env as Record<string, string | undefined>
-    const prev = env.CRON_SECRET
-    env.CRON_SECRET = 'cron-secret-test'
-    try {
-      const { GET } = await import('@/app/api/cron/booking-release/route')
-      const call = (auth?: string) =>
-        GET(new Request('http://localhost/api/cron/booking-release', {
-          headers: auth ? { authorization: auth } : {},
-        }) as never)
-      assert.equal((await call()).status, 401)
-      assert.equal((await call('Bearer wrong')).status, 401)
-    } finally {
-      if (prev === undefined) delete env.CRON_SECRET
-      else env.CRON_SECRET = prev
+// ---------------------------------------------------------------------------
+// Роут на локальному Postgres
+// ---------------------------------------------------------------------------
+
+let pg: LocalPg | null = null
+before(() => {
+  pg = startLocalPg()
+})
+after(() => pg?.stop())
+const skip = () => (pg ? false : 'немає Postgres-бінарників (initdb/pg_ctl/psql)')
+
+const lit = (v: unknown) => (v === null ? 'null' : `'${String(v).replace(/'/g, "''")}'`)
+const asService = (query: string) => pg!.trySql(`begin; set local role service_role; ${query}; commit;`)
+
+/** Just enough of supabase-js for releaseExpiredBookings, as service_role SQL. */
+function pgAdmin(opts: { failRpc?: boolean } = {}) {
+  const calls: string[] = []
+  function from(table: string) {
+    let cols = '*'
+    const where: string[] = []
+    let order = ''
+    let limit = ''
+    const q = {
+      select(c: string) { cols = c; return q },
+      eq(c: string, v: unknown) { where.push(`${c} = ${lit(v)}`); return q },
+      gt(c: string, v: unknown) { where.push(`${c} > ${lit(v)}`); return q },
+      in(c: string, vs: unknown[]) { where.push(`${c} in (${vs.map(lit).join(',') || 'null'})`); return q },
+      not(c: string, op: string, v: unknown) {
+        assert.equal(op, 'is'); assert.equal(v, null)
+        where.push(`${c} is not null`); return q
+      },
+      order(c: string) { order = `order by ${c}`; return q },
+      range(a: number, b: number) { limit = `offset ${a} limit ${b - a + 1}`; return q },
+      then(resolve: (r: { data: unknown; error: { message: string } | null }) => void) {
+        const sql = `select coalesce(json_agg(t), '[]') from (select ${cols} from public.${table}
+          ${where.length ? 'where ' + where.join(' and ') : ''} ${order} ${limit}) t`
+        const r = asService(sql)
+        resolve(r.ok ? { data: JSON.parse(r.out), error: null } : { data: null, error: { message: r.out } })
+      },
     }
+    return q
+  }
+  return {
+    calls,
+    from,
+    async rpc(name: string, args: { p_owner: string }) {
+      calls.push(`${name}:${args.p_owner}`)
+      if (opts.failRpc) return { data: null, error: { message: 'boom' } }
+      const r = asService(`select public.${name}(${lit(args.p_owner)})`)
+      return r.ok ? { data: Number(r.out), error: null } : { data: null, error: { message: r.out } }
+    },
+  }
+}
+
+function newUser(): string {
+  return pg!.sql(`insert into auth.users (email) values ('u' || gen_random_uuid() || '@t.test') returning id`)
+}
+
+/** Owner with a public booking page; returns a helper to add booked slots. */
+function photographer(releaseHours: number) {
+  const owner = newUser()
+  const handle = 'r' + pg!.sql(`select substr(md5(random()::text), 1, 10)`)
+  pg!.sql(`insert into public.booking_settings (user_id, enabled, handle, unpaid_release_hours)
+           values ('${owner}', true, '${handle}', ${releaseHours})`)
+  const slot = (bookedHoursAgo: number, price = 500) =>
+    pg!.sql(`insert into public.booking_slots (owner_id, starts_at, price_uah, status, client_name, client_phone, client_email, booked_at)
+             values ('${owner}', (now() + interval '5 days' + random() * interval '10 days')::timestamp, ${price}, 'booked',
+                     'Клієнтка', '+380', 'c@t.test', now() - make_interval(hours => ${bookedHoursAgo}))
+             returning id`)
+  return { owner, handle, slot }
+}
+
+const statusOf = (slot: string) => pg!.sql(`select status from public.booking_slots where id = '${slot}'`)
+/** What /b/<handle> gets: get_free_slots for anon. */
+const publicSlots = (handle: string) =>
+  pg!.sql(`begin; set local role anon; select coalesce(string_agg(id::text, ','), '') from public.get_free_slots('${handle}'); commit;`)
+
+describe('/api/cron/booking-release', () => {
+  const root = path.resolve(__dirname, '..', '..')
+  const modUrl = (rel: string) => pathToFileURL(path.join(root, rel)).href
+  let admin: ReturnType<typeof pgAdmin> | null = null
+  let GET: (req: Request) => Promise<Response>
+
+  before(async () => {
+    process.env.CRON_SECRET = 'test-cron-secret'
+    mock.module(modUrl('src/lib/supabase/admin.ts'), {
+      namedExports: { createSupabaseAdminClient: () => admin },
+    })
+    GET = (await import('@/app/api/cron/booking-release/route')).GET as unknown as (req: Request) => Promise<Response>
+  })
+
+  const call = (auth?: string) =>
+    GET(new Request('http://localhost/api/cron/booking-release', { headers: auth ? { authorization: auth } : {} }))
+
+  test('без CRON_SECRET — 401, у базу не ходить', async () => {
+    admin = pg ? pgAdmin() : null
+    assert.equal((await call()).status, 401)
+    assert.equal((await call('Bearer wrong')).status, 401)
+    assert.deepEqual(admin?.calls ?? [], [])
+  })
+
+  test('усі міграції накочуються на чисту БД', { skip: skip() }, () => {
+    assert.deepEqual(pg!.failedMigrations, {})
+  })
+
+  test('звільняє прострочені броні всіх власників; слот знову видно на /b', { skip: skip() }, async () => {
+    const p1 = photographer(24)
+    const p2 = photographer(2)
+    const p3 = photographer(0) // авто-звільнення вимкнено
+    const expired1 = p1.slot(25)
+    const fresh1 = p1.slot(3)
+    const free1 = p1.slot(100, 0) // безкоштовна бронь не чекає оплати
+    const expired2 = p2.slot(3)
+    const kept3 = p3.slot(500)
+    assert.equal(publicSlots(p1.handle), '', 'до крону на /b прострочена бронь не видна')
+
+    admin = pgAdmin()
+    const res = await call('Bearer test-cron-secret')
+    assert.equal(res.status, 200)
+    const summary = (await res.json()) as { owners: number; released: number; errors: number }
+    assert.equal(summary.errors, 0)
+    assert.ok(summary.owners >= 2)
+    assert.ok(summary.released >= 2)
+    assert.ok(admin.calls.includes(`release_expired_slots:${p1.owner}`))
+    assert.ok(admin.calls.includes(`release_expired_slots:${p2.owner}`))
+    assert.ok(!admin.calls.includes(`release_expired_slots:${p3.owner}`), 'власникам без простроченого — без зайвих викликів')
+
+    assert.equal(statusOf(expired1), 'free')
+    assert.equal(statusOf(expired2), 'free')
+    assert.equal(statusOf(fresh1), 'booked')
+    assert.equal(statusOf(free1), 'booked')
+    assert.equal(statusOf(kept3), 'booked')
+    assert.equal(
+      pg!.sql(`select coalesce(client_name, '') || coalesce(client_email, '') || coalesce(booked_at::text, '') from public.booking_slots where id = '${expired1}'`),
+      '',
+      'контакти клієнтки стерто'
+    )
+
+    assert.equal(publicSlots(p1.handle), expired1, 'звільнений слот знову на /b')
+    assert.equal(publicSlots(p2.handle), expired2)
+    assert.equal(publicSlots(p3.handle), '')
+  })
+
+  test('повторний запуск нічого не чіпає', { skip: skip() }, async () => {
+    admin = pgAdmin()
+    const summary = (await (await call('Bearer test-cron-secret')).json()) as { owners: number; released: number }
+    assert.equal(summary.owners, 0)
+    assert.equal(summary.released, 0)
+  })
+
+  test('помилка звільнення в одного власника — 500 і лічильник помилок, решта йде далі', { skip: skip() }, async () => {
+    const a = photographer(1)
+    const b = photographer(1)
+    a.slot(5)
+    b.slot(5)
+    admin = pgAdmin({ failRpc: true })
+    const res = await call('Bearer test-cron-secret')
+    assert.equal(res.status, 500)
+    const summary = (await res.json()) as { owners: number; errors: number }
+    assert.equal(summary.owners, 2)
+    assert.equal(summary.errors, 2)
+  })
+
+  test('без service key — 503', async () => {
+    admin = null
+    assert.equal((await call('Bearer test-cron-secret')).status, 503)
   })
 })

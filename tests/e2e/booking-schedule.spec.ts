@@ -306,7 +306,7 @@ test.describe('погодинний крон звільнення броней',
       headers: { authorization: 'Bearer e2e-cron-secret' },
     })
     expect(res.status()).toBe(200)
-    expect(await res.json()).toMatchObject({ ok: true, owners: 1, released: 1, eventsCleared: 1, errors: 0 })
+    expect(await res.json()).toMatchObject({ owners: 1, released: 1, eventsCleared: 1, errors: 0, eventErrors: 0 })
     expect(state.slots[0]).toMatchObject({ status: 'free', client_name: null, google_event_id: null })
 
     await page.goto('/uk/b/olena')

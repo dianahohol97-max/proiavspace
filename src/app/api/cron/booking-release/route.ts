@@ -1,15 +1,20 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { releaseExpiredBookings } from '@/lib/booking/release'
-import { reportServerError } from '@/lib/sentry/server'
+import { releaseExpiredBookings } from '@/lib/booking/releaseExpired'
+import { cleanupReleasedSlotEvents } from '@/lib/booking/releaseEvents'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
-export const maxDuration = 120
+export const maxDuration = 60
 
 /**
- * Hourly (vercel.json): frees expired unpaid bookings of every photographer
- * and removes their Google Calendar events — see src/lib/booking/release.ts.
- * Protected by CRON_SECRET like the other crons.
+ * Hourly (vercel.json): frees priced bookings left unpaid past the
+ * photographer's `unpaid_release_hours`, for every owner, with the service
+ * role (src/lib/booking/releaseExpired.ts). Before this the release only ran
+ * when the photographer opened the booking dashboard. Protected by CRON_SECRET.
+ *
+ * Then the Google Calendar events of freed slots are deleted, as reopenSlot
+ * does (src/lib/booking/releaseEvents.ts). Google is advisory: its failures
+ * go to Sentry and are retried next hour, they do not turn the run into 500.
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
@@ -21,10 +26,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'service_not_configured' }, { status: 503 })
   }
   try {
-    const summary = await releaseExpiredBookings(admin)
-    return NextResponse.json({ ok: true, ...summary })
-  } catch (error) {
-    reportServerError(error, { area: 'booking.release' })
+    const released = await releaseExpiredBookings(admin)
+    const events = await cleanupReleasedSlotEvents(admin)
+    const summary = { ...released, ...events }
+    console.log('booking-release:', JSON.stringify(summary))
+    return NextResponse.json(summary, { status: summary.errors > 0 ? 500 : 200 })
+  } catch (cause) {
+    console.error('booking-release: read failed', cause)
     return NextResponse.json({ error: 'db_read_failed' }, { status: 500 })
   }
 }
