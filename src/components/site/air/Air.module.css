@@ -35,6 +35,13 @@
   --a-radius: 22px;
   --t-nav-h: 72px;
   --a-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --card-bg: var(--a-bg);
+  --card-fg: var(--a-fg);
+  --card-muted: var(--a-muted);
+  --card-line: var(--a-line);
+  --card-accent: var(--a-sky);
+  --card-display: var(--a-serif);
+  --card-label: var(--a-sans);
 
   background: var(--a-bg);
   color: var(--a-fg);
@@ -482,7 +489,12 @@
   }
 }
 .printCap {
+  justify-self: start;
+  width: fit-content;
   margin: 10px 4px 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--a-bg) 88%, transparent);
   font-family: var(--a-serif);
   font-size: 18px;
   color: var(--a-muted);
@@ -573,195 +585,6 @@
   }
 }
 
-/* ------------------------------------------------ a day in the light --- */
-
-.day {
-  position: relative;
-  margin-top: var(--a-section);
-  padding-bottom: clamp(60px, 8vw, 120px);
-  /* fallback: morning at the top, golden hour at the bottom */
-  background: linear-gradient(180deg, #edf3f8 0%, #f6f6f0 40%, #fbf1df 75%, #f9e2c2 100%);
-  view-timeline-name: --air-day;
-  view-timeline-axis: block;
-}
-.sky {
-  display: none;
-}
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .day {
-      background: #edf3f8;
-    }
-    .sky {
-      display: block;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      height: 100svh;
-      margin-bottom: -100vh;
-      margin-bottom: -100svh;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .skyLayer {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      animation: airSkyIn linear both;
-      animation-timeline: --air-day;
-      animation-range: contain var(--a) contain var(--b);
-    }
-    .sun {
-      animation: airSun linear both;
-      animation-timeline: --air-day;
-      animation-range: contain 0% contain 100%;
-    }
-  }
-}
-.sky0 {
-  background: linear-gradient(180deg, #e6eff7 0%, #f3f6f6 70%);
-}
-.sky1 {
-  background: linear-gradient(180deg, #e2edf6 0%, #f6f7f2 70%);
-}
-.sky2 {
-  background: linear-gradient(180deg, #e9f1f5 0%, #f8f7ee 70%);
-}
-.sky3 {
-  background: linear-gradient(180deg, #f2efe4 0%, #fbf3e3 70%);
-}
-.sky4 {
-  background: linear-gradient(180deg, #f8e6cc 0%, #fbeedb 70%);
-}
-.sky5 {
-  background: linear-gradient(180deg, #f6d5ad 0%, #fae5c9 70%);
-}
-@keyframes airSkyIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.sunPath {
-  position: absolute;
-  inset: 0;
-}
-.sun {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: clamp(90px, 12vw, 180px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 214, 150, 0.95) 0%, rgba(255, 190, 110, 0.55) 40%, rgba(255, 190, 110, 0) 70%);
-  transform: translate3d(8vw, 60vh, 0);
-}
-/* the sun climbs, crosses and sets behind the frames */
-@keyframes airSun {
-  0% {
-    transform: translate3d(6vw, 52vh, 0);
-  }
-  35% {
-    transform: translate3d(34vw, 8vh, 0);
-  }
-  60% {
-    transform: translate3d(58vw, 6vh, 0);
-  }
-  100% {
-    transform: translate3d(84vw, 58vh, 0);
-  }
-}
-.dayInner {
-  position: relative;
-  z-index: 1;
-  padding-top: clamp(64px, 8vw, 120px);
-}
-.dayHead {
-  text-align: center;
-  margin-bottom: clamp(40px, 6vw, 88px);
-}
-.dayTitle {
-  margin: 12px auto 0;
-  font-family: var(--a-serif);
-  font-weight: 400;
-  font-size: clamp(38px, 5.4vw, 80px);
-  line-height: 1.05;
-  max-width: 16ch;
-}
-.moments {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: clamp(56px, 9vw, 140px);
-}
-.moment {
-  min-width: 0;
-}
-.momentInner {
-  display: grid;
-  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
-  gap: clamp(20px, 4vw, 64px);
-  align-items: center;
-}
-.momentRight .momentInner {
-  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
-}
-.momentRight .momentText {
-  order: 2;
-}
-.time {
-  display: block;
-  font-family: var(--a-serif);
-  font-size: clamp(56px, 8vw, 128px);
-  line-height: 0.95;
-  letter-spacing: -0.02em;
-  font-variant-numeric: lining-nums tabular-nums;
-}
-.momentLabel {
-  margin: 10px 0 0;
-  font-family: var(--a-serif);
-  font-size: clamp(22px, 2vw, 30px);
-}
-.momentImg {
-  position: relative;
-  aspect-ratio: var(--r, 3 / 2);
-  max-height: 78svh;
-  border-radius: var(--a-radius);
-  overflow: hidden;
-  box-shadow: 0 30px 60px rgba(60, 50, 30, 0.14);
-}
-@media (max-width: 760px) {
-  .momentInner,
-  .momentRight .momentInner {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .momentRight .momentText {
-    order: 0;
-  }
-  .moments {
-    gap: 44px;
-  }
-  .time {
-    font-size: 56px;
-  }
-  .momentText {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-  }
-  .momentLabel {
-    margin: 0;
-  }
-  .momentImg {
-    max-height: 64svh;
-  }
-}
-
 /* -------------------------------------------------------------- about --- */
 
 .about {
@@ -798,149 +621,6 @@
   .aboutPortrait {
     max-width: 62%;
   }
-}
-
-/* ------------------------------------------------------------- series --- */
-
-.series {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  gap: clamp(18px, 2.4vw, 32px);
-}
-.seriesItem {
-  margin: 0;
-  min-width: 0;
-}
-.seriesCover {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 5;
-  padding: 0;
-  border: 0;
-  border-radius: var(--a-radius);
-  overflow: hidden;
-  cursor: pointer;
-  background: #e5ecf1;
-}
-.seriesCover img {
-  transition: transform 1.2s var(--a-ease);
-}
-@media (hover: hover) {
-  .seriesItem:hover .seriesCover img {
-    transform: scale(1.04);
-  }
-}
-.seriesCover:focus-visible {
-  outline: 3px solid var(--a-sky);
-  outline-offset: 3px;
-}
-.seriesMeta {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 10px;
-  align-items: baseline;
-  margin-top: 14px;
-}
-.seriesNo {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--a-sky);
-}
-.seriesName {
-  margin: 0;
-  font-family: var(--a-serif);
-  font-weight: 400;
-  font-size: clamp(24px, 2vw, 30px);
-  line-height: 1.15;
-}
-.seriesCount {
-  grid-column: 2;
-  margin-top: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  align-items: center;
-}
-.seriesCount .label {
-  color: var(--a-muted);
-  letter-spacing: 0.08em;
-}
-.textLink {
-  position: relative;
-  background: none;
-  border: 0;
-  padding: 4px 0;
-  color: var(--a-fg);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-}
-.textLink::after {
-  transform: scaleX(0.35);
-}
-.textLink:hover::after,
-.textLink:focus-visible::after,
-.seriesItem:hover .textLink::after {
-  transform: scaleX(1);
-}
-.allLink {
-  color: var(--a-sky);
-  font-size: 15px;
-}
-@media (max-width: 760px) {
-  .series {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    row-gap: 24px;
-  }
-  .seriesName {
-    font-size: 21px;
-  }
-  .seriesCount .label {
-    display: none;
-  }
-}
-
-/* ------------------------------------------------------------ process --- */
-
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
-  gap: clamp(14px, 2vw, 24px);
-}
-.step {
-  background: #fff;
-  border-radius: var(--a-radius);
-  padding: clamp(22px, 2.4vw, 32px);
-  box-shadow: 0 10px 30px rgba(29, 33, 41, 0.06);
-}
-.stepNo {
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #e6eef5;
-  color: var(--a-sky);
-  font-weight: 700;
-}
-.stepTitle {
-  margin: 16px 0 8px;
-  font-family: var(--a-serif);
-  font-weight: 400;
-  font-size: 26px;
-  line-height: 1.15;
-}
-.stepText {
-  margin: 0;
-  font-size: 16px;
-  color: color-mix(in srgb, var(--a-fg) 80%, #fff);
 }
 
 /* ------------------------------------------------------------ reviews --- */
@@ -1299,26 +979,6 @@ select.input {
   .root {
     --a-section: 68px;
   }
-  .steps {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .step {
-    padding: 16px;
-  }
-  .stepNo {
-    width: 30px;
-    height: 30px;
-    font-size: 14px;
-  }
-  .stepTitle {
-    margin: 10px 0 4px;
-    font-size: 20px;
-  }
-  .stepText {
-    font-size: 15px;
-    line-height: 1.5;
-  }
   .reviews {
     gap: 10px;
   }
@@ -1344,22 +1004,95 @@ select.input {
   .sectionHead {
     margin-bottom: 24px;
   }
-  .day {
-    padding-bottom: 48px;
-  }
-  .dayInner {
-    padding-top: 52px;
-  }
-  .momentImg {
-    max-height: 50svh;
-  }
   .aboutPortrait {
     max-width: 46%;
   }
-  .seriesCover {
-    aspect-ratio: 1 / 1;
-  }
   .heroCard {
     height: 60svh;
+  }
+}
+
+/* ------------------------------------------------ visiting-card blocks --- */
+
+/* «День у світлі» as a light detail: the collage's paper warms from cool
+   morning to golden hour while it scrolls by (scroll-driven, no JS). */
+.portfolio {
+  position: relative;
+  isolation: isolate;
+}
+.portfolio::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #eef3f7 0%, var(--a-bg) 45%, #f6ead8 100%);
+  opacity: 0.9;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .portfolio::before {
+      background: #eef3f7;
+      animation: airDay linear both;
+      animation-timeline: view();
+      animation-range: entry 20% exit 60%;
+    }
+  }
+}
+@keyframes airDay {
+  0% {
+    background-color: #eef3f7;
+  }
+  50% {
+    background-color: var(--a-bg);
+  }
+  100% {
+    background-color: #f6ead8;
+  }
+}
+.time {
+  font-family: var(--a-serif);
+  font-size: 1.25em;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.heroFacts {
+  color: #fff;
+  margin: 10px 0 14px;
+}
+.filterChip {
+  border-color: color-mix(in srgb, var(--a-fg) 18%, transparent);
+  background: color-mix(in srgb, #fff 60%, transparent);
+}
+.filterChipOn {
+  background: var(--a-sky);
+  border-color: var(--a-sky);
+  color: #fff;
+}
+.gift {
+  border-radius: var(--a-radius);
+  background: #fff;
+}
+.terms {
+  border-top-style: dashed;
+}
+/* filtered: prints in an even, calm grid */
+.collage[data-filter]:not([data-filter='']) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 2.4vw, 32px);
+}
+.collage[data-filter]:not([data-filter='']) .cluster {
+  display: contents;
+}
+.collage[data-filter]:not([data-filter='']) .print {
+  position: static;
+  width: auto;
+  margin: 0;
+  transform: none;
+  grid-column: auto;
+}
+@media (max-width: 760px) {
+  .collage[data-filter]:not([data-filter='']) {
+    grid-template-columns: 1fr 1fr;
   }
 }
