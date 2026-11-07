@@ -80,3 +80,9 @@
 | опублікувати | publish | a publica | |
 | термін дії | expiry | termen de valabilitate / dată de expirare | |
 | вебхук | webhook | webhook | |
+| обране клієнта (сердечка + ретуш) | client picks | alegerile clienților | include favorite și cereri de retuș |
+| рядок для Lightroom | Lightroom filter line | rând pentru Lightroom | numele meniurilor Lightroom rămân în engleză (nu există Lightroom Classic în română) |
+| лист «Ваші фото готові» | “Your photos are ready” email | e-mailul „Fotografiile sunt gata” | trimis o singură dată, la stadiul „Gata” |
+| згода клієнта | client consent | acordul clientului | |
+| стадія / статус (Зйомка → Обробка → Готово) | status steps | Ședința → Editare → Gata | la fel ca în galeria publică |
+| надійне завантаження | reliable upload | încărcare sigură | |

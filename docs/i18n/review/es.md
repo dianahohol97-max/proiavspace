@@ -34,3 +34,16 @@ Format: `key or location — translation — why unsure`
 - client-policies refund — «lo hablaremos y haremos los ajustes necesarios» for "we will arrange a revision" — softened; check it doesn't over-promise.
 - designer.fontSans — «Grotesca» — typographic term; «Sans serif» may be clearer to users.
 - designer.radiusSharp — «Rectas» for sharp corners — «En ángulo» / «Sin redondear» alternatives.
+
+## Delta pass (release/4)
+
+- galleryManage.picksHint — «Biblioteca (Library) → … → Texto (Text) → Nombre de archivo (Filename) → Contiene (Contains; no «Contiene todo» / Contains All)» — I'm not 100 % sure of the exact Spanish Lightroom Classic labels (especially «Contiene todo» vs «Contiene todos»), so the English names are kept in brackets.
+- galleryManage.favoritesTitle — «Selección del cliente» — now covers hearts + retouch requests; «Favoritos y retoques del cliente» would be more explicit but longer.
+- galleryManage.clientEmailTitle / clientEmailSentAt — «Correo «Tus fotos están listas»» — nested «» quotes; check how it looks in the UI.
+- galleryManage.clientEmailWaitReady — «…pase a «Lista»» — status label is feminine («la galería está lista»); check it reads well next to «el estado».
+- landing hero.status.steps — «Sesión / Edición / Lista» — must match the client status screen; «Lista» without a noun may feel abrupt.
+- landing products.features[0].no — «02 — Criba con IA» — "AI culling"; «Selección con IA» is an alternative.
+- landing products.features[2].alt — «El cargador de la galería» for "uploader" — «la herramienta de subida» may be more natural.
+- landing pricing.plans.pro.note — «Archivos grandes y temporada a tope» — colloquial «a tope» for "busy season"; check register.
+- landing bento.slideshow — label «Visualización», text «Visor a pantalla completa…» — "lightbox" rendered as «visor».
+- designer.picksFavorite / picksRetouch — «corazón» / «retoque» — lowercase values in a table/export, context unclear.

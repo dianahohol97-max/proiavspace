@@ -4,6 +4,7 @@ import { getDictionary, type Dictionary } from '../../src/lib/i18n'
 import { getLandingCopy, type LandingCopy } from '../../src/lib/landing/copy'
 import { getLegalCopy } from '../../src/lib/legal/copy'
 import { cullingLabels } from '../../src/lib/culling/i18n'
+import { galleryHelp } from '../../src/lib/gallery/help'
 import type { Locale } from '../../src/lib/i18n/config'
 
 /**
@@ -11,7 +12,7 @@ import type { Locale } from '../../src/lib/i18n/config'
  * англійських рядків-фолбеків (рядок з en, якого бракує в перекладі, або
  * вбудований `locale === 'uk' ? … : 'English'`).
  *
- * Як працює: збирає всі англійські рядки (словник, лендинг, оферта, AI-відбір),
+ * Як працює: збирає всі англійські рядки (словник, лендинг, оферта, AI-відбір, довідка),
  * лишає ті, що в цій мові перекладені інакше, і шукає їх у видимому тексті
  * сторінки. Плюс евристика: англійські службові слова (the, your, and…) у
  * тексті сторінки, якої англійською бути не повинно.
@@ -58,12 +59,14 @@ async function englishLeftovers(locale: Locale): Promise<string[]> {
     ...strings(getLandingCopy(locale) as LandingCopy),
     ...strings(getLegalCopy(locale)),
     ...strings(cullingLabels(locale)),
+    ...strings(galleryHelp(locale)),
   ])
   const english = [
     ...strings(en),
     ...strings(getLandingCopy('en')),
     ...strings(getLegalCopy('en')),
     ...strings(cullingLabels('en')),
+    ...strings(galleryHelp('en')),
   ].filter((s) => !translated.has(s))
   return [...new Set(english.flatMap(fragments))]
 }

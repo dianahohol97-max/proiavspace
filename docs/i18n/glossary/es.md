@@ -78,3 +78,11 @@
 | пробний період | trial | prueba / periodo de prueba | |
 | власний домен | custom domain | dominio propio | |
 | мультимовність | multilingual | multilingüe | |
+| обране клієнта (сердечка + ретуш) | client picks | selección del cliente | Favoritos + peticiones de retoque |
+| на ретуш | for retouch | para retoque | |
+| рядок для Lightroom / фільтр | Lightroom line / filter | línea para Lightroom / filtro | Menús de Lightroom Classic en español con el original entre paréntesis |
+| лист «Ваші фото готові» | “Your photos are ready” email | correo «Tus fotos están listas» | |
+| згода клієнта | client consent | el cliente ha aceptado | |
+| AI-відбір | AI culling | criba con IA | |
+| надійне завантаження | reliable upload | subida fiable | |
+| фокус кадру | crop focus | centro del encuadre | |

@@ -146,9 +146,21 @@ export interface PickLabels {
   retouch: string
 }
 
-export const PICK_LABELS: Record<'uk' | 'en', PickLabels> = {
-  uk: { file: 'Файл', mark: 'Позначка', comment: 'Коментар', favorite: 'сердечко', retouch: 'ретуш' },
-  en: { file: 'File', mark: 'Mark', comment: 'Comment', favorite: 'heart', retouch: 'retouch' },
+/** CSV column names and marks in the photographer's language (dictionary → designer.picks*). */
+export function pickLabels(designer: {
+  picksFile: string
+  picksMark: string
+  picksComment: string
+  picksFavorite: string
+  picksRetouch: string
+}): PickLabels {
+  return {
+    file: designer.picksFile,
+    mark: designer.picksMark,
+    comment: designer.picksComment,
+    favorite: designer.picksFavorite,
+    retouch: designer.picksRetouch,
+  }
 }
 
 function markOf(pick: ClientPick, labels: PickLabels): string {

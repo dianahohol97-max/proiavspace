@@ -29,6 +29,7 @@ import { getLandingCopy } from '@/lib/landing/copy'
 import { getLegalCopy } from '@/lib/legal/copy'
 import { renderClientPolicy } from '@/lib/legal/clientPolicies'
 import { cullingLabels } from '@/lib/culling/i18n'
+import { galleryHelp } from '@/lib/gallery/help'
 import { locales, type Locale } from '@/lib/i18n/config'
 
 type Translated = Exclude<Locale, 'uk' | 'en'>
@@ -229,6 +230,13 @@ describe('i18n: лендинг, юридичні тексти, AI-відбір, 
         assert.equal(placeholders(value).join(), placeholders(source).join(), `culling.${key}: плейсхолдери`)
       }
       assert.notEqual(labels.intro, enLabels.intro)
+    })
+
+    test(`${locale}: довідка «Як це працює» перекладена`, () => {
+      const out: string[] = []
+      shapeDiff(galleryHelp('en'), galleryHelp(locale), 'help', out)
+      assert.deepEqual(out, [])
+      assert.notEqual(galleryHelp(locale).culling.title, galleryHelp('en').culling.title)
     })
 
     test(`${locale}: політики для клієнтів фотографа перекладені`, () => {

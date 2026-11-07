@@ -26,7 +26,7 @@ import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
 import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
 import { sendClientReadyEmailAgain, setClientEmail } from '@/lib/actions/client-email'
 import {
-  PICK_LABELS,
+  pickLabels,
   assetOriginalName,
   buildClientPicks,
   lightroomFilterLine,
@@ -121,7 +121,7 @@ export default async function ManageGalleryPage({
   const pickClients = new Set((selections ?? []).map((s) => s.client_token))
   const retouchCount = picks.filter((p) => p.retouch > 0).length
   const lightroom = lightroomFilterLine(picks)
-  const pickLabels = PICK_LABELS[locale === 'uk' ? 'uk' : 'en']
+  const pickLabels = pickLabels(dict.designer)
 
   // Per-photo engagement (a «Плюс»+ stat): download and view events carry the
   // asset id in meta, so we can show views + downloads on each individual photo.
@@ -330,7 +330,7 @@ export default async function ManageGalleryPage({
         initialEmail={clientEmail.email}
         sentAtText={
           clientEmail.sentAt
-            ? new Date(clientEmail.sentAt).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+            ? new Date(clientEmail.sentAt).toLocaleString(intlLocale(locale), {
                 timeZone: 'Europe/Kyiv',
                 day: '2-digit',
                 month: '2-digit',
@@ -488,9 +488,7 @@ export default async function ManageGalleryPage({
       <section className="mt-12">
         {previews.length > 0 && (
           <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
-            {locale === 'uk'
-              ? 'Клацни по фото, щоб задати фокус кадру — яку частину показувати в розкладках з кадруванням (Квадрати / Портрет / Колаж / Едіторіал). Кнопка «Обкладинка» робить фото головним.'
-              : 'Click a photo to set its crop focus — which part stays in frame in cropped layouts (Squares / Portrait / Collage / Editorial). The “Cover” button makes a photo the album cover.'}
+            {dict.designer.focusGridHint}
           </p>
         )}
         {previews.length === 0 ? (
@@ -624,7 +622,7 @@ export default async function ManageGalleryPage({
                         )}
                         {pick.retouch > 0 && (
                           <span className="bg-bg/90 px-2 py-0.5 text-xs text-fg">
-                            {locale === 'uk' ? 'ретуш' : 'retouch'}
+                            {dict.designer.picksRetouch}
                             {pick.retouch > 1 ? ` ×${pick.retouch}` : ''}
                           </span>
                         )}

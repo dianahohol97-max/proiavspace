@@ -26,6 +26,6 @@
 
 ## Мови (9: uk, en, pl, de, es, fr, it, ro, pt)
 
-- **Новий рядок інтерфейсу — одразу в усі 9 мов**: словники `src/lib/i18n/dictionaries/*.ts`, лендинг `src/lib/landing/locales/`, юридичні тексти `src/lib/legal/locales/`, політики клієнтів `src/lib/legal/client-policies/`, AI-відбір `src/lib/culling/locales/`. Тест `tests/audit-storage/i18n-parity.test.ts` (у `test:audit`) падає, якщо чогось бракує, а `tests/e2e/i18n.spec.ts` ловить англійські фолбеки на сторінках.
+- **Новий рядок інтерфейсу — одразу в усі 9 мов**: словники `src/lib/i18n/dictionaries/*.ts`, лендинг `src/lib/landing/locales/`, юридичні тексти `src/lib/legal/locales/`, політики клієнтів `src/lib/legal/client-policies/`, AI-відбір `src/lib/culling/locales/`, довідка «Як це працює» `src/lib/gallery/help-locales/`. Тест `tests/audit-storage/i18n-parity.test.ts` (у `test:audit`) падає, якщо чогось бракує, а `tests/e2e/i18n.spec.ts` ловить англійські фолбеки на сторінках.
 - Терміни — за `docs/i18n/GLOSSARY.md`. Не пишіть `locale === 'uk' ? '…' : 'English'` у компонентах — рядок у словник.
 - Числа, дати, гривні, множина — через `src/lib/i18n/format.ts` (`formatMessage` з `{n, plural, …}`, `formatDate`, `formatUah`, `intlLocale`).

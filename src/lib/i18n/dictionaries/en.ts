@@ -777,6 +777,12 @@ export const en: Dictionary = {
     phone: "Phone",
     hiddenFromClient: "Hidden from client",
     showToClient: "Show to client",
+    picksFile: "File",
+    picksMark: "Mark",
+    picksComment: "Comment",
+    picksFavorite: "heart",
+    picksRetouch: "retouch",
+    focusGridHint: "Click a photo to set its crop focus — which part stays in frame in cropped layouts (Squares / Portrait / Collage / Editorial). The “Cover” button makes a photo the album cover.",
   },
   studio: {
     nameEn: "Name in Latin script",

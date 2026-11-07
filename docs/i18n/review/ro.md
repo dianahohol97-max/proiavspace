@@ -32,3 +32,14 @@ Format: `cheie sau loc — traducerea — de ce nu sunt sigur`
 - legal `oferta.sections[6]` — Legea Ucrainei „Cu privire la protecția datelor cu caracter personal” — formula titlului legii; în Republica Moldova se folosește „Privind…”.
 - legal `oferta.sections[8]` — „plătitor de impozit unic, grupa a treia” — echivalent aproximativ al „єдиний податок, третя група”.
 - client-policies `refund` — „Fotograful („Fotograful”)” când lipsește numele — repetiție inevitabilă (la fel ca în engleză).
+
+## Delta (release/4)
+
+- `galleryManage.picksHint` — numele meniurilor lăsate în engleză (Library → Text → Filename → Contains) — Lightroom Classic nu are interfață în română; de confirmat că fotografii români îl folosesc în engleză.
+- `galleryManage.favoritesTitle` — „Alegerile clienților” pentru „Client picks” — trebuie să acopere atât favoritele, cât și cererile de retuș; alternativă: „Selecția clienților”.
+- `galleryManage.clientEmailHint` — „Răspunsurile ajung în căsuța dumneavoastră de e-mail” — de verificat dacă e clar că răspunsul clientului ajunge la fotograf.
+- `galleryManage.picksSubstringNote` — „potriviri parțiale” pentru „matches parts of names” — termen tehnic, poate prea abstract.
+- landing `products.features[2].title` — „O conexiune căzută nu înseamnă să o luați de la capăt” — titlu lung; poate „Conexiunea cade, încărcarea continuă”.
+- landing `products.features[0].no` — „02 — Triere cu AI” — de confirmat „AI” vs „IA” (în română se folosesc ambele).
+- landing `bento.cards.languages.text` — „Clienții pot afișa galeria în limba lor — nouă limbi la alegere” — reformulare liberă.
+- landing `principles.items[3].title` — „Fotografiile nu pleacă la analiză” — poate suna ambiguu; alternativă: „Fotografiile nu sunt trimise nicăieri pentru analiză”.

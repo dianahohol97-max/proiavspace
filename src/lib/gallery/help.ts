@@ -2,8 +2,8 @@
  * «Як це працює» blocks next to the gallery features in the dashboard
  * (there is no separate help centre). Kept next to the feature, not in the
  * shared dictionaries, so parallel releases editing uk.ts/en.ts don't
- * conflict. uk and en are full; every other locale falls back to English,
- * like the rest of the dashboard.
+ * conflict. uk and en are here, the other 7 languages in ./help-locales —
+ * change the text in all 9 (tests/audit-storage/i18n-parity.test.ts).
  *
  * Every line describes what the code does today — if the behaviour changes,
  * change the text with it:
@@ -11,6 +11,14 @@
  *   delivery → lib/gallery/delivery.ts (deliveryView), DeliveryStatusControl
  *   upload   → lib/upload/* (multipart 8 MB parts, network wait, resume)
  */
+
+import { pl } from './help-locales/pl'
+import { de } from './help-locales/de'
+import { es } from './help-locales/es'
+import { fr } from './help-locales/fr'
+import { it } from './help-locales/it'
+import { ro } from './help-locales/ro'
+import { pt } from './help-locales/pt'
 
 export interface HelpBlock {
   title: string
@@ -85,6 +93,8 @@ const en: GalleryHelp = {
   },
 }
 
+const BY_LOCALE: Record<string, GalleryHelp> = { uk, en, pl, de, es, fr, it, ro, pt }
+
 export function galleryHelp(locale: string): GalleryHelp {
-  return locale === 'uk' ? uk : en
+  return BY_LOCALE[locale] ?? en
 }
