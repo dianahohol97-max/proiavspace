@@ -9,6 +9,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { LangPicker } from '@/components/LangPicker'
 import { GalleryGrid, type GridTileInfo } from './GalleryGrid'
+import { DeliveryBanner, deliveryVars } from './DeliveryStatusScreen'
 import { gridSrc, gridSrcSet } from './gridLayout'
 import type { GalleryLightboxProps } from './GalleryLightbox'
 import s from './GalleryExperience.module.css'
@@ -131,6 +132,7 @@ export function GalleryExperience({
   labels,
   style,
   demo = false,
+  deliveryNotice = null,
 }: {
   locale: string
   slug: string
@@ -156,6 +158,11 @@ export function GalleryExperience({
   style?: GalleryStyle
   /** Public showcase: keep the interactions visual, never hit gallery APIs. */
   demo?: boolean
+  /**
+   * «Повна галерея в обробці · орієнтовно до …» strip above the cover — the
+   * shoot is still in progress but some previews are already visible.
+   */
+  deliveryNotice?: { text: string; etaText: string | null } | null
 }) {
   const tokens = resolveTokens(theme, mode)
   const accent = style?.accent ?? (mode === 'night' ? '#8fa2ff' : '#2f55ff')
@@ -471,6 +478,13 @@ export function GalleryExperience({
       {mediaOrigins.map((origin) => (
         <link key={origin} rel="preconnect" href={origin} />
       ))}
+      {deliveryNotice && (
+        <DeliveryBanner
+          text={deliveryNotice.text}
+          etaText={deliveryNotice.etaText}
+          vars={deliveryVars(theme, mode, style)}
+        />
+      )}
       {/* -------- cover -------- */}
       <header className={`${s.cover}${cover === 'left' ? ` ${s.coverLeft}` : ''}${cover === 'minimal' ? ` ${s.coverMinimal}` : ''}`}>
         {cover !== 'minimal' &&

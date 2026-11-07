@@ -1,0 +1,199 @@
+/* «Статус зйомки» — the screen a client sees while the photos are in
+   progress, and the strip above a gallery that only has previews so far.
+   Colours come from deliveryPalette() (every text ≥ 4.5:1 on its ground). */
+
+.screen {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 88px 20px 48px;
+  background: var(--d-bg);
+  color: var(--d-fg);
+  font-family: var(--d-body);
+  text-align: center;
+}
+
+.lang {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  color: var(--d-mut);
+}
+
+.inner { width: 100%; max-width: 560px; }
+
+.caps {
+  font-family: var(--d-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--d-mut);
+}
+
+.title {
+  margin: 18px 0 0;
+  font-family: var(--d-display);
+  font-weight: var(--d-display-weight);
+  text-transform: var(--d-display-transform);
+  letter-spacing: var(--d-display-tracking);
+  font-size: clamp(32px, 7vw, 56px);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.card {
+  margin: 40px auto 0;
+  padding: 28px 22px 26px;
+  border-radius: 20px;
+  background: var(--d-surface);
+}
+
+.warm {
+  margin: 0;
+  font-family: var(--d-display);
+  font-size: clamp(20px, 4.4vw, 26px);
+  line-height: 1.25;
+}
+
+/* ---- the three steps ---- */
+.steps {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  position: relative;
+}
+.step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--d-mut);
+}
+/* connector to the previous step */
+.step + .step::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  right: 50%;
+  width: calc(100% - 34px);
+  margin-right: 17px;
+  height: 2px;
+  background: var(--d-line);
+}
+.stepPast + .stepPast::before,
+.stepPast + .stepNow::before { background: var(--d-accent); }
+.dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  border: 2px solid var(--d-line);
+  background: var(--d-bg);
+  color: var(--d-mut);
+}
+.stepPast .dot { border-color: var(--d-accent); color: var(--d-accent); }
+.stepNow { color: var(--d-fg); font-weight: 700; }
+.stepNow .dot {
+  border-color: var(--d-accent);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--d-accent) 18%, transparent);
+}
+.stepNow .label { color: var(--d-accent); }
+
+.eta {
+  margin: 24px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.note {
+  margin: 14px auto 0;
+  max-width: 400px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--d-mut);
+}
+
+.contact {
+  display: inline-block;
+  margin-top: 32px;
+  border: 1px solid var(--d-fg);
+  border-radius: 999px;
+  padding: 12px 24px;
+  color: var(--d-fg);
+  text-decoration: none;
+  font-family: var(--d-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.contact:hover { background: var(--d-fg); color: var(--d-bg); }
+
+.badge {
+  display: inline-block;
+  margin-top: 28px;
+  font-family: var(--d-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--d-mut);
+  text-decoration: none;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- the strip above a gallery with previews ---- */
+.bannerWrap {
+  background: var(--d-bg);
+  padding: 10px 10px 0;
+}
+.banner {
+  margin: 0;
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: var(--d-surface);
+  color: var(--d-fg);
+  font-family: var(--d-body);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+}
+.bannerDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: var(--d-accent);
+  vertical-align: 1px;
+}
+.bannerEta { color: var(--d-mut); white-space: nowrap; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .stepNow .dot { animation: pulse 2.4s ease-in-out infinite; }
+}
+@keyframes pulse {
+  50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--d-accent) 8%, transparent); }
+}

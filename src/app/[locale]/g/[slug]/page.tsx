@@ -9,7 +9,14 @@ import { resolveGalleryTheme } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { parseGalleryStyle } from '@/lib/gallery/style'
-import { galleryLabels } from '@/lib/gallery/labels'
+import { deliveryLabels, galleryLabels } from '@/lib/gallery/labels'
+import {
+  countVisibleAssets,
+  deliveryView,
+  formatDeliveryEta,
+  parseDeliveryStatus,
+} from '@/lib/gallery/delivery'
+import { DeliveryStatusScreen } from '@/components/gallery/DeliveryStatusScreen'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
 import { LangPicker } from '@/components/LangPicker'
 import type { Asset } from '@/lib/types'
@@ -49,7 +56,7 @@ export default async function PublicGalleryPage({
     supabase
       .from('galleries')
       .select(
-        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style'
+        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style, delivery_status, delivery_eta'
       )
       .eq('slug', params.slug)
       .single<{
@@ -63,6 +70,8 @@ export default async function PublicGalleryPage({
         cover_asset_id: string | null
         theme: string | null
         style: unknown
+        delivery_status: string | null
+        delivery_eta: string | null
       }>(),
   ])
 
@@ -202,6 +211,33 @@ export default async function PublicGalleryPage({
       ? await storage.getSignedReadUrl(branding.logo_key, { expiresInSeconds: 60 * 60 })
       : null
 
+  // «Статус зйомки» (0055) — only after the closed / password checks above.
+  // null or 'ready' → the gallery exactly as before; 'shot'/'editing' with no
+  // visible photos → the status screen; with some previews → a small strip.
+  const deliveryStatus = parseDeliveryStatus(gallery.delivery_status)
+  const view = deliveryView(deliveryStatus, countVisibleAssets(assets))
+  const etaText = formatDeliveryEta(gallery.delivery_eta, locale)
+  const dLabels = deliveryLabels(dict)
+  const galleryStyle = parseGalleryStyle(gallery.style)
+  if (view === 'screen' && deliveryStatus) {
+    return (
+      <DeliveryStatusScreen
+        locale={locale}
+        title={gallery.title}
+        brandName={brandName}
+        logoUrl={logoUrl}
+        status={deliveryStatus}
+        etaText={etaText}
+        contactUrl={branding?.contact_url ?? null}
+        showBadge={!ownerPlan.features.brandingRemoval}
+        theme={theme}
+        mode={mode}
+        style={galleryStyle}
+        labels={dLabels}
+      />
+    )
+  }
+
   const items: GalleryItem[] = await Promise.all(
     (assets ?? []).map(async (asset) => ({
       id: asset.id,
@@ -283,8 +319,13 @@ export default async function PublicGalleryPage({
       tipUrl={ownerPlan.features.tips ? (branding?.tip_link ?? null) : null}
       theme={theme}
       mode={mode}
-      style={parseGalleryStyle(gallery.style)}
+      style={galleryStyle}
       labels={galleryLabels(dict)}
+      deliveryNotice={
+        view === 'banner'
+          ? { text: dLabels.banner, etaText: etaText ? dLabels.bannerEta.replace('{date}', etaText) : null }
+          : null
+      }
     />
   )
 }
