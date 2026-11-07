@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import {
@@ -27,7 +28,7 @@ import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
 import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
 import { sendClientReadyEmailAgain, setClientEmail } from '@/lib/actions/client-email'
 import {
-  PICK_LABELS,
+  pickLabels as buildPickLabels,
   assetOriginalName,
   buildClientPicks,
   lightroomFilterLine,
@@ -122,7 +123,7 @@ export default async function ManageGalleryPage({
   const pickClients = new Set((selections ?? []).map((s) => s.client_token))
   const retouchCount = picks.filter((p) => p.retouch > 0).length
   const lightroom = lightroomFilterLine(picks)
-  const pickLabels = PICK_LABELS[locale === 'uk' ? 'uk' : 'en']
+  const pickLabels = buildPickLabels(dict.designer)
 
   // Per-photo engagement (a «Плюс»+ stat): download and view events carry the
   // asset id in meta, so we can show views + downloads on each individual photo.
@@ -209,9 +210,9 @@ export default async function ManageGalleryPage({
   // studio, so the picker is reduced to three clearly distinct moods. Legacy
   // stored themes stay valid and are normalized to the nearest mood below.
   const themeOptions: { value: string; label: string }[] = [
-    { value: 'tysha', label: locale === 'uk' ? 'Світла' : 'Light' },
-    { value: 'opivnich', label: locale === 'uk' ? 'Темна' : 'Dark' },
-    { value: 'plivka', label: locale === 'uk' ? 'Крем' : 'Cream' },
+    { value: 'tysha', label: dict.designer.themeLight },
+    { value: 'opivnich', label: dict.designer.themeDark },
+    { value: 'plivka', label: dict.designer.themeCream },
   ]
   const themeMood: Record<string, string> = {
     tysha: 'tysha',
@@ -296,15 +297,10 @@ export default async function ManageGalleryPage({
           galleryTitle={gallery.title}
           locale={locale}
           labels={{
+            ...dict.designer,
             styleLabel: dict.galleryManage.styleLabel,
             styleSave: dict.galleryManage.styleSave,
             styleSaved: dict.galleryManage.styleSaved,
-            accent: locale === 'uk' ? 'Акцент' : 'Accent',
-            columns: locale === 'uk' ? 'Колонки' : 'Columns',
-            radius: locale === 'uk' ? 'Кути' : 'Corners',
-            font: locale === 'uk' ? 'Шрифт' : 'Font',
-            preview: locale === 'uk' ? 'Превʼю' : 'Preview',
-            focal: locale === 'uk' ? 'Фокус обкладинки' : 'Cover focus',
           }}
         />
       </header>
@@ -336,7 +332,7 @@ export default async function ManageGalleryPage({
         initialEmail={clientEmail.email}
         sentAtText={
           clientEmail.sentAt
-            ? new Date(clientEmail.sentAt).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+            ? new Date(clientEmail.sentAt).toLocaleString(intlLocale(locale), {
                 timeZone: 'Europe/Kyiv',
                 day: '2-digit',
                 month: '2-digit',
@@ -383,7 +379,7 @@ export default async function ManageGalleryPage({
               : gallery.free_expired_at
                 ? `${dict.dashboard.freeClosed} · ${dict.dashboard.freePurgeOn.replace(
                     '{date}',
-                    purgeDate(gallery.free_expired_at).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+                    purgeDate(gallery.free_expired_at).toLocaleDateString(intlLocale(locale), {
                       timeZone: 'Europe/Kyiv',
                     })
                   )}`
@@ -494,9 +490,7 @@ export default async function ManageGalleryPage({
       <section className="mt-12">
         {previews.length > 0 && (
           <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
-            {locale === 'uk'
-              ? 'Клацни по фото, щоб задати фокус кадру — яку частину показувати в розкладках з кадруванням (Квадрати / Портрет / Колаж / Едіторіал). Кнопка «Обкладинка» робить фото головним.'
-              : 'Click a photo to set its crop focus — which part stays in frame in cropped layouts (Squares / Portrait / Collage / Editorial). The “Cover” button makes a photo the album cover.'}
+            {dict.designer.focusGridHint}
           </p>
         )}
         {previews.length > 1 && (
@@ -526,7 +520,7 @@ export default async function ManageGalleryPage({
                     initialY={asset.focal_y ?? null}
                     action={setAssetFocal.bind(null, locale, asset.id)}
                     title={
-                      locale === 'uk' ? 'Клацни, щоб задати фокус кадру' : 'Click to set crop focus'
+                      dict.designer.focalHint
                     }
                   />
                   {(favoritedBy > 0 ||
@@ -556,13 +550,13 @@ export default async function ManageGalleryPage({
                       className="absolute left-2 top-2 flex flex-col items-start gap-1"
                     >
                       <span className="rounded-full bg-neutral-900/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                        {locale === 'uk' ? 'Сховано від клієнта' : 'Hidden from client'}
+                        {dict.designer.hiddenFromClient}
                       </span>
                       <button
                         type="submit"
                         className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-900 hover:text-accent"
                       >
-                        {locale === 'uk' ? 'Повернути клієнту' : 'Show to client'}
+                        {dict.designer.showToClient}
                       </button>
                     </form>
                   )}
@@ -638,7 +632,7 @@ export default async function ManageGalleryPage({
                         )}
                         {pick.retouch > 0 && (
                           <span className="bg-bg/90 px-2 py-0.5 text-xs text-fg">
-                            {locale === 'uk' ? 'ретуш' : 'retouch'}
+                            {dict.designer.picksRetouch}
                             {pick.retouch > 1 ? ` ×${pick.retouch}` : ''}
                           </span>
                         )}

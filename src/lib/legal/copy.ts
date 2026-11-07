@@ -1,7 +1,7 @@
 /**
  * Legal documents (public offer + privacy policy) rendered at /[locale]/oferta
- * and /[locale]/privacy. Ukrainian is primary; English is the fallback for all
- * other locales.
+ * and /[locale]/privacy. Ukrainian is primary and the only legally binding
+ * edition; translations live in ./locales and say so in `reviewNote`.
  *
  * Business details are filled in (ФОП Гоголь Діана Іванівна). By choice, the
  * РНОКПП and full address are NOT published — they are provided in the
@@ -11,6 +11,14 @@
  */
 
 import { SUPPORT_EMAIL } from '@/lib/email-layout'
+import { ENTITY, UPDATED } from './entity'
+import { pl } from './locales/pl'
+import { de } from './locales/de'
+import { es } from './locales/es'
+import { fr } from './locales/fr'
+import { it } from './locales/it'
+import { ro } from './locales/ro'
+import { pt } from './locales/pt'
 
 export interface LegalSection {
   heading: string
@@ -31,8 +39,6 @@ export interface LegalCopy {
   reviewNote: string
 }
 
-const ENTITY = 'ФОП Гоголь Діана Іванівна'
-const UPDATED = '29.09.2026'
 
 const uk: LegalCopy = {
   backToHome: '← На головну',
@@ -187,7 +193,8 @@ const uk: LegalCopy = {
 
 const en: LegalCopy = {
   backToHome: '← Home',
-  reviewNote: '',
+  reviewNote:
+    'This is a translation provided for convenience. The legally binding version is the Ukrainian one; in case of any discrepancy the Ukrainian text prevails. The translation does not create any obligations beyond the Ukrainian version.',
   oferta: {
     title: 'Public Offer (Terms)',
     updated: `Version of ${UPDATED}`,
@@ -323,6 +330,12 @@ const en: LegalCopy = {
   },
 }
 
+const BY_LOCALE: Record<string, LegalCopy> = { uk, en, pl, de, es, fr, it, ro, pt }
+
+/**
+ * Legal texts in the page language. Only the Ukrainian edition is legally
+ * binding; every translation carries a `reviewNote` saying so.
+ */
 export function getLegalCopy(locale: string): LegalCopy {
-  return locale === 'uk' ? uk : en
+  return BY_LOCALE[locale] ?? en
 }

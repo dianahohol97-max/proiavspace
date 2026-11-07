@@ -1,5 +1,12 @@
 import type { Locale } from '@/lib/i18n/config'
 import type { GalleryPlanId } from '@/lib/plans'
+import { pl } from './locales/pl'
+import { de } from './locales/de'
+import { es } from './locales/es'
+import { fr } from './locales/fr'
+import { it } from './locales/it'
+import { ro } from './locales/ro'
+import { pt } from './locales/pt'
 
 /**
  * Marketing landing copy. Kept apart from the app dictionaries — this text
@@ -490,8 +497,9 @@ const en: LandingCopy = {
   },
 }
 
+const BY_LOCALE: Record<Locale, LandingCopy> = { uk, en, pl, de, es, fr, it, ro, pt }
+
+/** Landing copy in the page language (all 9 are translated; see ./locales). */
 export function getLandingCopy(locale: Locale): LandingCopy {
-  // Only Ukrainian is fully authored for marketing; every other locale gets
-  // English (client languages don't have a translated landing page).
-  return locale === 'uk' ? uk : en
+  return BY_LOCALE[locale] ?? en
 }

@@ -135,6 +135,8 @@ export function cardSuite(
       test('подарунки: «Замовити» сертифікат відкриває форму з номіналом/кому/від кого', async ({ page }) => {
         await page.goto(URL)
         const cert = page.locator('#gifts [data-gift=certificate]')
+        // Як у сусідніх тестах: клік до гідрації не відкриває форму.
+        await waitHydrated(page, '#contact form')
         await cert.locator('a').click()
         await expect(page.locator('#contact [name=cert_to]')).toBeVisible()
         await expect(page.locator('#contact [name=cert_from]')).toBeVisible()
