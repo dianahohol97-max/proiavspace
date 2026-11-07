@@ -1,3 +1,4 @@
+import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { signOut } from '@/lib/actions/galleries'
@@ -10,6 +11,8 @@ import {
   planStorageBytes,
 } from '@/lib/plans'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { APP_THEME_COLOR, appMetadata } from '@/lib/app/manifest'
+import { AppShell } from '@/components/app/AppShell'
 import { Logo } from '@/components/Logo'
 import { DashNav, type NavItem } from '@/components/dashboard/DashNav'
 import { MobileMenu } from '@/components/dashboard/MobileMenu'
@@ -21,9 +24,15 @@ import type { Profile } from '@/lib/types'
  * crash / silently blank pages). The element-level translate="no" below is
  * not enough once Chrome has already decided to translate the tab.
  */
-export const metadata = {
-  other: { google: 'notranslate' },
+export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+  return {
+    other: { google: 'notranslate' },
+    // The phone app «проЯв» (PWA): its own manifest, separate from the site's.
+    ...appMetadata(params.locale),
+  }
 }
+
+export const viewport: Viewport = { themeColor: APP_THEME_COLOR }
 
 function formatGb(bytes: number): string {
   const gb = bytes / (1024 * 1024 * 1024)
@@ -69,6 +78,7 @@ export default async function DashboardLayout({
     { href: `/${locale}/dashboard`, label: dict.billing.galleryPlansTitle, prefix: true },
     { href: `/${locale}/dashboard/site`, label: dict.site.navLink },
     { href: `/${locale}/dashboard/booking`, label: dict.booking.navLink },
+    { href: `/${locale}/dashboard/offline`, label: dict.app.offlineTitle },
     { href: `/${locale}/dashboard/billing`, label: dict.dashboard.billingLink },
     { href: `/${locale}/dashboard/referrals`, label: dict.referrals.navLink },
     { href: `/${locale}/dashboard/settings`, label: dict.dashboard.settingsLink },
@@ -114,6 +124,7 @@ export default async function DashboardLayout({
     // керує React, і наступний ре-рендер падає з removeChild-помилкою.
     // Кабінет — україномовний робочий інструмент, тож переклад тут вимкнено.
     <div className="notranslate flex min-h-screen" translate="no">
+      <AppShell locale={locale} />
       {/* -------- sidebar (desktop) -------- */}
       <aside className="sticky top-0 hidden h-screen w-60 flex-none flex-col gap-1 border-r border-line bg-white p-4 lg:flex">
         <Link href={`/${locale}`} className="mb-5 block px-3 pt-1 text-fg no-underline">

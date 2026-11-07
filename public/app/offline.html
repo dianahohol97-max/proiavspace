@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f4f1">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="/dashboard.webmanifest">
+<link rel="apple-touch-icon" href="/app/apple-touch-icon.png">
+<title>проЯв</title>
+<!--
+  Offline screen of the photographer's phone app. The service worker
+  (/dashboard-sw.js) serves this file for any dashboard page when there is no
+  network. Self-contained on purpose: no scripts, styles or fonts from the
+  network. Shows «немає інтернету» and the galleries saved for offline viewing
+  (components/app/OfflinePortfolio → Cache Storage 'proiav-portfolio-v1').
+  Online it is the full-screen viewer of the same saved galleries.
+-->
+<style>
+  :root { --bg:#f4f4f1; --fg:#0d0c0a; --muted:#6b6a66; --line:#e3e2dc; --accent:#2f55ff; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+  main { max-width: 640px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 16px 40px; }
+  header { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  header b span { color: var(--accent); }
+  .card { margin-top: 20px; background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  h1 { margin: 0; font-size: 22px; line-height: 1.25; }
+  p { margin: 8px 0 0; color: var(--muted); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; margin-top: 16px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; text-decoration: none; }
+  .btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+  h2 { margin: 28px 0 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .list { display: grid; gap: 12px; margin-top: 12px; }
+  .item { display: flex; gap: 14px; align-items: center; width: 100%; padding: 10px; border: 0; border-radius: 18px; background: #fff; text-align: left; font: inherit; color: inherit; }
+  .item .cover { flex: none; width: 76px; height: 76px; border-radius: 12px; background: var(--line) center/cover no-repeat; }
+  .item b { display: block; font-size: 16px; }
+  .item small { color: var(--muted); font-size: 13px; }
+  .empty { margin-top: 12px; color: var(--muted); }
+  .viewer { position: fixed; inset: 0; z-index: 10; background: #000; display: none; }
+  .viewer.open { display: block; }
+  .strip { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: contain; }
+  .strip::-webkit-scrollbar { display: none; }
+  .slide { flex: none; width: 100vw; height: 100%; scroll-snap-align: center; display: grid; place-items: center; }
+  .slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .bar { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 16px 12px; color: #fff; background: linear-gradient(rgba(0,0,0,.55), transparent); }
+  .bar .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .bar button { min-width: 48px; min-height: 48px; border: 0; border-radius: 999px; background: rgba(255,255,255,.16); color: #fff; font: inherit; font-size: 22px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="12" r="3.6" fill="#2f55ff"/></svg>
+    <b>про<span>Я</span>в</b>
+  </header>
+
+  <section class="card" data-testid="offline-status">
+    <h1 id="status-title"></h1>
+    <p id="status-text"></p>
+    <button class="btn" id="retry" type="button"></button>
+    <a class="btn ghost" id="back" href="/dashboard" hidden></a>
+  </section>
+
+  <h2 id="saved-title"></h2>
+  <div class="list" id="list" data-testid="offline-galleries"></div>
+  <p class="empty" id="empty" hidden></p>
+</main>
+
+<div class="viewer" id="viewer" data-testid="offline-viewer" role="dialog" aria-modal="true">
+  <div class="strip" id="strip"></div>
+  <div class="bar">
+    <button type="button" id="close" aria-label="×">×</button>
+    <span class="title" id="viewer-title"></span>
+    <span id="counter" data-testid="offline-counter"></span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var CACHE = 'proiav-portfolio-v1';
+  var INDEX = '/__portfolio/index.json';
+  var match = /^\/([a-z]{2})\//.exec(location.pathname);
+  var lang = (match && match[1]) || new URLSearchParams(location.search).get('lang') || ((navigator.language || '').slice(0, 2) === 'uk' ? 'uk' : 'en');
+  var T = {
+    uk: {
+      offTitle: 'Немає інтернету',
+      offText: 'Кабінет відкриється, щойно зʼявиться звʼязок. Збережене на телефоні — нижче, його можна показувати й без мережі.',
+      onTitle: 'Портфоліо на телефоні',
+      onText: 'Ці галереї збережені на телефоні й відкриваються без інтернету.',
+      retry: 'Спробувати знову',
+      back: '← До кабінету',
+      saved: 'Збережено на телефоні',
+      empty: 'Тут поки нічого. Збережіть до 3 галерей у кабінеті: «Портфоліо офлайн».',
+      photos: ' фото',
+      close: 'Закрити'
+    },
+    en: {
+      offTitle: 'No internet connection',
+      offText: 'The dashboard opens as soon as you are back online. What is saved on this phone is below — it works without a network.',
+      onTitle: 'Portfolio on this phone',
+      onText: 'These galleries are saved on the phone and open without internet.',
+      retry: 'Try again',
+      back: '← Back to dashboard',
+      saved: 'Saved on this phone',
+      empty: 'Nothing here yet. Save up to 3 galleries in the dashboard: “Offline portfolio”.',
+      photos: ' photos',
+      close: 'Close'
+    }
+  };
+  var t = lang === 'uk' ? T.uk : T.en;
+  document.documentElement.lang = lang === 'uk' ? 'uk' : 'en';
+  var $ = function (id) { return document.getElementById(id); };
+
+  function renderStatus() {
+    var online = navigator.onLine && !/[?&]offline=1/.test(location.search);
+    $('status-title').textContent = online ? t.onTitle : t.offTitle;
+    $('status-text').textContent = online ? t.onText : t.offText;
+    $('retry').textContent = t.retry;
+    $('retry').hidden = online;
+    $('back').textContent = t.back;
+    $('back').href = '/' + (match ? match[1] : lang) + '/dashboard';
+    $('back').hidden = !online;
+  }
+  renderStatus();
+  window.addEventListener('online', renderStatus);
+  window.addEventListener('offline', renderStatus);
+  $('retry').onclick = function () { location.reload(); };
+  $('saved-title').textContent = t.saved;
+  $('close').setAttribute('aria-label', t.close);
+
+  var urls = [];
+  function blobUrl(cache, key) {
+    return cache.match(key).then(function (res) {
+      if (!res) return '';
+      return res.blob().then(function (blob) { var u = URL.createObjectURL(blob); urls.push(u); return u; });
+    });
+  }
+
+  function openViewer(cache, gallery) {
+    var strip = $('strip');
+    strip.innerHTML = '';
+    $('viewer-title').textContent = gallery.title;
+    var total = gallery.photos.length;
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var img = entry.target.querySelector('img');
+        if (img.dataset.key && !img.src) {
+          blobUrl(cache, img.dataset.key).then(function (u) { if (u) img.src = u; });
+        }
+      });
+    }, { root: strip, rootMargin: '0px 100% 0px 100%' });
+    var onScroll = function () {
+      var index = Math.round(strip.scrollLeft / Math.max(strip.clientWidth, 1));
+      $('counter').textContent = Math.min(index + 1, total) + ' / ' + total;
+    };
+    strip.addEventListener('scroll', onScroll, { passive: true });
+    gallery.photos.forEach(function (photo, index) {
+      var slide = document.createElement('div');
+      slide.className = 'slide';
+      slide.dataset.index = String(index);
+      var img = document.createElement('img');
+      img.alt = '';
+      img.dataset.key = photo.key;
+      img.setAttribute('data-testid', 'offline-photo');
+      if (photo.w && photo.h) { img.width = photo.w; img.height = photo.h; }
+      slide.appendChild(img);
+      strip.appendChild(slide);
+      observer.observe(slide);
+    });
+    $('counter').textContent = (total ? 1 : 0) + ' / ' + total;
+    $('viewer').classList.add('open');
+    strip.scrollLeft = 0;
+    $('close').onclick = function () {
+      observer.disconnect();
+      strip.removeEventListener('scroll', onScroll);
+      $('viewer').classList.remove('open');
+      strip.innerHTML = '';
+    };
+  }
+
+  if (!('caches' in window)) { $('empty').textContent = t.empty; $('empty').hidden = false; return; }
+  caches.open(CACHE).then(function (cache) {
+    return cache.match(INDEX).then(function (res) { return res ? res.json() : { galleries: [] }; }).then(function (index) {
+      var galleries = (index && index.galleries) || [];
+      if (!galleries.length) { $('empty').textContent = t.empty; $('empty').hidden = false; return; }
+      galleries.forEach(function (gallery) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'item';
+        button.setAttribute('data-testid', 'offline-gallery');
+        var cover = document.createElement('span');
+        cover.className = 'cover';
+        var text = document.createElement('span');
+        var title = document.createElement('b');
+        title.textContent = gallery.title;
+        var meta = document.createElement('small');
+        meta.textContent = gallery.photos.length + t.photos;
+        text.appendChild(title);
+        text.appendChild(meta);
+        button.appendChild(cover);
+        button.appendChild(text);
+        button.onclick = function () { openViewer(cache, gallery); };
+        $('list').appendChild(button);
+        if (gallery.photos[0]) blobUrl(cache, gallery.photos[0].key).then(function (u) { if (u) cover.style.backgroundImage = 'url("' + u + '")'; });
+      });
+      var wanted = new URLSearchParams(location.search).get('g');
+      var first = galleries.filter(function (g) { return g.id === wanted; })[0];
+      if (first) openViewer(cache, first);
+    });
+  }).catch(function () { $('empty').textContent = t.empty; $('empty').hidden = false; });
+})();
+</script>
+</body>
+</html>

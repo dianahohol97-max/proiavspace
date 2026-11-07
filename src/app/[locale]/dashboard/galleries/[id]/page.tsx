@@ -472,6 +472,9 @@ export default async function ManageGalleryPage({
             videoPlanNotice={dict.galleryManage.videoPlanNotice}
             videoPlanLink={dict.galleryManage.videoPlanLink}
             billingHref={`/${locale}/dashboard/billing`}
+            pickPhoneLabel={dict.app.uploadPickPhone}
+            backgroundHint={dict.app.uploadBackgroundHint}
+            pausedHint={dict.app.uploadPaused}
           />
           )}
         </div>
