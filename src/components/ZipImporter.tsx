@@ -7,6 +7,10 @@ import type { ImportReport } from '@/app/api/import/finish/route'
 import { MAX_ZIP_BYTES, planZip, type ZipPlan } from '@/lib/import/zip-plan'
 import { DuplicateAssetError, uploadFileToGallery } from '@/lib/upload/client'
 import { MAX_FILE_BYTES } from '@/lib/upload/limits'
+import { formatDate, formatMessage, formatNumber } from '@/lib/i18n/format'
+
+const fill = (template: string, values: Record<string, string | number>, locale: string): string =>
+  formatMessage(template, values, locale)
 
 /**
  * Zip import: the zip is read IN THE BROWSER (random access via File.slice —
@@ -61,17 +65,13 @@ export type ImporterStrings = Record<
   string
 >
 
-function fill(template: string, values: Record<string, string | number>): string {
-  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
-    key in values ? String(values[key]) : match
-  )
-}
 
-function formatSize(bytes: number, t: ImporterStrings): string {
+
+function formatSize(bytes: number, t: ImporterStrings, locale: string): string {
   const gb = bytes / (1024 * 1024 * 1024)
   return gb >= 1
-    ? fill(t.gb, { n: Number(gb.toFixed(1)) })
-    : fill(t.mb, { n: Math.max(Math.round(bytes / (1024 * 1024)), 0) })
+    ? fill(t.gb, { n: formatNumber(Number(gb.toFixed(1)), locale) }, locale)
+    : fill(t.mb, { n: Math.max(Math.round(bytes / (1024 * 1024)), 0) }, locale)
 }
 
 /**
@@ -128,7 +128,7 @@ export function ZipImporter({
   const readZip = useCallback(
     async (file: File) => {
       if (file.size > MAX_ZIP_BYTES) {
-        setPhase({ kind: 'idle', error: fill(t.tooLarge, { max: formatSize(MAX_ZIP_BYTES, t) }) })
+        setPhase({ kind: 'idle', error: fill(t.tooLarge, { max: formatSize(MAX_ZIP_BYTES, t, locale) }, locale) })
         return
       }
       setPhase({ kind: 'reading' })
@@ -204,9 +204,9 @@ export function ZipImporter({
           error:
             body?.error === 'storage_quota_exceeded'
               ? fill(t.quotaExceeded, {
-                  need: formatSize(body.neededBytes ?? 0, t),
-                  available: formatSize(body.availableBytes ?? 0, t),
-                })
+                  need: formatSize(body.neededBytes ?? 0, t, locale),
+                  available: formatSize(body.availableBytes ?? 0, t, locale),
+                }, locale)
               : t.startError,
         })
         return
@@ -340,7 +340,7 @@ export function ZipImporter({
     <div className="max-w-2xl">
       <p className="leading-relaxed text-muted">{t.lede}</p>
       <p className="mt-3 text-sm leading-relaxed text-muted">
-        {fill(t.limit, { max: formatSize(MAX_ZIP_BYTES, t) })}
+        {fill(t.limit, { max: formatSize(MAX_ZIP_BYTES, t, locale) }, locale)}
       </p>
 
       {phase.kind === 'idle' && (
@@ -392,7 +392,7 @@ export function ZipImporter({
                 <li key={gallery.title} className="flex gap-4">
                   <span className="min-w-0 flex-1 truncate">{gallery.title}</span>
                   <span className="text-muted">
-                    {fill(t.planGallery, { count: gallery.files.length })}
+                    {formatMessage(t.planGallery, { count: gallery.files.length }, locale)}
                   </span>
                 </li>
               ))}
@@ -407,17 +407,17 @@ export function ZipImporter({
                   0
                 ),
                 t
-              ),
-            })}
+              , locale),
+            }, locale)}
           </p>
           {phase.plan.skippedUnsupported > 0 && (
             <p className="mt-1 text-sm text-muted">
-              {fill(t.planUnsupported, { n: phase.plan.skippedUnsupported })}
+              {fill(t.planUnsupported, { n: phase.plan.skippedUnsupported }, locale)}
             </p>
           )}
           {phase.plan.skippedDuplicateInZip > 0 && (
             <p className="mt-1 text-sm text-muted">
-              {fill(t.planDuplicateInZip, { n: phase.plan.skippedDuplicateInZip })}
+              {fill(t.planDuplicateInZip, { n: phase.plan.skippedDuplicateInZip }, locale)}
             </p>
           )}
 
@@ -452,7 +452,7 @@ export function ZipImporter({
       {phase.kind === 'running' && (
         <div className="mt-8">
           <p className="text-sm font-bold">
-            {fill(t.progress, { done: phase.done, total: phase.total })}
+            {fill(t.progress, { done: phase.done, total: phase.total }, locale)}
           </p>
           <span className="mt-3 block h-1 w-full bg-line">
             <span
@@ -464,7 +464,7 @@ export function ZipImporter({
           </span>
           {phase.current && (
             <p className="mt-2 truncate text-xs text-muted">
-              {fill(t.current, { name: phase.current })}
+              {fill(t.current, { name: phase.current }, locale)}
             </p>
           )}
           <p className="mt-6 text-sm leading-relaxed">{t.keepOpen}</p>
@@ -475,22 +475,22 @@ export function ZipImporter({
         <div className="mt-8 rounded-2xl border border-line bg-white p-6 shadow-sm">
           <h2 className="font-brand text-2xl">{t.reportTitle}</h2>
           <ul className="mt-4 flex flex-col gap-1 text-sm">
-            <li>{fill(t.reportImported, { n: phase.report.importedCount })}</li>
-            <li>{fill(t.reportSize, { size: formatSize(phase.report.importedBytes, t) })}</li>
+            <li>{fill(t.reportImported, { n: phase.report.importedCount }, locale)}</li>
+            <li>{fill(t.reportSize, { size: formatSize(phase.report.importedBytes, t, locale) }, locale)}</li>
             {phase.report.skippedDuplicate > 0 && (
-              <li>{fill(t.reportDuplicate, { n: phase.report.skippedDuplicate })}</li>
+              <li>{fill(t.reportDuplicate, { n: phase.report.skippedDuplicate }, locale)}</li>
             )}
             {phase.report.skippedUnsupported > 0 && (
-              <li>{fill(t.reportUnsupported, { n: phase.report.skippedUnsupported })}</li>
+              <li>{fill(t.reportUnsupported, { n: phase.report.skippedUnsupported }, locale)}</li>
             )}
             {phase.report.skippedVideo > 0 && (
               <li>
-                {fill(t.reportVideo, { n: phase.report.skippedVideo })}{' '}
+                {fill(t.reportVideo, { n: phase.report.skippedVideo }, locale)}{' '}
                 <Link href={`/${locale}/dashboard/billing`}>{t.videoPlanLink}</Link>
               </li>
             )}
             {phase.report.failed > 0 && (
-              <li className="text-accent">{fill(t.reportFailed, { n: phase.report.failed })}</li>
+              <li className="text-accent">{fill(t.reportFailed, { n: phase.report.failed }, locale)}</li>
             )}
           </ul>
           {phase.report.promoEndsAt && (
@@ -499,7 +499,7 @@ export function ZipImporter({
                 date: new Date(phase.report.promoEndsAt).toLocaleDateString(
                   locale === 'uk' ? 'uk-UA' : 'en-GB'
                 ),
-              })}{' '}
+              }, locale)}{' '}
               <Link href={`/${locale}/dashboard/billing`}>{t.promoLink}</Link>
             </p>
           )}

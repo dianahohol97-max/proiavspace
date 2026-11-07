@@ -11,6 +11,7 @@
  */
 
 import { SUPPORT_EMAIL } from '@/lib/email-layout'
+import { ENTITY, UPDATED } from './entity'
 
 export interface LegalSection {
   heading: string
@@ -31,8 +32,6 @@ export interface LegalCopy {
   reviewNote: string
 }
 
-const ENTITY = 'ФОП Гоголь Діана Іванівна'
-const UPDATED = '29.09.2026'
 
 const uk: LegalCopy = {
   backToHome: '← На головну',

@@ -17,6 +17,13 @@ export interface PolicyInput {
   locale: string
 }
 
+/** One language of the client policies: default controller name + texts. */
+export interface ClientPolicyLocale {
+  /** Used when the photographer has no public name yet («the Photographer»). */
+  defaultName: string
+  render: (name: string, email: string) => Record<PolicyDoc, RenderedPolicy>
+}
+
 export interface RenderedPolicy {
   title: string
   /** Section paragraphs; blank strings are rendered as headings via `#`. */

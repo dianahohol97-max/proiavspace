@@ -203,7 +203,7 @@ export function CullingPanel({ galleryId, locale, photos, onSetHidden, ownerId }
   /** Hide/show to the client — always an explicit click, re-checked on the server. */
   const setHiddenFor = async (ids: string[], value: boolean) => {
     if (!onSetHidden || ids.length === 0 || busy) return
-    if (value && !window.confirm(fill(l.hideConfirm, { n: ids.length }))) return
+    if (value && !window.confirm(fill(l.hideConfirm, { n: ids.length }, locale))) return
     setBusy(true)
     try {
       await onSetHidden(ids, value)
@@ -215,7 +215,7 @@ export function CullingPanel({ galleryId, locale, photos, onSetHidden, ownerId }
         }
         return next
       })
-      setNotice(fill(value ? l.hidden : l.unhidden, { n: ids.length }))
+      setNotice(fill(value ? l.hidden : l.unhidden, { n: ids.length }, locale))
     } catch {
       setNotice(l.hideFailed)
     } finally {
@@ -291,7 +291,7 @@ export function CullingPanel({ galleryId, locale, photos, onSetHidden, ownerId }
               {progress.paused
                 ? l.paused
                 : progress.etaMs !== null && progress.etaMs > 0
-                  ? fill(l.eta, { t: formatEta(progress.etaMs, l) })
+                  ? fill(l.eta, { t: formatEta(progress.etaMs, l) }, locale)
                   : ''}
             </span>
           </div>
@@ -311,8 +311,8 @@ export function CullingPanel({ galleryId, locale, photos, onSetHidden, ownerId }
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
             {hasResults ? (
               <p className="text-sm" data-testid="culling-summary">
-                {fill(l.summary, { ...counts, series: series.size })}
-                {failed > 0 && <span className="text-muted"> · {fill(l.failedCount, { n: failed })}</span>}
+                {fill(l.summary, { ...counts, series: series.size }, locale)}
+                {failed > 0 && <span className="text-muted"> · {fill(l.failedCount, { n: failed }, locale)}</span>}
               </p>
             ) : (
               <span />
@@ -524,7 +524,7 @@ function Tile({
             onClick={onSeries}
             className="absolute bottom-1.5 right-1.5 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-900 shadow hover:text-accent"
           >
-            {fill(l.series, { n: seriesSize })}
+            {fill(l.series, { n: seriesSize }, locale)}
           </button>
         )}
       </div>
@@ -582,14 +582,14 @@ function SeriesView({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={fill(l.seriesTitle, { n: ids.length })}
+      aria-label={fill(l.seriesTitle, { n: ids.length }, locale)}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
       data-testid="culling-series"
     >
       <div className="max-h-full w-full max-w-6xl overflow-auto rounded-2xl bg-bg p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-4">
-          <h3 className="font-display text-xl">{fill(l.seriesTitle, { n: ids.length })}</h3>
+          <h3 className="font-display text-xl">{fill(l.seriesTitle, { n: ids.length }, locale)}</h3>
           <button type="button" onClick={onClose} className="text-sm underline">
             {l.close}
           </button>

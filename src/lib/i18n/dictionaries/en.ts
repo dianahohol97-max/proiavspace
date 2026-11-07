@@ -53,7 +53,7 @@ export const en: Dictionary = {
   dashboard: {
     title: 'My galleries',
     partnerUntil: 'Partner until {date}',
-    freeClosesIn: 'Closes in {n} d',
+    freeClosesIn: '{n, plural, one {Closes in # day} other {Closes in # days}}',
     freeClosesToday: 'Closes today',
     freeClosed: 'Closed to clients',
     freePurgeOn: 'files will be deleted on {date}',
@@ -568,7 +568,7 @@ export const en: Dictionary = {
     nameHint:
       'If one gallery was split into several zips, give them the same name and the files will end up in the same galleries.',
     planTitle: 'What will be imported',
-    planGallery: '{count} files',
+    planGallery: '{count, plural, one {# file} other {# files}}',
     planSummary: 'Files in total: {files} · {size}',
     planUnsupported: 'Not a photo or video — will be skipped: {n}',
     planDuplicateInZip: 'Repeated file names in one folder — will be skipped: {n}',
