@@ -5,12 +5,12 @@ import { AnimatePresence, m } from 'motion/react'
 import { useLeadSubmit, type LeadFormLabels, type LeadStatus } from '../LeadForm'
 import { EASE_OUT, useStill } from '../motion/useStill'
 import tysha from './Tysha.module.css'
+import { PACK_EVENT, PACK_PENDING } from './packEvent'
 
 /** A theme's CSS-module class map with the same class names (default: «Тиша»). */
 export type Skin = Record<string, string>
 
-/** Event a pricing card fires so its «Обрати» pre-selects the shoot type. */
-export const PACK_EVENT = 'tysha:pack'
+export { PACK_EVENT }
 
 /**
  * Form controls carry suppressHydrationWarning: password managers and
@@ -65,6 +65,8 @@ export function TyshaLeadForm({
       const name = (event as CustomEvent<string>).detail
       if (typeof name === 'string' && shootTypes.includes(name)) setShootType(name)
     }
+    const pending = (window as unknown as Record<string, unknown>)[PACK_PENDING]
+    if (typeof pending === 'string' && shootTypes.includes(pending)) setShootType(pending)
     window.addEventListener(PACK_EVENT, onPack)
     return () => window.removeEventListener(PACK_EVENT, onPack)
   }, [shootTypes])
