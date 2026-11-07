@@ -31,6 +31,12 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     swipeHint: p.swipeHint,
     prev: p.prev,
     next: p.next,
+    inThisIssue: p.inThisIssue,
+    seasons: p.seasons,
+    editorLetter: p.editorLetter,
+    spread: p.spread,
+    pageShort: p.pageShort,
+    bookShoot: p.bookShoot,
   }
 }
 

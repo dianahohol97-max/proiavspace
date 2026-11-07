@@ -100,7 +100,9 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     id: 'zhurnal',
     tokens: {
       ...base,
-      bg: '#fffdf8', fg: '#26242a', muted: '#8f8b90', accent: '#26242a', line: '#e9e5dd',
+      // «Журнал»: cream paper, ink, editorial red. On the paper: fg ≈ 17:1,
+      // muted ≈ 5.5:1, red ≈ 7.4:1 (AA).
+      bg: '#fffdf8', fg: '#1c1a1d', muted: '#6b666c', accent: '#a8151a', line: '#e6e1d8',
     },
   },
   galereia: {

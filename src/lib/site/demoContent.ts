@@ -88,6 +88,25 @@ function phn(
   }
 }
 
+/** «Журнал» demo photos: WebP 828w copies in public/themes/zhurnal; the cover also AVIF/WebP 828/1280/1920. */
+function phj(id: string, n: number, category: string, caption: string, hero = false): PortfolioItem {
+  const small = `/themes/zhurnal/themes-${n}`
+  const width = n === 40 ? 1500 : 1333
+  return {
+    id,
+    previewUrl: `/themes/${n}.webp`,
+    visible: true,
+    category,
+    caption,
+    width,
+    height: 2000,
+    srcSet: hero
+      ? `${small}-828.webp 828w, ${small}-1280.webp 1280w, ${small}-1920.webp 1920w`
+      : `${small}-828.webp 828w, /themes/${n}.webp ${width}w`,
+    ...(hero ? { avifSrcSet: `${small}-828.avif 828w, ${small}-1280.avif 1280w, ${small}-1920.avif 1920w` } : {}),
+  }
+}
+
 function content(
   partial: Omit<Partial<SiteContent>, 'about'> &
     Pick<SiteContent, 'hero' | 'pricing' | 'contact'> & { about: { text: string; imageId?: string } }
@@ -352,27 +371,61 @@ export const THEME_DEMOS: ThemeDemo[] = [
     suits: 'Фешн і бʼюті',
     displayName: 'Studio Nota',
     content: content({
-      hero: { title: 'Studio Nota', subtitle: 'Фешн, бʼюті, редакційна зйомка', imageId: '' },
-      about: { text: 'Редакційні та рекламні зйомки для брендів і моделей. Стиль, світло, характер.' },
+      hero: { title: 'Studio Nota', subtitle: 'Фешн, бʼюті, редакційна зйомка', imageId: '1' },
+      about: {
+        text: 'Ми знімаємо одяг так, як його носять: на вулиці, в русі, з характером. Кожна зйомка починається з історії — кольору, міста, настрою, — а вже потім зі світла й образів.\n\nПрацюємо з брендами, дизайнерами та моделями: від камерних бʼюті-портретів до редакційних сторі й лукбуків. Нам важливо, щоб кадри говорили мовою бренду, а не мовою шаблону.',
+        imageId: '',
+      },
+      moment: { text: 'Червоне і чорне', imageId: '' },
+      process: {
+        steps: [
+          { title: 'Мудборд', text: 'Збираємо референси, палітру й настрій. Узгоджуємо, що саме має розповісти зйомка.' },
+          { title: 'Команда', text: 'Підбираємо стиліста, візажиста й моделей, бронюємо локацію або студію.' },
+          { title: 'Зйомка', text: 'Знімаємо за планом образів, лишаючи місце для живих моментів між ними.' },
+          { title: 'Ретуш і здача', text: 'Ретушуємо добірку в єдиному стилі й передаємо галерею з файлами під друк і соцмережі.' },
+        ],
+      },
+      testimonials: {
+        items: [
+          {
+            names: 'Дизайнерка одягу',
+            text: 'Лукбук вийшов саме таким, як ми бачили колекцію: живим, міським і дуже нашим.',
+            photoId: '6',
+          },
+          {
+            names: 'Модель',
+            text: 'Найспокійніша зйомка в моєму досвіді — чіткий план, і при цьому багато свободи.',
+            photoId: '3',
+          },
+        ],
+      },
       pricing: {
         items: [
-          { name: 'Бʼюті', price: 'від 8 000 ₴', includes: ['студія', 'візаж', '15 кадрів'] },
-          { name: 'Фешн-стори', price: 'від 18 000 ₴', includes: ['команда', 'локація', 'ретуш'] },
+          { name: 'Бʼюті', price: 'від 8 000 ₴', includes: ['студія', 'візажист', '15 кадрів з ретушшю'] },
+          {
+            name: 'Фешн-сторі',
+            price: 'від 18 000 ₴',
+            includes: ['команда й локація', 'до 6 образів', '30 кадрів з ретушшю'],
+            featured: true,
+          },
+          { name: 'Лукбук', price: 'від 12 000 ₴', includes: ['студія або вулиця', 'до 15 образів', 'кадри під каталог'] },
         ],
       },
       contact: { email: 'hello@nota.example', phone: '+380 44 300 00 00', instagram: '@studio.nota', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 43, 'Фешн', 'Червоний костюм'),
-      ph('2', 42, 'Фешн', 'Monochrome'),
-      ph('3', 41, 'Деталі', 'Брошки'),
-      ph('4', 40, 'Фешн', 'На бордюрі'),
-      ph('5', 44, 'Фешн', 'Вузька вулиця'),
-      ph('6', 48, 'Портрети'),
-      ph('7', 45, 'Фешн'),
-      ph('8', 47, 'Фешн', 'Лукбук'),
-      ph('9', 46, 'Портрети'),
-      ph('10', 49, 'Фешн'),
+      // 1: the cover; 2–5: the spread (left, right → its back, the page under);
+      // 6–10: the magazine pages. No frame is shared with another theme's demo.
+      phj('1', 43, 'Червоне', 'Червоний костюм', true),
+      phj('2', 40, 'Червоне', 'На бордюрі'),
+      phj('3', 41, 'Деталі', 'Брошки'),
+      phj('4', 47, 'Червоне', 'Лукбук'),
+      phj('5', 48, 'Червоне', 'Після дощу'),
+      phj('6', 42, 'Чорно-біле', 'Монохром'),
+      phj('7', 44, 'Чорно-біле', 'Вузька вулиця'),
+      phj('8', 45, 'Чорно-біле', 'Журнал у руках'),
+      phj('9', 46, 'Чорно-біле', 'Тінь і світло'),
+      phj('10', 49, 'Червоне', 'Ліхтар'),
     ],
   },
   {
