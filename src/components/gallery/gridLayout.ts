@@ -80,9 +80,20 @@ export function estimateChunkHeight(
   return Math.ceil(count / columns) * (cell * tileRatio(layout) + gap)
 }
 
-/** Height ÷ width of a masonry tile; unknown sizes are shown as a square. */
+/**
+ * A photo without stored width/height (an old HEIC the browser couldn't
+ * decode at upload, …) gets a 4:5 slot and is shown whole inside it
+ * (object-fit: contain on the tile's neutral background) — never cropped.
+ */
+export const UNKNOWN_RATIO = 5 / 4
+
+export function hasDimensions(width: number | null | undefined, height: number | null | undefined): boolean {
+  return !!width && !!height && width > 0 && height > 0
+}
+
+/** Height ÷ width of a masonry tile. */
 export function masonryRatio(width: number | null | undefined, height: number | null | undefined): number {
-  return width && height ? height / width : 1
+  return hasDimensions(width, height) ? (height as number) / (width as number) : UNKNOWN_RATIO
 }
 
 /**
@@ -121,10 +132,34 @@ export function masonryBreakpointColumns(desired: number): { phone: number; tabl
   }
 }
 
-/** How many tiles the server renders before the grid is virtualized. */
+/** About how many tiles the server renders; they stay in the DOM for good. */
 export const SSR_TILES = 24
-/** The first tiles load eagerly (they are on the first screen); the rest lazily. */
+/**
+ * When the grid is on the first screen («Мінімал» cover): the first tiles load
+ * at once, and the very first ones with fetchpriority="high". Under a photo
+ * cover every tile is lazy, so the cover gets the bandwidth first.
+ */
 export const EAGER_TILES = 6
+export const HIGH_PRIORITY_TILES = 3
+
+function lcm(a: number, b: number): number {
+  return (a / gcd(a, b)) * b
+}
+
+/**
+ * The server-rendered head of the grid. It is never replaced: after hydration
+ * only the tiles after it are virtualized, so the head's images, layout and
+ * LCP element stay exactly as the HTML painted them. For cropped layouts the
+ * head must end on a whole chunk at EVERY breakpoint (CSS picks the columns),
+ * so the virtualized tail continues the pattern seamlessly.
+ */
+export function headCount(layout: GridLayout, desired: number, total: number): number {
+  let unit = 1
+  if (layout !== 'masonry') {
+    for (const viewport of [400, 800, 1280]) unit = lcm(unit, chunkSize(layout, gridColumns(layout, desired, viewport)))
+  }
+  return Math.min(total, Math.ceil(SSR_TILES / unit) * unit)
+}
 
 /**
  * Columns a tile spans: collage makes every 6th tile 2×2, editorial makes

@@ -12,7 +12,9 @@ for (const layout of ['masonry', 'collage'] as const) {
     await page.goto(`/uk/gallery-demo?n=${N}&layout=${layout}`)
     const main = page.locator('main[data-count]')
     await expect(main).toHaveAttribute('data-count', String(N))
-    await expect(page.locator('main figure').first()).toBeVisible()
+    await expect(page.locator('main figure:visible').first()).toBeVisible()
+    // Hydrated: the tail after the server-rendered head is virtualized.
+    await expect(page.locator('main [data-virtual]')).toHaveCount(1)
     await expect(page.getByRole('button', { name: new RegExp(`Завантажити все · ${N}`) })).toBeVisible()
 
     const inDom = () => page.locator('main figure').count()
@@ -39,7 +41,7 @@ for (const layout of ['masonry', 'collage'] as const) {
     expect(worst.worstStep).toBeLessThan(1500)
 
     // The very last photo is reachable and opens in the viewer.
-    const last = page.locator('main figure').last()
+    const last = page.locator(`main figure[data-i="${N - 1}"]:visible`)
     await last.locator('img').first().scrollIntoViewIfNeeded()
     await last.locator('img').first().click()
     await expect(page.locator('.yarl__counter')).toHaveText(`${N} / ${N}`)

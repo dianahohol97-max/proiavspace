@@ -176,6 +176,10 @@
    the host itself is a plain block whose children are absolutely placed rows. */
 .virtualHost { display: block !important; columns: auto !important; }
 .vHost { position: relative; width: 100%; }
+/* masonry tail: absolutely placed over the host (the head is in flow at its top) */
+.vTail { position: absolute; top: 0; left: 0; width: 100%; height: 0; }
+/* cropped layouts tail: right below the head grid */
+.vChunkTail { position: relative; width: 100%; }
 .vCell, .vChunk {
   position: absolute; top: 0; left: 0;
   box-sizing: border-box; will-change: transform;
@@ -210,9 +214,11 @@
   .ssrTablet, .ssrDesktop { display: none; }
   .ssrPhone { display: flex; }
 }
-/* masonry tile with a known aspect ratio: the box is sized exactly */
+/* masonry tile: the box has the photo's proportions, the media fills it */
 .shotFill { height: 100%; }
 .shotFill .shotMedia { height: 100%; object-fit: cover; }
+/* …unless the photo's size is unknown: a 4:5 slot, the photo shown whole */
+.shotFill.shotContain .shotMedia { object-fit: contain; }
 
 /* ---------- footer ---------- */
 .foot { text-align: center; padding: 44px 24px 56px; }

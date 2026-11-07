@@ -33,6 +33,11 @@ function img(n: number, ext: 'webp' | 'jpg' = 'webp'): string {
   return `/themes/${String(n).padStart(2, '0')}.${ext}`
 }
 
+/** The light ~1080 px WebP, as a real gallery's `mobile` rendition. */
+function light(n: number): string {
+  return `/themes/${String(n).padStart(2, '0')}-1080.webp`
+}
+
 // One wedding story in the Norwegian mountains (fence, fields, road, red
 // farmhouse). `v` marks the vertical frames (2:3); the rest are 3:2. The
 // focal pair keeps the couple in frame when a cropped layout is chosen
@@ -76,7 +81,7 @@ export default async function GalleryDemoPage({
   searchParams,
 }: {
   params: { locale: string }
-  searchParams: { theme?: string; n?: string; layout?: string; cover?: string }
+  searchParams: { theme?: string; n?: string; layout?: string; cover?: string; nodims?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -94,12 +99,17 @@ export default async function GalleryDemoPage({
   const cover = COVERS.find((c) => c === searchParams.cover)
   const frames = Array.from({ length: count }, (_, i) => ({ ...PHOTOS[i % PHOTOS.length], i }))
 
+  // ?nodims=3: photos 2, 5, 8 lose their stored size, like old HEIC uploads.
+  const noDims = Math.min(Math.max(Number.parseInt(searchParams.nodims ?? '', 10) || 0, 0), PHOTOS.length)
+  const unsized = (i: number) => i % 3 === 1 && (i - 1) / 3 < noDims
+
   const items: GalleryItem[] = frames.map(({ n, v, fx, fy, i }) => ({
     id: i < PHOTOS.length ? String(n) : `${n}-${i}`,
     kind: 'photo',
-    width: v ? 1333 : 2000,
-    height: v ? 2000 : 1333,
+    width: unsized(i) ? null : v ? 1333 : 2000,
+    height: unsized(i) ? null : v ? 2000 : 1333,
     previewUrl: img(n),
+    gridUrl: light(n),
     posterUrl: null,
     focalX: fx,
     focalY: fy,
@@ -153,6 +163,7 @@ export default async function GalleryDemoPage({
         brandName="Ольга Вишня"
         logoUrl={null}
         coverUrl={img(COVER)}
+        coverGridUrl={light(COVER)}
         items={items}
         initialFavorites={['11', '5']}
         showBadge

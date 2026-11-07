@@ -1,0 +1,242 @@
+  ▲ Next.js 14.2.35
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (106kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (253kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/307) ...
+   Generating static pages (76/307) 
+   Generating static pages (153/307) 
+   Generating static pages (230/307) 
+ ✓ Generating static pages (307/307)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                     Size     First Load JS
+┌ ○ /_not-found                                 876 B            89 kB
+├ ● /[locale]                                   5.68 kB         168 kB
+├   ├ /uk
+├   ├ /en
+├   ├ /pl
+├   └ [+6 more paths]
+├ ƒ /[locale]/autor/[author]                    238 B          97.4 kB
+├ ƒ /[locale]/b/[handle]                        2.64 kB        99.8 kB
+├ ● /[locale]/blog                              238 B          97.4 kB
+├   ├ /uk/blog
+├   ├ /en/blog
+├   ├ /pl/blog
+├   └ [+6 more paths]
+├ ƒ /[locale]/blog/[slug]                       238 B          97.4 kB
+├ ƒ /[locale]/blog/tema/[topic]                 238 B          97.4 kB
+├ ● /[locale]/dashboard                         238 B          97.4 kB
+├   ├ /uk/dashboard
+├   ├ /en/dashboard
+├   ├ /pl/dashboard
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/billing                 3.62 kB         101 kB
+├   ├ /uk/dashboard/billing
+├   ├ /en/dashboard/billing
+├   ├ /pl/dashboard/billing
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/blog                    1.25 kB        98.4 kB
+├   ├ /uk/dashboard/blog
+├   ├ /en/dashboard/blog
+├   ├ /pl/dashboard/blog
+├   └ [+6 more paths]
+├ ƒ /[locale]/dashboard/blog/[id]               1.43 kB        98.6 kB
+├ ● /[locale]/dashboard/booking                 238 B          97.4 kB
+├   ├ /uk/dashboard/booking
+├   ├ /en/dashboard/booking
+├   ├ /pl/dashboard/booking
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/content                 238 B          97.4 kB
+├   ├ /uk/dashboard/content
+├   ├ /en/dashboard/content
+├   ├ /pl/dashboard/content
+├   └ [+6 more paths]
+├ ƒ /[locale]/dashboard/content/[id]            1.39 kB        98.6 kB
+├ ƒ /[locale]/dashboard/galleries/[id]          10.8 kB         108 kB
+├ ● /[locale]/dashboard/galleries/new           150 B          88.2 kB
+├   ├ /uk/dashboard/galleries/new
+├   ├ /en/dashboard/galleries/new
+├   ├ /pl/dashboard/galleries/new
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/hub                     239 B          97.4 kB
+├   ├ /uk/dashboard/hub
+├   ├ /en/dashboard/hub
+├   ├ /pl/dashboard/hub
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/import                  6.3 kB          103 kB
+├   ├ /uk/dashboard/import
+├   ├ /en/dashboard/import
+├   ├ /pl/dashboard/import
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/referrals               591 B          88.7 kB
+├   ├ /uk/dashboard/referrals
+├   ├ /en/dashboard/referrals
+├   ├ /pl/dashboard/referrals
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/settings                1.14 kB        98.3 kB
+├   ├ /uk/dashboard/settings
+├   ├ /en/dashboard/settings
+├   ├ /pl/dashboard/settings
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/site                    14 kB           116 kB
+├   ├ /uk/dashboard/site
+├   ├ /en/dashboard/site
+├   ├ /pl/dashboard/site
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/stats                   239 B          97.4 kB
+├   ├ /uk/dashboard/stats
+├   ├ /en/dashboard/stats
+├   ├ /pl/dashboard/stats
+├   └ [+6 more paths]
+├ ƒ /[locale]/dashboard/stats/account/[userId]  239 B          97.4 kB
+├ ● /[locale]/dashboard/stories                 150 B          88.2 kB
+├   ├ /uk/dashboard/stories
+├   ├ /en/dashboard/stories
+├   ├ /pl/dashboard/stories
+├   └ [+6 more paths]
+├ ● /[locale]/dashboard/threads                 1.36 kB        89.5 kB
+├   ├ /uk/dashboard/threads
+├   ├ /en/dashboard/threads
+├   ├ /pl/dashboard/threads
+├   └ [+6 more paths]
+├ ● /[locale]/dlia-vesilnykh-fotohrafiv         238 B          97.4 kB
+├   ├ /uk/dlia-vesilnykh-fotohrafiv
+├   ├ /en/dlia-vesilnykh-fotohrafiv
+├   ├ /pl/dlia-vesilnykh-fotohrafiv
+├   └ [+6 more paths]
+├ ƒ /[locale]/g/[slug]                          203 B           257 kB
+├ ● /[locale]/gallery-demo                      195 B           257 kB
+├   ├ /uk/gallery-demo
+├   ├ /en/gallery-demo
+├   ├ /pl/gallery-demo
+├   └ [+6 more paths]
+├ ● /[locale]/halerei                           239 B          97.4 kB
+├   ├ /uk/halerei
+├   ├ /en/halerei
+├   ├ /pl/halerei
+├   └ [+6 more paths]
+├ ● /[locale]/halereia-z-parolem                238 B          97.4 kB
+├   ├ /uk/halereia-z-parolem
+├   ├ /en/halereia-z-parolem
+├   ├ /pl/halereia-z-parolem
+├   └ [+6 more paths]
+├ ● /[locale]/login                             3.47 kB         176 kB
+├   ├ /uk/login
+├   ├ /en/login
+├   ├ /pl/login
+├   └ [+6 more paths]
+├ ● /[locale]/mihratsiia                        238 B          97.4 kB
+├   ├ /uk/mihratsiia
+├   ├ /en/mihratsiia
+├   ├ /pl/mihratsiia
+├   └ [+6 more paths]
+├ ● /[locale]/oferta                            238 B          97.4 kB
+├   ├ /uk/oferta
+├   ├ /en/oferta
+├   ├ /pl/oferta
+├   └ [+6 more paths]
+├ ● /[locale]/porivniannia                      238 B          97.4 kB
+├   ├ /uk/porivniannia
+├   ├ /en/porivniannia
+├   ├ /pl/porivniannia
+├   └ [+6 more paths]
+├ ƒ /[locale]/porivniannia/[service]            239 B          97.4 kB
+├ ● /[locale]/privacy                           238 B          97.4 kB
+├   ├ /uk/privacy
+├   ├ /en/privacy
+├   ├ /pl/privacy
+├   └ [+6 more paths]
+├ ● /[locale]/reset-password                    1.12 kB         173 kB
+├   ├ /uk/reset-password
+├   ├ /en/reset-password
+├   ├ /pl/reset-password
+├   └ [+6 more paths]
+├ ƒ /[locale]/s/[handle]                        206 B          93.4 kB
+├ ƒ /[locale]/s/[handle]/legal/[doc]            238 B          97.4 kB
+├ ƒ /[locale]/s/[handle]/opengraph-image        0 B                0 B
+├ ● /[locale]/site-preview                      206 B          93.4 kB
+├   ├ /uk/site-preview
+├   ├ /en/site-preview
+├   ├ /pl/site-preview
+├   └ [+6 more paths]
+├ ● /[locale]/themes                            221 B           102 kB
+├   ├ /uk/themes
+├   ├ /en/themes
+├   ├ /pl/themes
+├   └ [+6 more paths]
+├ ƒ /[locale]/themes/[value]                    221 B           102 kB
+├ ● /[locale]/tsiny                             238 B          97.4 kB
+├   ├ /uk/tsiny
+├   ├ /en/tsiny
+├   ├ /pl/tsiny
+├   └ [+6 more paths]
+├ ƒ /api/admin/billing-check                    0 B                0 B
+├ ƒ /api/admin/migrate-storage                  0 B                0 B
+├ ƒ /api/admin/storage-cors                     0 B                0 B
+├ ƒ /api/admin/test-email                       0 B                0 B
+├ ƒ /api/assets/[id]/download                   0 B                0 B
+├ ƒ /api/billing/checkout                       0 B                0 B
+├ ƒ /api/billing/renew                          0 B                0 B
+├ ƒ /api/billing/subscription/cancel            0 B                0 B
+├ ƒ /api/billing/webhook                        0 B                0 B
+├ ƒ /api/booking/book                           0 B                0 B
+├ ƒ /api/booking/google/callback                0 B                0 B
+├ ƒ /api/booking/google/connect                 0 B                0 B
+├ ƒ /api/booking/pay                            0 B                0 B
+├ ƒ /api/booking/webhook/mono                   0 B                0 B
+├ ƒ /api/booking/webhook/wfp                    0 B                0 B
+├ ƒ /api/cron/free-expiry                       0 B                0 B
+├ ƒ /api/cron/storage-cleanup                   0 B                0 B
+├ ƒ /api/cron/storage-retention                 0 B                0 B
+├ ƒ /api/debug-log                              0 B                0 B
+├ ƒ /api/galleries/[slug]/archive-urls          0 B                0 B
+├ ƒ /api/galleries/[slug]/selections            0 B                0 B
+├ ƒ /api/galleries/[slug]/unlock                0 B                0 B
+├ ƒ /api/import/finish                          0 B                0 B
+├ ƒ /api/import/start                           0 B                0 B
+├ ƒ /api/portfolio/complete                     0 B                0 B
+├ ƒ /api/portfolio/presign                      0 B                0 B
+├ ƒ /api/profile/logo                           0 B                0 B
+├ ƒ /api/sites/lead                             0 B                0 B
+├ ƒ /api/social/posted                          0 B                0 B
+├ ƒ /api/social/queue                           0 B                0 B
+├ ƒ /api/social/video/complete                  0 B                0 B
+├ ƒ /api/social/video/presign                   0 B                0 B
+├ ƒ /api/stories/download                       0 B                0 B
+├ ƒ /api/threads/export                         0 B                0 B
+├ ƒ /api/threads/ingest                         0 B                0 B
+├ ƒ /api/threads/posted                         0 B                0 B
+├ ƒ /api/threads/queue                          0 B                0 B
+├ ƒ /api/threads/scan                           0 B                0 B
+├ ƒ /api/threads/screenshot                     0 B                0 B
+├ ƒ /api/uploads/complete                       0 B                0 B
+├ ƒ /api/uploads/multipart/abort                0 B                0 B
+├ ƒ /api/uploads/multipart/complete             0 B                0 B
+├ ƒ /api/uploads/multipart/create               0 B                0 B
+├ ƒ /api/uploads/multipart/part-urls            0 B                0 B
+├ ƒ /api/uploads/presign                        0 B                0 B
+├ ƒ /auth/callback                              0 B                0 B
+├ ○ /icon.svg                                   0 B                0 B
+├ ƒ /indexnow-key.txt                           0 B                0 B
+├ ○ /llms.txt                                   0 B                0 B
+├ ○ /manifest.webmanifest                       0 B                0 B
+├ ƒ /og/[key]                                   0 B                0 B
+├ ○ /robots.txt                                 0 B                0 B
+└ ○ /sitemap.xml                                0 B                0 B
++ First Load JS shared by all                   88.1 kB
+  ├ chunks/2117-c855881d68db13ea.js             31.7 kB
+  ├ chunks/fd9d1056-fc2a006c09a67c47.js         53.6 kB
+  └ other shared chunks (total)                 2.72 kB
+
+
+ƒ Middleware                                    84 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+

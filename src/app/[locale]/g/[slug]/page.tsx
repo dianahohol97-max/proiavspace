@@ -237,6 +237,11 @@ export default async function PublicGalleryPage({
         { expiresInSeconds: 60 * 60 }
       )
     : null
+  // Light rendition of a photo cover for phones (srcset), when it exists.
+  const coverGridUrl =
+    coverAsset && !coverIsVideo && coverAsset.variants.mobile
+      ? await storage.getSignedReadUrl(coverAsset.variants.mobile, { expiresInSeconds: 60 * 60 })
+      : null
   // Looping clip behind the title when the cover is a video.
   const coverVideoUrl = coverIsVideo
     ? await storage.getSignedReadUrl(coverAsset.variants.preview ?? coverAsset.r2_key, {
@@ -267,6 +272,7 @@ export default async function PublicGalleryPage({
       contactUrl={branding?.contact_url ?? null}
       logoUrl={logoUrl}
       coverUrl={coverUrl}
+      coverGridUrl={coverGridUrl}
       coverVideoUrl={coverVideoUrl}
       items={items}
       initialFavorites={initialFavorites}

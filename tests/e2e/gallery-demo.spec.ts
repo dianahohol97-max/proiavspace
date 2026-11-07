@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test.describe('демо-галерея', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/uk/gallery-demo')
-    await expect(page.locator('main figure').first()).toBeVisible()
+    await expect(page.locator('main figure:visible').first()).toBeVisible()
   })
 
   test('тап по сердечку змінює лічильник обраного', async ({ page, isMobile }) => {

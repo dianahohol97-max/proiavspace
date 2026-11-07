@@ -7,7 +7,9 @@ const viewer = (page: Page) => page.locator('.yarl__portal_open')
 const currentSlide = (page: Page) => page.locator('.yarl__slide_current img.yarl__slide_image')
 
 async function openTile(page: Page, index: number, isMobile: boolean) {
-  const image = page.locator('main figure').nth(index).locator('img').first()
+  // data-i: the tile's place in the gallery (the DOM order of the server-rendered
+  // masonry head is column by column, and phone/desktop variants both exist).
+  const image = page.locator(`main figure[data-i="${index}"]:visible`).locator('img').first()
   if (isMobile) await image.tap()
   else await image.click()
   await expect(viewer(page)).toBeVisible()
@@ -28,7 +30,7 @@ async function swipe(page: Page, direction: 'left' | 'right') {
 test.describe('лайтбокс', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/uk/gallery-demo')
-    await expect(page.locator('main figure').first()).toBeVisible()
+    await expect(page.locator('main figure:visible').first()).toBeVisible()
   })
 
   test('відкривається на тапнутому фото на весь екран, у великому прев’ю', async ({ page, isMobile }) => {
@@ -82,7 +84,7 @@ test.describe('лайтбокс', () => {
     await page.getByRole('button', { name: 'Закрити' }).click()
     await expect(page.locator('.yarl__portal')).toHaveCount(0)
     await expect(
-      page.locator('main figure').nth(1).getByRole('button', { name: 'Додати до обраного' })
+      page.locator('main figure[data-i="1"]:visible').getByRole('button', { name: 'Додати до обраного' })
     ).toHaveAttribute('aria-pressed', 'true')
   })
 

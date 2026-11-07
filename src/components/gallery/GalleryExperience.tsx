@@ -119,6 +119,7 @@ export function GalleryExperience({
   brandName,
   logoUrl,
   coverUrl,
+  coverGridUrl = null,
   coverVideoUrl = null,
   items,
   initialFavorites,
@@ -138,6 +139,8 @@ export function GalleryExperience({
   brandName: string | null
   logoUrl: string | null
   coverUrl: string | null
+  /** Light (~1080 px WebP) rendition of a photo cover, for phones. */
+  coverGridUrl?: string | null
   /** When the cover asset is a video: a looping muted clip behind the title. */
   coverVideoUrl?: string | null
   items: GalleryItem[]
@@ -162,6 +165,26 @@ export function GalleryExperience({
   // Viewer: mounted on first open and kept, so closing can animate out.
   const [viewer, setViewer] = useState<{ open: boolean; index: number; slideshow: boolean } | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const coverRef = useRef<HTMLImageElement | null>(null)
+  // Grid photos load right away when nothing is above the grid; under a
+  // photo cover they are held until it has loaded (see renderTile).
+  const coverIsPhoto = (style?.cover ?? 'classic') !== 'minimal' && !!coverUrl && !coverVideoUrl
+  const [mediaReleased, setMediaReleased] = useState(!coverIsPhoto)
+  useEffect(() => {
+    if (mediaReleased) return
+    const cover = coverRef.current
+    const release = () => setMediaReleased(true)
+    if (!cover || cover.complete) return release()
+    cover.addEventListener('load', release)
+    cover.addEventListener('error', release)
+    // Never hold the grid hostage to a slow cover.
+    const timer = window.setTimeout(release, 4000)
+    return () => {
+      cover.removeEventListener('load', release)
+      cover.removeEventListener('error', release)
+      window.clearTimeout(timer)
+    }
+  }, [mediaReleased])
   const [archive, setArchive] = useState<'idle' | 'working' | 'error'>('idle')
   const [done, setDone] = useState(0)
   const [total, setTotal] = useState(0)
@@ -335,16 +358,8 @@ export function GalleryExperience({
           layout === 'collage' ? ` ${s.gridCollage}` : layout === 'editorial' ? ` ${s.gridEditorial}` : ''
         }`
 
-  const renderTile = (item: GalleryItem, index: number, tile: GridTileInfo) => (
-    <figure
-      key={item.id}
-      className={tile.fill ? `${s.shot} ${s.shotFill}` : s.shot}
-      // The proportions are known before the photo loads: the server-rendered
-      // grid has its final layout, with a placeholder background, at once.
-      style={tile.aspect ? { aspectRatio: tile.aspect } : undefined}
-      onClick={() => openAt(index)}
-    >
-      {item.kind === 'photo' ? (
+  const renderTile = (item: GalleryItem, index: number, tile: GridTileInfo) => {
+    const media = (item.kind === 'photo' ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           // Same src/srcset/sizes on the server and after hydration: the
@@ -354,6 +369,7 @@ export function GalleryExperience({
           sizes={item.gridUrl ? tile.sizes : undefined}
           alt=""
           loading={tile.eager ? 'eager' : 'lazy'}
+          fetchPriority={tile.priority ? 'high' : undefined}
           decoding={tile.eager ? undefined : 'async'}
           width={item.width ?? undefined}
           height={item.height ?? undefined}
@@ -383,6 +399,7 @@ export function GalleryExperience({
             src={item.posterUrl}
             alt=""
             loading={tile.eager ? 'eager' : 'lazy'}
+            fetchPriority={tile.priority ? 'high' : undefined}
             decoding={tile.eager ? undefined : 'async'}
             className={s.shotMedia}
             style={tileFocus(item)}
@@ -398,7 +415,23 @@ export function GalleryExperience({
           playsInline
           preload="metadata"
         />
-      )}
+      ))
+    return (
+    <figure
+      key={item.id}
+      data-i={index}
+      className={`${s.shot}${tile.fill ? ` ${s.shotFill}` : ''}${tile.contain ? ` ${s.shotContain}` : ''}`}
+      // The proportions are known before the photo loads: the server-rendered
+      // grid has its final layout, with a placeholder background, at once.
+      style={tile.aspect ? { aspectRatio: tile.aspect } : undefined}
+      onClick={() => openAt(index)}
+    >
+      {
+        // Under a photo cover the tiles' photos wait until the cover has
+        // loaded, so the cover — the first thing a visitor sees — gets the
+        // whole connection. Without JavaScript <noscript> shows them at once.
+        mediaReleased ? media : <noscript>{media}</noscript>
+      }
       <a
         href={item.downloadHref}
         className={s.dlOne}
@@ -420,10 +453,24 @@ export function GalleryExperience({
         ♥
       </button>
     </figure>
-  )
+    )
+  }
+
+  // Photos come from the media CDN (or presigned B2 URLs): open those
+  // connections while the HTML is still being parsed.
+  const mediaOrigins = Array.from(
+    new Set(
+      [coverUrl, items[0]?.gridUrl, items[0]?.previewUrl]
+        .map((url) => (url && /^https?:\/\//.test(url) ? new URL(url).origin : null))
+        .filter((origin): origin is string => !!origin)
+    )
+  ).slice(0, 2)
 
   return (
     <div ref={rootRef} className={s.root} style={vars}>
+      {mediaOrigins.map((origin) => (
+        <link key={origin} rel="preconnect" href={origin} />
+      ))}
       {/* -------- cover -------- */}
       <header className={`${s.cover}${cover === 'left' ? ` ${s.coverLeft}` : ''}${cover === 'minimal' ? ` ${s.coverMinimal}` : ''}`}>
         {cover !== 'minimal' &&
@@ -439,9 +486,20 @@ export function GalleryExperience({
               playsInline
             />
           ) : coverUrl ? (
-            <div
+            // A real <img>, not a CSS background: the browser finds it in the
+            // HTML at once and loads it first (it is the page's LCP element).
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              ref={coverRef}
               className={s.coverImg}
-              style={{ backgroundImage: `url("${coverUrl}")`, backgroundPosition: focal }}
+              src={coverUrl}
+              // Full-bleed hero: a phone (≤ 560 px, up to 3×) takes the light
+              // 1080 px WebP; a tablet or computer screen takes the 2048 px preview.
+              srcSet={coverGridUrl ? `${coverGridUrl} 1080w, ${coverUrl} 2048w` : undefined}
+              sizes={coverGridUrl ? '(max-width: 560px) 360px, 100vw' : undefined}
+              alt=""
+              fetchPriority="high"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: focal }}
             />
           ) : (
             <div className={s.coverImg} style={{ background: tokens.line }} />
@@ -533,6 +591,7 @@ export function GalleryExperience({
         layout={layout}
         columns={style?.columns ?? 3}
         gap={style?.gap ?? 14}
+        aboveFold={cover === 'minimal'}
         className={gridClass}
         renderTile={renderTile}
       />
