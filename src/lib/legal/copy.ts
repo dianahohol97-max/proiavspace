@@ -33,6 +33,9 @@ export interface LegalCopy {
 
 const ENTITY = 'ФОП Гоголь Діана Іванівна'
 const UPDATED = '29.09.2026'
+/** The privacy policy changes on its own schedule (07.11.2026: Google Calendar). */
+const PRIVACY_UPDATED = '07.11.2026'
+const GOOGLE_USER_DATA_POLICY = 'https://developers.google.com/terms/api-services-user-data-policy'
 
 const uk: LegalCopy = {
   backToHome: '← На головну',
@@ -121,7 +124,7 @@ const uk: LegalCopy = {
   },
   privacy: {
     title: 'Політика конфіденційності',
-    updated: `Редакція від ${UPDATED}`,
+    updated: `Редакція від ${PRIVACY_UPDATED}`,
     intro:
       `Ця Політика пояснює, які персональні дані обробляє сервіс «проЯв» (${ENTITY}), з якою метою та на яких підставах. Користуючись Сервісом, ви погоджуєтеся з цією Політикою.`,
     sections: [
@@ -176,7 +179,19 @@ const uk: LegalCopy = {
         ],
       },
       {
-        heading: '8. Контакти',
+        heading: '8. Google Календар',
+        paragraphs: [
+          'Підключати Google Календар не обов’язково. Це робить сам фотограф у кабінеті, у розділі «Бронювання». Якщо календар не підключено, Сервіс не отримує жодних даних із Google Календаря.',
+          'Що ми отримуємо з Google: адресу пошти підключеного акаунту (щоб показати в кабінеті, який акаунт підключено); список ваших календарів із назвами (щоб ви обрали, які з них враховувати; назви показуються лише вам у кабінеті й не зберігаються); проміжки «зайнято» в обраних вами календарях. Назв, описів, учасників та інших деталей подій ми не отримуємо.',
+          'Що ми записуємо в Google: коли клієнт бронює зйомку, Сервіс створює подію в календарі фотографа з датою й часом, ім’ям, телефоном і поштою клієнта та вартістю (якщо зйомка платна). Коли фотограф звільняє слот у кабінеті, Сервіс видаляє цю подію.',
+          'Навіщо: щоб клієнти не бачили і не могли забронювати час, зайнятий у вашому календарі, а бронювання з’являлися у вашому календарі.',
+          'Де зберігається: токен доступу до календаря, адреса пошти акаунту, ідентифікатори обраних календарів і створених подій зберігаються в базі даних Сервісу, у налаштуваннях бронювання вашого акаунту. Проміжки зайнятості в базу не записуються: сервер тримає їх у пам’яті не довше 3 хвилин. Короткочасний ключ доступу, який видає Google, сервер тримає в пам’яті не довше години.',
+          'Як відключити: «Бронювання» → «Google Календар» → «Відключити». Сервіс видаляє збережений токен і адресу пошти акаунту й більше не звертається до вашого календаря: не перевіряє зайнятість, не створює й не видаляє події. Події, створені раніше, лишаються у вашому календарі, і ви можете видалити їх самі. Вибір календарів зберігається, щоб не обирати їх заново при повторному підключенні. Щоб прибрати проЯв і зі списку застосунків, яким ви надали доступ у Google, відкличте доступ на myaccount.google.com/permissions.',
+          `Використання й передача Сервісом інформації, отриманої з Google API, відповідає Google API Services User Data Policy, зокрема вимогам Limited Use: ${GOOGLE_USER_DATA_POLICY}`,
+        ],
+      },
+      {
+        heading: '9. Контакти',
         paragraphs: [
           `З питань конфіденційності: ${SUPPORT_EMAIL}. Володілець: ${ENTITY}.`,
         ],
@@ -264,7 +279,7 @@ const en: LegalCopy = {
   },
   privacy: {
     title: 'Privacy Policy',
-    updated: `Version of ${UPDATED}`,
+    updated: `Version of ${PRIVACY_UPDATED}`,
     intro:
       `This Policy explains what personal data the "proiav" service (${ENTITY}) processes, why, and on what grounds. By using the Service you agree to it.`,
     sections: [
@@ -316,7 +331,19 @@ const en: LegalCopy = {
         ],
       },
       {
-        heading: '8. Contact',
+        heading: '8. Google Calendar',
+        paragraphs: [
+          'Connecting Google Calendar is optional. The photographer does it in the dashboard, under «Booking». If no calendar is connected, the Service receives no data from Google Calendar.',
+          'What we receive from Google: the email address of the connected account (to show in the dashboard which account is connected); the list of your calendars with their names (so you can choose which ones to check; the names are shown only to you in the dashboard and are not stored); the busy time ranges of the calendars you choose. We do not receive event titles, descriptions, attendees or any other event details.',
+          'What we write to Google: when a client books a session, the Service creates an event in the photographer’s calendar with the date and time, the client’s name, phone and email, and the price (for paid sessions). When the photographer frees the slot in the dashboard, the Service deletes that event.',
+          'Why: so that clients do not see and cannot book time that is busy in your calendar, and so that bookings appear in your calendar.',
+          'Where it is stored: the calendar access token, the account email, the IDs of the chosen calendars and of the created events are stored in the Service’s database, in your account’s booking settings. Busy time ranges are not written to the database: the server keeps them in memory for no longer than 3 minutes. The short-lived access key issued by Google is kept in server memory for no longer than an hour.',
+          'How to disconnect: «Booking» → «Google Calendar» → «Disconnect». The Service deletes the stored token and the account email and no longer accesses your calendar: it does not check busy time and does not create or delete events. Events created earlier stay in your calendar; you can delete them yourself. Your calendar choice is kept so you do not have to choose again if you reconnect. To remove proiav from the list of apps with access to your Google account, revoke access at myaccount.google.com/permissions.',
+          `The Service’s use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements: ${GOOGLE_USER_DATA_POLICY}`,
+        ],
+      },
+      {
+        heading: '9. Contact',
         paragraphs: [`Privacy questions: ${SUPPORT_EMAIL}. Controller: ${ENTITY}.`],
       },
     ],
