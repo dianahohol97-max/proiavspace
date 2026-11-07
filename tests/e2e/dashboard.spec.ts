@@ -251,7 +251,7 @@ test.describe('кабінет: вкладки галереї', () => {
     await shot(page, '07-gallery-access', info.project.name)
 
     await page.getByRole('tab', { name: /Клієнт/ }).click()
-    await expect(page.getByTestId('favorites')).toContainText('В обраному клієнтів: 5')
+    await expect(page.getByTestId('client-picks')).toContainText('В обраному клієнтів: 5')
     await noHorizontalOverflow(page)
     await shot(page, '08-gallery-client', info.project.name)
 

@@ -15,13 +15,24 @@ import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
 import { CullingPanel } from '@/components/gallery/CullingPanel'
 import type { CullingPhoto } from '@/lib/culling/types'
 import { setHiddenFromClient } from '@/lib/actions/culling'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
 import { DeliveryStatusControl } from '@/components/gallery/DeliveryStatusControl'
+import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
+import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
+import { sendClientReadyEmailAgain, setClientEmail } from '@/lib/actions/client-email'
+import {
+  PICK_LABELS,
+  assetOriginalName,
+  buildClientPicks,
+  lightroomFilterLine,
+  picksCsv,
+  picksTxt,
+} from '@/lib/gallery/client-picks'
+import { loadClientEmailState } from '@/lib/gallery/ready-email-store'
 import { countVisibleAssets, deliveryView, parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import type { ShareMessageStrings } from '@/lib/gallery/share'
 import { parseGalleryTab } from '@/lib/dashboard/tabs'
@@ -30,13 +41,10 @@ import { OpenShareButton, ShareDialog } from '@/components/dashboard/ShareDialog
 import { DeleteGalleryButton, GalleryAccessForm, GalleryDetailsForm } from '@/components/dashboard/GalleryForms'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
+import { HowItWorks } from '@/components/gallery/HowItWorks'
+import { galleryHelp } from '@/lib/gallery/help'
 import { daysLeft, purgeDate } from '@/lib/free-expiry'
 import type { Asset, Gallery } from '@/lib/types'
-
-/** Original filename as the client knows it: r2 basename minus the uuid- prefix. */
-function assetFileName(asset: Asset): string {
-  return (asset.r2_key.split('/').pop() ?? asset.id).replace(/^[0-9a-f-]{37}/, '')
-}
 
 export const dynamic = 'force-dynamic'
 
@@ -50,6 +58,7 @@ export default async function ManageGalleryPage({
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const dict = await getDictionary(locale)
+  const help = galleryHelp(locale)
 
   const supabase = createSupabaseServerClient()
   const {
@@ -82,7 +91,7 @@ export default async function ManageGalleryPage({
   const watermarkText =
     planRow?.watermark_enabled && planRow.display_name ? planRow.display_name : undefined
 
-  const [{ data: assets }, { count: downloadCount }, { data: selections }] = await Promise.all([
+  const [{ data: assets }, { count: downloadCount }, { data: selections }, clientEmail] = await Promise.all([
     supabase
       .from('assets')
       .select('*')
@@ -100,6 +109,7 @@ export default async function ManageGalleryPage({
       .select('asset_id, kind, client_token')
       .eq('gallery_id', gallery.id)
       .returns<{ asset_id: string; kind: string; client_token: string }[]>(),
+    loadClientEmailState(params.id, user.id),
   ])
 
   const favoriteCounts = new Map<string, number>()
@@ -110,6 +120,14 @@ export default async function ManageGalleryPage({
     favoriteClients.add(selection.client_token)
   }
   const totalFavorites = [...favoriteCounts.values()].reduce((sum, n) => sum + n, 0)
+
+  // «Обране клієнта»: hearts AND retouch requests, in gallery order, with the
+  // original file names (lib/gallery/client-picks) — for Lightroom and the list.
+  const picks = buildClientPicks(assets ?? [], selections ?? [])
+  const pickClients = new Set((selections ?? []).map((s) => s.client_token))
+  const retouchCount = picks.filter((p) => p.retouch > 0).length
+  const lightroom = lightroomFilterLine(picks)
+  const pickLabels = PICK_LABELS[locale === 'uk' ? 'uk' : 'en']
 
   // Per-photo engagement (a «Плюс»+ stat): download and view events carry the
   // asset id in meta, so we can show views + downloads on each individual photo.
@@ -173,7 +191,7 @@ export default async function ManageGalleryPage({
               url: analysisUrl,
               order,
               takenAt: null,
-              name: assetFileName(asset),
+              name: assetOriginalName(asset),
               hidden: asset.hidden_from_client === true,
             }
           : null
@@ -387,6 +405,7 @@ export default async function ManageGalleryPage({
             }}
           />
         )}
+        <HowItWorks help={help.upload} testId="help-upload" />
       </div>
 
       {cullingPhotos.length > 0 && (
@@ -400,6 +419,7 @@ export default async function ManageGalleryPage({
           ownerId={user.id}
         />
       )}
+      {cullingPhotos.length > 0 && <HowItWorks help={help.culling} testId="help-culling" />}
 
       {previews.length > 0 && (
         <div className="mt-10">
@@ -598,7 +618,6 @@ export default async function ManageGalleryPage({
   )
 
   // ------------------------------------------------------------------ Клієнт
-  const favoritePreviews = previews.filter(({ asset }) => favoriteCounts.has(asset.id))
   const stat = (value: number, label: string) => (
     <div className="rounded-xl bg-bg px-4 py-3">
       <p className="font-brand text-2xl leading-none">{value}</p>
@@ -627,6 +646,51 @@ export default async function ManageGalleryPage({
           error: m.deliveryError,
         }}
       />
+      <HowItWorks help={help.delivery} testId="help-delivery" />
+
+      <ClientEmailControl
+        available={clientEmail.available}
+        initialEmail={clientEmail.email}
+        sentAtText={
+          clientEmail.sentAt
+            ? new Date(clientEmail.sentAt).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+                timeZone: 'Europe/Kyiv',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : null
+        }
+        isReady={gallery.delivery_status === 'ready'}
+        isPublished={gallery.is_published}
+        save={setClientEmail.bind(null, locale, gallery.id)}
+        sendAgain={sendClientReadyEmailAgain.bind(null, locale, gallery.id)}
+        labels={{
+          title: dict.galleryManage.clientEmailTitle,
+          hint: dict.galleryManage.clientEmailHint,
+          label: dict.galleryManage.clientEmailLabel,
+          consent: dict.galleryManage.clientEmailConsent,
+          save: dict.galleryManage.clientEmailSave,
+          remove: dict.galleryManage.clientEmailRemove,
+          saving: dict.galleryManage.clientEmailSaving,
+          saved: dict.galleryManage.clientEmailSaved,
+          invalid: dict.galleryManage.clientEmailInvalid,
+          needConsent: dict.galleryManage.clientEmailNeedConsent,
+          error: dict.galleryManage.clientEmailError,
+          unavailable: dict.galleryManage.clientEmailUnavailable,
+          sentAt: dict.galleryManage.clientEmailSentAt,
+          waitReady: dict.galleryManage.clientEmailWaitReady,
+          waitPublish: dict.galleryManage.clientEmailWaitPublish,
+          sendAgain: dict.galleryManage.clientEmailSendAgain,
+          sendNow: dict.galleryManage.clientEmailSendNow,
+          sending: dict.galleryManage.clientEmailSending,
+          sent: dict.galleryManage.clientEmailSent,
+          tooSoon: dict.galleryManage.clientEmailTooSoon,
+          sendFailed: dict.galleryManage.clientEmailSendFailed,
+        }}
+      />
 
       <section className={card}>
         <h2 className={cardTitle}>{m.clientActivityTitle}</h2>
@@ -636,39 +700,69 @@ export default async function ManageGalleryPage({
           {statsOn && stat(gallery.view_count, dict.dashboard.views)}
           {statsOn && stat(downloadCount ?? 0, m.statsDownloads)}
         </div>
-        {totalFavorites === 0 && gallery.view_count === 0 && (
+        {picks.length === 0 && gallery.view_count === 0 && (
           <p className="mt-4 text-sm leading-relaxed text-muted" data-testid="hint-client-empty">
             {m.hintClientEmpty}
           </p>
         )}
       </section>
 
-      <section className={card} data-testid="favorites">
+      <section className={card} data-testid="client-picks">
         <h2 className={cardTitle}>{m.favoritesTitle}</h2>
-        {totalFavorites === 0 ? (
+        {picks.length === 0 ? (
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">{m.favoritesEmpty}</p>
         ) : (
           <>
-            <div className="mt-3 flex flex-wrap items-center gap-4">
-              <span className="text-sm text-muted">
-                {m.statsFavorites}: {totalFavorites} · {m.favoritesClients}: {favoriteClients.size}
-              </span>
-              <ExportFavoritesButton
-                fileNames={favoritePreviews.map(({ asset }) => assetFileName(asset))}
-                label={m.exportFavorites}
-                copiedLabel={m.exportCopied}
-              />
-            </div>
+            <p className="mt-3 text-sm text-muted">
+              {m.statsFavorites}: {totalFavorites} · {m.picksRetouch}: {retouchCount} · {m.favoritesClients}:{' '}
+              {pickClients.size}
+            </p>
+            <ClientPicksExport
+              line={lightroom.text}
+              count={lightroom.count}
+              skipped={lightroom.skipped}
+              txt={picksTxt(picks, pickLabels)}
+              csv={picksCsv(picks, pickLabels)}
+              fileBase={`${gallery.slug}-picks`}
+              labels={{
+                copy: m.picksCopy,
+                copied: m.picksCopied,
+                copyFailed: m.picksCopyFailed,
+                hint: m.picksHint,
+                substringNote: m.picksSubstringNote,
+                lineLabel: m.picksLineLabel,
+                skipped: m.picksSkipped,
+                download: m.picksDownload,
+              }}
+            />
             <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-              {favoritePreviews.map(({ asset, url }) => (
-                <div key={asset.id} className="relative aspect-square overflow-hidden rounded-lg bg-line">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                  <span className="absolute right-1.5 top-1.5 rounded-full bg-white/90 px-2 py-0.5 text-xs text-accent">
-                    ♥ {favoriteCounts.get(asset.id)}
-                  </span>
-                </div>
-              ))}
+              {picks.map((pick) => {
+                const url = previews.find((p) => p.asset.id === pick.assetId)?.url ?? ''
+                return (
+                  <figure key={pick.assetId} className="min-w-0">
+                    <div className="relative aspect-square overflow-hidden rounded-lg bg-line">
+                      {url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      )}
+                      <span className="absolute right-1.5 top-1.5 flex flex-col items-end gap-1">
+                        {pick.favorites > 0 && (
+                          <span className="rounded-full bg-white/90 px-2 py-0.5 text-xs text-accent">♥ {pick.favorites}</span>
+                        )}
+                        {pick.retouch > 0 && (
+                          <span className="rounded-full bg-white/90 px-2 py-0.5 text-xs text-fg">
+                            {locale === 'uk' ? 'ретуш' : 'retouch'}
+                            {pick.retouch > 1 ? ` ×${pick.retouch}` : ''}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <figcaption className="mt-1 truncate text-xs text-muted" title={pick.name}>
+                      {pick.name}
+                    </figcaption>
+                  </figure>
+                )
+              })}
             </div>
           </>
         )}
@@ -682,7 +776,7 @@ export default async function ManageGalleryPage({
         initialTab={parseGalleryTab(searchParams.tab)}
         ariaLabel={m.tabsLabel}
         labels={{ photos: m.tabPhotos, design: m.tabDesign, access: m.tabAccess, client: m.tabClient }}
-        badges={{ photos: photoCount, client: totalFavorites }}
+        badges={{ photos: photoCount, client: picks.length }}
         header={header}
         panels={{ photos: photosPanel, design: designPanel, access: accessPanel, client: clientPanel }}
       />

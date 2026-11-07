@@ -4,6 +4,8 @@ import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
 import { parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import { DeliveryStatusControl } from '@/components/gallery/DeliveryStatusControl'
+import { HowItWorks } from '@/components/gallery/HowItWorks'
+import { galleryHelp } from '@/lib/gallery/help'
 import { e2eDeliveryState, e2eResetDelivery, e2eSaveDelivery } from './actions'
 
 /**
@@ -56,6 +58,7 @@ export default async function E2EDeliveryControl({
           error: t.deliveryError,
         }}
       />
+      <HowItWorks help={galleryHelp(params.locale).delivery} testId="help-delivery" />
     </main>
   )
 }

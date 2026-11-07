@@ -2,7 +2,6 @@ import type { SiteContent } from '@/lib/site/content'
 import { BASE_URL } from '@/lib/seo/site'
 import type { LeadFormLabels } from '../LeadForm'
 import {
-  groupPortfolio,
   type BookingNav,
   type LangSwitch,
   type PortfolioItem,
@@ -11,15 +10,15 @@ import {
 import { MagneticButton, MotionRoot, Reveal, RevealText } from '../motion/lazy'
 import { Picture } from '../motion/Picture'
 import type { NavLink } from '../tysha/TyshaNav'
+import { ContactLinks, FilterBar, GiftsBlock, TermsBlock } from '../card/blocks'
+import { buildCard, type Photo } from '../card/data'
 import { JOURNAL_FONT_URL } from './fonts'
-import { JournalAlbums, JournalAllPortfolio, JournalLeadForm, JournalNav, JournalPackCta } from './islands'
+import { JournalLeadForm, JournalNav, JournalPackCta } from './islands'
 import { layoutJournal, ratio } from './layout'
 import j from './Journal.module.css'
 
-const GRID_MAX = 9
+const GRID_MAX = 12
 const pad2 = (n: number) => String(n).padStart(2, '0')
-type Photo = PortfolioItem & { previewUrl: string }
-const lean = (p: Photo): PortfolioItem => ({ id: p.id, previewUrl: p.previewUrl, caption: p.caption ?? null, category: p.category ?? null })
 
 /** «№ 11 · Осінь 2026» — the issue line, from the server's clock. */
 function issueLine(seasons: string | undefined): string {
@@ -63,63 +62,22 @@ export function ThemeZhurnal({
   bookingNav?: BookingNav
   platformCredit?: boolean
 }) {
-  const brand = displayName || content.hero.title || ''
+  const card = buildCard({ content, displayName, portfolio, labels, leadForm: !!leadForm, bookingNav, gridMax: GRID_MAX })
+  const { brand, lead: cover, portrait, bookHref, reviews, packs } = card
   const masthead = brand || content.hero.title
-  const photos = portfolio.filter((p): p is Photo => !!p.previewUrl)
-  const byId = (id: string) => (id ? photos.find((p) => p.id === id) : undefined)
-  const shown = new Set<string>()
-
-  const cover = byId(content.hero.imageId) ?? photos[0]
-  if (cover) shown.add(cover.id)
-  const portrait = byId(content.about.imageId)
-  if (portrait) shown.add(portrait.id)
-
-  // The spread takes four frames the page doesn't use elsewhere when the
-  // portfolio is big enough; otherwise it is left out.
-  const rest = photos.filter((p) => !shown.has(p.id))
-  const spread = rest.length >= 7 ? rest.slice(0, 4) : []
-  spread.forEach((p) => shown.add(p.id))
-  const pool = photos.length >= 6 ? photos.filter((p) => !shown.has(p.id)) : photos
-  const gridItems = pool.slice(0, GRID_MAX)
-  gridItems.forEach((p) => shown.add(p.id))
+  const gridItems = card.grid
   const rows = layoutJournal(gridItems)
 
-  const groups = groupPortfolio(photos)
-  const hasSeries = groups.some((g) => g.category !== null)
-  const covers: Record<string, { src: string; srcSet?: string }> = {}
-  for (const g of groups) {
-    const chosen = g.items.find((it) => it.id === content.albumCovers[g.category ?? ''])
-    const fresh = chosen && !shown.has(chosen.id) ? chosen : g.items.find((it) => !shown.has(it.id))
-    const c = (fresh ?? chosen ?? g.items[0]) as Photo | undefined
-    if (c) covers[g.category ?? ''] = { src: c.previewUrl, srcSet: c.srcSet }
-  }
-  const leanGroups = groups.map((g) => ({ category: g.category, items: (g.items as Photo[]).map(lean) }))
-  const rubrics = groups.filter((g) => g.category).map((g) => g.category!)
-
-  const steps = content.process.steps
-  const reviews = content.testimonials.items
-  const packs = content.pricing.items
-  const contact = content.contact
-  const instagram = contact.instagram.replace(/^@/, '')
-
   const L = {
+    ...card.L,
     book: labels.bookShoot ?? labels.book,
-    menu: labels.menu ?? 'Меню',
-    process: labels.process ?? 'Як ми працюємо',
     selected: labels.selectedWork ?? labels.portfolio,
-    series: labels.series ?? labels.portfolio,
-    testimonials: labels.testimonials ?? 'Відгуки',
-    popular: labels.popular ?? 'Найчастіше обирають',
-    choose: labels.choosePack ?? labels.book,
-    madeOn: labels.madeOn ?? 'Сайт на проЯв',
-    all: labels.allPortfolio ?? labels.portfolio,
+    choose: card.L.choosePack,
     contents: labels.inThisIssue ?? 'У номері',
     letter: labels.editorLetter ?? labels.about,
-    spread: labels.spread ?? 'Розворот',
     p: labels.pageShort ?? 'стор.',
   }
   const issue = issueLine(labels.seasons)
-  const bookHref = leadForm ? '#contact' : contact.bookingUrl || bookingNav?.href || '#contact'
 
   // Table of contents with folios that grow like a real issue's.
   let folio = 2
@@ -130,26 +88,14 @@ export function ThemeZhurnal({
     folio += pages
   }
   tocAdd(gridItems.length > 0, '#portfolio', L.selected, rows.length * 2)
-  tocAdd(spread.length === 4, '#spread', L.spread, 2)
-  tocAdd(!!content.about.text, '#about', L.letter, 2)
-  tocAdd(hasSeries, '#series', L.series, 2)
-  tocAdd(steps.length > 0, '#process', L.process, 2)
   tocAdd(packs.length > 0, '#pricing', labels.pricing, 2)
+  tocAdd(card.gifts.length > 0, '#gifts', L.giftsTitle, 2)
+  tocAdd(!!content.about.text, '#about', L.letter, 2)
+  tocAdd(reviews.length > 0, '#reviews', L.testimonials, 1)
   tocAdd(true, '#contact', labels.contacts, 1)
   const pageOf = (href: string) => toc.find((t) => t.href === href)?.page
-
-  const navLinks: NavLink[] = [
-    ...(photos.length > 0 ? [{ href: '#portfolio', label: labels.portfolio }] : []),
-    ...(content.about.text ? [{ href: '#about', label: labels.about }] : []),
-    ...(packs.length > 0 ? [{ href: '#pricing', label: labels.pricing }] : []),
-    { href: '#contact', label: labels.contacts },
-    ...(bookingNav ? [bookingNav] : []),
-  ]
-  const contactLinks: NavLink[] = [
-    ...(contact.phone ? [{ href: `tel:${contact.phone.replace(/[^\d+]/g, '')}`, label: contact.phone }] : []),
-    ...(contact.email ? [{ href: `mailto:${contact.email}`, label: contact.email }] : []),
-    ...(instagram ? [{ href: `https://instagram.com/${instagram}`, label: `@${instagram}` }] : []),
-  ]
+  const navLinks: NavLink[] = card.navLinks
+  const contactLinks: NavLink[] = card.contactLinks
 
   const head = (href: string, label: string, heading: string, extra?: React.ReactNode) => (
     <div className={j.sectionHead}>
@@ -214,7 +160,7 @@ export function ThemeZhurnal({
               </div>
             )}
             <div className={j.coverShade} aria-hidden="true" />
-            <h1 className={j.masthead} aria-label={masthead}>
+            <h1 className={j.masthead} aria-label={masthead} data-card="name">
               <span aria-hidden="true">
                 {Array.from(masthead).map((ch, i) => (
                   <span key={i} className={j.mastCh} style={{ '--i': letter++ } as React.CSSProperties}>
@@ -223,14 +169,30 @@ export function ThemeZhurnal({
                 ))}
               </span>
             </h1>
-            <p className={j.issue}>{issue}</p>
+            <p className={j.issue}>
+              <span data-card="role">{card.role}</span>
+              {card.city && (
+                <>
+                  {' · '}
+                  <span data-card="city">{card.city}</span>
+                </>
+              )}
+              <span className={j.issueNo}>{issue}</span>
+            </p>
             <div className={j.coverLines}>
-              {rubrics.slice(0, 3).map((r) => (
-                <span key={r} className={j.coverLine}>
-                  {r}
-                </span>
-              ))}
+              {card.directions.length > 0 && (
+                <p className={j.coverDirections} data-card="directions">
+                  {card.directions.slice(0, 4).map((r) => (
+                    <span key={r} className={j.coverLine}>
+                      {r}
+                    </span>
+                  ))}
+                </p>
+              )}
               {content.hero.subtitle && <p className={j.coverHeadline}>{content.hero.subtitle}</p>}
+              <a href={bookHref} className={j.coverCta} data-card="book">
+                {L.book} <span className={j.arrow}>→</span>
+              </a>
             </div>
           </div>
 
@@ -251,17 +213,20 @@ export function ThemeZhurnal({
               ))}
             </ol>
             {content.hero.title && content.hero.title !== masthead && <p className={j.contentsLead}>{content.hero.title}</p>}
-            <MagneticButton href={bookHref} className={j.ctaInk}>
-              {L.book} <span className={j.arrow}>→</span>
-            </MagneticButton>
+            <span className={j.contentsCta} data-card="book">
+              <MagneticButton href={bookHref} className={j.ctaInk}>
+                {L.book} <span className={j.arrow}>→</span>
+              </MagneticButton>
+            </span>
           </aside>
         </header>
 
         {/* ---- portfolio: magazine pages ---- */}
         {rows.length > 0 && (
           <section id="portfolio" className={`${j.section} ${j.wrap}`}>
-            {head('#portfolio', labels.portfolio, L.selected, <span className={j.kicker}>{pad2(photos.length)}</span>)}
-            <div className={j.pages}>
+            {head('#portfolio', labels.portfolio, L.selected, <span className={j.kicker}>{pad2(gridItems.length)}</span>)}
+            <FilterBar card={card} gridId="journal-pages" s={j} />
+            <div className={j.pages} id="journal-pages">
               {rows.map((row, ri) => {
                 const pageNo = (pageOf('#portfolio') ?? 2) + ri * 2
                 const folioEl = (
@@ -272,7 +237,7 @@ export function ThemeZhurnal({
                 if (row.kind === 'feature') {
                   const p = row.items[0] as Photo
                   return (
-                    <Reveal key={ri} className={`${j.row} ${j.feature} ${row.flip ? j.flip : ''}`} y={24}>
+                    <Reveal key={ri} className={`${j.row} ${j.feature} ${row.flip ? j.flip : ''}`} y={24} cat={p.category ?? ''}>
                       {frame(p, '(max-width: 760px) 360px, 52vw', j.wipe)}
                       <div className={j.featureText}>
                         <span className={j.kicker}>{p.category ?? labels.portfolio}</span>
@@ -287,7 +252,7 @@ export function ThemeZhurnal({
                 return (
                   <Reveal key={ri} className={`${j.row} ${row.kind === 'pair' ? j.pair : j.triptych}`} y={24}>
                     {items.map((p) => (
-                      <figure key={p.id} className={j.cell}>
+                      <figure key={p.id} className={j.cell} data-cat={p.category ?? ''}>
                         {frame(p, row.kind === 'pair' ? '(max-width: 760px) 50vw, 40vw' : '(max-width: 760px) 50vw, 30vw', j.wipe)}
                         <figcaption className={j.cellCap}>
                           {p.caption && <span>{p.caption}</span>}
@@ -299,67 +264,43 @@ export function ThemeZhurnal({
                 )
               })}
             </div>
-            {photos.length > gridItems.length + spread.length + 1 && (
-              <div className={j.allRow}>
-                <JournalAllPortfolio
-                  skin={j}
-                  items={photos.map(lean)}
-                  label={L.all}
-                  labels={{ portfolio: L.all, photos: labels.photos, close: labels.close }}
-                />
-              </div>
-            )}
           </section>
         )}
 
-        {/* ---- signature: the spread turns over ---- */}
-        {spread.length === 4 && (() => {
-          const [aL, aR, bL, bR] = spread
-          const pg = pageOf('#spread') ?? 12
-          const page = (p: Photo, n: number, extra = '') => (
-            <div className={`${j.page} ${extra}`}>
-              <Picture src={p.previewUrl} srcSet={p.srcSet} alt={p.caption || brand} sizes="(max-width: 760px) 46vw, 34vw" objectPosition="50% 30%" />
-              <span className={j.pageFolio} aria-hidden="true">
-                {pad2(n)}
-              </span>
-            </div>
-          )
-          return (
-            <section id="spread" className={j.spread} aria-label={L.spread}>
-              <div className={`${j.wrap} ${j.spreadHead}`}>
-                <span className={j.kicker}>
-                  {L.spread} · {L.p} {pad2(pg)}–{pad2(pg + 3)}
-                </span>
-                <RevealText as="h2" text={content.moment.text || L.spread} className={j.spreadTitle} />
-              </div>
-              {/* Fallback: both spreads, one under the other. */}
-              <div className={`${j.wrap} ${j.spreadStatic}`}>
-                <div className={j.staticSpread}>
-                  {page(aL, pg)}
-                  {page(aR, pg + 1)}
-                </div>
-                <div className={j.staticSpread}>
-                  {page(bL, pg + 2)}
-                  {page(bR, pg + 3)}
-                </div>
-              </div>
-              {/* With scroll-driven animations: the right leaf turns over. */}
-              <div className={j.spreadBook} aria-hidden="true">
-                <div className={j.bookStage}>
-                  <div className={j.book}>
-                    {page(aL, pg, j.pageLeft)}
-                    {page(bR, pg + 3, j.pageRight)}
-                    <div className={j.leaf}>
-                      {page(aR, pg + 1, j.leafFront)}
-                      {page(bL, pg + 2, j.leafBack)}
-                    </div>
-                    <span className={j.spine} />
+        {/* ---- price list ---- */}
+        {packs.length > 0 && (
+          <section id="pricing" className={`${j.section} ${j.wrap}`}>
+            {head('#pricing', labels.pricing, labels.pricing)}
+            <ul className={j.prices}>
+              {packs.map((pack) => (
+                <Reveal as="li" key={pack.name} className={`${j.price} ${pack.featured ? j.priceFeatured : ''}`} pack={pack.name}>
+                  <div className={j.priceLine}>
+                    <h3 className={j.priceName}>
+                      {pack.name}
+                      {pack.featured && <span className={j.priceTag}>{L.popular}</span>}
+                    </h3>
+                    <span className={j.tocDots} aria-hidden="true" />
+                    {pack.price && <span className={j.priceValue}>{pack.price}</span>}
                   </div>
-                </div>
-              </div>
-            </section>
-          )
-        })()}
+                  <div className={j.priceMore}>
+                    {pack.includes.length > 0 && <p className={j.priceIncludes}>{pack.includes.join(' · ')}</p>}
+                    <JournalPackCta pack={pack.name} href={bookHref} className={j.textLink}>
+                      {L.choose} <span className={j.arrow}>→</span>
+                    </JournalPackCta>
+                  </div>
+                </Reveal>
+              ))}
+            </ul>
+            <TermsBlock card={card} s={j} />
+          </section>
+        )}
+
+        {/* ---- gifts & prints (optional) ---- */}
+        <GiftsBlock
+          card={card}
+          s={{ ...j, gifts: `${j.section} ${j.wrap} ${j.gifts}` }}
+          heading={head('#gifts', L.giftsTitle, L.giftsTitle)}
+        />
 
         {/* ---- editor's letter ---- */}
         {content.about.text && (
@@ -375,42 +316,13 @@ export function ThemeZhurnal({
           </section>
         )}
 
-        {/* ---- rubrics (series) ---- */}
-        {hasSeries && (
-          <section id="series" className={`${j.section} ${j.wrap}`}>
-            {head('#series', L.series, L.series, <span className={j.kicker}>{pad2(groups.length)}</span>)}
-            <JournalAlbums
-              skin={j}
-              groups={leanGroups}
-              covers={covers}
-              labels={{ portfolio: labels.portfolio, photos: labels.photos, viewSeries: labels.viewSeries, close: labels.close }}
-            />
-          </section>
-        )}
-
-        {/* ---- how we shoot ---- */}
-        {steps.length > 0 && (
-          <section id="process" className={`${j.section} ${j.wrap}`}>
-            {head('#process', L.process, L.process)}
-            <ol className={j.steps}>
-              {steps.map((step, i) => (
-                <Reveal key={i} as="li" className={j.step} delay={i * 0.08}>
-                  <span className={j.stepNo}>{pad2(i + 1)}</span>
-                  {step.title && <h3 className={j.stepTitle}>{step.title}</h3>}
-                  {step.text && <p className={j.stepText}>{step.text}</p>}
-                </Reveal>
-              ))}
-            </ol>
-          </section>
-        )}
-
         {/* ---- pull quotes ---- */}
         {reviews.length > 0 && (
           <section id="reviews" className={`${j.section} ${j.wrap}`}>
             {head('#reviews', L.testimonials, L.testimonials)}
             <div className={j.quotes}>
               {reviews.map((review, i) => {
-                const photo = byId(review.photoId)
+                const photo = review.photo
                 return (
                   <Reveal key={i} as="figure" className={j.quote}>
                     <blockquote className={j.quoteText}>
@@ -439,59 +351,28 @@ export function ThemeZhurnal({
           </section>
         )}
 
-        {/* ---- price list ---- */}
-        {packs.length > 0 && (
-          <section id="pricing" className={`${j.section} ${j.wrap}`}>
-            {head('#pricing', labels.pricing, labels.pricing)}
-            <ul className={j.prices}>
-              {packs.map((pack) => (
-                <Reveal as="li" key={pack.name} className={`${j.price} ${pack.featured ? j.priceFeatured : ''}`}>
-                  <div className={j.priceLine}>
-                    <h3 className={j.priceName}>
-                      {pack.name}
-                      {pack.featured && <span className={j.priceTag}>{L.popular}</span>}
-                    </h3>
-                    <span className={j.tocDots} aria-hidden="true" />
-                    {pack.price && <span className={j.priceValue}>{pack.price}</span>}
-                  </div>
-                  <div className={j.priceMore}>
-                    {pack.includes.length > 0 && <p className={j.priceIncludes}>{pack.includes.join(' · ')}</p>}
-                    <JournalPackCta pack={pack.name} href={bookHref} className={j.textLink}>
-                      {L.choose} <span className={j.arrow}>→</span>
-                    </JournalPackCta>
-                  </div>
-                </Reveal>
-              ))}
-            </ul>
-          </section>
-        )}
-
         {/* ---- order form ---- */}
         <section id="contact" className={`${j.section} ${j.wrap}`}>
           <div className={j.contact}>
             <div className={j.contactSide}>
               <span className={j.kicker}>{labels.contacts}</span>
               <RevealText as="h2" text={leadForm ? leadForm.labels.title : labels.contacts} className={j.contactTitle} />
-              {contactLinks.length > 0 && (
-                <ul className={j.contactList}>
-                  {contactLinks.map((link) => (
-                    <li key={link.href}>
-                      <a href={link.href} {...(link.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
-                        {link.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {contact.bookingUrl && (
-                <a href={contact.bookingUrl} className={`${j.ctaInk} ${j.contactBook}`}>
+              <ContactLinks card={card} s={j} />
+              {content.contact.bookingUrl && (
+                <a href={content.contact.bookingUrl} className={`${j.ctaInk} ${j.contactBook}`}>
                   {labels.book} <span className={j.arrow}>→</span>
                 </a>
               )}
             </div>
             {leadForm && (
               <div className={j.contactForm}>
-                <JournalLeadForm skin={j} handle={leadForm.handle} labels={leadForm.labels} shootTypes={packs.map((p) => p.name)} />
+                <JournalLeadForm
+                  skin={j}
+                  handle={leadForm.handle}
+                  labels={leadForm.labels}
+                  shootTypes={card.topics}
+                  certificateTopic={card.certificateTopic}
+                />
               </div>
             )}
           </div>

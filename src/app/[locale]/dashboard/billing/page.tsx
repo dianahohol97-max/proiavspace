@@ -105,6 +105,8 @@ export default async function BillingPage({ params }: { params: { locale: string
       profile.plan
     )
   )
+  // Everyone starts on 'site_trial'; only a paid site plan counts as having one.
+  const hasSitePlan = profile.site_plan === 'site_basic' || profile.site_plan === 'site_plus'
   const siteCards = (Object.keys(SITE_PLANS) as SitePlanId[]).map((id) =>
     buildSiteCard(SITE_PLANS[id], siteNames[id], siteNotes[id], profile.site_plan)
   )
@@ -195,9 +197,11 @@ export default async function BillingPage({ params }: { params: { locale: string
           }}
         />
       )}
-      <p className="mt-4 text-sm text-muted">
-        {dict.billing.currentSitePlan}: {currentSiteName}
-      </p>
+      {hasSitePlan && (
+        <p className="mt-4 text-sm text-muted">
+          {dict.billing.currentSitePlan}: {currentSiteName}
+        </p>
+      )}
       {promoGrant && promoRunning && (
         <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm">
           {(() => {
@@ -261,11 +265,15 @@ export default async function BillingPage({ params }: { params: { locale: string
         <BillingPlans cards={galleryCards} locale={locale} labels={labels} columns={3} />
       </section>
 
-      <section className="mt-14">
-        <h2 className="mb-6 font-brand text-xl">{dict.billing.sitePlansTitle}</h2>
-        <BillingPlans cards={siteCards} locale={locale} labels={labels} columns={3} />
-        <p className="mt-4 text-xs text-muted">{dict.billing.bundleNote}</p>
-      </section>
+      {/* Sites are not sold for now: the section stays only for someone who
+          already has a site plan, so they can see and renew it. */}
+      {hasSitePlan && (
+        <section className="mt-14">
+          <h2 className="mb-6 font-brand text-xl">{dict.billing.sitePlansTitle}</h2>
+          <BillingPlans cards={siteCards} locale={locale} labels={labels} columns={3} />
+          <p className="mt-4 text-xs text-muted">{dict.billing.bundleNote}</p>
+        </section>
+      )}
 
       <BillingSubscriptions
         subscriptions={subscriptions.filter((sub) => sub.product === 'site')}
