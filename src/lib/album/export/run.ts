@@ -128,7 +128,7 @@ export async function runExport(request: ExportRequest): Promise<ExportResult> {
       } else {
         report(`${label}: кодую JPEG…`)
         const jpeg = await encodeSpreadJpeg(rendered.canvas, project.spec)
-        const format = formatFor(project.spec, spread.kind)
+        const format = formatFor(project.spec, spread)
         outputs.push({
           name: spreadFileName(project, spread, index, all, 'jpg'),
           blob: jpeg,

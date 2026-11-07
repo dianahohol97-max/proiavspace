@@ -110,7 +110,7 @@ export function autoFillSpread(
   newId: IdFactory = defaultId,
   avoidLayout?: string
 ): AlbumSpread {
-  const format = formatFor(spec, spread.kind)
+  const format = formatFor(spec, spread)
   const picked = pickLayout(photos, format, { marginMm: spec.marginMm, gapMm: spec.gapMm }, avoidLayout)
   const byId = new Map(photos.map((p) => [p.id, p]))
   return { ...spread, layout: picked.layout, slots: buildSlots(picked.rects, picked.assetIds, byId, newId) }
@@ -156,7 +156,7 @@ export function autoFillAlbum(
  * their crops; photos that do not fit any more simply go back to the strip.
  */
 export function applyLayout(spread: AlbumSpread, layout: string, spec: PrintSpec, newId: IdFactory = defaultId): AlbumSpread {
-  const format = formatFor(spec, spread.kind)
+  const format = formatFor(spec, spread)
   const rects = resolveLayout(layout, format, { marginMm: spec.marginMm, gapMm: spec.gapMm })
   const filled = spread.slots.filter((s) => s.assetId)
   return {
@@ -169,4 +169,153 @@ export function applyLayout(spread: AlbumSpread, layout: string, spec: PrintSpec
         : { id: newId(), ...rect, assetId: null, zoom: 1, fx: 0.5, fy: 0.5 }
     }),
   }
+}
+
+// ---------------------------------------------------------------------------
+// Variants («кинь кілька фото на розворот» → several layouts, cycle with ←/→)
+// ---------------------------------------------------------------------------
+
+/**
+ * The best distinct layouts for exactly these photos, best first (the first
+ * one is what pickLayout would choose). Layouts with identical slot geometry
+ * collapse into one.
+ */
+export function layoutVariants(photos: Shape[], format: SpreadFormat, options: LayoutOptions, limit = 10): PickedLayout[] {
+  const chosen = photos.slice(0, MAX_PHOTOS_PER_SPREAD)
+  if (!chosen.length) return []
+  const all: PickedLayout[] = []
+  for (const layout of layoutsWithCount(chosen.length)) {
+    const rects = resolveLayout(layout, format, options)
+    const { order, cost: shapeCost } = matchByAspect(chosen, rects)
+    all.push({ layout, rects, assetIds: order.map((i) => (i >= 0 ? chosen[i]!.id : null)), cost: shapeCost + layoutPenalty(layout) })
+  }
+  all.sort((a, b) => a.cost - b.cost || a.layout.localeCompare(b.layout))
+  const seen = new Set<string>()
+  const out: PickedLayout[] = []
+  for (const v of all) {
+    const sig = v.rects.map((r) => `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}`).sort().join('|')
+    if (seen.has(sig)) continue
+    seen.add(sig)
+    out.push(v)
+    if (out.length >= limit) break
+  }
+  return out
+}
+
+/** Put a picked variant onto a spread (texts and cover spine kept). */
+export function applyVariant(
+  spread: AlbumSpread,
+  variant: PickedLayout,
+  photosById: Map<string, Pick<AlbumPhoto, 'focalX' | 'focalY'>>,
+  newId: IdFactory = defaultId
+): AlbumSpread {
+  return { ...spread, layout: variant.layout, slots: buildSlots(variant.rects, variant.assetIds, photosById, newId) }
+}
+
+// ---------------------------------------------------------------------------
+// Autodesign of a whole album: orientations + series
+// ---------------------------------------------------------------------------
+
+export type Density = 'airy' | 'normal' | 'dense'
+
+const DENSITY: Record<Density, { target: number; max: number; heroEvery: number }> = {
+  airy: { target: 2, max: 3, heroEvery: 3 },
+  normal: { target: 3, max: 5, heroEvery: 5 },
+  dense: { target: 5, max: 6, heroEvery: 8 },
+}
+
+/** Camera frame number from a file name (IMG_1234.jpg → 1234), or null. */
+export function frameNumber(name: string): number | null {
+  const m = name.replace(/\.[a-z0-9]+$/i, '').match(/(\d{3,})(?!.*\d{3,})/)
+  return m ? Number(m[1]) : null
+}
+
+const orientation = (p: Shape) => (p.width > p.height * 1.08 ? 'l' : p.height > p.width * 1.08 ? 'p' : 's')
+
+/**
+ * Series: consecutive frames shot together (frame numbers at most `gap`
+ * apart, same orientation) — a burst, a sequence of the first dance. When
+ * names carry no numbers, runs of the same orientation in gallery order.
+ */
+export function splitSeries(photos: (Shape & { name?: string })[], gap = 3, maxRun = 6): (Shape & { name?: string })[][] {
+  const out: (Shape & { name?: string })[][] = []
+  let run: (Shape & { name?: string })[] = []
+  for (const p of photos) {
+    const prev = run[run.length - 1]
+    const a = prev ? frameNumber(prev.name ?? '') : null
+    const b = frameNumber(p.name ?? '')
+    const close = prev && (a !== null && b !== null ? b - a > 0 && b - a <= gap : true)
+    if (prev && close && orientation(prev) === orientation(p) && run.length < maxRun) run.push(p)
+    else {
+      if (run.length) out.push(run)
+      run = [p]
+    }
+  }
+  if (run.length) out.push(run)
+  return out
+}
+
+/**
+ * Autodesign: photos (in story order) → spreads. Series stay together on one
+ * spread (split evenly when longer than the density allows); short series are
+ * merged up to the target; a lone landscape frame now and then becomes a
+ * full-spread hero; each spread gets the best-fitting layout, never the same
+ * one twice in a row.
+ */
+export function autoDesignAlbum(
+  photos: AlbumPhoto[],
+  spec: PrintSpec,
+  density: Density = 'normal',
+  newId: IdFactory = defaultId
+): AlbumSpread[] {
+  const d = DENSITY[density]
+  const groups: AlbumPhoto[][] = []
+  let bucket: AlbumPhoto[] = []
+  let sinceHero = 0
+  const flush = () => {
+    if (bucket.length) groups.push(bucket)
+    bucket = []
+  }
+  for (const series of splitSeries(photos) as AlbumPhoto[][]) {
+    // Hero: a lone landscape frame after enough ordinary spreads.
+    if (series.length === 1 && orientation(series[0]!) === 'l' && sinceHero >= d.heroEvery - 1) {
+      flush()
+      groups.push(series)
+      sinceHero = 0
+      continue
+    }
+    if (series.length > d.max) {
+      flush()
+      let at = 0
+      for (const size of chunkSizes(series.length, d.max)) {
+        groups.push(series.slice(at, at + size))
+        at += size
+        sinceHero++
+      }
+      continue
+    }
+    if (bucket.length + series.length > d.max || (bucket.length >= d.target && bucket.length + series.length > d.target)) {
+      flush()
+      sinceHero++
+    }
+    bucket.push(...series)
+  }
+  flush()
+
+  const out: AlbumSpread[] = []
+  let previous: string | undefined
+  for (const group of groups) {
+    let spread: AlbumSpread
+    if (group.length === 1 && orientation(group[0]!) === 'l') {
+      const format = formatFor(spec, 'spread')
+      const layout = 'spread:pano-bleed'
+      const rects = resolveLayout(layout, format, { marginMm: spec.marginMm, gapMm: spec.gapMm })
+      spread = { id: newId(), kind: 'spread', layout, slots: buildSlots(rects, [group[0]!.id], new Map(group.map((p) => [p.id, p])), newId) }
+    } else {
+      spread = autoFillSpread({ id: newId(), kind: 'spread', layout: 'blank', slots: [] }, group, spec, newId, previous)
+    }
+    previous = spread.layout
+    out.push(spread)
+  }
+  return out
 }

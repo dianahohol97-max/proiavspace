@@ -58,7 +58,7 @@ function SlotImage({ slot, photo, wPx, hPx, thumbs }: { slot: AlbumSlot; photo: 
 }
 
 function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, selectedSlotId, handlers, thumbs, plain }: Props) {
-  const format = formatFor(spec, spread.kind)
+  const format = formatFor(spec, spread)
   const sheet = sheetSizeMm(format)
   const b = format.bleedMm
   const px = (mm: number) => mm * scale

@@ -87,7 +87,7 @@ export async function renderSpread(
   loadOriginal: LoadOriginal,
   options: { layers?: boolean; onPhoto?: (index: number, total: number) => void; signal?: AbortSignal } = {}
 ): Promise<RenderedSpread> {
-  const format = formatFor(spec, spread.kind)
+  const format = formatFor(spec, spread)
   const { width, height } = sheetSizePx(format, spec.dpi)
   const { canvas, ctx } = allocateCanvas(width, height)
   const layers: PsdLayerInput[] = []

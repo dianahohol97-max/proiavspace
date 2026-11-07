@@ -46,7 +46,7 @@ export function ExportDialog({
   )
 
   const sample = project.spreads.find((s) => s.id === (currentSpreadId ?? spreadIds[0])) ?? project.spreads[0]
-  const size = sample ? sheetSizePx(formatFor(project.spec, sample.kind), project.spec.dpi) : null
+  const size = sample ? sheetSizePx(formatFor(project.spec, sample), project.spec.dpi) : null
   const photosById = useMemo(() => new Map(photos.map((p) => [p.id, p])), [photos])
   const lowDpi = useMemo(() => {
     let n = 0

@@ -29,7 +29,7 @@ function Diagram({ layout, format, spec, half }: { layout: string; format: Sprea
 
 export function TemplatePicker({ spread, spec, onApply }: { spread: AlbumSpread; spec: PrintSpec; onApply(layout: string): void }) {
   const [target, setTarget] = useState<Target>('left')
-  const format = formatFor(spec, spread.kind)
+  const format = formatFor(spec, spread)
   const parsed = parseLayout(spread.layout)
   const current = useMemo(
     () =>

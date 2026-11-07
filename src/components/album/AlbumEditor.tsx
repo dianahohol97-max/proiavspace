@@ -238,7 +238,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
             if (s.slots.length) return s
             // Empty spread: the photo becomes a full-bleed panorama.
             const layout = 'spread:pano-bleed'
-            const rects = resolveLayout(layout, formatFor(spec, s.kind), { marginMm: spec.marginMm, gapMm: spec.gapMm })
+            const rects = resolveLayout(layout, formatFor(spec, s), { marginMm: spec.marginMm, gapMm: spec.gapMm })
             return { ...s, layout, slots: buildSlots(rects, [photo.id], photosById, uuid) }
           })
         )
@@ -308,7 +308,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
   }, [doc, current, slotId, spreads, currentIndex, updateSlot])
 
   const [stageRef, stage] = useElementSize<HTMLDivElement>()
-  const sheet = current ? sheetSizeMm(formatFor(spec, current.kind)) : null
+  const sheet = current ? sheetSizeMm(formatFor(spec, current)) : null
   const scale = sheet && stage.width > 0 ? Math.max(Math.min((stage.width - 40) / sheet.widthMm, (stage.height - 40) / sheet.heightMm), 0.05) : 0
 
   const refreshPhotos = async () => {
@@ -391,7 +391,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
         <aside className="flex w-44 flex-none flex-col border-r border-line bg-white" aria-label="Розвороти">
           <div className="flex-1 overflow-y-auto p-2" data-testid="spread-list">
             {spreads.map((s, i) => {
-              const f = sheetSizeMm(formatFor(spec, s.kind))
+              const f = sheetSizeMm(formatFor(spec, s))
               const thumbScale = 136 / f.widthMm
               const active = s.id === current?.id
               return (
@@ -680,7 +680,7 @@ function PhoneViewer({
       <div ref={ref} className="mt-4 flex flex-col gap-5">
         {size.width > 0 &&
           spreads.map((s, i) => {
-            const f = sheetSizeMm(formatFor(spec, s.kind))
+            const f = sheetSizeMm(formatFor(spec, s))
             return (
               <figure key={s.id}>
                 <SpreadView spread={s} spec={spec} photos={photos} scale={size.width / f.widthMm} plain />

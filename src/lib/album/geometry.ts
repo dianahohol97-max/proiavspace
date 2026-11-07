@@ -30,19 +30,27 @@ export interface SpreadFormat {
   spineMm: number
 }
 
-export function formatFor(spec: PrintSpec, kind: SpreadKind): SpreadFormat {
-  if (kind === 'cover' && spec.cover) {
+/**
+ * Printable format of a spread or the cover. For a cover, `spineMm` is the
+ * spine it is laid out for (album_spreads.spine_mm); the boards keep their
+ * size, so the cover is wider by exactly the spine growth over the base.
+ */
+export function formatFor(spec: PrintSpec, kind: SpreadKind | { kind: SpreadKind; spineMm?: number | null }, spineMm?: number | null): SpreadFormat {
+  const k = typeof kind === 'string' ? kind : kind.kind
+  const spine = typeof kind === 'string' ? spineMm : kind.spineMm ?? spineMm
+  if (k === 'cover' && spec.cover) {
+    const s = spine ?? spec.cover.spineMm
     return {
-      kind,
-      widthMm: spec.cover.widthMm,
+      kind: k,
+      widthMm: spec.cover.widthMm + (s - spec.cover.spineMm),
       heightMm: spec.cover.heightMm,
       bleedMm: spec.cover.bleedMm,
       safeMm: spec.safeMm,
-      spineMm: spec.cover.spineMm,
+      spineMm: s,
     }
   }
   return {
-    kind,
+    kind: k,
     widthMm: spec.spreadWidthMm,
     heightMm: spec.spreadHeightMm,
     bleedMm: spec.bleedMm,
