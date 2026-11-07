@@ -7,6 +7,8 @@ import { LeadForm, type LeadFormLabels } from './LeadForm'
 import { SiteLangSwitch } from './SiteLangSwitch'
 import { ThemeGallery } from './ThemeGallery'
 import { ThemeSilence } from './ThemeSilence'
+import { MIDNIGHT_FONT_VARS } from './midnight/fonts'
+import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeAir,
   ThemeArchive,
@@ -50,6 +52,14 @@ export interface PortfolioItem {
   category?: string | null
   /** Optional short title shown as the photo's caption; null/empty = none. */
   caption?: string | null
+  /** Pixel size recorded at upload (portfolio_assets.width/height); lets
+   *  themes put portrait frames in portrait slots. Absent → theme fallback. */
+  width?: number | null
+  height?: number | null
+  /** Optional responsive sources (demo assets / a future image CDN):
+   *  `srcSet` in WebP/JPEG, `avifSrcSet` in AVIF, both «url 828w, …». */
+  srcSet?: string
+  avifSrcSet?: string
 }
 
 /** Portfolio grouped into labeled collections, preserving first-seen order. */
@@ -85,6 +95,23 @@ export interface SiteLabels {
   close: string
   /** «Дивитись серію» — opens an album. */
   viewSeries: string
+  /* Optional wording used by themes with richer layouts («Тиша»). */
+  bookDate?: string
+  scrollHint?: string
+  menu?: string
+  process?: string
+  selectedWork?: string
+  series?: string
+  testimonials?: string
+  popular?: string
+  choosePack?: string
+  madeOn?: string
+  allPortfolio?: string
+  bookEvening?: string
+  filmStrip?: string
+  swipeHint?: string
+  prev?: string
+  next?: string
 }
 
 /** One selectable language in a site's switcher. */
@@ -104,7 +131,9 @@ export interface LangSwitch {
  * The shared block set of the constructor: header, hero, portfolio, about,
  * pricing, contact. Every theme renders THESE blocks — themes only change
  * the CSS custom properties (see lib/site/themes.ts). No platform branding
- * anywhere on the page.
+ * anywhere on the page — with one exception: on the FREE site plan
+ * ('site_trial') «Тиша» and «Опівніч» print a small «Сайт на проЯв» credit
+ * in their footer (`platformCredit`). Paid sites never show it.
  */
 export function SiteRenderer({
   theme,
@@ -118,6 +147,7 @@ export function SiteRenderer({
   leadForm,
   booking,
   footer,
+  platformCredit = false,
 }: {
   theme: ThemeId
   mode: SiteMode
@@ -134,6 +164,8 @@ export function SiteRenderer({
   booking?: SiteBooking
   /** Brand footer with client-facing legal links; only on published sites. */
   footer?: { brand: string; year: number; links: { href: string; label: string }[] }
+  /** Free site plan only: «Тиша» shows a small «Сайт на проЯв» credit. */
+  platformCredit?: boolean
 }) {
   const vars = siteCssVars(theme, mode)
   const bookingNav: BookingNav | undefined = booking
@@ -229,8 +261,9 @@ export function SiteRenderer({
   // Themes with their own distinct layout dispatch here; the rest still use
   // the shared block layout below until each gets its own design.
   if (theme === 'tysha') {
+    const day = mode !== 'night'
     return (
-      <div style={vars}>
+      <div style={{ ...vars, ...(day ? TYSHA_FONT_VARS : MIDNIGHT_FONT_VARS) } as CSSProperties}>
         <ThemeSilence
           content={content}
           displayName={displayName}
@@ -241,6 +274,7 @@ export function SiteRenderer({
           leadForm={leadForm}
           bookingNav={bookingNav}
           night={mode === 'night'}
+          platformCredit={platformCredit}
         />
         {bookingSectionEl}
         {footerEl}

@@ -33,20 +33,6 @@ export function PortfolioAlbums({
   const [open, setOpen] = useState<number | null>(null)
   const album = open !== null ? groups[open] : null
 
-  useEffect(() => {
-    if (open === null) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(null)
-    }
-    window.addEventListener('keydown', onKey)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prev
-    }
-  }, [open])
-
   const mono: React.CSSProperties = {
     fontFamily: 'var(--site-font-label)',
     fontSize: 11,
@@ -131,77 +117,109 @@ export function PortfolioAlbums({
       </div>
 
       {album && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setOpen(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 100,
-            background: 'rgba(12,11,10,0.93)',
-            overflowY: 'auto',
-            padding: 'clamp(16px, 4vw, 48px)',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 1120, margin: '0 auto', color: '#fff' }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 16,
-                marginBottom: 24,
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>
-                {album.category ?? labels.portfolio}{' '}
-                <span style={{ opacity: 0.6, fontSize: 14 }}>
-                  · {album.items.length} {labels.photos}
-                </span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setOpen(null)}
-                style={{
-                  background: 'none',
-                  border: '1px solid rgba(255,255,255,0.4)',
-                  borderRadius: 999,
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  padding: '8px 16px',
-                }}
-              >
-                ✕ {labels.close}
-              </button>
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                gap: 14,
-              }}
-            >
-              {album.items.map((item) =>
-                item.previewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={item.id}
-                    src={item.previewUrl}
-                    alt={item.caption ?? ''}
-                    loading="lazy"
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                  />
-                ) : null
-              )}
-            </div>
-          </div>
-        </div>
+        <AlbumLightbox album={album} labels={labels} onClose={() => setOpen(null)} />
       )}
     </>
+  )
+}
+
+/**
+ * Full-album overlay shared by the album grids (the default one above and
+ * themes with their own album layout, e.g. «Тиша»). Escape closes it and the
+ * page behind stops scrolling while it is open.
+ */
+export function AlbumLightbox({
+  album,
+  labels,
+  onClose,
+}: {
+  album: PortfolioGroup
+  labels: Pick<AlbumLabels, 'portfolio' | 'photos' | 'close'>
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onClose])
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        background: 'rgba(12,11,10,0.93)',
+        overflowY: 'auto',
+        padding: 'clamp(16px, 4vw, 48px)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 1120, margin: '0 auto', color: '#fff' }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>
+            {album.category ?? labels.portfolio}{' '}
+            <span style={{ opacity: 0.6, fontSize: 14 }}>
+              · {album.items.length} {labels.photos}
+            </span>
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: '1px solid rgba(255,255,255,0.4)',
+              borderRadius: 999,
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: 13,
+              padding: '8px 16px',
+            }}
+          >
+            ✕ {labels.close}
+          </button>
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gap: 14,
+          }}
+        >
+          {album.items.map((item) =>
+            item.previewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={item.id}
+                src={item.previewUrl}
+                alt={item.caption ?? ''}
+                loading="lazy"
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+              />
+            ) : null
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

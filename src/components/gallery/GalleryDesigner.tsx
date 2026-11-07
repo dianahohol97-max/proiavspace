@@ -82,11 +82,13 @@ export function GalleryDesigner({
     if (typeof window !== 'undefined' && window.innerWidth < 640) setDevice('phone')
   }, [])
 
-  const tokens = useMemo(() => {
-    const entry = THEME_CATALOG.find((e) => e.value === theme)
-    return resolveTokens(entry?.theme ?? 'tysha', entry?.mode ?? 'light')
-  }, [theme])
-  const previewAccent = accent || (tokens.bg === '#1b1a18' ? '#8fa2ff' : '#2f55ff')
+  const entry = useMemo(() => THEME_CATALOG.find((e) => e.value === theme), [theme])
+  const tokens = useMemo(
+    () => resolveTokens(entry?.theme ?? 'tysha', entry?.mode ?? 'light'),
+    [entry]
+  )
+  // Same default as GalleryExperience: night («Опівніч») → the theme's gold.
+  const previewAccent = accent || (entry?.mode === 'night' ? tokens.accent : '#2f55ff')
   const previewFont = fontFamily(font) ?? tokens.fontDisplay
   const previewBodyFont = fontFamily(bodyFont) ?? tokens.fontBody
   const previewLabelFont = fontFamily(bodyFont) ?? tokens.fontLabel

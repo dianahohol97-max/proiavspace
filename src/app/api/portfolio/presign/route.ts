@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
-import { getStorage, isVariantContentType, isVariantName, variantExtension } from '@/lib/storage'
+import {
+  getStorage,
+  isVariantContentType,
+  isVariantName,
+  portfolioPrefix,
+  portfolioVariantKey,
+  type VariantName,
+} from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -68,8 +75,8 @@ export async function POST(request: NextRequest) {
 
   const safeName = body.fileName.normalize('NFKD').replace(/[^\w.\-]+/g, '_').slice(-80)
   const key = body.variant
-    ? `u/${user.id}/portfolio/v/${crypto.randomUUID()}-${body.variant}.${variantExtension(body.contentType)}`
-    : `u/${user.id}/portfolio/${crypto.randomUUID()}-${safeName}`
+    ? portfolioVariantKey(user.id, body.variant as VariantName, body.contentType)
+    : `${portfolioPrefix(user.id)}${crypto.randomUUID()}-${safeName}`
   const { url } = await getStorage().getUploadUrl({
     key,
     contentType: body.contentType,

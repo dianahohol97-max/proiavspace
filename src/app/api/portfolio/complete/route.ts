@@ -1,41 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { getStorage, isVariantName } from '@/lib/storage'
+import { parsePortfolioComplete, portfolioAssetRow } from '@/lib/portfolio-upload'
+import { getStorage, portfolioKeysOwned } from '@/lib/storage'
 import { isQuotaError } from '@/lib/uploads'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
-
-interface CompleteBody {
-  key: string
-  contentType: string
-  sizeBytes: number
-  width?: number
-  height?: number
-  variants?: Record<string, string>
-  category?: string
-}
-
-function isCompleteBody(value: unknown): value is CompleteBody {
-  if (typeof value !== 'object' || value === null) return false
-  const v = value as Record<string, unknown>
-  const variantsOk =
-    v.variants === undefined ||
-    (typeof v.variants === 'object' &&
-      v.variants !== null &&
-      Object.entries(v.variants).every(
-        ([name, key]) => isVariantName(name) && typeof key === 'string'
-      ))
-  return (
-    typeof v.key === 'string' &&
-    typeof v.contentType === 'string' &&
-    typeof v.sizeBytes === 'number' &&
-    (v.width === undefined || typeof v.width === 'number') &&
-    (v.height === undefined || typeof v.height === 'number') &&
-    (v.category === undefined || typeof v.category === 'string') &&
-    variantsOk
-  )
-}
 
 /** Registers a portfolio photo after the direct PUT. */
 export async function POST(request: NextRequest) {
@@ -47,14 +17,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const body: unknown = await request.json().catch(() => null)
-  if (!isCompleteBody(body)) {
+  const body = parsePortfolioComplete(await request.json().catch(() => null))
+  if (!body) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
-  const prefix = `u/${user.id}/portfolio/`
   const allKeys = [body.key, ...Object.values(body.variants ?? {})]
-  if (allKeys.some((key) => !key.startsWith(prefix))) {
+  if (!portfolioKeysOwned(user.id, body.key, body.variants)) {
     return NextResponse.json({ error: 'key_mismatch' }, { status: 400 })
   }
 
@@ -67,16 +36,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await admin
     .from('portfolio_assets')
-    .insert({
-      owner_id: user.id,
-      r2_key: body.key,
-      content_type: body.contentType,
-      width: body.width ?? null,
-      height: body.height ?? null,
-      size_bytes: body.sizeBytes,
-      variants: body.variants ?? {},
-      category: body.category?.trim().slice(0, 60) || null,
-    })
+    .insert(portfolioAssetRow(user.id, body))
     .select('id')
     .single()
 

@@ -56,6 +56,9 @@ export default defineConfig({
       B2_BUCKET: 'e2e-placeholder',
       // Sentry must stay off in tests.
       NEXT_PUBLIC_SENTRY_DSN: '',
+      // Opens /[locale]/e2e/themes/[value] — the theme demos, which the
+      // public /themes routes redirect away from (tests/e2e/tysha.spec.ts).
+      E2E_THEME_PREVIEW: '1',
     },
   },
 })
