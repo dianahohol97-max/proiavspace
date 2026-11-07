@@ -37,6 +37,7 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     spread: p.spread,
     pageShort: p.pageShort,
     bookShoot: p.bookShoot,
+    dayInLight: p.dayInLight,
   }
 }
 

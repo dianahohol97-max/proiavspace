@@ -2,8 +2,8 @@
    come from the --site-* custom properties set by siteCssVars; these classes
    own the STRUCTURE that makes each theme its own design, not just a repaint. */
 
-/* «Тиша», «Опівніч» and «Журнал» have their own modules: tysha/Tysha.module.css,
-   midnight/Midnight.module.css, journal/Journal.module.css. */
+/* «Тиша», «Опівніч», «Журнал» and «Повітря» have their own modules:
+   tysha/, midnight/, journal/ and air/ (…module.css next to each theme). */
 
 /* ================= «Галерея» (museum wall) ================= */
 .gal {
@@ -209,94 +209,6 @@
 .tLang a {
   color: inherit;
   text-decoration: none;
-}
-
-/* ================= «Повітря» (default, airy) ================= */
-.airNav {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 26px 0;
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-.airNav .lnk a {
-  text-decoration: none;
-  color: var(--site-muted);
-  margin-left: 22px;
-}
-.airHero h1 {
-  font-family: var(--site-font-display);
-  font-weight: 400;
-  margin: 0;
-  font-size: clamp(38px, 8.5vw, 92px);
-  line-height: 1.02;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-  padding-top: clamp(28px, 6vw, 72px);
-}
-.airSub {
-  margin: 20px 0 0;
-  font-size: 12px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--site-muted);
-}
-.airGrid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 18px;
-  margin-top: clamp(24px, 4vw, 44px);
-}
-.airGrid :global(.big) {
-  aspect-ratio: 16 / 10;
-}
-.airGrid :global(.col) {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.airGrid :global(.col) > div {
-  flex: 1;
-  min-height: 120px;
-}
-.airCta {
-  display: flex;
-  gap: 26px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 30px;
-}
-.airBtn {
-  border: 1px solid var(--site-fg);
-  padding: 13px 30px;
-  font-family: var(--site-font-label);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: inherit;
-  text-decoration: none;
-  border-radius: var(--site-radius);
-}
-.airQuote {
-  margin: clamp(40px, 7vw, 80px) auto 0;
-  max-width: 46ch;
-  text-align: center;
-  font-family: var(--site-font-display);
-  font-size: clamp(18px, 2.6vw, 24px);
-  line-height: 1.5;
-  white-space: pre-line;
-}
-.airQuote small {
-  display: block;
-  margin-top: 14px;
-  font-family: var(--site-font-label);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--site-muted);
-  font-style: normal;
 }
 
 /* ================= «Плівка» (film) ================= */
@@ -584,7 +496,6 @@
     grid-template-columns: 1fr 1fr;
   }
   .galAbout,
-  .airGrid,
   .filmHero,
   .arTop {
     grid-template-columns: 1fr;

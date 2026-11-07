@@ -84,7 +84,9 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     id: 'povitria',
     tokens: {
       ...base,
-      bg: '#fdfcfa', fg: '#1b1a1f', muted: '#8f8c94', accent: '#1b1a1f', line: '#e8e5df',
+      // «Повітря»: warm daylight paper, ink, a sky blue. On the paper: fg ≈ 15:1,
+      // muted ≈ 5.4:1, sky ≈ 5.5:1 (AA).
+      bg: '#fbfaf6', fg: '#1d2129', muted: '#636873', accent: '#3f6a92', line: '#e7e4dc',
     },
   },
   plivka: {

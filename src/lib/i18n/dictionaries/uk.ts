@@ -397,6 +397,7 @@ export const uk = {
     spread: 'Розворот',
     pageShort: 'стор.',
     bookShoot: 'Замовити зйомку',
+    dayInLight: 'День у світлі',
     bookDate: 'Забронювати дату',
     scrollHint: 'Гортайте',
     menu: 'Меню',

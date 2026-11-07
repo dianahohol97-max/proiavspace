@@ -381,6 +381,7 @@ export const en: Dictionary = {
     spread: 'The spread',
     pageShort: 'p.',
     bookShoot: 'Book a shoot',
+    dayInLight: 'A day in the light',
     bookDate: 'Check your date',
     scrollHint: 'Scroll',
     menu: 'Menu',
