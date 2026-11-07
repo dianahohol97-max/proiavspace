@@ -31,8 +31,11 @@ export function kindOf(name: string): FileKind | null {
 export interface EmbeddedJpeg {
   offset: number
   length: number
+  /** As stored in the JPEG (before any orientation). */
   width: number
   height: number
+  /** The JPEG carries its own EXIF orientation ≠ 1 — a browser decoder applies it itself. */
+  selfOriented?: boolean
 }
 
 export interface PreviewInfo {
@@ -229,11 +232,25 @@ async function extractUnsafe(reader: RangeReader, name: string): Promise<Preview
       if (date) break
     }
   }
-  const strip = ({ offset, length, width, height }: EmbeddedJpeg) => ({ offset, length, width, height })
+  const selfOriented = async (j: EmbeddedJpeg & { exifTiff?: number }) => {
+    if (j.exifTiff === undefined) return false
+    const t = await Tiff.open(reader, j.exifTiff)
+    if (!t) return false
+    const ifd = await t.firstIfdOffset()
+    const own = await t.orientationOf(ifd)
+    return own !== undefined && own !== 1
+  }
+  const strip = async (j: EmbeddedJpeg & { exifTiff?: number }): Promise<EmbeddedJpeg> => ({
+    offset: j.offset,
+    length: j.length,
+    width: j.width,
+    height: j.height,
+    ...((await selfOriented(j)) ? { selfOriented: true } : {}),
+  })
   return {
     format,
-    preview: strip(preview),
-    full: strip(full),
+    preview: await strip(preview),
+    full: await strip(full),
     orientation: orientation && orientation >= 1 && orientation <= 8 ? orientation : 1,
     takenAt: exifDateToMs(date, subSec),
     make,

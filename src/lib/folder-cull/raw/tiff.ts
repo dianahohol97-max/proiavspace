@@ -112,6 +112,13 @@ export class Tiff {
     return new View(bytes, this.little).ascii(0, n).trim()
   }
 
+  /** Orientation tag of one IFD only (no walking). */
+  async orientationOf(ifdOffset: number): Promise<number | undefined> {
+    const listed = await this.readEntries(ifdOffset)
+    const e = listed?.entries.find((x) => x.tag === 0x112)
+    return e ? (await this.numbers(e, 1))[0] : undefined
+  }
+
   /** Walks IFD0 → next IFDs, SubIFDs and the EXIF IFD. */
   async walk(firstIfd?: number): Promise<TiffInfo> {
     const start = firstIfd ?? (await this.firstIfdOffset())

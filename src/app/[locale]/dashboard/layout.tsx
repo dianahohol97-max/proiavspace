@@ -67,6 +67,8 @@ export default async function DashboardLayout({
 
   const items: NavItem[] = [
     { href: `/${locale}/dashboard`, label: dict.billing.galleryPlansTitle, prefix: true },
+    // Culling straight from a local folder (RAW) — works without any gallery.
+    { href: `/${locale}/dashboard/cull`, label: locale === 'uk' ? 'Відбір із папки' : 'Cull from folder' },
     { href: `/${locale}/dashboard/site`, label: dict.site.navLink },
     { href: `/${locale}/dashboard/booking`, label: dict.booking.navLink },
     { href: `/${locale}/dashboard/billing`, label: dict.dashboard.billingLink },

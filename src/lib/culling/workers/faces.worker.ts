@@ -7,7 +7,24 @@
  */
 import type { FaceLandmarker } from '@mediapipe/tasks-vision'
 import type { FaceInfo } from '../types'
+import { decode, drawOriented, orientedSize } from '@/lib/folder-cull/orient'
 import { loadScaled, type FacesInit, type FacesRequest, type FacesResponse } from './protocol'
+
+/** A local blob (folder culling), oriented and scaled like loadScaled(). */
+async function loadBlob(blob: Blob, orientation: number, fromImage: boolean, maxSide: number) {
+  const bitmap = await decode(blob, fromImage)
+  try {
+    const [W, H] = orientedSize(bitmap.width, bitmap.height, orientation)
+    const scale = Math.min(1, maxSide / Math.max(W, H))
+    const width = Math.max(1, Math.round(W * scale))
+    const height = Math.max(1, Math.round(H * scale))
+    const canvas = new OffscreenCanvas(width, height)
+    drawOriented(canvas.getContext('2d')!, bitmap, orientation, width, height)
+    return { canvas, width, height }
+  } finally {
+    bitmap.close()
+  }
+}
 
 const scope = self as unknown as DedicatedWorkerGlobalScope
 const post = (message: FacesResponse) => scope.postMessage(message)
@@ -38,13 +55,15 @@ async function init({ wasmLoaderPath, wasmBinaryPath, modelUrl }: FacesInit) {
   }
 }
 
-async function detect({ jobId, url }: FacesRequest) {
+async function detect({ jobId, url, blob, orientation = 1, fromImage = false }: FacesRequest) {
   if (!landmarker) {
     post({ type: 'faces', jobId, ok: false, error: 'not ready' })
     return
   }
   try {
-    const { canvas, width, height } = await loadScaled(url, FACE_MAX_SIDE)
+    const { canvas, width, height } = blob
+      ? await loadBlob(blob, orientation, fromImage, FACE_MAX_SIDE)
+      : await loadScaled(url!, FACE_MAX_SIDE)
     const result = landmarker.detect(canvas)
     const shorter = Math.min(width, height)
     const faces: FaceInfo[] = result.faceLandmarks.map((points, i) => {

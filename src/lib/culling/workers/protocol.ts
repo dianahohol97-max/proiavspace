@@ -30,7 +30,14 @@ export interface FacesInit {
 export interface FacesRequest {
   type: 'faces'
   jobId: number
-  url: string
+  /** A rendition URL (gallery) … */
+  url?: string
+  /** … or a local blob (folder culling: the RAW's embedded preview). */
+  blob?: Blob
+  /** Orientation to apply to `blob` (1 = none). */
+  orientation?: number
+  /** Let the decoder apply the blob's own EXIF orientation. */
+  fromImage?: boolean
 }
 
 export type FacesResponse =
