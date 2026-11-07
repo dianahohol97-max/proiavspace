@@ -172,7 +172,7 @@ describe('контраст ≥ 4.5:1 у всіх стилях галерей', (
 
   test('акцент екрана й плашки — з теми галереї (або override фотографа), не платформний', () => {
     const screen = source('src/components/gallery/DeliveryStatusScreen.tsx')
-    assert.match(screen, /style\?\.accent \?\? resolveTokens\(theme, mode\)\.accent/)
+    assert.match(screen, /style\?\.accent \?\? resolveGalleryTokens\(theme, mode\)\.accent/)
     assert.doesNotMatch(screen, /#8fa2ff|#2f55ff/i)
   })
 
