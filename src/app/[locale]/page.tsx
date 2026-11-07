@@ -17,6 +17,9 @@ import { GalleryShowcase } from '@/components/landing/GalleryShowcase'
 import { Reveal } from '@/components/landing/Reveal'
 import s from './landing.module.css'
 
+/** Screenshot per «new in galleries» card, in the order of t.products.features. */
+const FEATURE_SHOTS = ['culling', 'status', 'upload'] as const
+
 export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
   const locale = isLocale(params.locale) ? params.locale : 'uk'
   const uk = locale === 'uk'
@@ -62,6 +65,9 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
   const login = `/${locale}/login`
   const jsonLd = buildJsonLd(locale, t)
   preloadBrandFonts(locale)
+
+  // Screenshots exist in uk and en; other locales get the English landing copy.
+  const shotLocale = locale === 'uk' ? 'uk' : 'en'
 
   const marqueeTiles = ['p01 t34', 'p08 t43', 'p07 t11', 'p14 t34', 'p15 t43', 'p16 t11', 'p12 t34', 'p03 t43']
   const tile = (spec: string, key: number) => {
@@ -139,16 +145,21 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               </span>
               <p>{t.hero.statText}</p>
             </div>
-            <div className={s.mockBooking}>
+            {/* The client's shoot status (see the «Статус зйомки» card below) */}
+            <div className={s.mockStatus}>
               <div className={s.slot}>
-                <span>Сб, 14:00</span>
-                <span>2 000 ₴</span>
+                <span>{t.hero.status.steps[0]}</span>
+                <span>✓</span>
               </div>
               <div className={s.slotOn}>
-                <span>Сб, 17:00</span>
-                <span>2 000 ₴</span>
+                <span>{t.hero.status.steps[1]}</span>
+                <span>{t.hero.status.now}</span>
               </div>
-              <div className={s.pay}>{t.hero.slotPay}</div>
+              <div className={s.slot}>
+                <span>{t.hero.status.steps[2]}</span>
+                <span />
+              </div>
+              <div className={s.pay}>{t.hero.status.eta}</div>
             </div>
             <div className={s.themeChip}>
               <div className={s.wm}>{t.hero.mockName}</div>
@@ -187,60 +198,46 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           <div className={`${s.prodGrid} ${s.prodGridTwo}`}>
             <Reveal>
               <div className={s.prod}>
-                <span className={s.prodNo}>{t.products.items[0].no}</span>
+                <span className={s.prodNo}>{t.products.gallery.no}</span>
                 <div className={s.pGal}>
                   <div className={`${s.ph} ${s.p15}`} />
                   <div className={`${s.ph} ${s.p06}`} />
                   <div className={`${s.ph} ${s.p08}`} />
                   <div className={`${s.ph} ${s.p12}`} />
                 </div>
-                <h3>{t.products.items[0].title}</h3>
-                <p>{t.products.items[0].text}</p>
+                <h3>{t.products.gallery.title}</h3>
+                <p>{t.products.gallery.text}</p>
                 <p className={s.tag}>
-                  <b>{t.products.items[0].tagStrong}</b>
-                  {t.products.items[0].tagRest}
+                  <b>{t.products.gallery.tagStrong}</b>
+                  {t.products.gallery.tagRest}
                 </p>
               </div>
             </Reveal>
-            <Reveal>
-              <div className={s.prod}>
-                <span className={s.prodNo}>{t.products.items[1].no}</span>
-                <div className={s.pBook}>
-                  {/* A week of slots so the mock fills the card the gallery sets the height of */}
-                  <div className={s.slotTaken}>
-                    <span>Пт, 10:00 · 60 хв</span>
-                    <span>{locale === 'uk' ? 'зайнято' : 'booked'}</span>
+            {t.products.features.map((feature, index) => (
+              <Reveal key={feature.no}>
+                <div className={s.prod}>
+                  <span className={s.prodNo}>{feature.no}</span>
+                  {/* Real screenshots of the interface (e2e demo pages), 960×640 WebP per language */}
+                  <div className={s.pShot}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/landing/${FEATURE_SHOTS[index]}-${shotLocale}.webp`}
+                      alt={feature.alt}
+                      width={960}
+                      height={640}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
-                  <div className={s.slot}>
-                    <span>Пт, 18:00 · 60 хв</span>
-                    <span>2 000 ₴</span>
-                  </div>
-                  <div className={s.slotTaken}>
-                    <span>Сб, 11:00 · 60 хв</span>
-                    <span>{locale === 'uk' ? 'зайнято' : 'booked'}</span>
-                  </div>
-                  <div className={s.slot}>
-                    <span>Сб, 14:00 · 60 хв</span>
-                    <span>2 000 ₴</span>
-                  </div>
-                  <div className={s.slotOn}>
-                    <span>Сб, 17:00 · 60 хв</span>
-                    <span>2 000 ₴</span>
-                  </div>
-                  <div className={s.slot}>
-                    <span>Нд, 10:00 · 60 хв</span>
-                    <span>2 000 ₴</span>
-                  </div>
-                  <div className={s.ok}>✓</div>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.text}</p>
+                  <p className={s.tag}>
+                    <b>{feature.tagStrong}</b>
+                    {feature.tagRest}
+                  </p>
                 </div>
-                <h3>{t.products.items[1].title}</h3>
-                <p>{t.products.items[1].text}</p>
-                <p className={s.tag}>
-                  <b>{t.products.items[1].tagStrong}</b>
-                  {t.products.items[1].tagRest}
-                </p>
-              </div>
-            </Reveal>
+              </Reveal>
+            ))}
           </div>
         </section>
 
@@ -305,8 +302,8 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <h4>{t.bento.cards.archive.text}</h4>
             </div>
             <div className={s.bHot}>
-              <span className={s.lbl}>{t.bento.cards.payments.label}</span>
-              <h4>{t.bento.cards.payments.text}</h4>
+              <span className={s.lbl}>{t.bento.cards.watermark.label}</span>
+              <h4>{t.bento.cards.watermark.text}</h4>
             </div>
             <div className={s.b}>
               <span className={s.lbl}>{t.bento.cards.stats.label}</span>
@@ -330,16 +327,16 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               </div>
             </div>
             <div className={s.b}>
-              <span className={s.lbl}>{t.bento.cards.autoRelease.label}</span>
-              <h4>{t.bento.cards.autoRelease.text}</h4>
+              <span className={s.lbl}>{t.bento.cards.slideshow.label}</span>
+              <h4>{t.bento.cards.slideshow.text}</h4>
             </div>
             <div className={s.bWide}>
               <span className={s.lbl}>{t.bento.cards.video.label}</span>
               <h4>{t.bento.cards.video.text}</h4>
             </div>
             <div className={s.b}>
-              <span className={s.lbl}>{t.bento.cards.email.label}</span>
-              <h4>{t.bento.cards.email.text}</h4>
+              <span className={s.lbl}>{t.bento.cards.languages.label}</span>
+              <h4>{t.bento.cards.languages.text}</h4>
             </div>
           </div>
         </section>

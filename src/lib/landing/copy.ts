@@ -1,5 +1,5 @@
 import type { Locale } from '@/lib/i18n/config'
-import type { GalleryPlanId, SitePlanId } from '@/lib/plans'
+import type { GalleryPlanId } from '@/lib/plans'
 
 /**
  * Marketing landing copy. Kept apart from the app dictionaries — this text
@@ -7,7 +7,7 @@ import type { GalleryPlanId, SitePlanId } from '@/lib/plans'
  */
 
 export interface LandingCopy {
-  nav: { features: string; galleries: string; sites: string; pricing: string; themes: string; blog: string; signIn: string; ctaShort: string; dashboard: string }
+  nav: { features: string; galleries: string; pricing: string; themes: string; blog: string; signIn: string; ctaShort: string; dashboard: string }
   hero: {
     chips: string[]
     titleBefore: string
@@ -20,7 +20,8 @@ export interface LandingCopy {
     ctaNote: string
     statNumber: string
     statText: string
-    slotPay: string
+    /** Hero card: the client's «Shoot → Editing → Ready» status. */
+    status: { steps: [string, string, string]; now: string; eta: string }
     mockName: string
     mockTitle: string
   }
@@ -30,9 +31,9 @@ export interface LandingCopy {
     titleBefore: string
     titleAccent: string
     lede: string
-    /** Small badge word marking a not-yet-launched product (e.g. «Скоро»). */
-    soon: string
-    items: { no: string; title: string; text: string; tagStrong: string; tagRest: string }[]
+    gallery: { no: string; title: string; text: string; tagStrong: string; tagRest: string }
+    /** New gallery features, each shown with a real screenshot of the interface. */
+    features: { no: string; title: string; text: string; tagStrong: string; tagRest: string; alt: string }[]
   }
   bento: {
     label: string
@@ -43,13 +44,13 @@ export interface LandingCopy {
       galleryPhoto: string
       protection: { label: string; text: string }
       archive: { label: string; text: string }
-      payments: { label: string; text: string }
+      watermark: { label: string; text: string }
       stats: { label: string; number: string; text: string }
       themes: { label: string; text: string; chips: string[] }
       previewPhoto: string
-      autoRelease: { label: string; text: string }
+      slideshow: { label: string; text: string }
       video: { label: string; text: string }
-      email: { label: string; text: string }
+      languages: { label: string; text: string }
     }
   }
   principles: {
@@ -71,13 +72,6 @@ export interface LandingCopy {
     fineprint: string
     plans: Record<GalleryPlanId, { name: string; note: string; bullets: string[] }>
     planCta: string
-    siteTitle: string
-    siteLede: string
-    sitePlans: Record<SitePlanId, { name: string; note: string }>
-    bundleNote: string
-    /** Sites are not launched yet — shown as a coming-soon panel. */
-    soonBadge: string
-    siteComingSoon: string
   }
   referral: {
     label: string
@@ -95,7 +89,6 @@ const uk: LandingCopy = {
   nav: {
     features: 'Можливості',
     galleries: 'Галереї',
-    sites: 'Сайти',
     pricing: 'Тарифи',
     themes: 'Теми',
     blog: 'Блог',
@@ -115,32 +108,48 @@ const uk: LandingCopy = {
     ctaNote: '3 ГБ безкоштовно, кожна галерея відкрита 30 днів. Без картки.',
     statNumber: '30 000',
     statText: 'фотографій передано клієнтам через галереї проЯв',
-    slotPay: 'Оплатити фотографу',
+    status: { steps: ['Зйомка', 'Обробка', 'Готово'], now: 'зараз', eta: 'Орієнтовно до 14 грудня' },
     mockName: 'Олена Романюк',
     mockTitle: 'Весільні історії',
   },
   strip: { label: 'Роботи фотографів' },
   products: {
-    label: 'Галереї · бронювання · один кабінет',
+    label: 'Галереї · відбір · статус зйомки',
     titleBefore: 'Клієнтська галерея для фотографа — ',
     titleAccent: 'під вашим брендом',
     lede:
-      'Усе починається з галерей — саме там фотограф щотижня зустрічається з клієнтом. А якщо хочете, щоб клієнт сам обирав час зйомки й одразу платив, — бронювання теж уже працює.',
-    soon: 'Скоро',
-    items: [
+      'Усе починається з галереї — саме там фотограф щотижня зустрічається з клієнтом. Нове в галереях: відбір браку, статус зйомки для клієнта й завантаження, яке переживає обрив звʼязку. Нижче — справжні екрани.',
+    gallery: {
+      no: '01 — Галереї',
+      title: 'Передавайте зйомки красиво',
+      text: 'Завантажуєте фотографії — клієнт отримує красиве посилання й качає сам, без Google Drive і питань «як завантажити». Обране, пароль, термін дії, архів, статистика.',
+      tagStrong: 'Оригінали без стискання.',
+      tagRest: ' Файли — як зняли',
+    },
+    features: [
       {
-        no: '01 — Галереї',
-        title: 'Передавайте зйомки красиво',
-        text: 'Завантажуєте фотографії — клієнт отримує красиве посилання й качає сам, без Google Drive і питань «як завантажити». Обране, пароль, термін дії, архів, статистика.',
-        tagStrong: 'Оригінали без стискання.',
-        tagRest: ' Файли — як зняли',
+        no: '02 — AI-відбір',
+        title: 'Брак підсвічується, рішення — ваше',
+        text: 'Розмиті кадри, повтори в серіях і заплющені очі позначаються автоматично, кращий кадр серії видно поруч з іншими. Аналіз іде у вашому браузері — фото нікуди не надсилаються.',
+        tagStrong: 'Нічого не ховається само.',
+        tagRest: ' Кадр зникає для клієнта, лише коли ви це підтвердите',
+        alt: 'Панель «Відбір кадрів»: позначки «Повтор» і «Розмито» на кадрах і фільтр «Потенційний брак»',
       },
       {
-        no: '02 — Бронювання',
-        title: 'Клієнт сам обирає час',
-        text: 'І одразу оплачує — Monobank, WayForPay, банка чи реквізити. Двоє не заброюють один слот, неоплачені броні звільняються самі.',
-        tagStrong: 'Гроші напряму вам.',
-        tagRest: ' Ми не торкаємось платежів',
+        no: '03 — Статус зйомки',
+        title: 'Клієнт бачить, де зараз його фото',
+        text: 'Поки галерея порожня, за тим самим посиланням клієнт бачить етапи «Зйомка → Обробка → Готово» і орієнтовну дату, якщо ви її вказали. Щойно фото готові — на тому ж місці відкривається галерея.',
+        tagStrong: 'Один перемикач у кабінеті.',
+        tagRest: ' Зміни видно клієнту одразу',
+        alt: 'Екран статусу для клієнта: «Ваші кадри вже в роботі», етап «Обробка» і орієнтовна дата',
+      },
+      {
+        no: '04 — Надійне завантаження',
+        title: 'Обрив звʼязку — не з нуля',
+        text: 'Великі файли йдуть частинами по 8 МБ. Зникла мережа — завантаження чекає й продовжує саме. Закрили вкладку — оберіть ті самі файли, і вони докачаються з місця зупинки.',
+        tagStrong: 'Повторюється лише недокачана частина,',
+        tagRest: ' а не весь файл',
+        alt: 'Завантажувач галереї без мережі: фото вже завантажені, відео чекають на звʼязок',
       },
     ],
   },
@@ -156,7 +165,7 @@ const uk: LandingCopy = {
       galleryPhoto: 'Галерея',
       protection: { label: 'Захист', text: 'Пароль і термін дії на кожну галерею' },
       archive: { label: 'Архів', text: 'Все однією кнопкою — zip збирається без черг і очікувань' },
-      payments: { label: 'Оплати', text: 'Напряму на вашу картку. Завжди.' },
+      watermark: { label: 'Водяний знак', text: 'Ваше імʼя на превʼю. Оригінали — чисті' },
       stats: { label: 'Статистика', number: '247', text: 'переглядів галереї цього тижня' },
       themes: {
         label: 'Дизайн галереї',
@@ -164,12 +173,12 @@ const uk: LandingCopy = {
         chips: ['Мозаїка', 'Колаж', 'Едіторіал', 'Квадрати', 'Портрет 3:4'],
       },
       previewPhoto: 'Превʼю без втрат швидкості',
-      autoRelease: { label: 'Бронювання', text: 'Неоплачений слот звільняється сам за кілька годин' },
+      slideshow: { label: 'Перегляд', text: 'Повноекранний лайтбокс і слайдшоу — і на телефоні' },
       video: {
-        label: 'Великі відео',
-        text: 'Завантаження частинами: обрив мережі на 95% коштує секунд, а не години',
+        label: 'Відео',
+        text: 'Ролики поруч із фото в тій самій галереї — з тарифу «Базовий»',
       },
-      email: { label: 'Пошта', text: 'Лист про нову бронь — одразу, з контактами клієнта' },
+      languages: { label: 'Мови', text: 'Клієнт перемикає галерею на свою мову — їх девʼять' },
     },
   },
   principles: {
@@ -182,16 +191,16 @@ const uk: LandingCopy = {
         text: 'З першого платного тарифу в галереях немає жодної згадки про нас. Клієнт бачить лише фотографа.',
       },
       {
-        title: 'Гроші — напряму',
-        text: 'Оплати за зйомки йдуть на ваш еквайринг чи картку. Платформа не тримає ваші гроші ні секунди.',
+        title: 'Рішення — за фотографом',
+        text: 'Автоматика лише підказує. Жоден кадр не ховається від клієнта, поки ви це не підтвердите.',
       },
       {
         title: 'Оригінали недоторканні',
         text: 'Файли зберігаються байт у байт. Клієнт переглядає швидкі превʼю, а завантажує повну якість.',
       },
       {
-        title: 'Оплата = слово банку',
-        text: 'Статус «оплачено» ставиться після перевірки в банку — ніколи зі слів клієнта чи неперевіреного вебхука.',
+        title: 'Кадри не їдуть на аналіз',
+        text: 'Відбір рахується у вашому браузері. Фото не передаються стороннім сервісам, навіть модель облич вантажиться з нашого сервера.',
       },
     ],
   },
@@ -226,23 +235,11 @@ const uk: LandingCopy = {
       },
       pro: {
         name: 'Максимальний',
-        note: 'Великі архіви та щільний календар',
+        note: 'Великі архіви й насичений сезон',
         bullets: ['Все з Плюса', 'Пріоритетна підтримка', '1 ТБ сховища'],
       },
     },
     planCta: 'Обрати',
-    siteTitle: 'Сайти для фотографів',
-    siteLede:
-      'Персональний сайт з власним доменом, SSL і SEO-налаштуваннями. Пробний період — 7 днів безкоштовно.',
-    sitePlans: {
-      site_trial: { name: 'Пробний', note: '1 сайт на 7 днів' },
-      site_basic: { name: 'Базовий', note: '1 сайт · власний домен · SSL · SEO' },
-      site_plus: { name: 'Плюс', note: '2+ сайти · мультимовність · все те саме' },
-    },
-    bundleNote: 'Бандл «Галерея + Сайт» — мінус 15% на сайт, коли активні обидві підписки.',
-    soonBadge: 'Скоро',
-    siteComingSoon:
-      'Конструктор сайтів для фотографів зараз у розробці — запустимо найближчим часом. А поки що вся увага на галереях: саме з них починається робота з клієнтом. Хочете дізнатися першими про запуск — залишіть свою пошту, натиснувши «Почати безкоштовно».',
   },
   referral: {
     label: 'Реферальна програма',
@@ -264,8 +261,12 @@ const uk: LandingCopy = {
         a: "На безкоштовному тарифі внизу галереї стоїть маленький підпис «Створено на проЯв». Уже з Базового його немає: на сторінках — лише ваше ім'я, ваш логотип і ваші фотографії.",
       },
       {
-        q: 'Через кого проходять гроші за зйомки?',
-        a: 'Повз нас. Рахунок створюється на вашому еквайрингу Monobank чи WayForPay, ручні способи — це ваша банка чи картка. Ми лише показуємо клієнту кнопку і звіряємо статус оплати з банком.',
+        q: 'Чи може AI-відбір сам сховати або видалити кадри?',
+        a: 'Ні. Він лише позначає ймовірний брак: розмиті кадри, повтори в серіях, заплющені очі. Від клієнта ховається тільки те, що ви самі підтвердили й сховали кнопкою, — файли при цьому не видаляються, і кожен кадр можна повернути.',
+      },
+      {
+        q: 'Що бачить клієнт, поки фото ще в обробці?',
+        a: 'Якщо ви поставили статус зйомки, за посиланням на галерею клієнт бачить етапи «Зйомка → Обробка → Готово» і орієнтовну дату, якщо ви її вказали. Коли додасте фото — там само відкриється галерея.',
       },
       {
         q: 'Що станеться з файлами, якщо я скасую підписку?',
@@ -292,7 +293,7 @@ const uk: LandingCopy = {
 }
 
 const en: LandingCopy = {
-  nav: { features: 'Features', galleries: 'Galleries', sites: 'Sites', pricing: 'Pricing', themes: 'Themes', blog: 'Blog', signIn: 'Sign in', ctaShort: 'Start for free', dashboard: 'Dashboard' },
+  nav: { features: 'Features', galleries: 'Galleries', pricing: 'Pricing', themes: 'Themes', blog: 'Blog', signIn: 'Sign in', ctaShort: 'Start for free', dashboard: 'Dashboard' },
   hero: {
     chips: ['Weddings', 'Families', 'Portraits', 'Studios'],
     titleBefore: 'Everything that happens ',
@@ -305,32 +306,48 @@ const en: LandingCopy = {
     ctaNote: '3 GB free, each gallery stays open 30 days. No card.',
     statNumber: '30 000',
     statText: 'photos delivered to clients through proiav galleries',
-    slotPay: 'Pay the photographer',
+    status: { steps: ['Shoot', 'Editing', 'Ready'], now: 'now', eta: 'Expected by 14 December' },
     mockName: 'Olena Romaniuk',
     mockTitle: 'Wedding stories',
   },
   strip: { label: 'Photographers’ work' },
   products: {
-    label: 'Galleries · booking · one dashboard',
+    label: 'Galleries · culling · shoot status',
     titleBefore: 'A client gallery for photographers — ',
     titleAccent: 'under your brand',
     lede:
-      'It all starts with galleries — that is where a photographer meets clients every week. And if you want clients to pick a time and pay right away, booking already works too.',
-    soon: 'Soon',
-    items: [
+      'It all starts with the gallery — that is where a photographer meets clients every week. New in galleries: reject culling, a shoot status for the client and uploads that survive a dropped connection. Below are the real screens.',
+    gallery: {
+      no: '01 — Galleries',
+      title: 'Deliver shoots beautifully',
+      text: 'Upload the photos — the client gets a beautiful link and downloads on their own, no Google Drive and no "how do I download this?". Favorites, password, expiry, zip, stats.',
+      tagStrong: 'Originals uncompressed.',
+      tagRest: ' Files exactly as shot',
+    },
+    features: [
       {
-        no: '01 — Galleries',
-        title: 'Deliver shoots beautifully',
-        text: 'Upload the photos — the client gets a beautiful link and downloads on their own, no Google Drive and no "how do I download this?". Favorites, password, expiry, zip, stats.',
-        tagStrong: 'Originals uncompressed.',
-        tagRest: ' Files exactly as shot',
+        no: '02 — AI culling',
+        title: 'Rejects get flagged, you decide',
+        text: 'Blurry frames, repeats within a burst and closed eyes are flagged automatically, and the best frame of a burst sits next to the rest. The analysis runs in your browser — photos are not sent anywhere.',
+        tagStrong: 'Nothing is hidden on its own.',
+        tagRest: ' A photo disappears for the client only once you confirm it',
+        alt: 'The «Photo culling» panel: «Repeat» and «Blurry» flags on photos and the «Possible rejects» filter',
       },
       {
-        no: '02 — Booking',
-        title: 'Clients pick their own time',
-        text: 'And pay right away — Monobank, WayForPay, a jar or requisites. No double-booking, unpaid holds release themselves.',
-        tagStrong: 'Money goes straight to you.',
-        tagRest: ' We never touch payments',
+        no: '03 — Shoot status',
+        title: 'Clients see where their photos are',
+        text: 'While the gallery is empty, the same link shows the client «Shoot → Editing → Ready» and an expected date if you set one. Once the photos are in, the gallery opens right there.',
+        tagStrong: 'One switch in the dashboard.',
+        tagRest: ' The client sees changes at once',
+        alt: 'The client status screen: «Your photos are already in progress», the «Editing» step and an expected date',
+      },
+      {
+        no: '04 — Reliable upload',
+        title: 'A dropped connection is not a restart',
+        text: 'Large files go up in 8 MB parts. The network drops — the upload waits and carries on by itself. The tab was closed — choose the same files and they continue where they stopped.',
+        tagStrong: 'Only the unfinished part is repeated,',
+        tagRest: ' not the whole file',
+        alt: 'The gallery uploader offline: photos already uploaded, videos waiting for the connection',
       },
     ],
   },
@@ -346,7 +363,7 @@ const en: LandingCopy = {
       galleryPhoto: 'Gallery',
       protection: { label: 'Protection', text: 'Password and expiry on every gallery' },
       archive: { label: 'Archive', text: 'Everything in one click — the zip builds with no queues' },
-      payments: { label: 'Payments', text: 'Straight to your card. Always.' },
+      watermark: { label: 'Watermark', text: 'Your name on previews. Originals stay clean' },
       stats: { label: 'Stats', number: '247', text: 'gallery views this week' },
       themes: {
         label: 'Gallery design',
@@ -354,12 +371,12 @@ const en: LandingCopy = {
         chips: ['Masonry', 'Collage', 'Editorial', 'Squares', 'Portrait 3:4'],
       },
       previewPhoto: 'Previews with zero speed loss',
-      autoRelease: { label: 'Booking', text: 'An unpaid slot frees itself after a few hours' },
+      slideshow: { label: 'Viewing', text: 'Full-screen lightbox and slideshow — on phones too' },
       video: {
-        label: 'Large videos',
-        text: 'Chunked uploads: a network drop at 95% costs seconds, not hours',
+        label: 'Video',
+        text: 'Clips next to the photos in the same gallery — from the Basic plan',
       },
-      email: { label: 'Email', text: 'A new-booking email arrives instantly with client contacts' },
+      languages: { label: 'Languages', text: 'Clients switch the gallery to their language — nine of them' },
     },
   },
   principles: {
@@ -372,16 +389,16 @@ const en: LandingCopy = {
         text: 'From the first paid tier, galleries never mention us. The client sees only the photographer.',
       },
       {
-        title: 'Money goes direct',
-        text: 'Shoot payments land on your acquiring or card. The platform never holds your money for a second.',
+        title: 'The photographer decides',
+        text: 'Automation only suggests. No photo is hidden from the client until you confirm it.',
       },
       {
         title: 'Originals are untouchable',
         text: 'Files are stored byte for byte. Clients browse fast previews and download full quality.',
       },
       {
-        title: 'Payment = the bank’s word',
-        text: 'The “paid” status is set after verifying with the bank — never from the client’s words or an unverified webhook.',
+        title: 'Photos are not shipped off for analysis',
+        text: 'Culling runs in your browser. Photos are not passed to third-party services — even the face model loads from our own server.',
       },
     ],
   },
@@ -416,22 +433,11 @@ const en: LandingCopy = {
       },
       pro: {
         name: 'Maximum',
-        note: 'Large archives and a dense calendar',
+        note: 'Large archives and a busy season',
         bullets: ['Everything in Plus', 'Priority support', '1 TB of storage'],
       },
     },
     planCta: 'Choose',
-    siteTitle: 'Photographer sites',
-    siteLede: 'A personal site with a custom domain, SSL and SEO. A 7-day free trial.',
-    sitePlans: {
-      site_trial: { name: 'Trial', note: '1 site for 7 days' },
-      site_basic: { name: 'Basic', note: '1 site · custom domain · SSL · SEO' },
-      site_plus: { name: 'Plus', note: '2+ sites · multilingual · all the same' },
-    },
-    bundleNote: 'Gallery + Site bundle — 15% off the site while both subscriptions are active.',
-    soonBadge: 'Soon',
-    siteComingSoon:
-      'The photographer site builder is under active development — launching soon. For now the focus is on galleries: that’s where client work begins. Want to hear about the launch first? Leave your email via “Start for free”.',
   },
   referral: {
     label: 'Referral program',
@@ -453,8 +459,12 @@ const en: LandingCopy = {
         a: 'On the free tier a small “Made with proiav” note sits at the bottom of the gallery. From Basic up it is gone: pages carry only your name, your logo and your photos.',
       },
       {
-        q: 'Who do shoot payments go through?',
-        a: 'Past us. Invoices are created on your own Monobank or WayForPay merchant; manual methods are your jar or card. We only show the button and verify the status with the bank.',
+        q: 'Can AI culling hide or delete photos on its own?',
+        a: 'No. It only flags likely rejects: blurry frames, repeats within a burst, closed eyes. Only what you confirm and hide with the button is hidden from the client — the files are not deleted, and every photo can be brought back.',
+      },
+      {
+        q: 'What does the client see while the photos are being edited?',
+        a: 'If you set a shoot status, the gallery link shows the client «Shoot → Editing → Ready» and an expected date if you set one. Once you add the photos, the gallery opens right there.',
       },
       {
         q: 'What happens to files if I cancel?',
