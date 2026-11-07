@@ -1,16 +1,15 @@
 'use server'
 
 /**
- * «Сховати від клієнта» for the AI culling panel — PREPARED, NOT ENABLED.
+ * «Сховати від клієнта» / «Повернути клієнту» for the AI culling panel.
  *
- * Needs assets.hidden_from_client (migration 0054 in branch db/1). Until that
- * is applied and NEXT_PUBLIC_CULLING_HIDE=1 is set, this refuses on the server
- * as well, so a stale client can never write a column that does not exist.
- * The column is writable by the service role only (0041), hence the admin
- * client — after an explicit ownership check with the user's own session.
+ * assets.hidden_from_client (migration 0054, applied 7.11.2026) is writable
+ * by the service role only (0041), hence the admin client — but only for the
+ * ids that an explicit ownership check with the user's OWN session returned.
+ * The file is never touched; the public gallery, archive, selections and
+ * original downloads stop showing the photo (code from db/1).
  */
 import { revalidatePath } from 'next/cache'
-import { HIDE_FROM_CLIENT_ENABLED } from '@/lib/culling/config'
 import type { Locale } from '@/lib/i18n/config'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -23,7 +22,6 @@ export async function setHiddenFromClient(
   assetIds: string[],
   hidden = true
 ): Promise<void> {
-  if (!HIDE_FROM_CLIENT_ENABLED) throw new Error('hide_from_client_disabled')
   const ids = [...new Set(assetIds)].filter((id) => typeof id === 'string' && id.length > 0).slice(0, MAX_IDS)
   if (ids.length === 0) return
 

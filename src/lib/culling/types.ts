@@ -11,6 +11,8 @@ export interface CullingPhoto {
   takenAt?: number | null
   /** Shown in the series view. */
   name?: string
+  /** assets.hidden_from_client — the client does not see this photo. */
+  hidden?: boolean
 }
 
 export interface FaceInfo {
@@ -61,5 +63,8 @@ export interface CullingState {
   decisions: Record<string, Decision>
   /** Photographer-chosen best frame per series (seriesId → photo id). */
   bestOverrides: Record<string, string>
+  /** Decisions were synced with the account at least once (0059): from then
+   *  on the database is the source of truth, even when it is empty. */
+  remoteSynced?: boolean
   updatedAt: number
 }

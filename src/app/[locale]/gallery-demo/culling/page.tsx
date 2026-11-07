@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+/** Demo: hiding changes nothing anywhere — there is no database behind it. */
+async function demoSetHidden(): Promise<void> {
+  'use server'
+}
+
 const FRAMES = Array.from({ length: 24 }, (_, i) => i + 1)
 const MAX = 2000
 
@@ -44,7 +49,7 @@ export default function CullingDemoPage({
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <h1 className="font-display text-3xl">{params.locale === 'uk' ? 'Демо: відбір кадрів' : 'Demo: photo culling'}</h1>
-      <CullingPanel galleryId={`demo-${count}`} locale={params.locale} photos={photos} />
+      <CullingPanel galleryId={`demo-${count}`} locale={params.locale} photos={photos} onSetHidden={demoSetHidden} />
     </main>
   )
 }

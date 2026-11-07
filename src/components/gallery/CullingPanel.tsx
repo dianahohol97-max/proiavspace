@@ -7,37 +7,47 @@
  * (never originals): sharpness + dHash in Web Workers, closed eyes with the
  * MediaPipe face model, loaded only after the button is pressed. Flags are
  * suggestions; the photographer keeps or clears each one. Nothing is hidden
- * from clients automatically — «Сховати від клієнта» stays disabled until the
- * hidden_from_client column (branch db/1) is live.
+ * from clients automatically: «Сховати від клієнта» is an explicit click on
+ * confirmed rejects (assets.hidden_from_client), «Повернути клієнту» undoes it.
+ * Decisions live in IndexedDB and, once migration 0059 exists, in the account.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { HIDE_FROM_CLIENT_ENABLED } from '@/lib/culling/config'
 import { cullingLabels, fill, formatEta } from '@/lib/culling/i18n'
 import { emptyState, loadState, saveState } from '@/lib/culling/store'
+import { loadRemote, rowsFromState, saveRemote, stateFromRows, type DecisionRow } from '@/lib/culling/remote'
 import type { Progress } from '@/lib/culling/runner'
 import type { CullingPhoto, CullingState, Decision, FlagKind, PhotoAnalysis, PhotoVerdict } from '@/lib/culling/types'
 import { computeVerdicts, seriesMembers } from '@/lib/culling/verdict'
 
-type Filter = 'all' | 'flagged' | 'best'
+type Filter = 'all' | 'flagged' | 'best' | 'hidden'
 const PAGE = 120
 
 export interface CullingPanelProps {
   galleryId: string
   locale: string
   photos: CullingPhoto[]
-  /** Server action for «Сховати від клієнта»; wired up after db/1. */
-  onHide?: (assetIds: string[]) => Promise<void>
+  /** Server action: hide (true) / show again (false) photos to the client. */
+  onSetHidden?: (assetIds: string[], hidden: boolean) => Promise<void>
+  /** The signed-in owner: enables saving decisions to the account (0059). */
+  ownerId?: string
 }
+
+type SavedWhere = 'account' | 'device' | 'none'
 
 function supported(): boolean {
   return typeof window !== 'undefined' && typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined'
 }
 
-export function CullingPanel({ galleryId, locale, photos, onHide }: CullingPanelProps) {
+export function CullingPanel({ galleryId, locale, photos, onSetHidden, ownerId }: CullingPanelProps) {
   const l = cullingLabels(locale)
   const [state, setState] = useState<CullingState>(() => emptyState(galleryId))
   const [loaded, setLoaded] = useState(false)
-  const [saved, setSaved] = useState<boolean | null>(null)
+  const [where, setWhere] = useState<SavedWhere>('device')
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set(photos.filter((p) => p.hidden).map((p) => p.id)))
+  const [busy, setBusy] = useState(false)
+  const remoteOk = useRef(false)
+  const remoteRows = useRef<Map<string, DecisionRow>>(new Map())
+  const photoIds = useMemo(() => new Set(photos.map((p) => p.id)), [photos])
   const [eyes, setEyes] = useState(true)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [running, setRunning] = useState(false)
@@ -49,28 +59,58 @@ export function CullingPanel({ galleryId, locale, photos, onHide }: CullingPanel
   const abortRef = useRef<AbortController | null>(null)
   const bufferRef = useRef<Record<string, PhotoAnalysis>>({})
 
+  // The server is the truth for hidden_from_client (after revalidation).
+  useEffect(() => {
+    setHidden(new Set(photos.filter((p) => p.hidden).map((p) => p.id)))
+  }, [photos])
+
   useEffect(() => {
     setCanRun(supported())
     let alive = true
-    loadState(galleryId).then((s) => {
+    ;(async () => {
+      let s = await loadState(galleryId)
+      // Account copy (0059). Without the table this is null → device only.
+      const rows = ownerId ? await loadRemote(galleryId) : null
+      if (rows) {
+        remoteOk.current = true
+        remoteRows.current = rows
+        // Once synced, the account wins (even empty: decisions undone on
+        // another device stay undone). First time: this device's decisions
+        // are uploaded by the save effect below.
+        if (rows.size > 0 || s.remoteSynced) s = { ...s, ...stateFromRows(rows) }
+        s = { ...s, remoteSynced: true, updatedAt: Date.now() }
+      }
       if (!alive) return
+      setWhere(rows ? 'account' : 'device')
       setState(s)
       setLoaded(true)
-    })
+    })()
     return () => {
       alive = false
       abortRef.current?.abort()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [galleryId])
 
   // Debounced local save of every change (analysis, decisions, best picks).
   useEffect(() => {
     if (!loaded || state.updatedAt === 0) return
-    const timer = setTimeout(() => {
-      saveState(state).then(setSaved)
+    const timer = setTimeout(async () => {
+      const onDevice = await saveState(state)
+      if (remoteOk.current && ownerId) {
+        const next = rowsFromState(state, photoIds)
+        if (await saveRemote(galleryId, ownerId, remoteRows.current, next)) {
+          remoteRows.current = next
+          setWhere('account')
+          return
+        }
+        // Account save failed: keep going on this device, quietly.
+        remoteOk.current = false
+      }
+      setWhere(onDevice ? 'device' : 'none')
     }, 800)
     return () => clearTimeout(timer)
-  }, [state, loaded])
+  }, [state, loaded, galleryId, ownerId, photoIds])
 
   const touch = useCallback((update: (s: CullingState) => CullingState) => {
     setState((s) => ({ ...update(s), updatedAt: Date.now() }))
@@ -139,8 +179,15 @@ export function CullingPanel({ galleryId, locale, photos, onHide }: CullingPanel
   }, [verdicts])
   const flaggedIds = photos.filter((p) => isFlagged(p.id)).map((p) => p.id)
   const confirmedIds = photos.filter((p) => state.decisions[p.id] === 'confirmed' && verdicts[p.id]?.flags.length).map((p) => p.id)
+  const toHide = confirmedIds.filter((id) => !hidden.has(id))
   const visible = photos.filter((p) =>
-    filter === 'all' ? !!state.analysis[p.id] : filter === 'flagged' ? isFlagged(p.id) : verdicts[p.id]?.bestInSeries
+    filter === 'hidden'
+      ? hidden.has(p.id)
+      : filter === 'all'
+        ? !!state.analysis[p.id]
+        : filter === 'flagged'
+          ? isFlagged(p.id)
+          : verdicts[p.id]?.bestInSeries
   )
 
   const decide = (id: string, decision: Decision | null) =>
@@ -153,7 +200,28 @@ export function CullingPanel({ galleryId, locale, photos, onHide }: CullingPanel
   const makeBest = (seriesId: string, id: string) =>
     touch((s) => ({ ...s, bestOverrides: { ...s.bestOverrides, [seriesId]: id } }))
 
-  const hideEnabled = HIDE_FROM_CLIENT_ENABLED && !!onHide && confirmedIds.length > 0
+  /** Hide/show to the client — always an explicit click, re-checked on the server. */
+  const setHiddenFor = async (ids: string[], value: boolean) => {
+    if (!onSetHidden || ids.length === 0 || busy) return
+    if (value && !window.confirm(fill(l.hideConfirm, { n: ids.length }))) return
+    setBusy(true)
+    try {
+      await onSetHidden(ids, value)
+      setHidden((prev) => {
+        const next = new Set(prev)
+        for (const id of ids) {
+          if (value) next.add(id)
+          else next.delete(id)
+        }
+        return next
+      })
+      setNotice(fill(value ? l.hidden : l.unhidden, { n: ids.length }))
+    } catch {
+      setNotice(l.hideFailed)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <section className="mt-12 rounded-2xl border border-line p-5 sm:p-6" data-testid="culling-panel">
@@ -238,15 +306,23 @@ export function CullingPanel({ galleryId, locale, photos, onHide }: CullingPanel
       {progress?.facesError && <p className="mt-3 text-xs text-accent">{l.facesFailed}</p>}
       {notice && <p className="mt-3 text-xs text-muted">{notice}</p>}
 
-      {hasResults && (
+      {(hasResults || hidden.size > 0) && (
         <>
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
-            <p className="text-sm" data-testid="culling-summary">
-              {fill(l.summary, { ...counts, series: series.size })}
-              {failed > 0 && <span className="text-muted"> · {fill(l.failedCount, { n: failed })}</span>}
-            </p>
-            <p className="text-xs text-muted" title={l.savedLocalHint}>
-              {saved === false ? l.notSaved : `✓ ${l.savedLocal}`}
+            {hasResults ? (
+              <p className="text-sm" data-testid="culling-summary">
+                {fill(l.summary, { ...counts, series: series.size })}
+                {failed > 0 && <span className="text-muted"> · {fill(l.failedCount, { n: failed })}</span>}
+              </p>
+            ) : (
+              <span />
+            )}
+            <p
+              className="text-xs text-muted"
+              title={where === 'account' ? l.savedAccountHint : l.savedLocalHint}
+              data-testid="culling-saved"
+            >
+              {where === 'none' ? l.notSaved : `✓ ${where === 'account' ? l.savedAccount : l.savedLocal}`}
             </p>
           </div>
           {running && <p className="mt-2 text-xs text-muted">{l.preliminary}</p>}
@@ -257,8 +333,11 @@ export function CullingPanel({ galleryId, locale, photos, onHide }: CullingPanel
                 ['flagged', l.filterFlagged, flaggedIds.length],
                 ['best', l.filterBest, photos.filter((p) => verdicts[p.id]?.bestInSeries).length],
                 ['all', l.filterAll, analysed - failed],
+                ['hidden', l.filterHidden, hidden.size],
               ] as const
-            ).map(([key, label, n]) => (
+            )
+              .filter(([key]) => key === 'hidden' || hasResults)
+              .map(([key, label, n]) => (
               <button
                 key={key}
                 type="button"
@@ -274,26 +353,19 @@ export function CullingPanel({ galleryId, locale, photos, onHide }: CullingPanel
                 {label} · {n}
               </button>
             ))}
-            <span className="ml-auto" title={hideEnabled ? undefined : l.hideSoon}>
-              <button
-                type="button"
-                disabled={!hideEnabled}
-                onClick={async () => {
-                  if (!onHide || !window.confirm(fill(l.hideConfirm, { n: confirmedIds.length }))) return
-                  try {
-                    await onHide(confirmedIds)
-                    setNotice(fill(l.hidden, { n: confirmedIds.length }))
-                  } catch {
-                    setNotice(l.hideFailed)
-                  }
-                }}
-                className="rounded-full border border-line px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                data-testid="culling-hide"
-              >
-                {l.hide} ({confirmedIds.length})
-              </button>
-              {!hideEnabled && <span className="ml-2 text-xs text-muted">{l.hideSoon}</span>}
-            </span>
+            {onSetHidden && (
+              <span className="ml-auto" title={toHide.length ? l.hideHint : l.hideNothing}>
+                <button
+                  type="button"
+                  disabled={toHide.length === 0 || busy}
+                  onClick={() => setHiddenFor(toHide, true)}
+                  className="rounded-full border border-fg px-3 py-1 text-sm transition-colors hover:bg-fg hover:text-bg disabled:cursor-not-allowed disabled:border-line disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-fg"
+                  data-testid="culling-hide"
+                >
+                  {l.hide} ({toHide.length})
+                </button>
+              </span>
+            )}
           </div>
 
           {visible.length === 0 ? (
@@ -308,8 +380,11 @@ export function CullingPanel({ galleryId, locale, photos, onHide }: CullingPanel
                   decision={state.decisions[p.id]}
                   seriesSize={verdicts[p.id]?.seriesId ? series.get(verdicts[p.id]!.seriesId!)?.length ?? 0 : 0}
                   labels={l}
+                  hidden={hidden.has(p.id)}
+                  busy={busy}
                   onDecide={(d) => decide(p.id, d)}
                   onSeries={() => setOpenSeries(verdicts[p.id]?.seriesId ?? null)}
+                  onSetHidden={onSetHidden ? (value) => setHiddenFor([p.id], value) : undefined}
                 />
               ))}
             </div>
@@ -414,16 +489,22 @@ function Tile({
   decision,
   seriesSize,
   labels: l,
+  hidden,
+  busy,
   onDecide,
   onSeries,
+  onSetHidden,
 }: {
   photo: CullingPhoto
   verdict: PhotoVerdict | undefined
   decision: Decision | undefined
   seriesSize: number
   labels: Labels
+  hidden: boolean
+  busy: boolean
   onDecide: (d: Decision | null) => void
   onSeries: () => void
+  onSetHidden?: (hidden: boolean) => void
 }) {
   const flagged = (verdict?.flags.length ?? 0) > 0
   return (
@@ -432,6 +513,11 @@ function Tile({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={photo.url} alt={photo.name ?? ''} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         <Badges verdict={decision === 'cleared' ? verdict && { ...verdict, flags: [] } : verdict} labels={l} />
+        {hidden && (
+          <span className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-full bg-neutral-900/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+            {l.badgeHidden}
+          </span>
+        )}
         {seriesSize > 1 && (
           <button
             type="button"
@@ -442,7 +528,27 @@ function Tile({
           </button>
         )}
       </div>
-      {flagged && <DecisionButtons decision={decision} labels={l} onDecide={onDecide} />}
+      {flagged && !hidden && <DecisionButtons decision={decision} labels={l} onDecide={onDecide} />}
+      {onSetHidden && hidden && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onSetHidden(false)}
+          className="rounded-full border border-fg px-2 py-1 text-[11px] hover:bg-fg hover:text-bg disabled:opacity-50"
+        >
+          {l.unhide}
+        </button>
+      )}
+      {onSetHidden && !hidden && decision === 'confirmed' && flagged && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onSetHidden(true)}
+          className="rounded-full border border-line px-2 py-1 text-[11px] hover:border-fg disabled:opacity-50"
+        >
+          {l.hideOne}
+        </button>
+      )}
     </figure>
   )
 }

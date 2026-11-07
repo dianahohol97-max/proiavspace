@@ -17,9 +17,10 @@ const FACE_MAX_SIDE = 768
 
 let landmarker: FaceLandmarker | null = null
 
-async function init({ wasmBase, modelUrl }: FacesInit) {
-  const { FilesetResolver, FaceLandmarker } = await import('@mediapipe/tasks-vision')
-  const fileset = await FilesetResolver.forVisionTasks(wasmBase)
+async function init({ wasmLoaderPath, wasmBinaryPath, modelUrl }: FacesInit) {
+  const { FaceLandmarker } = await import('@mediapipe/tasks-vision')
+  // An explicit fileset: no feature probing, no CDN — only our own files.
+  const fileset = { wasmLoaderPath, wasmBinaryPath }
   const options = (delegate: 'GPU' | 'CPU') => ({
     baseOptions: { modelAssetPath: modelUrl, delegate },
     runningMode: 'IMAGE' as const,

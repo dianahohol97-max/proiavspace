@@ -4,12 +4,17 @@
  * Зображення синтетичні й детерміновані (сід PRNG), тож тести стабільні.
  */
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import { describe, test } from 'node:test'
 import { laplacianVariance, sharpness, toGray } from '@/lib/culling/sharpness'
 import { dHash, hamming } from '@/lib/culling/dhash'
 import { groupSeries } from '@/lib/culling/series'
 import { computeVerdicts, hasClosedEyes } from '@/lib/culling/verdict'
 import type { CullingPhoto, PhotoAnalysis } from '@/lib/culling/types'
+import { diffRows, rowsFromState, stateFromRows } from '@/lib/culling/remote'
+import { FACE_MODEL_URL, MEDIAPIPE_VERSION, MEDIAPIPE_WASM_BINARY, MEDIAPIPE_WASM_LOADER } from '@/lib/culling/config'
 
 const W = 256
 const H = 192
@@ -300,5 +305,60 @@ describe('Позначки (відносний поріг, кращий у се�
     const v = computeVerdicts(photos, analysis)
     assert.ok(v.p0)
     assert.equal(v.p1, undefined)
+  })
+})
+
+describe('Рішення відбору в акаунті (0059): рядки для бази', () => {
+  const A = '11111111-1111-4111-8111-111111111111'
+  const B = '22222222-2222-4222-8222-222222222222'
+  const C = '33333333-3333-4333-8333-333333333333'
+  const ids = new Set([A, B, C, 'demo-1'])
+
+  test('стан ↔ рядки: рішення і «кращий у серії» туди й назад', () => {
+    const state = { decisions: { [A]: 'confirmed' as const, [B]: 'cleared' as const }, bestOverrides: { [`s:${A}`]: B } }
+    const rows = rowsFromState(state, ids)
+    assert.deepEqual(rows.get(A), { decision: 'confirmed', best_of_series: null })
+    assert.deepEqual(rows.get(B), { decision: 'cleared', best_of_series: `s:${A}` })
+    assert.deepEqual(stateFromRows(rows), state)
+  })
+
+  test('не-UUID (демо) і чужі кадри в базу не йдуть', () => {
+    const rows = rowsFromState({ decisions: { 'demo-1': 'confirmed', [C]: 'confirmed' }, bestOverrides: {} }, new Set(['demo-1']))
+    assert.equal(rows.size, 0)
+  })
+
+  test('diff: лише змінені рядки на upsert, прибрані — на видалення', () => {
+    const before = rowsFromState({ decisions: { [A]: 'confirmed', [B]: 'cleared' }, bestOverrides: {} }, ids)
+    const after = rowsFromState({ decisions: { [A]: 'cleared', [C]: 'confirmed' }, bestOverrides: {} }, ids)
+    const { upsert, remove } = diffRows(before, after)
+    assert.deepEqual(upsert.map(([id]) => id).sort(), [A, C].sort())
+    assert.deepEqual(remove, [B])
+    assert.deepEqual(diffRows(after, after), { upsert: [], remove: [] })
+  })
+})
+
+describe('MediaPipe лежить у нас, без сторонніх CDN', () => {
+  const root = path.resolve(__dirname, '..', '..')
+  test('wasm у public/ — той самий, що в установленому пакеті, шлях з версією пакета', () => {
+    const pkg = JSON.parse(readFileSync(path.join(root, 'node_modules/@mediapipe/tasks-vision/package.json'), 'utf8'))
+    assert.equal(pkg.version, MEDIAPIPE_VERSION, 'оновили пакет — оновіть public/vendor і MEDIAPIPE_VERSION')
+    assert.equal(JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).dependencies['@mediapipe/tasks-vision'], MEDIAPIPE_VERSION)
+    for (const file of [MEDIAPIPE_WASM_LOADER, MEDIAPIPE_WASM_BINARY]) {
+      const ours = readFileSync(path.join(root, 'public', file))
+      const theirs = readFileSync(path.join(root, 'node_modules/@mediapipe/tasks-vision/wasm', path.basename(file)))
+      assert.ok(ours.equals(theirs), file)
+    }
+  })
+
+  test('модель Face Landmarker на місці, розмір і MD5 як в опублікованої float16/1', () => {
+    const model = readFileSync(path.join(root, 'public', FACE_MODEL_URL))
+    assert.equal(model.length, 3_758_596)
+    assert.equal(createHash('md5').update(model).digest('base64'), 'sOcnSQehZEQE/vZrKN1thQ==')
+  })
+
+  test('у коді відбору немає адрес jsdelivr / googleapis', () => {
+    const dir = path.join(root, 'src/lib/culling')
+    const files = readdirSync(dir, { recursive: true }).map(String).filter((f) => f.endsWith('.ts'))
+    for (const f of files) assert.doesNotMatch(readFileSync(path.join(dir, f), 'utf8'), /jsdelivr|googleapis/, f)
   })
 })

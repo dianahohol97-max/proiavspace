@@ -32,10 +32,10 @@ test.describe('відбір кадрів (демо)', () => {
     const summary = page.getByTestId('culling-summary')
     await expect(summary).toContainText('Повтори: 1 (серій: 1)')
     await expect(page.getByRole('button', { name: 'Скасувати' })).toHaveCount(0)
-    // Nothing was hidden or changed on its own; the hide button waits for the DB.
+    // Nothing is hidden on its own: the button needs a confirmed reject first.
     const hide = page.getByTestId('culling-hide')
     await expect(hide).toBeDisabled()
-    await expect(page.getByText('З’явиться після оновлення бази').first()).toBeVisible()
+    await expect(hide).toHaveText(/\(0\)/)
     await expect(page.getByText('Збережено на цьому пристрої')).toBeVisible()
 
     // «Потенційний брак» is the default filter: the repeat of frame 01.
@@ -70,8 +70,39 @@ test.describe('відбір кадрів (демо)', () => {
     await page.getByRole('button', { name: 'Скасувати рішення' }).click()
     await expect(page.getByRole('button', { name: /Потенційний брак · 1/ })).toBeVisible()
 
+    // Confirm the reject → hide it (explicit, with a confirm dialog) → bring it back.
+    await page.getByRole('button', { name: /Потенційний брак/ }).click()
+    await tiles.first().getByRole('button', { name: 'Залишити позначку' }).click()
+    await expect(hide).toBeEnabled()
+    page.once('dialog', (d) => d.accept())
+    await hide.click()
+    await expect(page.getByText('Сховано від клієнта: 1')).toBeVisible()
+    await page.getByRole('button', { name: /Сховані від клієнта · 1/ }).click()
+    await expect(tiles).toHaveCount(1)
+    await expect(tiles.first().getByText('Сховано від клієнта')).toBeVisible()
+    await tiles.first().getByRole('button', { name: 'Повернути клієнту' }).click()
+    await expect(page.getByText('Повернуто клієнту: 1')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Сховані від клієнта · 0/ })).toBeVisible()
+
     // With the eyes check off, no model/wasm was ever requested.
     expect(external).toEqual([])
+  })
+
+  test('перевірка очей вантажить модель і wasm лише з нашого сервера', async ({ page }) => {
+    const requests: string[] = []
+    page.on('request', (r) => requests.push(r.url()))
+    await page.goto('/uk/gallery-demo/culling?n=4')
+    await expect(page.getByTestId('culling-start')).toBeEnabled()
+    // Nothing of MediaPipe before the click.
+    expect(requests.filter((u) => /mediapipe|\.wasm|\.task/.test(u))).toEqual([])
+    await page.getByTestId('culling-start').click()
+    await expect(page.getByTestId('culling-summary')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Скасувати' })).toHaveCount(0, { timeout: 60_000 })
+    await expect(page.getByText('Не вдалося завантажити модель облич')).toHaveCount(0)
+    const heavy = requests.filter((u) => /\.wasm|\.task|vision_wasm/.test(u))
+    expect(heavy.length).toBeGreaterThanOrEqual(3)
+    for (const u of heavy) expect(new URL(u).pathname).toMatch(/^\/vendor\/mediapipe\//)
+    expect(requests.filter((u) => /jsdelivr|googleapis/.test(u))).toEqual([])
   })
 
   test('прихована вкладка ставить аналіз на паузу, скасування зупиняє', async ({ page }) => {

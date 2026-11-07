@@ -21,7 +21,9 @@ export interface MeasureResponse {
 
 export interface FacesInit {
   type: 'init'
-  wasmBase: string
+  /** Absolute URLs on our own origin. */
+  wasmLoaderPath: string
+  wasmBinaryPath: string
   modelUrl: string
 }
 

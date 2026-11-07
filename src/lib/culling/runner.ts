@@ -11,7 +11,7 @@
  *
  * Step 1 measures sharpness + dHash; step 2 (optional) runs the face model.
  */
-import { FACE_MODEL_URL, MEASURE_MAX_SIDE, MEDIAPIPE_WASM_BASE } from './config'
+import { FACE_MODEL_URL, MEASURE_MAX_SIDE, MEDIAPIPE_WASM_BINARY, MEDIAPIPE_WASM_LOADER } from './config'
 import type { CullingPhoto, FaceInfo, PhotoAnalysis } from './types'
 import type { FacesResponse, MeasureResponse } from './workers/protocol'
 
@@ -235,7 +235,13 @@ export async function runCulling(options: RunOptions): Promise<void> {
         worker.onerror = (event) => resolve(event.message || 'worker error')
         signal.addEventListener('abort', () => resolve('aborted'))
       })
-      worker.postMessage({ type: 'init', wasmBase: MEDIAPIPE_WASM_BASE, modelUrl: FACE_MODEL_URL })
+      const own = (path: string) => new URL(path, window.location.origin).href
+      worker.postMessage({
+        type: 'init',
+        wasmLoaderPath: own(MEDIAPIPE_WASM_LOADER),
+        wasmBinaryPath: own(MEDIAPIPE_WASM_BINARY),
+        modelUrl: own(FACE_MODEL_URL),
+      })
       const initError = await ready
       if (signal.aborted) return
       if (initError) {

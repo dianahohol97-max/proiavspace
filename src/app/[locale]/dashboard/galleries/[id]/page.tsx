@@ -18,7 +18,6 @@ import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
 import { CullingPanel } from '@/components/gallery/CullingPanel'
 import type { CullingPhoto } from '@/lib/culling/types'
-import { HIDE_FROM_CLIENT_ENABLED } from '@/lib/culling/config'
 import { setHiddenFromClient } from '@/lib/actions/culling'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
 import { parseGalleryStyle } from '@/lib/gallery/style'
@@ -158,7 +157,16 @@ export default async function ManageGalleryPage({
             return null
           }
         }
-        return analysisUrl ? { id: asset.id, url: analysisUrl, order, takenAt: null, name: assetFileName(asset) } : null
+        return analysisUrl
+          ? {
+              id: asset.id,
+              url: analysisUrl,
+              order,
+              takenAt: null,
+              name: assetFileName(asset),
+              hidden: asset.hidden_from_client === true,
+            }
+          : null
       })
     )
   ).filter((p): p is CullingPhoto => p !== null)
@@ -380,13 +388,14 @@ export default async function ManageGalleryPage({
       </section>
 
       {cullingPhotos.length > 0 && (
-        // «Сховати від клієнта» stays disabled until assets.hidden_from_client
-        // (branch db/1) is applied and NEXT_PUBLIC_CULLING_HIDE=1 — see docs/AI_CULLING.md.
+        // «Сховати від клієнта» / «Повернути клієнту»: assets.hidden_from_client
+        // (0054). The action re-checks ownership on the server.
         <CullingPanel
           galleryId={gallery.id}
           locale={locale}
           photos={cullingPhotos}
-          onHide={HIDE_FROM_CLIENT_ENABLED ? setHiddenFromClient.bind(null, locale, gallery.id) : undefined}
+          onSetHidden={setHiddenFromClient.bind(null, locale, gallery.id)}
+          ownerId={user.id}
         />
       )}
 
@@ -438,6 +447,24 @@ export default async function ManageGalleryPage({
                         </span>
                       )}
                     </span>
+                  )}
+                  {asset.hidden_from_client && (
+                    // Hidden by the photographer (culling): the client never
+                    // sees it; one click puts it back.
+                    <form
+                      action={setHiddenFromClient.bind(null, locale, gallery.id, [asset.id], false)}
+                      className="absolute left-2 top-2 flex flex-col items-start gap-1"
+                    >
+                      <span className="rounded-full bg-neutral-900/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                        {locale === 'uk' ? 'Сховано від клієнта' : 'Hidden from client'}
+                      </span>
+                      <button
+                        type="submit"
+                        className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-900 hover:text-accent"
+                      >
+                        {locale === 'uk' ? 'Повернути клієнту' : 'Show to client'}
+                      </button>
+                    </form>
                   )}
                   {isCover ? (
                     <span className="absolute bottom-2 left-2 rounded-full bg-fg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-bg">
