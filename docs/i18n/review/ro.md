@@ -43,3 +43,9 @@ Format: `cheie sau loc — traducerea — de ce nu sunt sigur`
 - landing `products.features[0].no` — „02 — Triere cu AI” — de confirmat „AI” vs „IA” (în română se folosesc ambele).
 - landing `bento.cards.languages.text` — „Clienții pot afișa galeria în limba lor — nouă limbi la alegere” — reformulare liberă.
 - landing `principles.items[3].title` — „Fotografiile nu pleacă la analiză” — poate suna ambiguu; alternativă: „Fotografiile nu sunt trimise nicăieri pentru analiză”.
+
+## Delta 2
+
+- help `upload.items[0]` — „Fără conexiune” — eticheta uploaderului („No connection”) nu am găsit-o în fișierele mele de traducere; trebuie să coincidă cu textul real din interfață.
+- `designer.picksFavorite` / `picksRetouch` — „inimă” / „retuș” — valori în coloana CSV a exportului; de verificat dacă „favorit” ar fi mai clar decât „inimă”.
+- `designer.focusGridHint` — „punctul focal” pentru „crop focus” — de confirmat termenul.

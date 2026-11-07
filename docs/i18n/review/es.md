@@ -47,3 +47,9 @@ Format: `key or location — translation — why unsure`
 - landing pricing.plans.pro.note — «Archivos grandes y temporada a tope» — colloquial «a tope» for "busy season"; check register.
 - landing bento.slideshow — label «Visualización», text «Visor a pantalla completa…» — "lightbox" rendered as «visor».
 - designer.picksFavorite / picksRetouch — «corazón» / «retoque» — lowercase values in a table/export, context unclear.
+
+## Delta pass 2 (help blocks)
+
+- gallery/help-locales/es.ts upload[0] — «Sin conexión» — I couldn't find the uploader's "No connection" label in any dictionary, so I translated it freely; it must match the real label in the uploader.
+- gallery/help-locales/es.ts delivery[2] — «franja» for the status banner on top — «banda» / «aviso» are alternatives.
+- gallery/help-locales/es.ts delivery[1] — «el adelanto de fondo» for teaser — consistent with galleryManage.deliveryTeaserHint («foto de adelanto»).

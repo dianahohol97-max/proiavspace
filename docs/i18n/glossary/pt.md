@@ -74,3 +74,11 @@
 | володілець / розпорядник даних | controller / processor | responsável pelo tratamento / subcontratante | terminologia RGPD em pt-PT |
 | персональні дані | personal data | dados pessoais | «tratamento de dados» |
 | проЯв / proiav | brand | проЯв / proiav | nunca traduzir |
+| обране клієнта (вибір) | client picks | escolhas do cliente | favoritos + pedidos de retoque |
+| сердечко | heart (favourite mark) | coração | «marcar com um coração» |
+| на ретуш | for retouch | para retoque | |
+| фільтр Lightroom | Lightroom filter | filtro do Lightroom | nomes de menus mantidos em inglês (Library, Text, Filename, Contains) |
+| лист «Ваші фото готові» | “Your photos are ready” email | e-mail «As suas fotos estão prontas» | enviado quando o estado passa a «Pronta» |
+| згода | consent | consentimento / «aceitou receber» | |
+| триаж AI / статус зйомки (лендинг) | AI culling / shoot status | triagem com IA / estado da sessão | |
+| нестабільне з'єднання | no connection | sem ligação | pt-PT «ligação», não «conexão» |

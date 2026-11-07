@@ -32,3 +32,16 @@ Format : `clé ou emplacement — traduction — pourquoi je doute`
 - designer.radiusSharp/Soft/Round — « Nets / Adoucis / Arrondis » — accord avec « Coins » ; vérifier la place dans l’interface.
 - settings.watermarkLabel — « Apposer mon nom sur les aperçus (filigrane) » — longueur du libellé.
 - dashboard.onboardTitle / publicGallery.madeOn — « proiav » en minuscules (la source anglaise écrit parfois « Proiav ») — uniformisé.
+
+## Delta (release/4)
+
+- galleryManage.picksHint — « Bibliothèque → barre de filtre (touche \) → Texte → Nom de fichier → Contient (bien « Contient », pas « Contient tout ») » — j’ai utilisé les noms de l’interface française de Lightroom Classic de mémoire ; à vérifier dans un Lightroom en français (notamment « Contient tout » et « barre de filtre »).
+- galleryManage.favoritesTitle — « Sélection des clients » — « Client picks » regroupe cœurs et demandes de retouche ; « Favoris » ne suffisait plus. Risque de confusion avec « sélection des photos par le client » (fonction du tarif).
+- galleryManage.clientEmailTitle — « E-mail « Vos photos sont prêtes » » — vérifier que l’objet réel de l’e-mail envoyé est bien traduit pareil.
+- designer.picksMark / picksFavorite / picksRetouch — « Marque » / « cœur » / « retouche » — en-têtes et valeurs CSV ; « Marque » peut se lire comme « brand », « Type » serait une alternative.
+- designer.focusGridHint — bouton cité « Couverture » — vérifier le libellé réel du bouton dans la grille (designer.cover = « Couverture », studio.setCover = « Choisir en couverture »).
+- help upload.items[0] — « Pas de connexion » — ce libellé n’existe dans aucun dictionnaire (probablement en dur dans le composant d’import) ; à aligner quand il sera traduit.
+- landing products.features[0].title — « Les photos ratées sont signalées, vous décidez » — « ratées » pour « rejects », un peu familier ; ailleurs « à écarter ».
+- landing products.features[2].title — « Une coupure réseau ne vous oblige pas à tout recommencer » — plus long que l’anglais ; à vérifier dans la mise en page.
+- landing hero.status.eta — « Prévue pour le 14 décembre » — maquette, accord féminin (la galerie).
+- landing bento.cards.languages — « au choix parmi neuf » — tournure à valider.

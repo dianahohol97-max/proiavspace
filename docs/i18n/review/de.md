@@ -32,3 +32,16 @@ Phrases I am not fully sure about. Format: `key or location — translation — 
 - legal oferta §2 — „wie besehen“ — legal rendering of “as is”.
 - client policies `defaultName` — „der Fotograf“ — inserted mid-sentence, e.g. „wie der Fotograf („Fotograf“) …“; sentences were rephrased so the name is always nominative, but read once with the default.
 - client policies refund — „Nachbesserung“ — legal term for revision; may sound formal.
+
+## Delta (release/4)
+
+- `galleryManage.picksHint` — „Bibliothek → Bibliotheksfilter (Taste \) → Text → Dateiname → Enthält (… nicht „Enthält alle“)“ — Lightroom Classic menu names taken from the German UI as I remember it; please verify against a German Lightroom Classic install.
+- `galleryManage.favoritesTitle` — „Auswahl der Kunden“ — now covers both hearts and retouch requests; „Favoriten“ alone would be too narrow.
+- `galleryManage.clientEmailLabel/Consent` — „E-Mail-Adresse des Kunden“ / „Der Kunde ist … einverstanden“ — generic masculine again.
+- `designer.picksFavorite` / `picksRetouch` — „Herz“ / „Retusche“ — values in a CSV export column; check they read well as cell values.
+- `designer.focusGridHint` — the “Cover” button is referred to as „Titelbild“; verify the actual button label in the designer grid.
+- help `upload.items[0]` — „Keine Verbindung“ — I could not find this label in any dictionary (it may be hardcoded or not yet added); make sure the real UI label matches.
+- landing `products.features[0].no` — „02 — KI-Bildsichtung“ — “AI culling”; „KI“ is the standard German abbreviation.
+- landing `principles.items[3].title` — „Ihre Fotos bleiben bei Ihnen“ — free rendering of “Photos are not shipped off for analysis”.
+- landing `pricing.plans.pro.note` — „Große Archive und eine volle Saison“ — “a busy season” is now close to the Plus note („Für eine volle Saison“); consider „… und viel Betrieb in der Hochsaison“.
+- landing `hero.status.eta` — „Voraussichtlich bis 14. Dezember“ — mock date in the hero card.

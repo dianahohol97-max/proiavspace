@@ -7,6 +7,7 @@
 Загальні правила: плейсхолдери `{n}`, `{date}` і HTML не чіпати; множина — `{n, plural, one {…} few {…} many {…} other {…}}` (Intl.PluralRules, `src/lib/i18n/format.ts`); юридичні тексти — переклад із поміткою, що чинна українська редакція.
 
 
+
 ## Polski — `pl`
 
 **Forma zwracania się.** Neutralnie i bezosobowo, wszędzie tak samo (panel, strony klienta, dokumenty prawne):
@@ -89,6 +90,13 @@ Liczebniki z rzeczownikiem — składnia ICU: `{n, plural, one {# zdjęcie} few 
 | подарунковий сертифікат | gift certificate | bon podarunkowy | |
 | фотокнига | photo book | fotoksiążka | |
 | відгуки | testimonials | opinie | na stronie: „Miłe słowa” |
+| вибір клієнта (обране + ретуш) | client picks | wybór klienta | ulubione + prośby o retusz |
+| сердечко | heart | serduszko | znacznik ulubionych (także w eksporcie CSV) |
+| рядок для фільтра Lightroom | Lightroom filter line | linia dla Lightrooma | nazwy menu Lightroom zostają po angielsku |
+| лист «Ваші фото готові» | “Your photos are ready” email | wiadomość „Zdjęcia są gotowe” | jednorazowy e-mail do klienta |
+| статус «Готово» | Ready | Gotowe | etapy: Sesja → Obróbka → Gotowe |
+| фокус кадру | crop focus | punkt centralny kadru | |
+| довідка «Як це працює» | How it works | Jak to działa | |
 
 
 ## Deutsch — `de`
@@ -173,6 +181,13 @@ Liczebniki z rzeczownikiem — składnia ICU: `{n, plural, one {# zdjęcie} few 
 | тема (світла/темна в дизайнері галереї) | theme (light/dark) | Farbschema | nur im Designstudio der Galerie |
 | головне фото сайту (hero) | hero photo | Aufmacherfoto | „Titelbild“ ist für die Galerie reserviert |
 | студія дизайну | design studio | Designstudio | |
+| обране клієнта (сердечка + ретуш) | client picks | Auswahl der Kunden | Favoriten (Herz) und Retuschewünsche zusammen |
+| на ретуш (позначка) | for retouch / retouch | Für die Retusche / Retusche | |
+| рядок для Lightroom | line for Lightroom | Zeile für Lightroom | Lightroom-Classic-Filter: Bibliothek → Bibliotheksfilter → Text → Dateiname → Enthält |
+| лист «Ваші фото готові» | “Your photos are ready” email | E-Mail „Ihre Fotos sind fertig“ | einmalig, beim ersten Status „Fertig“ |
+| фокус кадрування | crop focus | Fokuspunkt | |
+| завантаження частинами | chunked upload | Upload in Teilen | 8-MB-Teile |
+| довідка «Як це працює» | how it works | So funktioniert … | |
 
 
 ## Español — `es`
@@ -255,6 +270,14 @@ Liczebniki z rzeczownikiem — składnia ICU: `{n, plural, one {# zdjęcie} few 
 | пробний період | trial | prueba / periodo de prueba | |
 | власний домен | custom domain | dominio propio | |
 | мультимовність | multilingual | multilingüe | |
+| обране клієнта (сердечка + ретуш) | client picks | selección del cliente | Favoritos + peticiones de retoque |
+| на ретуш | for retouch | para retoque | |
+| рядок для Lightroom / фільтр | Lightroom line / filter | línea para Lightroom / filtro | Menús de Lightroom Classic en español con el original entre paréntesis |
+| лист «Ваші фото готові» | “Your photos are ready” email | correo «Tus fotos están listas» | |
+| згода клієнта | client consent | el cliente ha aceptado | |
+| AI-відбір | AI culling | criba con IA | |
+| надійне завантаження | reliable upload | subida fiable | |
+| фокус кадру | crop focus | centro del encuadre | |
 
 
 ## Français — `fr`
@@ -333,6 +356,14 @@ Liczebniki z rzeczownikiem — składnia ICU: `{n, plural, one {# zdjęcie} few 
 | перший екран (hero) | hero | en-tête | bloc du site |
 | відгуки | testimonials | témoignages | |
 | подарунковий сертифікат | gift certificate | carte cadeau | |
+| обране клієнта (сердечко + ретуш) | client picks | sélection des clients | cœurs + demandes de retouche |
+| на ретуш | for retouch | à retoucher | |
+| сердечко (позначка) | heart | cœur | colonne CSV « Marque » : cœur / retouche |
+| рядок для Lightroom | Lightroom line | ligne pour Lightroom | filtre Texte → Nom de fichier → Contient |
+| лист «Ваші фото готові» | “Your photos are ready” email | e-mail « Vos photos sont prêtes » | envoyé une fois, au statut « Prête » |
+| точка фокусу | crop focus | point focal | recadrage des vignettes |
+| Як це працює | How it works | Comment fonctionne… | blocs d’aide du tableau de bord |
+| немає зʼєднання | no connection | pas de connexion | |
 
 
 ## Italiano — `it`
@@ -411,6 +442,15 @@ Liczebniki z rzeczownikiem — składnia ICU: `{n, plural, one {# zdjęcie} few 
 | імпорт | import | importazione / importa | |
 | відгуки | testimonials | recensioni | sito pubblico: «Dicono di noi» |
 | перший екран (hero) | hero | apertura | blocco iniziale del sito |
+| обране клієнта (сердечко + ретуш) | client picks | scelte dei clienti | preferiti + richieste di ritocco |
+| на ретуш | for retouch | da ritoccare | |
+| сердечко | heart | cuore | «mettere un cuore» |
+| рядок для Lightroom | Lightroom filter line | riga per Lightroom | filtro Libreria → Testo → Nome file → Contiene |
+| лист «Ваші фото готові» | “Your photos are ready” email | e-mail «Le tue foto sono pronte» | |
+| статус зйомки (етапи) | shoot status steps | Servizio → Post-produzione → Pronta | uguale in dashboard, landing e guida |
+| надійне завантаження | reliable upload | caricamento affidabile | blocchi da 8 MB |
+| Немає зʼєднання | No connection | Nessuna connessione | |
+| фокус кадрування | crop focus | punto focale del ritaglio | |
 
 
 ## Română — `ro`
@@ -495,6 +535,12 @@ Liczebniki z rzeczownikiem — składnia ICU: `{n, plural, one {# zdjęcie} few 
 | опублікувати | publish | a publica | |
 | термін дії | expiry | termen de valabilitate / dată de expirare | |
 | вебхук | webhook | webhook | |
+| обране клієнта (сердечка + ретуш) | client picks | alegerile clienților | include favorite și cereri de retuș |
+| рядок для Lightroom | Lightroom filter line | rând pentru Lightroom | numele meniurilor Lightroom rămân în engleză (nu există Lightroom Classic în română) |
+| лист «Ваші фото готові» | “Your photos are ready” email | e-mailul „Fotografiile sunt gata” | trimis o singură dată, la stadiul „Gata” |
+| згода клієнта | client consent | acordul clientului | |
+| стадія / статус (Зйомка → Обробка → Готово) | status steps | Ședința → Editare → Gata | la fel ca în galeria publică |
+| надійне завантаження | reliable upload | încărcare sigură | |
 
 
 ## Português (pt-PT) — `pt`
@@ -573,3 +619,11 @@ Liczebniki z rzeczownikiem — składnia ICU: `{n, plural, one {# zdjęcie} few 
 | володілець / розпорядник даних | controller / processor | responsável pelo tratamento / subcontratante | terminologia RGPD em pt-PT |
 | персональні дані | personal data | dados pessoais | «tratamento de dados» |
 | проЯв / proiav | brand | проЯв / proiav | nunca traduzir |
+| обране клієнта (вибір) | client picks | escolhas do cliente | favoritos + pedidos de retoque |
+| сердечко | heart (favourite mark) | coração | «marcar com um coração» |
+| на ретуш | for retouch | para retoque | |
+| фільтр Lightroom | Lightroom filter | filtro do Lightroom | nomes de menus mantidos em inglês (Library, Text, Filename, Contains) |
+| лист «Ваші фото готові» | “Your photos are ready” email | e-mail «As suas fotos estão prontas» | enviado quando o estado passa a «Pronta» |
+| згода | consent | consentimento / «aceitou receber» | |
+| триаж AI / статус зйомки (лендинг) | AI culling / shoot status | triagem com IA / estado da sessão | |
+| нестабільне з'єднання | no connection | sem ligação | pt-PT «ligação», não «conexão» |

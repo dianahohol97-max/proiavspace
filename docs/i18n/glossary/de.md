@@ -80,3 +80,10 @@
 | тема (світла/темна в дизайнері галереї) | theme (light/dark) | Farbschema | nur im Designstudio der Galerie |
 | головне фото сайту (hero) | hero photo | Aufmacherfoto | „Titelbild“ ist für die Galerie reserviert |
 | студія дизайну | design studio | Designstudio | |
+| обране клієнта (сердечка + ретуш) | client picks | Auswahl der Kunden | Favoriten (Herz) und Retuschewünsche zusammen |
+| на ретуш (позначка) | for retouch / retouch | Für die Retusche / Retusche | |
+| рядок для Lightroom | line for Lightroom | Zeile für Lightroom | Lightroom-Classic-Filter: Bibliothek → Bibliotheksfilter → Text → Dateiname → Enthält |
+| лист «Ваші фото готові» | “Your photos are ready” email | E-Mail „Ihre Fotos sind fertig“ | einmalig, beim ersten Status „Fertig“ |
+| фокус кадрування | crop focus | Fokuspunkt | |
+| завантаження частинами | chunked upload | Upload in Teilen | 8-MB-Teile |
+| довідка «Як це працює» | how it works | So funktioniert … | |

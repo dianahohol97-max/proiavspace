@@ -74,3 +74,12 @@
 | імпорт | import | importazione / importa | |
 | відгуки | testimonials | recensioni | sito pubblico: «Dicono di noi» |
 | перший екран (hero) | hero | apertura | blocco iniziale del sito |
+| обране клієнта (сердечко + ретуш) | client picks | scelte dei clienti | preferiti + richieste di ritocco |
+| на ретуш | for retouch | da ritoccare | |
+| сердечко | heart | cuore | «mettere un cuore» |
+| рядок для Lightroom | Lightroom filter line | riga per Lightroom | filtro Libreria → Testo → Nome file → Contiene |
+| лист «Ваші фото готові» | “Your photos are ready” email | e-mail «Le tue foto sono pronte» | |
+| статус зйомки (етапи) | shoot status steps | Servizio → Post-produzione → Pronta | uguale in dashboard, landing e guida |
+| надійне завантаження | reliable upload | caricamento affidabile | blocchi da 8 MB |
+| Немає зʼєднання | No connection | Nessuna connessione | |
+| фокус кадрування | crop focus | punto focale del ritaglio | |

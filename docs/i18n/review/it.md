@@ -4,12 +4,11 @@ Frasi su cui non sono del tutto sicuro. Formato: `chiave o posizione — traduzi
 
 - landing `hero.titleBefore/titleAccent/titleAfter` — «Tutto quello che succede **dopo** lo scatto» — slogan; «dopo lo scatto» è naturale, ma va verificato che regga come H1 e che il ritmo funzioni con l’accento su «dopo».
 - landing `bento.titleBefore/titleAccent` — «I piccoli dettagli che rendono il lavoro **sereno**» — «sereno» per «calm»: alternative «tranquillo», «senza stress».
-- landing `principles.items[3].title` — «Pagato = lo dice la banca» — gioco di parole del sorgente («Payment = the bank’s word»); forse meglio «Pagato solo se lo conferma la banca».
 - landing `products.items[0].title` / `final.titleAccent` — «Consegna i servizi con stile» / «con stile» — «beautifully» reso con «con stile»; valutare «in bellezza».
 - termine generale — «servizio» per «зйомка/shoot» — è l’uso comune tra fotografi italiani, ma in contesti come «Prenota un servizio» potrebbe confondersi con «il servizio» (la piattaforma). Nei testi legali la piattaforma è «Servizio» con maiuscola.
 - culling (tutto il pannello) — «Scrematura degli scatti» per «culling» — molti fotografi italiani dicono semplicemente «culling» o «selezione»; da confermare la scelta.
 - culling `keep` — «Conferma lo scarto» (sorgente: «Keep flag» / «Залишити позначку») — ho reso il significato (confermare che è uno scarto) invece della lettera; il testo `hideNothing` lo cita tra «».
-- dictionary `booking.manualLabel`, landing `products.items[1].text` — «salvadanaio Monobank» per «банка / jar» — traduzione del nome della funzione Monobank; potrebbe non essere riconoscibile per un pubblico italiano.
+- dictionary `booking.manualLabel` — «salvadanaio Monobank» per «банка / jar» — traduzione del nome della funzione Monobank; potrebbe non essere riconoscibile per un pubblico italiano.
 - dictionary `booking.payHint` / landing — «acquiring» lasciato in inglese — in Italia si usa anche «servizio di acquiring» o «POS virtuale»; da verificare il termine più chiaro per i fotografi.
 - dictionary `site.heroLegend` — «Apertura» per il blocco hero — in ambito web si dice spesso «hero» o «sezione principale».
 - dictionary `site.momentLegend` — «Scatto simbolo» per «Signature frame» — alternativa «Scatto firma» / «Lo scatto del cuore».
@@ -33,3 +32,14 @@ Frasi su cui non sono del tutto sicuro. Formato: `chiave o posizione — traduzi
 - legal `privacy.sections[1]` — «responsabile del trattamento (processor)» — «розпорядник» reso con la terminologia GDPR italiana; la legge ucraina usa termini propri.
 - legal (tutto) — dare del «tu» nei testi legali è insolito in Italia (di solito «Lei» o impersonale); scelto per coerenza come da brief.
 - client policies `refund` — «acconto» per «передоплата» — scelto apposta al posto di «caparra», che in Italia ha conseguenze giuridiche specifiche (art. 1385 c.c.).
+
+## Delta (release/4)
+
+- dictionary `galleryManage.picksHint` — «Libreria → barra dei filtri (tasto \) → Testo → Nome file → Contiene (… non Contiene tutto)» — ho usato i nomi dell’interfaccia italiana di Lightroom Classic a memoria; «Contiene tutto» potrebbe essere «Contiene tutti» nella versione italiana. Da verificare su un Lightroom in italiano.
+- dictionary `galleryManage.favoritesTitle` — «Scelte dei clienti» — per «Client picks» (preferiti + ritocco); alternativa «Selezioni dei clienti».
+- dictionary `designer.picksMark` — «Segno» — intestazione di colonna CSV (cuore/ritocco); forse meglio «Tipo» o «Contrassegno».
+- dictionary `galleryManage.clientEmailHint` / `clientEmailWaitReady` — lo stato è citato come «Pronta» (femminile, riferito alla galleria), mentre l’e-mail dice «Le tue foto sono pronte»; verificare che il genere non stoni.
+- landing `products.features[2].title` — «Se cade la connessione, non si riparte da zero» — slogan, controllare lunghezza.
+- landing `principles.items[3].title` — «Le foto non vengono spedite altrove per l’analisi» — un po’ lungo per un titolo.
+- landing `bento.cards.languages.text` — «Il cliente passa la galleria nella sua lingua: sono nove» — formulazione da rivedere.
+- help `upload.items[0]` — «Nessuna connessione» — l’etichetta dell’uploader non è (ancora) localizzata nei dizionari, quindi la traduzione citata è un’ipotesi.

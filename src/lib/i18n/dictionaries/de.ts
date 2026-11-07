@@ -779,6 +779,12 @@ export const de: PartialDictionary = {
     phone: 'Smartphone',
     hiddenFromClient: 'Vor Kunden ausgeblendet',
     showToClient: 'Für Kunden einblenden',
+    picksFile: 'Datei',
+    picksMark: 'Markierung',
+    picksComment: 'Kommentar',
+    picksFavorite: 'Herz',
+    picksRetouch: 'Retusche',
+    focusGridHint: 'Klicken Sie auf ein Foto, um seinen Fokuspunkt festzulegen — also welcher Teil in beschnittenen Layouts (Quadrate / Hochformat / Collage / Editorial) im Bild bleibt. Der Button „Titelbild“ macht ein Foto zum Titelbild des Albums.',
   },
   studio: {
     nameEn: 'Name in lateinischer Schrift',

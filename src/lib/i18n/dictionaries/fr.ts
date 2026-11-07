@@ -779,6 +779,12 @@ export const fr: PartialDictionary = {
     phone: 'Téléphone',
     hiddenFromClient: 'Masquée au client',
     showToClient: 'Afficher au client',
+    picksFile: 'Fichier',
+    picksMark: 'Marque',
+    picksComment: 'Commentaire',
+    picksFavorite: 'cœur',
+    picksRetouch: 'retouche',
+    focusGridHint: 'Cliquez sur une photo pour définir son point focal — la partie qui reste dans le cadre dans les mises en page recadrées (Carrés / Portrait / Collage / Éditorial). Le bouton « Couverture » fait de la photo la couverture de l’album.',
   },
   studio: {
     nameEn: 'Nom en caractères latins',

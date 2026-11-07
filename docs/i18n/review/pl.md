@@ -32,3 +32,15 @@ Format: `klucz / miejsce — tłumaczenie — dlaczego niepewne`
 - culling.paused — „Wstrzymano: karta jest ukryta — analiza wznowi się po powrocie” — długość etykiety.
 - pages.studioTitleBefore/Accent — „Galeria, którą klienci chcą pokazywać dalej” — luźne oddanie „love to share”.
 - designer.fontSans — „Groteska” — termin typograficzny; może zwykłe „Bezszeryfowa”?
+
+## Delta (release/4)
+
+- galleryManage.picksHint — nazwy menu Lightroom Classic (Library → Text → Filename → Contains) zostawione po angielsku — nie mam pewności, czy istnieje polska wersja interfejsu Lightroom Classic i jak brzmią w niej te pozycje.
+- galleryManage.favoritesTitle — „Wybór klienta” — „Client picks” (ulubione + retusz); czy nie myli się z funkcją „wybór zdjęć przez klienta”?
+- galleryManage.clientEmailTitle / clientEmailSentAt — „Zdjęcia są gotowe” — temat wiadomości w polskiej wersji maila może brzmieć inaczej; warto zsynchronizować z faktycznym szablonem e-maila.
+- galleryManage.picksLineLabel — „Linia dla Lightrooma · nazwy: {n}” — „linia” vs „wiersz”.
+- landing.hero.status.eta — „Planowo do 14 grudnia” — data na sztywno w makiecie.
+- landing.products.features[2].title — „Zerwane połączenie nie oznacza zaczynania od nowa” — dość długi nagłówek.
+- landing.bento.cards.languages — „do wyboru jest dziewięć” — brzmienie.
+- help upload item 1 — „Brak połączenia” — etykieta, której nie znalazłem w słowniku (prawdopodobnie zaszyta w komponencie przesyłania); trzeba zsynchronizować z rzeczywistym tekstem.
+- designer.picksFavorite / picksRetouch — „serduszko”, „retusz” — małe litery, bo trafiają do eksportu CSV/TXT („serduszko + retusz”).

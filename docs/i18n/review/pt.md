@@ -37,3 +37,17 @@ Formato: `chave ou local — tradução — porque há dúvida`
 - legal `oferta` secção 9 — «Regime fiscal: contribuinte do imposto único, 3.º grupo», «número de identificação fiscal RNOKPP», «Data de registo estatal» — figuras do direito fiscal ucraniano sem equivalente exato.
 - legal `privacy` secção 2 — «responsável pelo tratamento» / «subcontratante» para «володілець / розпорядник» — terminologia RGPD; a lei ucraniana usa conceitos próximos mas não idênticos.
 - legal `oferta` secção 7 — «Lei da Ucrânia «Sobre a Proteção de Dados Pessoais»» — confirmar a designação habitual em português.
+
+## Delta (release/4)
+
+- `galleryManage.picksHint` — nomes de menus do Lightroom mantidos em inglês («Library → Text → Filename → Contains») — a Adobe só tem interface em português do Brasil; confirmar se os fotógrafos portugueses usam a versão inglesa.
+- `galleryManage.favoritesTitle` — «Escolhas do cliente» (client picks = favoritos + retoque) — alternativa «Seleção do cliente».
+- `galleryManage.clientEmailTitle` / `clientEmailSentAt` — «E-mail «As suas fotos estão prontas»» — aspas dentro de rótulo; confirmar legibilidade.
+- `galleryManage.clientEmailUnavailable` — «migração 0066» — mensagem técnica; ok mantê-la?
+- `designer.picksFavorite` / `picksRetouch` — «coração» / «retoque» como valores numa coluna CSV — confirmar.
+- `designer.focusGridHint` — «ponto de foco do recorte» — terminologia de recorte.
+- landing `products.features[0..2]` — títulos novos: «Os descartes são assinalados, a decisão é sua», «Uma falha de ligação não obriga a recomeçar» — verificar ritmo publicitário.
+- landing `principles.items[3].title` — «As fotos não saem para análise» — confirmar naturalidade.
+- landing `hero.status.eta` — «Prevista até 14 de dezembro» — data fixa de maquete.
+- help `upload.items[0]` — «Sem ligação»: o rótulo real do carregador não está localizado no código (não encontrei a string); confirmar quando existir.
+- help `delivery.items[1..2]` — «antevisão em fundo», «faixa no topo» (banner) — confirmar termos.

@@ -26,7 +26,7 @@ import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
 import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
 import { sendClientReadyEmailAgain, setClientEmail } from '@/lib/actions/client-email'
 import {
-  pickLabels,
+  pickLabels as buildPickLabels,
   assetOriginalName,
   buildClientPicks,
   lightroomFilterLine,
@@ -121,7 +121,7 @@ export default async function ManageGalleryPage({
   const pickClients = new Set((selections ?? []).map((s) => s.client_token))
   const retouchCount = picks.filter((p) => p.retouch > 0).length
   const lightroom = lightroomFilterLine(picks)
-  const pickLabels = pickLabels(dict.designer)
+  const pickLabels = buildPickLabels(dict.designer)
 
   // Per-photo engagement (a «Плюс»+ stat): download and view events carry the
   // asset id in meta, so we can show views + downloads on each individual photo.

@@ -74,3 +74,11 @@
 | перший екран (hero) | hero | en-tête | bloc du site |
 | відгуки | testimonials | témoignages | |
 | подарунковий сертифікат | gift certificate | carte cadeau | |
+| обране клієнта (сердечко + ретуш) | client picks | sélection des clients | cœurs + demandes de retouche |
+| на ретуш | for retouch | à retoucher | |
+| сердечко (позначка) | heart | cœur | colonne CSV « Marque » : cœur / retouche |
+| рядок для Lightroom | Lightroom line | ligne pour Lightroom | filtre Texte → Nom de fichier → Contient |
+| лист «Ваші фото готові» | “Your photos are ready” email | e-mail « Vos photos sont prêtes » | envoyé une fois, au statut « Prête » |
+| точка фокусу | crop focus | point focal | recadrage des vignettes |
+| Як це працює | How it works | Comment fonctionne… | blocs d’aide du tableau de bord |
+| немає зʼєднання | no connection | pas de connexion | |

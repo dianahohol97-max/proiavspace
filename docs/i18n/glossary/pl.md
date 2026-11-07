@@ -80,3 +80,10 @@ Liczebniki z rzeczownikiem — składnia ICU: `{n, plural, one {# zdjęcie} few 
 | подарунковий сертифікат | gift certificate | bon podarunkowy | |
 | фотокнига | photo book | fotoksiążka | |
 | відгуки | testimonials | opinie | na stronie: „Miłe słowa” |
+| вибір клієнта (обране + ретуш) | client picks | wybór klienta | ulubione + prośby o retusz |
+| сердечко | heart | serduszko | znacznik ulubionych (także w eksporcie CSV) |
+| рядок для фільтра Lightroom | Lightroom filter line | linia dla Lightrooma | nazwy menu Lightroom zostają po angielsku |
+| лист «Ваші фото готові» | “Your photos are ready” email | wiadomość „Zdjęcia są gotowe” | jednorazowy e-mail do klienta |
+| статус «Готово» | Ready | Gotowe | etapy: Sesja → Obróbka → Gotowe |
+| фокус кадру | crop focus | punkt centralny kadru | |
+| довідка «Як це працює» | How it works | Jak to działa | |

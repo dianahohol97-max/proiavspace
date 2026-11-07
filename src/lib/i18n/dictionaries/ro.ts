@@ -791,6 +791,13 @@ export const ro: PartialDictionary = {
     phone: 'Telefon',
     hiddenFromClient: 'Ascuns de client',
     showToClient: 'Arată clientului',
+    picksFile: 'Fișier',
+    picksMark: 'Marcaj',
+    picksComment: 'Comentariu',
+    picksFavorite: 'inimă',
+    picksRetouch: 'retuș',
+    focusGridHint:
+      'Dați clic pe o fotografie pentru a-i seta punctul focal — partea care rămâne în cadru în aranjările decupate (Pătrate / Portret / Colaj / Editorial). Butonul „Copertă” face din fotografie coperta albumului.',
   },
   studio: {
     nameEn: 'Numele cu litere latine',
