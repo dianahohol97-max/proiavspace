@@ -55,6 +55,7 @@ export const fr: PartialDictionary = {
     bookButton: 'Réserver ce créneau',
     booking: 'Réservation…',
     slotTaken: 'Ce créneau vient d’être pris. Veuillez en choisir un autre.',
+    slotUnavailable: 'Ce créneau vient de devenir indisponible. Veuillez en choisir un autre.',
     bookedTitle: 'Le créneau est réservé pour vous',
     bookedText: 'Le photographe a vos coordonnées et vous contactera. Options de paiement ci-dessous.',
     payMono: 'Payer par carte (Monobank)',

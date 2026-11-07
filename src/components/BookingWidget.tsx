@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatSlot } from '@/lib/booking/types'
+import { slotEndTime } from '@/lib/booking/slotTemplate'
 import type { Locale } from '@/lib/i18n/config'
 
 export interface PublicSlot {
@@ -29,6 +30,8 @@ interface Labels {
   bookButton: string
   booking: string
   slotTaken: string
+  /** 409 slot_unavailable: the photographer's Google Calendar got busy. */
+  slotUnavailable?: string
   bookedTitle: string
   bookedText: string
   payMono: string
@@ -64,7 +67,9 @@ export function BookingWidget({
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
-  const [state, setState] = useState<'idle' | 'booking' | 'booked' | 'taken' | 'paying' | 'payError'>('idle')
+  const [state, setState] = useState<
+    'idle' | 'booking' | 'booked' | 'taken' | 'unavailable' | 'paying' | 'payError'
+  >('idle')
   const [bookingToken, setBookingToken] = useState<string | null>(null)
 
   const inputClass = 'border border-line bg-transparent px-4 py-3 outline-none focus:border-fg'
@@ -79,7 +84,8 @@ export function BookingWidget({
       body: JSON.stringify({ slotId: selected.id, name, phone, email }),
     })
     if (response.status === 409) {
-      setState('taken')
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
+      setState(payload?.error === 'slot_unavailable' ? 'unavailable' : 'taken')
       setSelected(null)
       router.refresh()
       return
@@ -116,7 +122,9 @@ export function BookingWidget({
     return (
       <div className="border border-line p-8 text-center">
         <h2 className="font-display text-2xl">{labels.bookedTitle}</h2>
-        <p className="mt-2 font-display text-lg">{formatSlot(selected.starts_at)}</p>
+        <p className="mt-2 font-display text-lg">
+          {formatSlot(selected.starts_at)}–{slotEndTime(selected.starts_at, selected.duration_minutes)}
+        </p>
         <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted">
           {labels.bookedText}
         </p>
@@ -169,9 +177,9 @@ export function BookingWidget({
   /* ---------- step 1-2: slots + contacts ---------- */
   return (
     <div>
-      {state === 'taken' && (
-        <p className="mb-6 border border-accent px-4 py-3 text-sm text-accent">
-          {labels.slotTaken}
+      {(state === 'taken' || state === 'unavailable') && (
+        <p role="alert" className="mb-6 border border-accent px-4 py-3 text-sm text-accent">
+          {state === 'unavailable' ? labels.slotUnavailable ?? labels.slotTaken : labels.slotTaken}
         </p>
       )}
 
@@ -189,7 +197,9 @@ export function BookingWidget({
                 selected?.id === slot.id ? 'border-fg bg-fg text-bg' : 'border-line hover:border-fg'
               }`}
             >
-              <span className="block font-display text-lg">{formatSlot(slot.starts_at)}</span>
+              <span className="block font-display text-lg">
+                {formatSlot(slot.starts_at)}–{slotEndTime(slot.starts_at, slot.duration_minutes)}
+              </span>
               <span className={`text-xs ${selected?.id === slot.id ? '' : 'text-muted'}`}>
                 {slot.duration_minutes} {labels.minutes} ·{' '}
                 {Number(slot.price_uah) > 0 ? `${Number(slot.price_uah)} грн` : labels.free}

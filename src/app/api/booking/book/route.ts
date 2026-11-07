@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { sendEmail } from '@/lib/email'
 import { formatSlot } from '@/lib/booking/types'
 import { insertCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCalendar'
+import { checkSlotWithGoogle } from '@/lib/booking/availability'
+import { parseCalendarConfig } from '@/lib/booking/calendarConfig'
+import { reportServerError } from '@/lib/sentry/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -30,11 +33,30 @@ function isBookBody(value: unknown): value is BookBody {
  * RPC). The booking is race-safe: the security-definer RPC flips the slot
  * free -> booked atomically; a second simultaneous client gets 409.
  * The booking does not wait for payment.
+ *
+ * Google Calendar: right before booking, the photographer's calendars are
+ * asked (fresh, no cache) whether this exact time became busy; if so → 409
+ * slot_unavailable. If Google cannot answer, the booking proceeds as before.
  */
 export async function POST(request: NextRequest) {
   const body: unknown = await request.json().catch(() => null)
   if (!isBookBody(body) || !body.name.trim() || !body.phone.trim() || !body.email.trim()) {
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
+  }
+
+  const admin = createSupabaseAdminClient()
+  if (admin) {
+    const { data: candidate } = await admin
+      .from('booking_slots')
+      .select('owner_id, starts_at, duration_minutes, status')
+      .eq('id', body.slotId)
+      .maybeSingle()
+    if (candidate?.status === 'free') {
+      const verdict = await checkSlotWithGoogle(admin, candidate)
+      if (verdict === 'busy') {
+        return NextResponse.json({ error: 'slot_unavailable' }, { status: 409 })
+      }
+    }
   }
 
   const supabase = createSupabaseServerClient()
@@ -54,7 +76,6 @@ export async function POST(request: NextRequest) {
   // Notify the photographer immediately with the client's contacts.
   // Uses the service-role client (settings are owner-only under RLS);
   // silently skipped when email or the admin key is not configured.
-  const admin = createSupabaseAdminClient()
   if (admin) {
     const { data: slot } = await admin
       .from('booking_slots')
@@ -91,8 +112,9 @@ export async function POST(request: NextRequest) {
           const accessToken = await refreshAccessToken(settings.google_refresh_token)
           const eventId = await insertCalendarEvent(
             accessToken,
-            settings.google_calendar_id || 'primary',
+            parseCalendarConfig(settings.google_calendar_id).write,
             {
+              slotId: body.slotId,
               startsAt: slot.starts_at,
               durationMinutes: slot.duration_minutes,
               summary: `Зйомка · ${body.name.trim()}`,
@@ -113,8 +135,9 @@ export async function POST(request: NextRequest) {
               .update({ google_event_id: eventId })
               .eq('id', body.slotId)
           }
-        } catch {
-          // calendar is optional; ignore and keep the booking
+        } catch (calendarError) {
+          // calendar is optional; keep the booking, just make the failure visible
+          reportServerError(calendarError, { area: 'booking.calendar.insert' })
         }
       }
     }

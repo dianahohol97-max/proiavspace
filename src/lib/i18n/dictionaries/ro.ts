@@ -55,6 +55,7 @@ export const ro: PartialDictionary = {
     bookButton: 'Rezervă această oră',
     booking: 'Se rezervă…',
     slotTaken: 'Această oră tocmai a fost ocupată. Alege alta.',
+    slotUnavailable: 'Această oră tocmai a devenit indisponibilă. Alege alta.',
     bookedTitle: 'Ora este rezervată pentru tine',
     bookedText: 'Fotograful are datele tale și te va contacta. Opțiuni de plată mai jos.',
     payMono: 'Plătește cu cardul (Monobank)',

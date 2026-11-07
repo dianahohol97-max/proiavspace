@@ -3,17 +3,30 @@ import { notFound, redirect } from 'next/navigation'
 import {
   addBookingSlot,
   checkManualPayments,
-  deleteBookingSlot,
+  closeBookingDay,
+  createSlotsFromTemplate,
+  deleteBookingSlots,
   disconnectGoogleCalendar,
   markSlotPaid,
   reopenSlot,
   saveBookingSettings,
+  saveBusyCalendars,
 } from '@/lib/actions/booking'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
-import { isGoogleConfigured } from '@/lib/booking/googleCalendar'
+import {
+  isGoogleConfigured,
+  listCalendars,
+  refreshAccessToken,
+  type GoogleCalendarInfo,
+} from '@/lib/booking/googleCalendar'
+import { parseCalendarConfig } from '@/lib/booking/calendarConfig'
+import { DEFAULT_BOOKING_TIME_ZONE, addDays, todayIn } from '@/lib/booking/time'
+import { reportServerError } from '@/lib/sentry/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { formatSlot, type BookingSettings, type BookingSlot } from '@/lib/booking/types'
+import type { BookingSettings } from '@/lib/booking/types'
+import { SlotList, type DashboardSlot } from '@/components/booking/SlotList'
+import { SlotTemplateForm } from '@/components/booking/SlotTemplateForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +53,10 @@ export default async function BookingDashboardPage({
   // public page uses), so the dashboard always shows current reality.
   await supabase.rpc('release_expired_slots', { p_owner: user.id })
 
-  const [{ data: settings }, { data: slots }] = await Promise.all([
+  // Upcoming slots plus the last 60 days (recent bookings stay visible for
+  // payment follow-up without loading years of history).
+  const today = todayIn(DEFAULT_BOOKING_TIME_ZONE)
+  const [{ data: settings }, { data: slotRows }] = await Promise.all([
     supabase
       .from('booking_settings')
       .select('*')
@@ -48,32 +64,43 @@ export default async function BookingDashboardPage({
       .maybeSingle<BookingSettings>(),
     supabase
       .from('booking_slots')
-      .select('*')
+      .select('id, starts_at, duration_minutes, price_uah, status, client_name, client_phone, client_email')
       .eq('owner_id', user.id)
+      .gte('starts_at', `${addDays(today, -60)}T00:00:00`)
       .order('starts_at')
-      .returns<BookingSlot[]>(),
+      .limit(3000)
+      .returns<DashboardSlot[]>(),
   ])
+  const slots = slotRows ?? []
 
   const saveAction = saveBookingSettings.bind(null, locale)
   const addAction = addBookingSlot.bind(null, locale)
+
+  // Google: which calendars count as busy. Accounts connected before the
+  // free/busy scope existed are asked to reconnect.
+  const calendarConfig = parseCalendarConfig(settings?.google_calendar_id)
+  const googleConnected = !!settings?.google_refresh_token
+  const needsReconnect = googleConnected && !calendarConfig.busyScopes
+  let calendars: GoogleCalendarInfo[] | null = null
+  if (googleConnected && !needsReconnect && isGoogleConfigured()) {
+    try {
+      calendars = await listCalendars(await refreshAccessToken(settings!.google_refresh_token!))
+    } catch (error) {
+      reportServerError(error, { area: 'booking.calendarList' })
+      calendars = null
+    }
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const publicUrl =
     settings?.enabled && settings.handle ? `${appUrl}/${locale}/b/${settings.handle}` : null
 
-  const statusLabel: Record<BookingSlot['status'], string> = {
-    free: dict.booking.statusFree,
-    booked: dict.booking.statusBooked,
-    paid: dict.booking.statusPaid,
-    canceled: dict.booking.statusCanceled,
-  }
-
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-16">
       <Link href={`/${locale}/dashboard`} className="text-sm text-muted hover:text-fg">
         ← {dict.dashboard.title}
       </Link>
-      <h1 className="mt-6 font-display text-4xl">{dict.booking.title}</h1>
+      <h1 className="mt-6 font-display text-3xl sm:text-4xl">{dict.booking.title}</h1>
 
       {publicUrl && (
         <p className="mt-4 break-all text-sm text-muted">
@@ -81,8 +108,169 @@ export default async function BookingDashboardPage({
         </p>
       )}
 
+      {/* -------- schedule -------- */}
+      <section className="mt-10" aria-labelledby="schedule-title">
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <h2 id="schedule-title" className="font-display text-2xl">{dict.booking.scheduleTitle}</h2>
+          {settings?.auto_confirm_manual && settings.mono_personal_token && (
+            <form action={checkManualPayments.bind(null, locale)}>
+              <button type="submit" className="text-sm underline hover:text-accent">
+                {dict.booking.checkPayments}
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div className="mt-6 border border-line p-4 sm:p-6">
+          <h3 className="font-display text-xl">{dict.booking.templateTitle}</h3>
+          <p className="mb-5 mt-1 text-xs leading-relaxed text-muted">{dict.booking.templateHint}</p>
+          <SlotTemplateForm
+            today={today}
+            existingStarts={slots.map((s) => s.starts_at)}
+            labels={dict.booking}
+            onCreate={createSlotsFromTemplate.bind(null, locale)}
+          />
+        </div>
+
+        <details className="mt-4 border border-line p-4 sm:px-6">
+          <summary className="cursor-pointer text-sm">{dict.booking.singleTitle}</summary>
+          <form action={addAction} className="mt-4 grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
+            <label className="flex flex-col gap-1 text-xs text-muted">
+              {dict.booking.dateLabel}
+              <input name="date" type="date" required min={today} className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted">
+              {dict.booking.timeLabel}
+              <input name="time" type="time" required className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted">
+              {dict.booking.durationLabel}
+              <input name="duration" type="number" min={15} max={480} step={15} defaultValue={60} className={`${inputClass} sm:w-24`} />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted">
+              {dict.booking.priceLabel}
+              <input name="price" type="number" min={0} step={50} defaultValue={0} className={`${inputClass} sm:w-28`} />
+            </label>
+            <button
+              type="submit"
+              className="col-span-2 border border-fg px-6 py-2 text-sm uppercase tracking-widest transition-colors hover:bg-fg hover:text-bg"
+            >
+              {dict.booking.addSlot}
+            </button>
+          </form>
+        </details>
+
+        <h3 className="mt-10 font-display text-xl">{dict.booking.slotsTitle}</h3>
+        <p className="mb-4 mt-1 max-w-xl text-xs leading-relaxed text-muted">{dict.booking.bookedNote}</p>
+        <SlotList
+          slots={slots}
+          lang={locale === 'uk' ? 'uk-UA' : locale}
+          labels={dict.booking}
+          onDeleteMany={deleteBookingSlots.bind(null, locale)}
+          onCloseDay={closeBookingDay.bind(null, locale)}
+          onMarkPaid={markSlotPaid.bind(null, locale)}
+          onReopen={reopenSlot.bind(null, locale)}
+        />
+      </section>
+
+      {/* -------- Google Calendar sync -------- */}
+      <section className="mt-14 border border-line p-4 sm:p-6">
+        <h2 className="font-display text-2xl">{dict.booking.googleTitle}</h2>
+        <p className="mt-2 max-w-xl text-xs leading-relaxed text-muted">
+          {dict.booking.googleHint}
+        </p>
+
+        {searchParams.google === 'connected' && (
+          <p className="mt-4 border border-fg px-4 py-2 text-sm">{dict.booking.googleStatusOk}</p>
+        )}
+        {searchParams.google === 'error' && (
+          <p className="mt-4 border border-accent px-4 py-2 text-sm text-accent">
+            {dict.booking.googleStatusError}
+          </p>
+        )}
+
+        {!isGoogleConfigured() ? (
+          <p className="mt-5 text-sm text-muted">{dict.booking.googleUnconfigured}</p>
+        ) : settings?.google_refresh_token ? (
+          <>
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <span className="text-sm">
+              {dict.booking.googleConnected}
+              {settings.google_email ? ` · ${settings.google_email}` : ''}
+            </span>
+            <form action={disconnectGoogleCalendar.bind(null, locale)}>
+              <button type="submit" className="text-sm text-muted underline hover:text-accent">
+                {dict.booking.googleDisconnect}
+              </button>
+            </form>
+          </div>
+
+          {needsReconnect ? (
+            <div className="mt-5 border border-accent p-4" data-testid="google-reconnect">
+              <p className="text-sm font-medium">{dict.booking.googleReconnect}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{dict.booking.googleReconnectHint}</p>
+              <a
+                href={`/api/booking/google/connect?locale=${locale}`}
+                className="mt-3 inline-block border border-fg px-5 py-2 text-xs uppercase tracking-widest transition-colors hover:bg-fg hover:text-bg"
+              >
+                {dict.booking.googleReconnectButton}
+              </a>
+            </div>
+          ) : (
+            <form action={saveBusyCalendars.bind(null, locale)} className="mt-6 border-t border-line pt-5">
+              <h3 className="text-sm font-medium">{dict.booking.googleBusyTitle}</h3>
+              <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted">{dict.booking.googleBusyHint}</p>
+              {calendars === null ? (
+                <p className="mt-3 text-sm text-accent">{dict.booking.googleBusyListError}</p>
+              ) : (
+                <>
+                  <ul className="mt-3 flex flex-col gap-2">
+                    {calendars.map((cal) => (
+                      <li key={cal.id}>
+                        <label className="flex items-center gap-3 text-sm">
+                          <input
+                            type="checkbox"
+                            name="busy_calendar"
+                            value={cal.id}
+                            defaultChecked={
+                              calendarConfig.busy.includes(cal.id) ||
+                              (cal.primary && calendarConfig.busy.includes('primary'))
+                            }
+                            className="h-4 w-4"
+                          />
+                          <span className="min-w-0 truncate">
+                            {cal.summary}
+                            {cal.primary && <span className="text-muted"> · {dict.booking.googlePrimary}</span>}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                  {calendarConfig.busy.length === 0 && (
+                    <p className="mt-3 text-xs text-muted">{dict.booking.googleBusyNone}</p>
+                  )}
+                  <button type="submit" className="mt-4 text-sm underline hover:text-accent">
+                    {dict.booking.googleBusySave}
+                  </button>
+                </>
+              )}
+            </form>
+          )}
+          </>
+        ) : (
+          <a
+            href={`/api/booking/google/connect?locale=${locale}`}
+            className="mt-5 inline-block border border-fg px-6 py-3 text-sm uppercase tracking-widest transition-colors hover:bg-fg hover:text-bg"
+          >
+            {dict.booking.googleConnect}
+          </a>
+        )}
+      </section>
+
       {/* -------- settings -------- */}
-      <form action={saveAction} className="mt-10 flex flex-col gap-5 border border-line p-6">
+      <details className="group mt-10 border border-line" open={!settings?.enabled}>
+        <summary className="cursor-pointer px-4 py-4 font-display text-xl sm:px-6">{dict.booking.settingsTitle}</summary>
+      <form action={saveAction} className="flex flex-col gap-5 border-t border-line p-4 sm:p-6">
         <label className="flex items-center gap-3 text-sm">
           <input type="checkbox" name="enabled" defaultChecked={settings?.enabled ?? false} />
           {dict.booking.enabled}
@@ -228,142 +416,9 @@ export default async function BookingDashboardPage({
           {dict.booking.save}
         </button>
       </form>
+      </details>
 
-      {/* -------- Google Calendar sync -------- */}
-      <section className="mt-10 border border-line p-6">
-        <h2 className="font-display text-2xl">{dict.booking.googleTitle}</h2>
-        <p className="mt-2 max-w-xl text-xs leading-relaxed text-muted">
-          {dict.booking.googleHint}
-        </p>
 
-        {searchParams.google === 'connected' && (
-          <p className="mt-4 border border-fg px-4 py-2 text-sm">{dict.booking.googleStatusOk}</p>
-        )}
-        {searchParams.google === 'error' && (
-          <p className="mt-4 border border-accent px-4 py-2 text-sm text-accent">
-            {dict.booking.googleStatusError}
-          </p>
-        )}
-
-        {!isGoogleConfigured() ? (
-          <p className="mt-5 text-sm text-muted">{dict.booking.googleUnconfigured}</p>
-        ) : settings?.google_refresh_token ? (
-          <div className="mt-5 flex flex-wrap items-center gap-4">
-            <span className="text-sm">
-              {dict.booking.googleConnected}
-              {settings.google_email ? ` · ${settings.google_email}` : ''}
-            </span>
-            <form action={disconnectGoogleCalendar.bind(null, locale)}>
-              <button type="submit" className="text-sm text-muted underline hover:text-accent">
-                {dict.booking.googleDisconnect}
-              </button>
-            </form>
-          </div>
-        ) : (
-          <a
-            href={`/api/booking/google/connect?locale=${locale}`}
-            className="mt-5 inline-block border border-fg px-6 py-3 text-sm uppercase tracking-widest transition-colors hover:bg-fg hover:text-bg"
-          >
-            {dict.booking.googleConnect}
-          </a>
-        )}
-      </section>
-
-      {/* -------- slots -------- */}
-      <section className="mt-14">
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h2 className="font-display text-2xl">{dict.booking.slotsTitle}</h2>
-          {settings?.auto_confirm_manual && settings.mono_personal_token && (
-            <form action={checkManualPayments.bind(null, locale)}>
-              <button type="submit" className="text-sm underline hover:text-accent">
-                {dict.booking.checkPayments}
-              </button>
-            </form>
-          )}
-        </div>
-        <p className="mt-2 max-w-xl text-xs leading-relaxed text-muted">
-          {dict.booking.bookedNote}
-        </p>
-
-        <form action={addAction} className="mt-6 flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted" htmlFor="date">{dict.booking.dateLabel}</label>
-            <input id="date" name="date" type="date" required className={inputClass} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted" htmlFor="time">{dict.booking.timeLabel}</label>
-            <input id="time" name="time" type="time" required className={inputClass} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted" htmlFor="duration">{dict.booking.durationLabel}</label>
-            <input id="duration" name="duration" type="number" min={15} max={480} step={15} defaultValue={60} className={`${inputClass} w-24`} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted" htmlFor="price">{dict.booking.priceLabel}</label>
-            <input id="price" name="price" type="number" min={0} step={50} defaultValue={0} className={`${inputClass} w-28`} />
-          </div>
-          <button
-            type="submit"
-            className="border border-fg px-6 py-2 text-sm uppercase tracking-widest transition-colors hover:bg-fg hover:text-bg"
-          >
-            {dict.booking.addSlot}
-          </button>
-        </form>
-
-        {!slots || slots.length === 0 ? (
-          <p className="mt-8 max-w-xl leading-relaxed text-muted">{dict.booking.noSlots}</p>
-        ) : (
-          <ul className="mt-8 divide-y divide-line border-t border-line">
-            {slots.map((slot) => (
-              <li key={slot.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 py-4">
-                <span className="w-40 font-display text-lg">{formatSlot(slot.starts_at)}</span>
-                <span className="text-sm text-muted">
-                  {slot.duration_minutes} хв · {Number(slot.price_uah)} грн
-                </span>
-                <span
-                  className={`px-2 py-0.5 text-xs uppercase tracking-widest ${
-                    slot.status === 'paid'
-                      ? 'bg-fg text-bg'
-                      : slot.status === 'booked'
-                        ? 'border border-fg'
-                        : 'border border-line text-muted'
-                  }`}
-                >
-                  {statusLabel[slot.status]}
-                </span>
-                {slot.client_name && (
-                  <span className="text-sm text-muted">
-                    {slot.client_name} · {slot.client_phone} · {slot.client_email}
-                  </span>
-                )}
-                <span className="ml-auto flex gap-4">
-                  {slot.status === 'booked' && (
-                    <form action={markSlotPaid.bind(null, locale, slot.id)}>
-                      <button type="submit" className="text-sm underline hover:text-accent">
-                        {dict.booking.markPaid}
-                      </button>
-                    </form>
-                  )}
-                  {(slot.status === 'booked' || slot.status === 'paid') && (
-                    <form action={reopenSlot.bind(null, locale, slot.id)}>
-                      <button type="submit" className="text-sm text-muted underline hover:text-fg">
-                        {dict.booking.reopen}
-                      </button>
-                    </form>
-                  )}
-                  {slot.status === 'free' && (
-                    <form action={deleteBookingSlot.bind(null, locale, slot.id)}>
-                      <button type="submit" className="text-sm text-muted underline hover:text-accent">
-                        {dict.booking.deleteSlot}
-                      </button>
-                    </form>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </main>
   )
 }

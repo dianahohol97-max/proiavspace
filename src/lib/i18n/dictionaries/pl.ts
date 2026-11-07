@@ -55,6 +55,7 @@ export const pl: PartialDictionary = {
     bookButton: 'Zarezerwuj ten termin',
     booking: 'Rezerwacja…',
     slotTaken: 'Ten termin właśnie zajęto. Wybierz inny.',
+    slotUnavailable: 'Ten termin właśnie przestał być dostępny. Wybierz inny.',
     bookedTitle: 'Termin zarezerwowany dla Ciebie',
     bookedText: 'Fotograf ma Twoje dane i skontaktuje się z Tobą. Opcje płatności poniżej.',
     payMono: 'Zapłać kartą (Monobank)',

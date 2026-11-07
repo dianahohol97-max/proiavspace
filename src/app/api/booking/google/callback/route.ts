@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { defaultLocale, isLocale } from '@/lib/i18n/config'
-import { exchangeCode, getUserEmail } from '@/lib/booking/googleCalendar'
+import { exchangeCode, getUserEmail, hasBusyScopes } from '@/lib/booking/googleCalendar'
+import { parseCalendarConfig, serializeCalendarConfig } from '@/lib/booking/calendarConfig'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -44,12 +45,27 @@ export async function GET(request: NextRequest) {
     const tokens = await exchangeCode(code)
     if (!tokens.refresh_token) return fail()
     const email = await getUserEmail(tokens.access_token)
+    // Keep the photographer's earlier calendar choice on a reconnect. If the
+    // free/busy grant was unticked on the consent screen, store the legacy
+    // plain form so the dashboard keeps asking to reconnect.
+    const { data: previous } = await supabase
+      .from('booking_settings')
+      .select('google_calendar_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const before = parseCalendarConfig(previous?.google_calendar_id)
+    const calendarValue = hasBusyScopes(tokens.scope)
+      ? serializeCalendarConfig({
+          write: before.write,
+          busy: before.busyScopes ? before.busy : ['primary'],
+        })
+      : before.write
     const { error } = await supabase.from('booking_settings').upsert(
       {
         user_id: user.id,
         google_refresh_token: tokens.refresh_token,
         google_email: email,
-        google_calendar_id: 'primary',
+        google_calendar_id: calendarValue,
       },
       { onConflict: 'user_id' }
     )

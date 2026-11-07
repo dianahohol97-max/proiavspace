@@ -4,6 +4,15 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { monoStatement } from '@/lib/booking/monoPersonal'
 import { deleteCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCalendar'
+import { parseCalendarConfig, serializeCalendarConfig, MAX_BUSY_CALENDARS } from '@/lib/booking/calendarConfig'
+import {
+  DB_MAX_SLOT_MINUTES,
+  MAX_SLOTS_PER_BATCH,
+  generateSlots,
+  parseTemplate,
+  type TemplateError,
+} from '@/lib/booking/slotTemplate'
+import { DEFAULT_BOOKING_TIME_ZONE, addDays, parseDate, slotKey } from '@/lib/booking/time'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
 
@@ -72,9 +81,21 @@ export async function addBookingSlot(locale: Locale, formData: FormData): Promis
     throw new Error('Date, time, duration and price are required')
   }
 
+  const startsAt = slotKey(`${date}T${time}`)
+  const { data: same } = await supabase
+    .from('booking_slots')
+    .select('id')
+    .eq('owner_id', user.id)
+    .eq('starts_at', startsAt)
+    .limit(1)
+  if (same && same.length > 0) {
+    revalidatePath(`/${locale}/dashboard/booking`)
+    return // a slot with this start already exists — never create a duplicate
+  }
+
   const { error } = await supabase.from('booking_slots').insert({
     owner_id: user.id,
-    starts_at: `${date}T${time}:00`,
+    starts_at: startsAt,
     duration_minutes: Math.round(duration),
     price_uah: price,
   })
@@ -209,7 +230,7 @@ export async function reopenSlot(locale: Locale, slotId: string): Promise<void> 
         const accessToken = await refreshAccessToken(settings.google_refresh_token)
         await deleteCalendarEvent(
           accessToken,
-          settings.google_calendar_id || 'primary',
+          parseCalendarConfig(settings.google_calendar_id).write,
           slot.google_event_id
         )
       } catch {
@@ -246,5 +267,136 @@ export async function disconnectGoogleCalendar(locale: Locale): Promise<void> {
     .update({ google_refresh_token: null, google_email: null })
     .eq('user_id', user.id)
   if (error) throw new Error(`Failed to disconnect Google Calendar: ${error.message}`)
+  revalidatePath(`/${locale}/dashboard/booking`)
+}
+
+export interface TemplateActionResult {
+  ok: boolean
+  created: number
+  duplicates: number
+  past: number
+  nonexistent: number
+  errors: (TemplateError | 'needs_migration' | 'db_error')[]
+}
+
+/**
+ * Creates slots from a schedule template in ONE insert. The generator is the
+ * same one the form previews with; here it runs against the owner's real
+ * slots in the period, so a slot with the same owner + starts_at is never
+ * created twice. RLS ("booking_slots: owner all") keeps it owner-scoped.
+ */
+export async function createSlotsFromTemplate(
+  locale: Locale,
+  payload: unknown
+): Promise<TemplateActionResult> {
+  const { supabase, user } = await requireUser()
+  const empty = { created: 0, duplicates: 0, past: 0, nonexistent: 0 }
+  const template = parseTemplate(payload)
+  if (!template) return { ok: false, ...empty, errors: ['bad_period'] }
+  if (!parseDate(template.from) || !parseDate(template.to)) {
+    return { ok: false, ...empty, errors: ['bad_period'] }
+  }
+
+  // Existing starts in the period (+1 day: an all-day slot never crosses it,
+  // but the bound must include the whole last day).
+  const { data: existingRows, error: readError } = await supabase
+    .from('booking_slots')
+    .select('starts_at')
+    .eq('owner_id', user.id)
+    .gte('starts_at', `${template.from}T00:00:00`)
+    .lt('starts_at', `${addDays(template.to, 1)}T00:00:00`)
+  if (readError) return { ok: false, ...empty, errors: ['db_error'] }
+
+  const result = generateSlots(template, {
+    existing: (existingRows ?? []).map((r) => String(r.starts_at)),
+    timeZone: DEFAULT_BOOKING_TIME_ZONE,
+  })
+  const counts = {
+    duplicates: result.duplicates,
+    past: result.past,
+    nonexistent: result.nonexistent,
+  }
+  if (result.errors.length > 0) return { ok: false, created: 0, ...counts, errors: result.errors }
+  if (result.slots.length === 0) return { ok: true, created: 0, ...counts, errors: [] }
+
+  const { error } = await supabase
+    .from('booking_slots')
+    .insert(result.slots.map((slot) => ({ owner_id: user.id, ...slot })))
+  if (error) {
+    // 23514 = CHECK violation: slots longer than 8 h until migration 0058.
+    const tooLong = result.slots.some((s) => s.duration_minutes > DB_MAX_SLOT_MINUTES)
+    return {
+      ok: false,
+      created: 0,
+      ...counts,
+      errors: [error.code === '23514' && tooLong ? 'needs_migration' : 'db_error'],
+    }
+  }
+
+  revalidatePath(`/${locale}/dashboard/booking`)
+  return { ok: true, created: result.slots.length, ...counts, errors: [] }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Bulk delete of FREE slots (booked/paid ones are never touched). */
+export async function deleteBookingSlots(
+  locale: Locale,
+  slotIds: string[]
+): Promise<{ deleted: number }> {
+  const { supabase, user } = await requireUser()
+  const ids = [...new Set((Array.isArray(slotIds) ? slotIds : []).filter((id) => typeof id === 'string' && UUID.test(id)))]
+  if (ids.length === 0) return { deleted: 0 }
+  if (ids.length > MAX_SLOTS_PER_BATCH) throw new Error('Too many slots in one request')
+  const { data, error } = await supabase
+    .from('booking_slots')
+    .delete()
+    .eq('owner_id', user.id)
+    .eq('status', 'free')
+    .in('id', ids)
+    .select('id')
+  if (error) throw new Error(`Failed to delete slots: ${error.message}`)
+  revalidatePath(`/${locale}/dashboard/booking`)
+  return { deleted: data?.length ?? 0 }
+}
+
+/** "Close the day": removes every FREE slot starting on that date. */
+export async function closeBookingDay(locale: Locale, date: string): Promise<{ deleted: number }> {
+  const { supabase, user } = await requireUser()
+  if (!parseDate(date)) throw new Error('Bad date')
+  const { data, error } = await supabase
+    .from('booking_slots')
+    .delete()
+    .eq('owner_id', user.id)
+    .eq('status', 'free')
+    .gte('starts_at', `${date}T00:00:00`)
+    .lt('starts_at', `${addDays(date, 1)}T00:00:00`)
+    .select('id')
+  if (error) throw new Error(`Failed to close day: ${error.message}`)
+  revalidatePath(`/${locale}/dashboard/booking`)
+  return { deleted: data?.length ?? 0 }
+}
+
+/** Which Google calendars count as busy time (stored in google_calendar_id, see calendarConfig). */
+export async function saveBusyCalendars(locale: Locale, formData: FormData): Promise<void> {
+  const { supabase, user } = await requireUser()
+  const { data: settings } = await supabase
+    .from('booking_settings')
+    .select('google_calendar_id, google_refresh_token')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!settings?.google_refresh_token) return
+  const config = parseCalendarConfig(settings.google_calendar_id)
+  if (!config.busyScopes) return // needs a reconnect first
+  const busy = formData
+    .getAll('busy_calendar')
+    .map((v) => String(v).trim())
+    .filter((v) => v.length > 0 && v.length <= 255)
+    .slice(0, MAX_BUSY_CALENDARS)
+  const { error } = await supabase
+    .from('booking_settings')
+    .update({ google_calendar_id: serializeCalendarConfig({ write: config.write, busy }) })
+    .eq('user_id', user.id)
+  if (error) throw new Error(`Failed to save calendars: ${error.message}`)
   revalidatePath(`/${locale}/dashboard/booking`)
 }

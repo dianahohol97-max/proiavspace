@@ -11,19 +11,49 @@
  * event lands at the intended local time regardless of the calendar's default.
  */
 
+import { DEFAULT_BOOKING_TIME_ZONE } from './time'
+
 const OAUTH_AUTH = 'https://accounts.google.com/o/oauth2/v2/auth'
 const OAUTH_TOKEN = 'https://oauth2.googleapis.com/token'
 const USERINFO = 'https://www.googleapis.com/oauth2/v3/userinfo'
 const CALENDAR_API = 'https://www.googleapis.com/calendar/v3/calendars'
 
-/** Booking events live in the photographer's local time. */
-export const BOOKING_TIME_ZONE = 'Europe/Kyiv'
+const CALENDAR_LIST = 'https://www.googleapis.com/calendar/v3/users/me/calendarList'
+const FREEBUSY = 'https://www.googleapis.com/calendar/v3/freeBusy'
 
-/** Scopes: write calendar events + read the connected account's email. */
+/**
+ * Booking events live in the photographer's local time. No per-photographer
+ * zone exists yet (docs/MANUAL_TASKS.md), so this is the default every call
+ * falls back to.
+ */
+export const BOOKING_TIME_ZONE = DEFAULT_BOOKING_TIME_ZONE
+
+export const SCOPE_EVENTS = 'https://www.googleapis.com/auth/calendar.events'
+export const SCOPE_FREEBUSY = 'https://www.googleapis.com/auth/calendar.freebusy'
+export const SCOPE_CALENDAR_LIST = 'https://www.googleapis.com/auth/calendar.calendarlist.readonly'
+
+/**
+ * The minimal set:
+ *  - calendar.events — write booking events (unchanged);
+ *  - calendar.freebusy — busy/free blocks only, never titles or guests;
+ *  - calendar.calendarlist.readonly — names of the account's calendars so the
+ *    photographer can tick which ones count. freebusy alone cannot list
+ *    calendars; calendar.readonly could, but it also reads every event's
+ *    details, which we do not need;
+ *  - userinfo.email — show which account is connected.
+ */
 const SCOPES = [
-  'https://www.googleapis.com/auth/calendar.events',
+  SCOPE_EVENTS,
+  SCOPE_FREEBUSY,
+  SCOPE_CALENDAR_LIST,
   'https://www.googleapis.com/auth/userinfo.email',
 ]
+
+/** True when a token response's `scope` grants everything busy-checking needs. */
+export function hasBusyScopes(grantedScope: string | undefined): boolean {
+  const granted = new Set((grantedScope ?? '').split(/\s+/))
+  return granted.has(SCOPE_FREEBUSY) && granted.has(SCOPE_CALENDAR_LIST)
+}
 
 export function isGoogleConfigured(): boolean {
   return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
@@ -55,6 +85,8 @@ interface TokenResponse {
   refresh_token?: string
   expires_in: number
   token_type: string
+  /** Space-separated scopes actually granted (the user may untick some). */
+  scope?: string
 }
 
 /** Exchange an authorization code for tokens (first connect). */
@@ -126,6 +158,9 @@ export interface CalendarEventInput {
   durationMinutes: number
   summary: string
   description?: string
+  /** Stored as a private extended property, so our own events are recognisable. */
+  slotId?: string
+  timeZone?: string
 }
 
 /**
@@ -148,11 +183,14 @@ export async function insertCalendarEvent(
       body: JSON.stringify({
         summary: input.summary,
         description: input.description,
-        start: { dateTime: input.startsAt, timeZone: BOOKING_TIME_ZONE },
+        start: { dateTime: input.startsAt, timeZone: input.timeZone ?? BOOKING_TIME_ZONE },
         end: {
           dateTime: addMinutes(input.startsAt, input.durationMinutes),
-          timeZone: BOOKING_TIME_ZONE,
+          timeZone: input.timeZone ?? BOOKING_TIME_ZONE,
         },
+        ...(input.slotId
+          ? { extendedProperties: { private: { proyavSlotId: input.slotId } } }
+          : {}),
       }),
     }
   )
@@ -177,4 +215,92 @@ export async function deleteCalendarEvent(
   if (!response.ok && response.status !== 410 && response.status !== 404) {
     throw new Error(`google events.delete: ${response.status}`)
   }
+}
+
+export interface GoogleCalendarInfo {
+  id: string
+  summary: string
+  primary: boolean
+}
+
+/** Calendars of the connected account that expose at least free/busy. */
+export async function listCalendars(accessToken: string): Promise<GoogleCalendarInfo[]> {
+  const out: GoogleCalendarInfo[] = []
+  let pageToken: string | undefined
+  for (let page = 0; page < 5; page++) {
+    const params = new URLSearchParams({ minAccessRole: 'freeBusyReader', maxResults: '250' })
+    if (pageToken) params.set('pageToken', pageToken)
+    const response = await fetch(`${CALENDAR_LIST}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!response.ok) throw new Error(`google calendarList.list: ${response.status}`)
+    const payload = (await response.json()) as {
+      items?: { id?: string; summary?: string; summaryOverride?: string; primary?: boolean; hidden?: boolean }[]
+      nextPageToken?: string
+    }
+    for (const item of payload.items ?? []) {
+      if (!item.id) continue
+      out.push({
+        id: item.id,
+        summary: item.summaryOverride || item.summary || item.id,
+        primary: item.primary === true,
+      })
+    }
+    pageToken = payload.nextPageToken
+    if (!pageToken) break
+  }
+  // Primary first, then alphabetical.
+  return out.sort((a, b) => Number(b.primary) - Number(a.primary) || a.summary.localeCompare(b.summary))
+}
+
+export interface FreeBusyResult {
+  /** All busy entries of the calendars that answered. */
+  busy: { start: string; end: string }[]
+  /** Calendars Google could not read (deleted, access revoked…). */
+  failed: { id: string; reason: string }[]
+}
+
+/**
+ * freeBusy.query over [timeMin, timeMax). Google caps the window and the
+ * number of calendars per request, so long windows are split into ≤ 60-day
+ * chunks; calendar ids are capped by the caller (MAX_BUSY_CALENDARS).
+ */
+export async function queryFreeBusy(
+  accessToken: string,
+  calendarIds: string[],
+  timeMin: number,
+  timeMax: number
+): Promise<FreeBusyResult> {
+  const result: FreeBusyResult = { busy: [], failed: [] }
+  if (calendarIds.length === 0 || timeMax <= timeMin) return result
+  const CHUNK = 60 * 86_400_000
+  for (let from = timeMin; from < timeMax; from += CHUNK) {
+    const to = Math.min(from + CHUNK, timeMax)
+    const response = await fetch(FREEBUSY, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timeMin: new Date(from).toISOString(),
+        timeMax: new Date(to).toISOString(),
+        items: calendarIds.map((id) => ({ id })),
+      }),
+    })
+    if (!response.ok) throw new Error(`google freeBusy: ${response.status}`)
+    const payload = (await response.json()) as {
+      calendars?: Record<
+        string,
+        { busy?: { start: string; end: string }[]; errors?: { reason?: string }[] }
+      >
+    }
+    for (const [id, cal] of Object.entries(payload.calendars ?? {})) {
+      if (cal.errors && cal.errors.length > 0) {
+        if (!result.failed.some((f) => f.id === id)) {
+          result.failed.push({ id, reason: cal.errors[0]?.reason ?? 'unknown' })
+        }
+        continue
+      }
+      result.busy.push(...(cal.busy ?? []))
+    }
+  }
+  return result
 }

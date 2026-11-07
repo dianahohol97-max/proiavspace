@@ -4,6 +4,7 @@ import { isLocale } from '@/lib/i18n/config'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BookingWidget, type PublicSlot } from '@/components/BookingWidget'
+import { hideBusySlots } from '@/lib/booking/availability'
 import { LangPicker } from '@/components/LangPicker'
 
 export const dynamic = 'force-dynamic'
@@ -53,7 +54,9 @@ export default async function PublicBookingPage({
     )
   }
 
-  const slots = (slotsData as PublicSlot[] | null) ?? []
+  // Google busy time (cached a few minutes per photographer) hides slots that
+  // collide with the photographer's own calendar; best-effort, never blocks.
+  const slots = await hideBusySlots(params.handle, (slotsData as PublicSlot[] | null) ?? [])
   const logoUrl = profile.logo_key
     ? await getStorage().getSignedReadUrl(profile.logo_key, { expiresInSeconds: 60 * 60 })
     : null
@@ -103,6 +106,7 @@ export default async function PublicBookingPage({
             bookButton: dict.publicBooking.bookButton,
             booking: dict.publicBooking.booking,
             slotTaken: dict.publicBooking.slotTaken,
+            slotUnavailable: dict.publicBooking.slotUnavailable,
             bookedTitle: dict.publicBooking.bookedTitle,
             bookedText: dict.publicBooking.bookedText,
             payMono: dict.publicBooking.payMono,

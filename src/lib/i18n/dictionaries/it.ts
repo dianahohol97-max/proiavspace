@@ -55,6 +55,7 @@ export const it: PartialDictionary = {
     bookButton: 'Prenota questo orario',
     booking: 'Prenotazione…',
     slotTaken: 'Questo orario è appena stato occupato. Scegline un altro.',
+    slotUnavailable: 'Questo orario non è più disponibile. Scegline un altro.',
     bookedTitle: 'L’orario è prenotato per te',
     bookedText: 'Il fotografo ha i tuoi contatti e ti scriverà. Opzioni di pagamento qui sotto.',
     payMono: 'Paga con carta (Monobank)',

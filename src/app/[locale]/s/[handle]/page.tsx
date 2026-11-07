@@ -9,6 +9,8 @@ import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { SiteRenderer, type PortfolioItem, type SiteBooking } from '@/components/site/SiteRenderer'
 import type { PublicSlot } from '@/components/BookingWidget'
+import { hideBusySlots } from '@/lib/booking/availability'
+import { resolveBookHref } from '@/lib/booking/siteCta'
 
 export const dynamic = 'force-dynamic'
 
@@ -160,11 +162,16 @@ export default async function PublicSitePage({
       supabase.rpc('get_free_slots', { p_handle: params.handle }),
     ])
     const profile = (profileData as BookingProfileRow[] | null)?.[0] ?? null
-    if (profile) {
+    const slots = profile
+      ? await hideBusySlots(params.handle, (slotsData as PublicSlot[] | null) ?? [])
+      : []
+    // The inline section (and its nav link) appears only when there is
+    // something to book; otherwise the CTA leads to the inquiry form.
+    if (profile && slots.length > 0) {
       booking = {
         handle: params.handle,
         locale,
-        slots: (slotsData as PublicSlot[] | null) ?? [],
+        slots,
         methods: {
           mono: profile.has_mono,
           wfp: profile.has_wfp,
@@ -183,6 +190,7 @@ export default async function PublicSitePage({
           bookButton: dict.publicBooking.bookButton,
           booking: dict.publicBooking.booking,
           slotTaken: dict.publicBooking.slotTaken,
+          slotUnavailable: dict.publicBooking.slotUnavailable,
           bookedTitle: dict.publicBooking.bookedTitle,
           bookedText: dict.publicBooking.bookedText,
           payMono: dict.publicBooking.payMono,
@@ -195,11 +203,13 @@ export default async function PublicSitePage({
       }
     }
   }
-  // The site's «Забронювати зйомку» button scrolls to the inline section when it
-  // renders; otherwise it falls back to the standalone booking page.
-  if (rawContent.settings.booking && !content.contact.bookingUrl) {
-    content.contact.bookingUrl = booking ? '#booking' : `/${locale}/b/${params.handle}`
-  }
+  // «Забронювати дату» in every theme: open dates → the inline #booking
+  // section; otherwise the inquiry form (see resolveBookHref).
+  content.contact.bookingUrl = resolveBookHref({
+    bookingActive: !!booking,
+    customUrl: content.contact.bookingUrl,
+    leadForm: !!rawContent.settings.leadForm,
+  })
   const siteUrl = `${BASE_URL}/${locale}/s/${params.handle}`
   const prices = rawContent.pricing.items
     .map((i) => Number(i.price.replace(/[^\d]/g, '')))

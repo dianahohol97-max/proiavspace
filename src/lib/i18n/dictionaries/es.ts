@@ -55,6 +55,7 @@ export const es: PartialDictionary = {
     bookButton: 'Reservar esta hora',
     booking: 'Reservando…',
     slotTaken: 'Esta hora se acaba de ocupar. Elige otra.',
+    slotUnavailable: 'Esta hora acaba de dejar de estar disponible. Elige otra.',
     bookedTitle: 'La hora está reservada para ti',
     bookedText: 'El fotógrafo tiene tus datos y se pondrá en contacto. Opciones de pago abajo.',
     payMono: 'Pagar con tarjeta (Monobank)',

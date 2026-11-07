@@ -43,6 +43,17 @@ export default defineConfig({
       SUPABASE_SERVICE_ROLE_KEY: 'e2e-placeholder-service-key',
       NEXT_PUBLIC_APP_URL: baseURL,
       NEXT_TELEMETRY_DISABLED: '1',
+      // Google OAuth "configured" so the booking dashboard renders its calendar
+      // states; no test reaches Google (calendar calls only for connected v2 accounts).
+      GOOGLE_CLIENT_ID: 'e2e-placeholder-client-id',
+      GOOGLE_CLIENT_SECRET: 'e2e-placeholder-client-secret',
+      // Storage placeholders: published-site pages build the client up front;
+      // presigning is local, nothing reaches B2.
+      STORAGE_PROVIDER: 'b2',
+      B2_REGION: 'eu-central-003',
+      B2_KEY_ID: 'e2e-placeholder',
+      B2_APPLICATION_KEY: 'e2e-placeholder',
+      B2_BUCKET: 'e2e-placeholder',
       // Sentry must stay off in tests.
       NEXT_PUBLIC_SENTRY_DSN: '',
     },
