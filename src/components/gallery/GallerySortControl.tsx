@@ -42,8 +42,8 @@ export function GallerySortControl({
         setMessage(
           result.error === 'not_ready'
             ? uk
-              ? 'Сортування ще не ввімкнене на сервері (потрібна міграція 0066).'
-              : 'Sorting is not enabled on the server yet (migration 0066).'
+              ? 'Сортування ще не ввімкнене на сервері (потрібна міграція 0067).'
+              : 'Sorting is not enabled on the server yet (migration 0067).'
             : uk
               ? 'Не вдалося впорядкувати. Спробуй ще раз.'
               : 'Could not sort. Please try again.'

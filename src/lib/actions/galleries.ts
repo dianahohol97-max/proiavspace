@@ -168,6 +168,12 @@ export async function setGalleryDelivery(
     if (error) console.error('setGalleryDelivery failed', galleryId, error.message)
     return { ok: false }
   }
+  // «Готово» for the first time + the client's address → «Ваші фото готові»
+  // (0067). Once per gallery; a failed letter never fails the status save.
+  if (deliveryStatus === 'ready') {
+    const { notifyClientIfReady } = await import('@/lib/gallery/ready-email-store')
+    await notifyClientIfReady(supabase, user, galleryId)
+  }
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
   return { ok: true }
 }
@@ -177,7 +183,7 @@ export async function setGalleryPublished(
   galleryId: string,
   published: boolean
 ): Promise<void> {
-  const { supabase } = await requireUser()
+  const { supabase, user } = await requireUser()
 
   // RLS restricts the update to the owner's rows.
   const { error } = await supabase
@@ -186,6 +192,12 @@ export async function setGalleryPublished(
     .eq('id', galleryId)
 
   if (error) throw new Error(`Failed to update gallery: ${error.message}`)
+  // Status «Готово» set while the gallery was still a draft: the letter
+  // waited for a working link (0067). No-op when already sent / no address.
+  if (published) {
+    const { notifyClientIfReady } = await import('@/lib/gallery/ready-email-store')
+    await notifyClientIfReady(supabase, user, galleryId)
+  }
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
 }
 
@@ -273,7 +285,7 @@ export type SortResult = { ok: true; changed: number } | { ok: false; error: 'no
 /**
  * «Впорядкувати за часом зйомки» / «за часом завантаження»: rewrites the
  * gallery's order (assets.position) in one call to sort_gallery_assets
- * (migration 0066), which checks ownership itself. Photos from several
+ * (migration 0067), which checks ownership itself. Photos from several
  * cameras end up interleaved by capture time; ones without EXIF time go last.
  */
 export async function sortGalleryAssets(locale: Locale, galleryId: string, mode: SortMode): Promise<SortResult> {
@@ -281,7 +293,7 @@ export async function sortGalleryAssets(locale: Locale, galleryId: string, mode:
   const { supabase } = await requireUser()
   const { data, error } = await supabase.rpc('sort_gallery_assets', { p_gallery: galleryId, p_mode: mode })
   if (error) {
-    // Migration 0066 not applied yet: the function doesn't exist.
+    // Migration 0067 not applied yet: the function doesn't exist.
     const missing = error.code === 'PGRST202' || error.code === '42883' || /sort_gallery_assets/.test(error.message ?? '')
     console.error('sort_gallery_assets failed', galleryId, error.message)
     return { ok: false, error: missing ? 'not_ready' : 'failed' }
