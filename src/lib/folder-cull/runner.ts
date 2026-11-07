@@ -179,55 +179,76 @@ export async function runFolder(o: FolderRunOptions): Promise<void> {
       stage = 'model'
       report()
       const tm = performance.now()
-      const worker = new Worker(new URL('../culling/workers/faces.worker.ts', import.meta.url))
-      workers.push(worker)
-      const pending = new Map<number, (v: FaceInfo[] | null) => void>()
-      const ready = new Promise<string | null>((resolve) => {
-        worker.onmessage = (e: MessageEvent<FacesResponse>) => {
-          const d = e.data
-          if (d.type === 'ready') {
-            delegate = d.delegate
-            resolve(null)
-          } else if (d.type === 'init-failed') resolve(d.error)
-          else pending.get(d.jobId)?.(d.ok ? d.faces ?? [] : null)
-        }
-        worker.onerror = (e) => resolve(e.message || 'worker error')
-        signal.addEventListener('abort', () => resolve('aborted'))
-      })
       const own = (p: string) => new URL(p, window.location.origin).href
-      worker.postMessage({ type: 'init', wasmLoaderPath: own(MEDIAPIPE_WASM_LOADER), wasmBinaryPath: own(MEDIAPIPE_WASM_BINARY), modelUrl: own(FACE_MODEL_URL) })
-      const initError = await ready
+      const startFaceWorker = async () => {
+        const worker = new Worker(new URL('../culling/workers/faces.worker.ts', import.meta.url))
+        workers.push(worker)
+        const pending = new Map<number, (v: FaceInfo[] | null) => void>()
+        let kind: string | undefined
+        const ready = new Promise<string | null>((resolve) => {
+          worker.onmessage = (e: MessageEvent<FacesResponse>) => {
+            const d = e.data
+            if (d.type === 'ready') {
+              kind = d.delegate
+              resolve(null)
+            } else if (d.type === 'init-failed') resolve(d.error)
+            else pending.get(d.jobId)?.(d.ok ? d.faces ?? [] : null)
+          }
+          worker.onerror = (e) => resolve(e.message || 'worker error')
+          signal.addEventListener('abort', () => resolve('aborted'))
+        })
+        worker.postMessage({ type: 'init', wasmLoaderPath: own(MEDIAPIPE_WASM_LOADER), wasmBinaryPath: own(MEDIAPIPE_WASM_BINARY), modelUrl: own(FACE_MODEL_URL) })
+        const error = await ready
+        return { worker, pending, error, kind }
+      }
+      const first = await startFaceWorker()
+      if (signal.aborted) return
+      const lanes = first.error ? [] : [first]
+      // The wasm build is single-threaded: on the CPU path a second worker
+      // almost doubles throughput (the model file is cached by then).
+      const threads = navigator.hardwareConcurrency || 2
+      if (!first.error && first.kind === 'CPU' && threads >= 4 && faceQueue.length > 20) {
+        const second = await startFaceWorker()
+        if (!second.error) lanes.push(second)
+      }
       timings.model = performance.now() - tm
       if (signal.aborted) return
-      if (initError) {
-        facesError = initError
+      if (first.error) {
+        facesError = first.error
         facesTotal = 0
       } else {
+        delegate = lanes.length > 1 ? `${first.kind} ×${lanes.length}` : first.kind
         stage = 'faces'
         const tf = performance.now()
+        let next = 0
         let jobId = 0
-        for (const item of faceQueue) {
-          await whenVisible(signal)
-          if (signal.aborted) return
-          const id = ++jobId
-          const started = performance.now()
-          let faces: FaceInfo[] | null = null
-          try {
-            const file = await files.get(item.id)!.getFile()
-            const src = await faceSource(item, file, meta[item.id])
-            faces = await ask<FaceInfo[] | null>(pending, id, signal, null, () => worker.postMessage({ type: 'faces', jobId: id, ...src }))
-          } catch {
-            faces = null
-          }
-          if (signal.aborted) return
-          if (!paused) facesMs += performance.now() - started
-          if (faces) o.onFaces(item.id, faces)
-          facesDone++
-          report()
-        }
+        await Promise.all(
+          lanes.map(async (lane) => {
+            while (!signal.aborted && next < faceQueue.length) {
+              await whenVisible(signal)
+              if (signal.aborted) return
+              const item = faceQueue[next++]
+              const id = ++jobId
+              const started = performance.now()
+              let faces: FaceInfo[] | null = null
+              try {
+                const file = await files.get(item.id)!.getFile()
+                const src = await faceSource(item, file, meta[item.id])
+                faces = await ask<FaceInfo[] | null>(lane.pending, id, signal, null, () => lane.worker.postMessage({ type: 'faces', jobId: id, ...src }))
+              } catch {
+                faces = null
+              }
+              if (signal.aborted) return
+              if (!paused) facesMs += (performance.now() - started) / lanes.length
+              if (faces) o.onFaces(item.id, faces)
+              facesDone++
+              report()
+            }
+          })
+        )
+        if (signal.aborted) return
         timings.faces = performance.now() - tf
       }
-      worker.terminate()
     }
     stage = 'done'
     report()

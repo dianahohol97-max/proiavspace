@@ -47,21 +47,30 @@ export function dHash(gray: Float32Array, width: number, height: number): string
   return hex
 }
 
-function popcount8(n: number): number {
-  let c = 0
-  while (n) {
-    n &= n - 1
-    c++
+function popcount32(n: number): number {
+  n = n - ((n >>> 1) & 0x55555555)
+  n = (n & 0x33333333) + ((n >>> 2) & 0x33333333)
+  return (((n + (n >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24
+}
+
+// Parsed hashes, reused across calls: verdicts compare every frame with its
+// neighbours on each UI refresh (3000+ photos in folder culling).
+const parsed = new Map<string, [number, number]>()
+function words(h: string): [number, number] {
+  let w = parsed.get(h)
+  if (!w) {
+    w = [Number.parseInt(h.slice(0, 8), 16) >>> 0, Number.parseInt(h.slice(8, 16), 16) >>> 0]
+    if (parsed.size > 50_000) parsed.clear()
+    parsed.set(h, w)
   }
-  return c
+  return w
 }
 
 /** Number of differing bits between two dHash strings (0..64). */
 export function hamming(a: string, b: string): number {
-  if (a.length !== b.length) return 64
-  let d = 0
-  for (let i = 0; i < a.length; i += 2) {
-    d += popcount8(Number.parseInt(a.slice(i, i + 2), 16) ^ Number.parseInt(b.slice(i, i + 2), 16))
-  }
-  return d
+  if (a.length !== 16 || b.length !== 16) return 64
+  const [a1, a2] = words(a)
+  const [b1, b2] = words(b)
+  if (Number.isNaN(a1) || Number.isNaN(a2) || Number.isNaN(b1) || Number.isNaN(b2)) return 64
+  return popcount32((a1 ^ b1) >>> 0) + popcount32((a2 ^ b2) >>> 0)
 }

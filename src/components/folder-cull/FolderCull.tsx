@@ -82,11 +82,19 @@ export function FolderCull({ locale, opfsFolder }: { locale: string; opfsFolder?
   }, [])
 
   // Debounced save of the session (measurements, marks, settings).
+  // While the analysis runs the session changes every second; saving it (a
+  // structured clone of thousands of entries) is spaced out.
+  const lastSave = useRef(0)
   useEffect(() => {
     if (!session) return
-    const t = setTimeout(() => saveSession(session).then(setSaved), 1000)
+    // At most every 10 s during the run (so a reload mid-run loses little), 0.8 s after edits otherwise.
+    const wait = running ? Math.max(0, 10_000 - (Date.now() - lastSave.current)) : 800
+    const t = setTimeout(() => {
+      lastSave.current = Date.now()
+      saveSession(session).then(setSaved)
+    }, wait)
     return () => clearTimeout(t)
-  }, [session])
+  }, [session, running])
 
   // Grid columns from the container width.
   useEffect(() => {

@@ -6,7 +6,7 @@ import { csvReport, planExport, type PlannedSidecar } from '@/lib/folder-cull/ex
 import { fill, type FolderLabels } from '@/lib/folder-cull/i18n'
 import type { Scan } from '@/lib/folder-cull/source'
 import type { ExportSettings, FolderSession } from '@/lib/folder-cull/types'
-import { buildZip, download, readExisting, writeToFolder } from '@/lib/folder-cull/write'
+import { buildZip, download, readExisting, readExistingFromHandle, writeToFolder } from '@/lib/folder-cull/write'
 
 const LABELS = ['', 'Red', 'Yellow', 'Green', 'Blue', 'Purple'] as const
 
@@ -38,8 +38,13 @@ export function ExportPanel({
   const hasRaw = session.items.some((it) => it.kind === 'raw')
   const hasJpeg = session.items.some((it) => it.kind !== 'raw')
 
-  const plan = async () => {
-    const existing = scan ? await readExisting(scan) : { text: new Map(), names: new Map() }
+  const plan = async (live = false) => {
+    const existing =
+      live && scan?.handle
+        ? await readExistingFromHandle(scan.handle, session.items.map((i) => i.dir))
+        : scan
+          ? await readExisting(scan)
+          : { text: new Map(), names: new Map() }
     return planExport(session, outcomes, existing.text, existing.names)
   }
   const ms = (n: number) => (n < 1000 ? `${Math.round(n)} ms` : `${(n / 1000).toFixed(1)} s`)
@@ -49,7 +54,7 @@ export function ExportPanel({
     setBusy(true)
     setStatus(l.writing)
     try {
-      const p = await plan()
+      const p = await plan(true)
       const r = await writeToFolder(scan.handle, p.sidecars)
       if (!r) return setStatus(l.writeDenied)
       onRecord(r.written)
@@ -86,7 +91,8 @@ export function ExportPanel({
     }
   }
 
-  const rejectNames = order.filter(({ id }) => outcomes.get(id)?.reject).map(({ id }) => session.items.find((i) => i.id === id)?.name ?? id)
+  const names = new Map(session.items.map((i) => [i.id, i.name]))
+  const rejectNames = order.filter(({ id }) => outcomes.get(id)?.reject).map(({ id }) => names.get(id) ?? id)
 
   return (
     <div className="mt-4 rounded-2xl border border-line p-4" data-testid="cull-export">

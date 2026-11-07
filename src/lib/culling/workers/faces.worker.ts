@@ -46,12 +46,31 @@ async function init({ wasmLoaderPath, wasmBinaryPath, modelUrl }: FacesInit) {
     minFaceDetectionConfidence: 0.5,
     minFacePresenceConfidence: 0.5,
   })
+  // A real GPU is several times faster; a software GL (SwiftShader, llvmpipe —
+  // VMs, blocklisted drivers) is slower than the CPU path, so skip it.
+  if (hardwareGl()) {
+    try {
+      landmarker = await FaceLandmarker.createFromOptions(fileset, options('GPU'))
+      post({ type: 'ready', delegate: 'GPU' })
+      return
+    } catch {
+      /* fall back to CPU */
+    }
+  }
+  landmarker = await FaceLandmarker.createFromOptions(fileset, options('CPU'))
+  post({ type: 'ready', delegate: 'CPU' })
+}
+
+function hardwareGl(): boolean {
   try {
-    landmarker = await FaceLandmarker.createFromOptions(fileset, options('GPU'))
-    post({ type: 'ready', delegate: 'GPU' })
+    const gl = new OffscreenCanvas(1, 1).getContext('webgl2') as WebGL2RenderingContext | null
+    if (!gl) return false
+    const ext = gl.getExtension('WEBGL_debug_renderer_info')
+    const renderer = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? '')
+    gl.getExtension('WEBGL_lose_context')?.loseContext()
+    return !/swiftshader|llvmpipe|softpipe|software|basic render/i.test(renderer)
   } catch {
-    landmarker = await FaceLandmarker.createFromOptions(fileset, options('CPU'))
-    post({ type: 'ready', delegate: 'CPU' })
+    return false
   }
 }
 

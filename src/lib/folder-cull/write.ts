@@ -25,6 +25,37 @@ export async function readExisting(scan: Scan): Promise<{ text: Map<string, stri
   return { text, names }
 }
 
+/**
+ * Existing sidecars read from the folder NOW (not from the scan): Lightroom
+ * may have written develop settings into them since — we must update, never
+ * overwrite. Keys like sidecarKey(): `${dir}/${base}` lowercased.
+ */
+export async function readExistingFromHandle(
+  root: FileSystemDirectoryHandle,
+  dirs: Iterable<string>
+): Promise<{ text: Map<string, string>; names: Map<string, string> }> {
+  const text = new Map<string, string>()
+  const names = new Map<string, string>()
+  for (const dir of new Set(dirs)) {
+    let h: FileSystemDirectoryHandle
+    try {
+      h = await dirFor(root, dir)
+    } catch {
+      continue
+    }
+    const entries = (h as unknown as { entries(): AsyncIterable<[string, FileSystemHandle]> }).entries()
+    for await (const [name, entry] of entries) {
+      if (entry.kind !== 'file' || !name.toLowerCase().endsWith('.xmp')) continue
+      const file = await (entry as FileSystemFileHandle).getFile()
+      if (file.size > 4 * 1024 * 1024) continue
+      const key = `${dir}/${name.replace(/\.[^.]+$/, '')}`.toLowerCase()
+      text.set(key, await file.text())
+      names.set(key, name)
+    }
+  }
+  return { text, names }
+}
+
 async function dirFor(root: FileSystemDirectoryHandle, dir: string): Promise<FileSystemDirectoryHandle> {
   let h = root
   for (const part of dir.split('/').filter(Boolean)) h = await h.getDirectoryHandle(part)

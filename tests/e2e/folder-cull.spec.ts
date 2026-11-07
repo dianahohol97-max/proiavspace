@@ -162,6 +162,29 @@ test.describe('відбір із папки (демо)', () => {
     expect(written['DSC_0005.xmp']).toContain('xmp:Rating="-1"')
     expect(written['DSC_0005.xmp']).toContain('crs:Exposure2012="+0.35"')
     expect(written['IMG_0011.xmp']).toContain('xmpDM:pick="-1"')
+
+    // Lightroom adds develop settings to our sidecar; the photographer changes
+    // her mind (P on the blurred frame) and writes again: Lightroom's data stays.
+    await page.evaluate(async () => {
+      const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle('shoot')
+      const h = await dir.getFileHandle('IMG_0011.xmp')
+      const xml = (await (await h.getFile()).text()).replace('<rdf:Description rdf:about=""', '<rdf:Description rdf:about="" xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/" crs:Exposure2012="-0.50"')
+      const w = await h.createWritable()
+      await w.write(xml)
+      await w.close()
+    })
+    await page.locator('[data-testid=cull-tile][data-id="IMG_0011.CR3"]').click()
+    await page.keyboard.press('p')
+    await page.getByTestId('cull-write').click()
+    await expect(page.getByTestId('cull-export-status')).toContainText('створено 0, оновлено')
+    const again = await page.evaluate(async () => {
+      const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle('shoot')
+      return (await (await dir.getFileHandle('IMG_0011.xmp')).getFile()).text()
+    })
+    expect(again).toContain('crs:Exposure2012="-0.50"')
+    expect(again).toContain('xmpDM:pick="1"')
+    expect(again).not.toContain('xmp:Rating="-1"')
+    expect(again).not.toContain('xmp:Label="Red"')
   })
 
   test('очі: модель і wasm лише з нашого сервера, після натискання', async ({ page }) => {

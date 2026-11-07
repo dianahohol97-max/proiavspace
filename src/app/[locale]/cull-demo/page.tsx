@@ -9,6 +9,7 @@ import { folderLabels } from '@/lib/folder-cull/i18n'
  * read in the browser like in the dashboard; nothing is uploaded or stored on
  * the server. Not linked, not indexed.
  */
+export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Відбір із папки — демо', robots: { index: false, follow: false } }
 
 export default function FolderCullDemo({
