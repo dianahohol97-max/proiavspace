@@ -33,6 +33,8 @@ export async function GET(_request: NextRequest, { params }: { params: { slug: s
     .from('assets')
     .select('*')
     .eq('gallery_id', gallery.id)
+    // Service role for password galleries bypasses the RLS rule (0054).
+    .eq('hidden_from_client', false)
     .order('position')
     .order('created_at')
     .returns<Asset[]>()

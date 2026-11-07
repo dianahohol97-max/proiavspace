@@ -20,3 +20,10 @@ create or replace function auth.role() returns text language sql stable as
 create or replace function auth.jwt() returns jsonb language sql stable as
   $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
 create extension if not exists pgcrypto;
+-- Like a Supabase project: the API roles get privileges on everything the
+-- migrations create in public (RLS and the migrations' own revokes decide
+-- the rest), so anon/authenticated tests see what PostgREST would.
+grant usage on schema public to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
