@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isSiteTrialExpired } from '@/lib/plans'
+import { GIFT_KINDS } from '@/lib/site/content'
 import type {
   PricingItem,
   ProcessStep,
@@ -135,21 +136,51 @@ export async function saveSite(locale: Locale, formData: FormData): Promise<void
     albumCovers = {}
   }
 
+  // «Подарунки та друк»: the three kinds, each with its own switch.
+  const giftRows = jsonArray(str(formData, 'gifts_json'))
+  const gifts = GIFT_KINDS.map((kind) => {
+    const g = giftRows.find((row) => row.kind === kind) ?? {}
+    return {
+      kind,
+      enabled: g.enabled === true,
+      title: String(g.title ?? '').trim().slice(0, 80),
+      text: String(g.text ?? '').trim().slice(0, 240),
+      price: String(g.price ?? '').trim().slice(0, 40),
+      imageId: String(g.imageId ?? '').trim(),
+    }
+  })
+
   const content: SiteContent = {
     hero: {
       title: str(formData, 'hero_title'),
       subtitle: str(formData, 'hero_subtitle'),
       imageId: str(formData, 'hero_image_id'),
+      role: str(formData, 'hero_role').slice(0, 60),
+      city: str(formData, 'hero_city').slice(0, 80),
+      // «Весілля, Хрестини, Love story» → ['Весілля', 'Хрестини', 'Love story']
+      directions: str(formData, 'hero_directions')
+        .split(/[,;·\n]+/)
+        .map((d) => d.trim())
+        .filter(Boolean)
+        .slice(0, 8),
     },
     about: { text: str(formData, 'about_text'), imageId: str(formData, 'about_image_id') },
     pricing: { items },
     moment: { text: str(formData, 'moment_text').slice(0, 160), imageId: str(formData, 'moment_image_id') },
     process: { steps: process },
     testimonials: { items: testimonials },
+    terms: {
+      prepayment: str(formData, 'terms_prepayment').slice(0, 160),
+      delivery: str(formData, 'terms_delivery').slice(0, 160),
+      travel: str(formData, 'terms_travel').slice(0, 160),
+      bring: str(formData, 'terms_bring').slice(0, 160),
+    },
+    gifts: { enabled: formData.get('opt_gifts') === 'on', items: gifts },
     contact: {
       email: str(formData, 'contact_email'),
       phone: str(formData, 'contact_phone'),
       instagram: str(formData, 'contact_instagram'),
+      telegram: str(formData, 'contact_telegram').replace(/^https?:\/\/t\.me\//, '').replace(/^@/, ''),
       bookingUrl: str(formData, 'contact_booking_url'),
     },
     albumCovers,

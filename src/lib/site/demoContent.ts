@@ -132,9 +132,15 @@ function pha(id: string, n: string, category: string, caption: string, [width, h
   }
 }
 
+type Hero = SiteContent['hero']
+type Contact = SiteContent['contact']
 function content(
-  partial: Omit<Partial<SiteContent>, 'about'> &
-    Pick<SiteContent, 'hero' | 'pricing' | 'contact'> & { about: { text: string; imageId?: string } }
+  partial: Omit<Partial<SiteContent>, 'about' | 'hero' | 'contact'> &
+    Pick<SiteContent, 'pricing'> & {
+      hero: Pick<Hero, 'title' | 'subtitle' | 'imageId'> & Partial<Hero>
+      about: { text: string; imageId?: string }
+      contact: Omit<Contact, 'telegram'> & Partial<Contact>
+    }
 ): SiteContent {
   return {
     albumCovers: {},
@@ -143,8 +149,12 @@ function content(
     moment: { text: '', imageId: '' },
     process: { steps: [] },
     testimonials: { items: [] },
+    terms: { prepayment: '', delivery: '', travel: '', bring: '' },
+    gifts: { enabled: false, items: [] },
     ...partial,
+    hero: { role: '', city: '', directions: [], ...partial.hero },
     about: { imageId: '', ...partial.about },
+    contact: { telegram: '', ...partial.contact },
   }
 }
 

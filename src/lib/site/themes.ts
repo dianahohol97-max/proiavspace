@@ -140,6 +140,23 @@ export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
   return mode === 'night' && def.night ? def.night : def.tokens
 }
 
+/**
+ * Galleries keep the palettes they had before the site themes were redrawn
+ * («Стилі галерей не змінюємо»): «Повітря» and «Журнал» site pages got new
+ * accents, galleries do not. «Опівніч» gold was reviewed for galleries too.
+ */
+const GALLERY_FROZEN: Partial<Record<ThemeId, Pick<ThemeTokens, 'bg' | 'fg' | 'muted' | 'accent' | 'line'>>> = {
+  povitria: { bg: '#fdfcfa', fg: '#1b1a1f', muted: '#8f8c94', accent: '#1b1a1f', line: '#e8e5df' },
+  zhurnal: { bg: '#fffdf8', fg: '#26242a', muted: '#8f8b90', accent: '#26242a', line: '#e9e5dd' },
+}
+
+/** Tokens for gallery pages — the site tokens, minus the v2 site repaints. */
+export function resolveGalleryTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
+  const t = resolveTokens(theme, mode)
+  const frozen = mode === 'light' ? GALLERY_FROZEN[theme] : undefined
+  return frozen ? { ...t, ...frozen } : t
+}
+
 /** CSS custom properties consumed by the shared blocks. */
 export function siteCssVars(theme: ThemeId, mode: SiteMode): CSSProperties {
   const t = resolveTokens(theme, mode)

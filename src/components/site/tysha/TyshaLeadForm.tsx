@@ -30,12 +30,16 @@ export function TyshaLeadForm({
   handle,
   labels,
   shootTypes,
+  certificateTopic,
   skin,
 }: {
   handle: string | null
   labels: LeadFormLabels
   /** Options for «Тип зйомки» (the pricing package names). */
   shootTypes: string[]
+  /** The gift-certificate topic (from «Подарунки та друк»): choosing it shows
+   *  «номінал або пакет», «кому», «від кого». */
+  certificateTopic?: string
   /** Class names of another theme (e.g. «Опівніч»); defaults to «Тиша». */
   skin?: Skin
 }) {
@@ -53,7 +57,9 @@ export function TyshaLeadForm({
   const other = labels.shootOther ?? 'Інше'
   const options = shootTypes.length > 0 ? [...shootTypes, other] : []
 
-  // «Обрати» on a pricing card → pick that package here.
+  const isCertificate = !!certificateTopic && shootType === certificateTopic
+
+  // «Обрати» on a pricing card / «Замовити» on a gift card → that topic here.
   useEffect(() => {
     const onPack = (event: Event) => {
       const name = (event as CustomEvent<string>).detail
@@ -74,6 +80,13 @@ export function TyshaLeadForm({
     const details = [
       date ? `${labels.date ?? 'Дата'}: ${formatDate(date)}` : '',
       type ? `${labels.shootType ?? 'Тип'}: ${type}` : '',
+      ...(isCertificate
+        ? [
+            get('cert_nominal') ? `${labels.certNominal ?? 'Номінал'}: ${get('cert_nominal')}` : '',
+            get('cert_to') ? `${labels.certTo ?? 'Кому'}: ${get('cert_to')}` : '',
+            get('cert_from') ? `${labels.certFrom ?? 'Від кого'}: ${get('cert_from')}` : '',
+          ]
+        : []),
     ].filter(Boolean)
     const message = [details.join('\n'), get('message')].filter(Boolean).join('\n\n')
 
@@ -235,6 +248,36 @@ export function TyshaLeadForm({
               {labels.shootType ?? 'Тип зйомки'}
             </label>
           </div>
+          {isCertificate &&
+            (['cert_nominal', 'cert_to', 'cert_from'] as const).map((name) => (
+              <div key={name} className={`${t.field} ${name === 'cert_nominal' ? t.formFull : ''}`}>
+                <input
+                  suppressHydrationWarning
+                  id={id(name)}
+                  name={name}
+                  className={t.input}
+                  maxLength={120}
+                  placeholder=" "
+                  list={name === 'cert_nominal' ? id('packs') : undefined}
+                />
+                <label htmlFor={id(name)} className={t.floatLabel}>
+                  {name === 'cert_nominal'
+                    ? (labels.certNominal ?? 'Номінал або пакет')
+                    : name === 'cert_to'
+                      ? (labels.certTo ?? 'Кому')
+                      : (labels.certFrom ?? 'Від кого')}
+                </label>
+              </div>
+            ))}
+          {isCertificate && (
+            <datalist id={id('packs')}>
+              {shootTypes
+                .filter((o) => o !== certificateTopic)
+                .map((o) => (
+                  <option key={o} value={o} />
+                ))}
+            </datalist>
+          )}
           <div className={`${t.field} ${t.formFull}`}>
             <textarea
               suppressHydrationWarning
