@@ -51,6 +51,12 @@ export interface Gallery {
   /** Files deleted 7 days after closure. */
   free_purged_at?: string | null
   is_published: boolean
+  /** Shoot status shown to the client (migration 0055): 'shot' «зйомка
+   *  пройшла», 'editing' «обробка», 'ready' «готово». null = not shown.
+   *  Optional until 0055 is applied in production. */
+  delivery_status?: GalleryDeliveryStatus | null
+  /** Estimated date the photos are ready (YYYY-MM-DD, 0055); null = not set. */
+  delivery_eta?: string | null
   view_count: number
   /** Style override (theme-catalog value); null = inherit from the site. */
   theme: string | null
@@ -59,6 +65,8 @@ export interface Gallery {
   created_at: string
   updated_at: string
 }
+
+export type GalleryDeliveryStatus = 'shot' | 'editing' | 'ready'
 
 export type AssetKind = 'photo' | 'video'
 
@@ -77,6 +85,12 @@ export interface Asset {
   /** Focal point (0–100%) for cropped layouts; null = center. */
   focal_x: number | null
   focal_y: number | null
+  /** ThumbHash (base64) for a blurred placeholder (migration 0053). May be
+   *  null/absent: nothing generates it yet, and videos/old photos never have one. */
+  thumbhash?: string | null
+  /** Hidden from the client (future AI culling, migration 0054): the owner
+   *  sees it, the public gallery, archive and selections never do. */
+  hidden_from_client: boolean
   created_at: string
 }
 
