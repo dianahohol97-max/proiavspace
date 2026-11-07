@@ -13,8 +13,12 @@ const DEFAULT_GA_ID = 'G-VV417KX665'
  * and its test-only twin /e2e/themes), the editor's site preview, client
  * galleries (/g/…) and booking pages (/b/…). Their visitors never agreed to proiav's analytics, so GA is not
  * loaded there at all.
+ *
+ * Also off on the local-only tools — «Відбір із папки» (/dashboard/cull and
+ * its demo /cull-demo): they promise that everything stays in the browser.
  */
-const NOT_OURS = /^\/[a-z]{2}\/(?:s|g|b)\/|^\/[a-z]{2}\/(?:themes|site-preview|e2e)(?:\/|$)/
+const NOT_OURS =
+  /^\/[a-z]{2}\/(?:s|g|b)\/|^\/[a-z]{2}\/(?:themes|site-preview|e2e|cull-demo|dashboard\/cull)(?:\/|$)/
 
 export function isProiavAnalyticsPage(pathname: string): boolean {
   return !NOT_OURS.test(pathname)

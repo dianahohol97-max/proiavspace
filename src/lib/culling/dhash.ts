@@ -59,7 +59,9 @@ const parsed = new Map<string, [number, number]>()
 function words(h: string): [number, number] {
   let w = parsed.get(h)
   if (!w) {
-    w = [Number.parseInt(h.slice(0, 8), 16) >>> 0, Number.parseInt(h.slice(8, 16), 16) >>> 0]
+    const hi = /^[0-9a-f]{16}$/i.test(h) ? Number.parseInt(h.slice(0, 8), 16) >>> 0 : NaN
+    const lo = /^[0-9a-f]{16}$/i.test(h) ? Number.parseInt(h.slice(8, 16), 16) >>> 0 : NaN
+    w = [hi, lo]
     if (parsed.size > 50_000) parsed.clear()
     parsed.set(h, w)
   }

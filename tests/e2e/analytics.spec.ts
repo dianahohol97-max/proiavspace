@@ -19,7 +19,7 @@ test.describe('Google Analytics', () => {
     await expect(page.locator('script[src*="googletagmanager.com/gtag/js"]')).toHaveCount(1, { timeout: 20_000 })
   })
 
-  for (const path of ['/uk/e2e/themes/tysha', '/uk/s/demo-handle', '/uk/g/demo-slug', '/uk/b/demo-handle']) {
+  for (const path of ['/uk/e2e/themes/tysha', '/uk/s/demo-handle', '/uk/g/demo-slug', '/uk/b/demo-handle', '/uk/cull-demo']) {
     test(`без GA: ${path}`, async ({ page }) => {
       const requests: string[] = []
       page.on('request', (r) => {

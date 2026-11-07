@@ -200,3 +200,21 @@ describe('Орієнтація вбудованого JPEG', () => {
     assert.equal(info!.orientation, 8)
   })
 })
+
+describe('«Відбір із папки»: без аналітики, у меню — лише за прапорцем', () => {
+  test('GA вимкнено на /dashboard/cull і /cull-demo, на решті кабінету — ні', async () => {
+    const { isProiavAnalyticsPage } = await import('@/components/analytics/GoogleAnalytics')
+    for (const p of ['/uk/dashboard/cull', '/en/dashboard/cull', '/uk/cull-demo', '/uk/cull-demo/']) {
+      assert.equal(isProiavAnalyticsPage(p), false, p)
+    }
+    for (const p of ['/uk/dashboard', '/uk/dashboard/galleries/1', '/uk/dashboard/culling-x', '/uk']) {
+      assert.equal(isProiavAnalyticsPage(p), true, p)
+    }
+  })
+
+  test('пункт меню лише з NEXT_PUBLIC_FOLDER_CULLING=1', () => {
+    const src = readFileSync(path.resolve(__dirname, '../../src/app/[locale]/dashboard/layout.tsx'), 'utf8')
+    assert.match(src, /if \(process\.env\.NEXT_PUBLIC_FOLDER_CULLING === '1'\) \{\s*items\.splice\(1, 0, \{ href: `\/\$\{locale\}\/dashboard\/cull`/)
+    assert.equal(src.match(/dashboard\/cull`/g)?.length, 1, 'інших посилань на сторінку в меню немає')
+  })
+})

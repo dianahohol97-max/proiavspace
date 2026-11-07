@@ -67,14 +67,17 @@ export default async function DashboardLayout({
 
   const items: NavItem[] = [
     { href: `/${locale}/dashboard`, label: dict.billing.galleryPlansTitle, prefix: true },
-    // Culling straight from a local folder (RAW) — works without any gallery.
-    { href: `/${locale}/dashboard/cull`, label: locale === 'uk' ? 'Відбір із папки' : 'Cull from folder' },
     { href: `/${locale}/dashboard/site`, label: dict.site.navLink },
     { href: `/${locale}/dashboard/booking`, label: dict.booking.navLink },
     { href: `/${locale}/dashboard/billing`, label: dict.dashboard.billingLink },
     { href: `/${locale}/dashboard/referrals`, label: dict.referrals.navLink },
     { href: `/${locale}/dashboard/settings`, label: dict.dashboard.settingsLink },
   ]
+  // «Відбір із папки» (RAW culling, works without galleries) waits for its own
+  // release: hidden from the menu unless NEXT_PUBLIC_FOLDER_CULLING=1.
+  if (process.env.NEXT_PUBLIC_FOLDER_CULLING === '1') {
+    items.splice(1, 0, { href: `/${locale}/dashboard/cull`, label: locale === 'uk' ? 'Відбір із папки' : 'Cull from folder' })
+  }
   // Founder-only links (each page re-checks the allowlist).
   if (isAdminEmail(user.email)) {
     items.push({ href: `/${locale}/dashboard/stats`, label: dict.dashboard.statsLink })
