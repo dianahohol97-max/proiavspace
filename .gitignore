@@ -12,3 +12,8 @@ next-env.d.ts
 
 # Local scratchpad (working notes / deliverables, not app source)
 scratchpad/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/

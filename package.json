@@ -12,11 +12,13 @@
     "blog": "tsx scripts/blog.ts",
     "blog:generate": "tsx scripts/blog.ts generate",
     "test:referrals": "bash tests/referrals/run.sh",
-    "test:audit": "node --experimental-test-module-mocks --no-warnings --import tsx --test --test-concurrency=1 tests/audit-storage/*.test.ts"
+    "test:audit": "node --experimental-test-module-mocks --no-warnings --import tsx --test --test-concurrency=1 tests/audit-storage/*.test.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.620.0",
     "@aws-sdk/s3-request-presigner": "^3.620.0",
+    "@sentry/nextjs": "^11.11.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.0",
     "@vercel/functions": "^2.2.13",
@@ -27,11 +29,13 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/cookie": "^0.6.0",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
+    "esbuild": "^0.28.2",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.7",
     "tsx": "^4.23.15",

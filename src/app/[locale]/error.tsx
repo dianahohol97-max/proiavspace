@@ -1,5 +1,6 @@
 'use client'
 
+import { reportBoundaryError } from '@/lib/sentry/report'
 import { useEffect, useState } from 'react'
 
 /** Names whatever foreign code touched the DOM — shows up in screenshots. */
@@ -36,6 +37,7 @@ export default function LocaleError({
   const [markers, setMarkers] = useState('')
 
   useEffect(() => {
+    reportBoundaryError(error)
     console.error('locale error boundary:', error)
     setMarkers(domMarkers())
     // React-caught errors never reach window.onerror, so the boundary itself

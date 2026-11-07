@@ -46,4 +46,19 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+// Sentry only when a DSN is configured: without it the build is untouched
+// (no SDK in the bundle, no instrumentation hook, no source-map upload).
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  const { withSentryConfig } = require('@sentry/nextjs/config')
+  module.exports = withSentryConfig(nextConfig, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    silent: !process.env.CI,
+    // Readable stack traces need an upload token; without one, skip uploads quietly.
+    sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: true },
+    telemetry: false,
+  })
+} else {
+  module.exports = nextConfig
+}

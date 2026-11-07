@@ -1,5 +1,6 @@
 'use client'
 
+import { reportBoundaryError } from '@/lib/sentry/report'
 import { useEffect } from 'react'
 
 /**
@@ -16,6 +17,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
+    reportBoundaryError(error)
     // React-caught errors never reach window.onerror, so the boundary itself
     // ships the forensics (message+stack+DOM mutation log) to debug_events.
     try {
