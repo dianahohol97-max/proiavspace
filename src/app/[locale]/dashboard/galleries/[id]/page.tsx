@@ -16,6 +16,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { ExportFavoritesButton } from '@/components/ExportFavoritesButton'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
+import { CullingPanel } from '@/components/gallery/CullingPanel'
+import type { CullingPhoto } from '@/lib/culling/types'
+import { setHiddenFromClient } from '@/lib/actions/culling'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
@@ -136,6 +139,37 @@ export default async function ManageGalleryPage({
       return { asset, url }
     })
   )
+
+  // AI culling reads only the light renditions (thumb ~512 px → mobile →
+  // preview), never originals. Photos without any rendition are skipped.
+  const cullingPhotos: CullingPhoto[] = (
+    await Promise.all(
+      previews.map(async ({ asset, url }, order): Promise<CullingPhoto | null> => {
+        if (asset.kind !== 'photo') return null
+        const key = asset.variants.thumb ?? asset.variants.mobile ?? asset.variants.preview
+        if (!key) return null
+        const shownKey = asset.variants.poster ?? asset.variants.thumb ?? asset.variants.preview
+        let analysisUrl = key === shownKey ? url : ''
+        if (!analysisUrl) {
+          try {
+            analysisUrl = await storage.getSignedReadUrl(key, { expiresInSeconds: 60 * 60 })
+          } catch {
+            return null
+          }
+        }
+        return analysisUrl
+          ? {
+              id: asset.id,
+              url: analysisUrl,
+              order,
+              takenAt: null,
+              name: assetFileName(asset),
+              hidden: asset.hidden_from_client === true,
+            }
+          : null
+      })
+    )
+  ).filter((p): p is CullingPhoto => p !== null)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const publicUrl = `${appUrl}/${locale}/g/${gallery.slug}`
@@ -353,6 +387,18 @@ export default async function ManageGalleryPage({
         </div>
       </section>
 
+      {cullingPhotos.length > 0 && (
+        // «Сховати від клієнта» / «Повернути клієнту»: assets.hidden_from_client
+        // (0054). The action re-checks ownership on the server.
+        <CullingPanel
+          galleryId={gallery.id}
+          locale={locale}
+          photos={cullingPhotos}
+          onSetHidden={setHiddenFromClient.bind(null, locale, gallery.id)}
+          ownerId={user.id}
+        />
+      )}
+
       <section className="mt-12">
         {previews.length > 0 && (
           <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
@@ -401,6 +447,24 @@ export default async function ManageGalleryPage({
                         </span>
                       )}
                     </span>
+                  )}
+                  {asset.hidden_from_client && (
+                    // Hidden by the photographer (culling): the client never
+                    // sees it; one click puts it back.
+                    <form
+                      action={setHiddenFromClient.bind(null, locale, gallery.id, [asset.id], false)}
+                      className="absolute left-2 top-2 flex flex-col items-start gap-1"
+                    >
+                      <span className="rounded-full bg-neutral-900/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                        {locale === 'uk' ? 'Сховано від клієнта' : 'Hidden from client'}
+                      </span>
+                      <button
+                        type="submit"
+                        className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-900 hover:text-accent"
+                      >
+                        {locale === 'uk' ? 'Повернути клієнту' : 'Show to client'}
+                      </button>
+                    </form>
                   )}
                   {isCover ? (
                     <span className="absolute bottom-2 left-2 rounded-full bg-fg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-bg">
