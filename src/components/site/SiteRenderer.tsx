@@ -12,6 +12,8 @@ import { ThemePovitria } from './air/ThemePovitria'
 import { JOURNAL_FONT_VARS } from './journal/fonts'
 import { ThemeZhurnal } from './journal/ThemeZhurnal'
 import { MIDNIGHT_FONT_VARS } from './midnight/fonts'
+import { START_FONT_VARS } from './start/fonts'
+import { ThemeStart } from './start/ThemeStart'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -329,6 +331,32 @@ export function SiteRenderer({
     return (
       <div style={{ ...vars, ...JOURNAL_FONT_VARS } as CSSProperties}>
         <ThemeZhurnal
+          content={content}
+          displayName={displayName}
+          logoUrl={logoUrl}
+          portfolio={portfolio}
+          labels={labels}
+          langSwitch={langSwitch}
+          leadForm={leadForm}
+          bookingNav={bookingNav}
+          platformCredit={platformCredit}
+        />
+        {bookingSectionEl}
+        {footerEl}
+      </div>
+    )
+  }
+  // v2 one-page «візитка» themes: same props, own layout and type.
+  type CardThemeProps = Parameters<typeof ThemeStart>[0]
+  const cardThemes: Partial<Record<ThemeId, { Component: (p: CardThemeProps) => React.ReactElement; fonts: object }>> = {
+    start: { Component: ThemeStart, fonts: START_FONT_VARS },
+  }
+  const cardTheme = cardThemes[theme]
+  if (cardTheme) {
+    const { Component, fonts } = cardTheme
+    return (
+      <div style={{ ...vars, ...fonts } as CSSProperties}>
+        <Component
           content={content}
           displayName={displayName}
           logoUrl={logoUrl}

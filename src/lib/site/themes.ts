@@ -18,6 +18,8 @@ export const THEME_IDS = [
   'galereia',
   'arkhiv',
   'prodakshn',
+  // v2 one-page «візитка» themes (sites only; migration 0064)
+  'start',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -133,6 +135,24 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       displayTransform: 'uppercase', displayWeight: 700, displayTracking: '-0.01em',
     },
   },
+  start: {
+    id: 'start',
+    tokens: {
+      ...base,
+      // «Старт»: warm white, graphite, a brick-orange accent. On the paper:
+      // fg ≈ 17:1, muted ≈ 6:1, accent ≈ 5:1 (AA).
+      bg: '#f7f6f2', fg: '#17181b', muted: '#5b5f66', accent: '#b8461f', line: '#e3e1da',
+      fontDisplay: '"Start Sans", "Start Sans Fallback", Arial, sans-serif',
+    },
+  },
+}
+
+/**
+ * v2 site themes are site styles only: a gallery of a photographer on one of
+ * them keeps one of the existing gallery styles («Стилі галерей не змінюємо»).
+ */
+export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: SiteMode }>> = {
+  start: { theme: 'tysha', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -187,17 +207,19 @@ export function resolveGalleryTheme(
   siteMode: string | null | undefined
 ): { theme: ThemeId; mode: SiteMode } {
   if (galleryTheme) {
-    const entry = THEME_CATALOG.find((item) => item.value === galleryTheme)
+    const entry = GALLERY_CATALOG.find((item) => item.value === galleryTheme)
     if (entry) return { theme: entry.theme, mode: entry.mode }
   }
   if (siteTheme && isThemeId(siteTheme)) {
+    const mapped = GALLERY_STYLE_OF[siteTheme]
+    if (mapped) return mapped
     return { theme: siteTheme, mode: siteMode === 'night' ? 'night' : 'light' }
   }
   return { theme: 'tysha', mode: 'light' }
 }
 
-/** Catalog entries shown in the editor: 8 items, «Опівніч» = tysha+night. */
-export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
+/** Gallery styles (galleries.theme, CHECK in 0008): the original 8, «Опівніч» = tysha+night. */
+export const GALLERY_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
   { value: 'tysha', theme: 'tysha', mode: 'light' },
   { value: 'opivnich', theme: 'tysha', mode: 'night' },
   { value: 'povitria', theme: 'povitria', mode: 'light' },
@@ -206,4 +228,10 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'galereia', theme: 'galereia', mode: 'light' },
   { value: 'arkhiv', theme: 'arkhiv', mode: 'light' },
   { value: 'prodakshn', theme: 'prodakshn', mode: 'light' },
+]
+
+/** Site themes in the editor: the gallery styles plus the v2 «візитка» themes. */
+export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
+  ...GALLERY_CATALOG,
+  { value: 'start', theme: 'start', mode: 'light' },
 ]

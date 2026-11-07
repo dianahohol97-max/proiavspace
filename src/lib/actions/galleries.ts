@@ -108,7 +108,7 @@ export async function setGalleryTheme(
 ): Promise<void> {
   const { supabase } = await requireUser()
   const value = String(formData.get('theme') ?? '').trim()
-  const { THEME_CATALOG } = await import('@/lib/site/themes')
+  const { GALLERY_CATALOG: THEME_CATALOG } = await import('@/lib/site/themes')
   if (value && !THEME_CATALOG.some((entry) => entry.value === value)) {
     throw new Error('Unknown gallery theme')
   }

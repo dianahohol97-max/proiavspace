@@ -63,13 +63,14 @@ export default async function ThemePreviewPage({
 
   return (
     <>
-      {/* thin bar so the viewer knows this is a demo and can get back */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-bg px-4 py-2 text-sm">
-        <span className="font-semibold">
+      {/* thin bar so the viewer knows this is a demo and can get back; one
+          line at a fixed height, so the web font arriving never shifts the page */}
+      <div className="flex h-[52px] items-center justify-between gap-3 overflow-hidden border-b border-line bg-bg px-4 text-sm">
+        <span className="min-w-0 truncate font-semibold">
           {uk ? 'Демо теми' : 'Theme demo'}: «{demo.name}»
         </span>
-        <span className="flex items-center gap-4">
-          <Link href={`/${locale}/themes`} className="text-muted no-underline hover:text-fg">
+        <span className="flex shrink-0 items-center gap-4 whitespace-nowrap">
+          <Link href={`/${locale}/themes`} className="hidden text-muted no-underline hover:text-fg sm:inline">
             ← {uk ? 'Усі теми' : 'All themes'}
           </Link>
           <Link

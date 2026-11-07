@@ -317,6 +317,7 @@ export const en: Dictionary = {
     themeGalereia: 'Galereia',
     themeArkhiv: 'Arkhiv',
     themeProdakshn: 'Prodakshn',
+    themeStart: 'Start',
     heroLegend: 'Hero',
     heroTitle: 'Headline (your name or a tagline)',
     heroSubtitle: 'Subtitle (genre and city)',

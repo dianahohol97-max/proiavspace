@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { resolveGalleryTokens, THEME_CATALOG } from '@/lib/site/themes'
+import { resolveGalleryTokens, GALLERY_CATALOG as THEME_CATALOG } from '@/lib/site/themes'
 import {
   ACCENT_PRESETS,
   COLUMN_CHOICES,
