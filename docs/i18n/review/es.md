@@ -53,3 +53,12 @@ Format: `key or location — translation — why unsure`
 - gallery/help-locales/es.ts upload[0] — «Sin conexión» — I couldn't find the uploader's "No connection" label in any dictionary, so I translated it freely; it must match the real label in the uploader.
 - gallery/help-locales/es.ts delivery[2] — «franja» for the status banner on top — «banda» / «aviso» are alternatives.
 - gallery/help-locales/es.ts delivery[1] — «el adelanto de fondo» for teaser — consistent with galleryManage.deliveryTeaserHint («foto de adelanto»).
+
+## Delta pass 3 (dashboard redesign)
+
+- galleryManage.hintGoDesign / hintUploaded — «Darle estilo» — button label for going to the Design tab; «Diseñar» or «Ir a Diseño» are shorter alternatives.
+- dashboard.sortUpdated — «Modificadas recientemente» — feminine (galerías); check in the sort dropdown.
+- galleryManage.uploadProgress — «{done} de {total} subidos» — masculine (archivos); no noun shown, so gender is a guess.
+- galleryManage.sharePublished — «Publicada ✓ El enlace ya funciona.» — feminine agreement with «galería» assumed.
+- galleryManage.shareEmail — «Correo» — short button label next to Telegram/Viber/WhatsApp; «Email» is also common in Spain.
+- publicGallery.shareInProgress — «Ahora mismo estoy editando las fotos» — written by the other session in the photographer's first person; I kept it because it reads naturally as a personal message.
