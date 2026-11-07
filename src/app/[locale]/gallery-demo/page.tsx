@@ -10,7 +10,7 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { THEME_DEMOS } from '@/lib/site/demoContent'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
 import { galleryLabels } from '@/lib/gallery/labels'
-import type { GalleryStyle } from '@/lib/gallery/style'
+import { parseGalleryStyle, type GalleryStyle } from '@/lib/gallery/style'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,7 +72,7 @@ const PHOTOS: { n: number; v?: true; fx: number; fy: number }[] = [
 const COVER = 7
 
 const MAX_DEMO_ITEMS = 2000
-const LAYOUTS: NonNullable<GalleryStyle['layout']>[] = ['masonry', 'square', 'portrait', 'collage', 'editorial']
+const LAYOUTS: NonNullable<GalleryStyle['layout']>[] = ['masonry', 'square', 'portrait', 'collage', 'editorial', 'rows']
 const COVERS: NonNullable<GalleryStyle['cover']>[] = ['classic', 'left', 'minimal']
 
 export default async function GalleryDemoPage({
@@ -80,7 +80,16 @@ export default async function GalleryDemoPage({
   searchParams,
 }: {
   params: { locale: string }
-  searchParams: { theme?: string; n?: string; layout?: string; cover?: string; nodims?: string }
+  searchParams: {
+    theme?: string
+    n?: string
+    layout?: string
+    cover?: string
+    nodims?: string
+    cols?: string
+    gap?: string
+    radius?: string
+  }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -96,6 +105,12 @@ export default async function GalleryDemoPage({
   const count = Math.min(Math.max(Number.parseInt(searchParams.n ?? '', 10) || PHOTOS.length, 1), MAX_DEMO_ITEMS)
   const layout = LAYOUTS.find((l) => l === searchParams.layout)
   const cover = COVERS.find((c) => c === searchParams.cover)
+  // ?cols=, ?gap=, ?radius= — the designer's grid settings (validated like the saved style).
+  const gridStyle = parseGalleryStyle({
+    columns: Number(searchParams.cols),
+    gap: Number(searchParams.gap),
+    radius: Number(searchParams.radius),
+  })
   const frames = Array.from({ length: count }, (_, i) => ({ ...PHOTOS[i % PHOTOS.length], i }))
 
   // ?nodims=3: photos 2, 5, 8 lose their stored size, like old HEIC uploads.
@@ -170,7 +185,7 @@ export default async function GalleryDemoPage({
         theme={active.theme}
         mode={active.mode}
         // Cover focal: the couple's faces sit just above the middle.
-        style={{ focalX: 48, focalY: 35, ...(layout ? { layout } : {}), ...(cover ? { cover } : {}) }}
+        style={{ focalX: 48, focalY: 35, ...gridStyle, ...(layout ? { layout } : {}), ...(cover ? { cover } : {}) }}
         labels={galleryLabels(dict)}
       />
     </>

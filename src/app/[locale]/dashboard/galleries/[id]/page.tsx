@@ -5,6 +5,7 @@ import {
   deleteGallery,
   setAssetFocal,
   setGalleryCover,
+  sortGalleryAssets,
   setGalleryDelivery,
   setGalleryPublished,
   setGalleryTheme,
@@ -17,6 +18,7 @@ import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { CopyLinkButton } from '@/components/CopyLinkButton'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
+import { GallerySortControl } from '@/components/gallery/GallerySortControl'
 import { CullingPanel } from '@/components/gallery/CullingPanel'
 import type { CullingPhoto } from '@/lib/culling/types'
 import { setHiddenFromClient } from '@/lib/actions/culling'
@@ -184,7 +186,7 @@ export default async function ManageGalleryPage({
               id: asset.id,
               url: analysisUrl,
               order,
-              takenAt: null,
+              takenAt: asset.taken_at ? Date.parse(asset.taken_at) : null,
               name: assetOriginalName(asset),
               hidden: asset.hidden_from_client === true,
             }
@@ -490,6 +492,14 @@ export default async function ManageGalleryPage({
           <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
             {dict.designer.focusGridHint}
           </p>
+        )}
+        {previews.length > 1 && (
+          <GallerySortControl
+            locale={locale}
+            total={previews.length}
+            withTakenAt={previews.filter(({ asset }) => asset.taken_at).length}
+            action={sortGalleryAssets.bind(null, locale, gallery.id)}
+          />
         )}
         {previews.length === 0 ? (
           <p className="max-w-xl leading-relaxed text-muted">{dict.galleryManage.noAssets}</p>

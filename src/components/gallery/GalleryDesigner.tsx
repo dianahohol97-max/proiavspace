@@ -28,6 +28,7 @@ const LAYOUT_LABEL = {
   portrait: 'layoutPortrait',
   collage: 'layoutCollage',
   editorial: 'layoutEditorial',
+  rows: 'layoutRows',
 } as const
 const COVER_LABEL = { classic: 'coverClassic', left: 'coverLeft', minimal: 'coverMinimal' } as const
 const RADIUS_LABEL: Record<number, keyof Dictionary['designer']> = { 0: 'radiusSharp', 10: 'radiusSoft', 22: 'radiusRound' }
@@ -91,7 +92,7 @@ export function GalleryDesigner({
   const [font, setFont] = useState(initialStyle.font ?? '')
   const [bodyFont, setBodyFont] = useState(initialStyle.bodyFont ?? '')
   const [layout, setLayout] = useState<
-    'masonry' | 'square' | 'portrait' | 'collage' | 'editorial'
+    'masonry' | 'square' | 'portrait' | 'collage' | 'editorial' | 'rows'
   >(initialStyle.layout ?? 'masonry')
   const [gap, setGap] = useState(initialStyle.gap ?? 14)
   const [cover, setCover] = useState<'classic' | 'left' | 'minimal'>(
@@ -134,8 +135,13 @@ export function GalleryDesigner({
 
   // Tile shape mirrors the client gallery: masonry varies, the rest crop.
   const editorialWide = (i: number) => i % 4 === 0 || i % 4 === 3
+  // «Рядки»: a mix of landscapes and portraits, as width ÷ height.
+  const rowAspect = (i: number) => (i % 3 === 0 ? 2 / 3 : 3 / 2)
+  const rowHeight = device === 'phone' ? 54 : Math.round(150 / Math.max(columns, 2))
   const tileAspect = (i: number) =>
-    layout === 'portrait'
+    layout === 'rows'
+      ? String(rowAspect(i))
+      : layout === 'portrait'
       ? '3 / 4'
       : layout === 'masonry'
         ? i % 3 === 0
@@ -149,7 +155,9 @@ export function GalleryDesigner({
   // Collage promotes every 6th tile to a 2×2 accent; editorial alternates a
   // wide hero with squares — same rules as the client gallery.
   const tileSpan = (i: number): React.CSSProperties =>
-    layout === 'collage' && i % 6 === 0
+    layout === 'rows'
+      ? { flex: `${rowAspect(i)} 1 ${rowAspect(i) * rowHeight}px`, minWidth: 0 }
+      : layout === 'collage' && i % 6 === 0
       ? { gridColumn: 'span 2', gridRow: 'span 2' }
       : layout === 'editorial' && editorialWide(i)
         ? { gridColumn: 'span 2' }
@@ -620,7 +628,14 @@ export function GalleryDesigner({
                         columns: previewCols,
                         columnGap: Math.max(2, Math.round(gap / 2)),
                       }
-                    : {
+                    : layout === 'rows'
+                      ? {
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'flex-start',
+                          gap: Math.max(2, Math.round(gap / 2)),
+                        }
+                      : {
                         display: 'grid',
                         gap: Math.max(2, Math.round(gap / 2)),
                         gridTemplateColumns: `repeat(${previewCols}, 1fr)`,
@@ -671,6 +686,8 @@ export function GalleryDesigner({
                     }}
                   />
                 ))}
+                {/* «Рядки»: the last row keeps its height instead of stretching */}
+                {layout === 'rows' && <span aria-hidden style={{ flex: '1000000 1 0' }} />}
               </div>
 
               {/* footer signature — display font, like the real gallery */}

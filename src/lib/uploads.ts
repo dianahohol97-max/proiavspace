@@ -3,6 +3,7 @@ import { effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
 import { galleryPrefix, getStorage, isVariantName } from '@/lib/storage'
 import { MAX_FILE_BYTES } from '@/lib/upload/limits'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isValidTakenAt } from '@/lib/images/exif'
 
 /**
  * Shared server-side upload logic for the single-PUT (/api/uploads/*) and
@@ -91,6 +92,8 @@ export interface RegisterAssetInput {
   importId?: string
   /** Zip import only: sort position, so the gallery keeps the zip's name order. */
   position?: number
+  /** Capture time from the photo's EXIF (ISO; wall clock as UTC, see images/exif.ts). */
+  takenAt?: string
 }
 
 export function parseRegisterAssetInput(value: unknown): RegisterAssetInput | null {
@@ -116,6 +119,7 @@ export function parseRegisterAssetInput(value: unknown): RegisterAssetInput | nu
       (typeof v.originalName === 'string' && v.originalName.length <= 512)) &&
     (v.importId === undefined || typeof v.importId === 'string') &&
     (v.position === undefined || (Number.isInteger(v.position) && (v.position as number) >= 0)) &&
+    (v.takenAt === undefined || isValidTakenAt(v.takenAt)) &&
     variantsOk
   return ok ? (v as unknown as RegisterAssetInput) : null
 }
@@ -233,15 +237,19 @@ export async function registerAsset(
         }
       : {}),
     ...(sourceFileName ? { source_file_name: sourceFileName } : {}),
+    ...(input.takenAt ? { taken_at: input.takenAt } : {}),
   }
   const insert = (values: Record<string, unknown>) =>
-    admin.from('assets').insert(values).select('id').single()
+    admin.from('assets').insert(values).select('id').single<{ id: string }>()
   let { data, error } = await insert(row)
-  if (sourceFileName && isUnknownColumn(error, 'source_file_name')) {
-    // 0066 not applied yet: register without the name (the list falls back
-    // to the storage key's name, as before) rather than fail the upload.
-    const { source_file_name: _dropped, ...withoutName } = row
-    ;({ data, error } = await insert(withoutName))
+  // Migrations not applied yet (0066 source_file_name, 0067 taken_at):
+  // register the photo without that column rather than fail the upload —
+  // the list falls back to the storage key's name, the order to upload time.
+  for (const column of ['source_file_name', 'taken_at']) {
+    if (error && column in row && (isUnknownColumn(error, column) || isMissingColumn(error, column))) {
+      delete row[column]
+      ;({ data, error } = await insert(row))
+    }
   }
 
   if (error?.code === '23505' && input.importId) {
@@ -256,10 +264,17 @@ export async function registerAsset(
     await discard()
     return { ok: false, status: 403, error: 'storage_quota_exceeded' }
   }
-  if (error) {
-    return { ok: false, status: 500, error: error.message }
+  if (error || !data) {
+    return { ok: false, status: 500, error: error?.message ?? 'insert_failed' }
   }
   return { ok: true, assetId: (data as { id: string }).id }
+}
+
+/** PostgREST / Postgres «no such column» (a migration not applied yet). */
+export function isMissingColumn(error: { code?: string; message?: string } | null | undefined, column: string): boolean {
+  if (!error) return false
+  const mentions = !!error.message?.includes(column)
+  return mentions && (error.code === 'PGRST204' || error.code === '42703' || /column/i.test(error.message ?? ''))
 }
 
 /** The enforce_storage_quota trigger (0045) refused the insert. */
