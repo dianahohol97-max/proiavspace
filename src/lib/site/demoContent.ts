@@ -203,7 +203,6 @@ export const THEME_DEMOS: ThemeDemo[] = [
       phw('18', '/showcase/03', 'Пари', 'Липневе світло', [1333, 2000]),
       phw('19', '/showcase/04', 'Сімейні', 'Неділя в полі', [1333, 2000]),
       phw('20', '/showcase/07', 'Сімейні', 'Перше літо', [1333, 2000]),
-      phw('21', '/showcase/06', 'Портрети', 'Вечірнє світло', [1333, 2000]),
     ],
   },
   {
@@ -277,8 +276,9 @@ export const THEME_DEMOS: ThemeDemo[] = [
       contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', bookingUrl: '' },
     }),
     portfolio: [
-      // 1: hero; 2–10: the grid's rhythm (pair, trio, pause, trio); 11: the
-      // photographer's portrait; the rest feed the strip of lights.
+      // 1: hero; 11: the photographer's portrait; the next nine form the grid
+      // (pair, trio, pause, trio); the rest feed the strip of lights.
+      // No frame is shared with «Тиша»'s demo.
       phn('1', '/themes/25', 'Вечірні весілля', 'Коридор із вогнів', [2000, 1333], true),
       phn('2', '/themes/26', 'Вечірні весілля', 'Перший танець під гірляндами', [2000, 1335]),
       phn('3', '/themes/27', 'Вечірні весілля', 'Поцілунок під іскрами', [1333, 2000]),
@@ -288,10 +288,8 @@ export const THEME_DEMOS: ThemeDemo[] = [
       phn('7', '/themes/30', 'Світло і тінь', 'Остання година сонця', [2000, 1374]),
       phn('8', '/themes/39', 'Свічки й портрети', 'Вікно у вечір', [1600, 2000]),
       phn('9', '/showcase/02', 'Свічки й портрети', 'Промінь', [1333, 2000]),
-      phn('10', '/showcase/08', 'Свічки й портрети', 'Біля вікна', [1333, 2000]),
       phn('11', '/showcase/06', 'Світло і тінь', 'Портрет', [1333, 2000]),
       phn('12', '/themes/37', 'Свічки й портрети', 'Червоне світло', [2000, 1333]),
-      phn('13', '/showcase/16', 'Світло і тінь', 'Крізь листя', [2000, 1333]),
       phn('14', '/themes/35', 'Свічки й портрети', 'Вогні міста', [1333, 2000]),
       phn('15', '/showcase/10', 'Світло і тінь', 'Сутінки', [1333, 2000]),
       phn('16', '/themes/36', 'Світло і тінь', 'Боке', [1500, 2000]),

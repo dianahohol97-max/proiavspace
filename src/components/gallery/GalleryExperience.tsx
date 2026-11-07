@@ -165,7 +165,9 @@ export function GalleryExperience({
   deliveryNotice?: { text: string; etaText: string | null } | null
 }) {
   const tokens = resolveTokens(theme, mode)
-  const accent = style?.accent ?? (mode === 'night' ? '#8fa2ff' : '#2f55ff')
+  // Default accent: on «Опівніч» (night) the theme's own flame gold, so hearts
+  // and the favourites pill match the site; light themes keep the cobalt.
+  const accent = style?.accent ?? (mode === 'night' ? tokens.accent : '#2f55ff')
   const focal = `${style?.focalX ?? 50}% ${style?.focalY ?? 50}%`
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites))
