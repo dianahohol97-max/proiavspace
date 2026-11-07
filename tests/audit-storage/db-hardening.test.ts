@@ -87,13 +87,83 @@ describe('0060 profiles_clear_free_expiry', () => {
   })
 })
 
+describe('0060 owner_has_paid_plan', () => {
+  test('anon і public без EXECUTE, authenticated і service_role — з ним', { skip: skip() }, () => {
+    assert.equal(pg!.sql(`select has_function_privilege('anon', 'public.owner_has_paid_plan(uuid)', 'execute')`), 'f')
+    assert.equal(
+      pg!.sql(`select count(*) from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+        where p.oid = 'public.owner_has_paid_plan(uuid)'::regprocedure and a.grantee = 0`),
+      '0',
+      'PUBLIC'
+    )
+    assert.equal(pg!.sql(`select has_function_privilege('authenticated', 'public.owner_has_paid_plan(uuid)', 'execute')`), 't')
+    assert.equal(pg!.sql(`select has_function_privilege('service_role', 'public.owner_has_paid_plan(uuid)', 'execute')`), 't')
+    const rpc = as('anon', `select public.owner_has_paid_plan(gen_random_uuid())`)
+    assert.equal(rpc.ok, false)
+    assert.match(rpc.out, /permission denied/)
+  })
+
+  test('фотограф створює галерею: тригер-охоронець і далі ставить дедлайн Free', { skip: skip() }, () => {
+    const userId = newUser()
+    const r = as('authenticated', `insert into public.galleries (owner_id, slug, title)
+      values ('${userId}', 'g-' || gen_random_uuid(), 'T') returning (free_expires_at is not null)::text`, userId)
+    assert.equal(r.ok, true, r.out)
+    assert.equal(r.out, 'true')
+  })
+})
+
+describe('0060 release_expired_slots лише для власника', () => {
+  /** Owner with auto-release after 1 h and one priced slot booked 2 h ago. */
+  function expiredBooking() {
+    const owner = newUser()
+    const handle = 'r' + pg!.sql(`select substr(md5(random()::text), 1, 10)`)
+    pg!.sql(`insert into public.booking_settings (user_id, enabled, handle, unpaid_release_hours)
+             values ('${owner}', true, '${handle}', 1)`)
+    const slot = pg!.sql(`insert into public.booking_slots (owner_id, starts_at, price_uah, status, client_name, booked_at)
+             values ('${owner}', (now() + interval '3 days')::timestamp, 500, 'booked', 'К', now() - interval '2 hours')
+             returning id`)
+    return { owner, slot, status: () => pg!.sql(`select status from public.booking_slots where id = '${slot}'`) }
+  }
+
+  test('чужий залогінений користувач: нічого не звільняє', { skip: skip() }, () => {
+    const b = expiredBooking()
+    const stranger = newUser()
+    const r = as('authenticated', `select public.release_expired_slots('${b.owner}')`, stranger)
+    assert.equal(r.ok, true, r.out)
+    assert.equal(r.out, '0')
+    assert.equal(b.status(), 'booked')
+  })
+
+  test('власник у кабінеті: звільняє свої прострочені', { skip: skip() }, () => {
+    const b = expiredBooking()
+    const r = as('authenticated', `select public.release_expired_slots('${b.owner}')`, b.owner)
+    assert.equal(r.out, '1', r.out)
+    assert.equal(b.status(), 'free')
+  })
+
+  test('сервісна роль і серверні задачі (без auth.uid()): працюють як раніше', { skip: skip() }, () => {
+    const b = expiredBooking()
+    assert.equal(pg!.sql(`begin; set local role service_role; select public.release_expired_slots('${b.owner}'); commit;`), '1')
+    assert.equal(b.status(), 'free')
+    const c = expiredBooking()
+    assert.equal(pg!.sql(`select public.release_expired_slots('${c.owner}')`), '1')
+    assert.equal(c.status(), 'free')
+  })
+
+  test('anon як і раніше не може викликати', { skip: skip() }, () => {
+    const r = as('anon', `select public.release_expired_slots(gen_random_uuid())`)
+    assert.equal(r.ok, false)
+    assert.match(r.out, /permission denied/)
+  })
+})
+
 describe('0060 публічна галерея, обране, бронювання працюють для anon', () => {
   test('публічні SECURITY DEFINER функції досі доступні anon', { skip: skip() }, () => {
     const keep = [
       'book_slot(uuid,text,text,text)', 'gallery_is_open(uuid)', 'gallery_is_public(uuid)',
       'get_booking_profile(text)', 'get_free_slots(text)', 'get_gallery_branding(text)',
       'get_published_site_handles()', 'get_site(text)', 'get_site_galleries(text)', 'get_site_portfolio(text)',
-      'list_selections(uuid,text)', 'owner_galleries_closed(uuid)', 'owner_has_paid_plan(uuid)',
+      'list_selections(uuid,text)', 'owner_galleries_closed(uuid)',
       'public_gallery_state(text)', 'record_gallery_archive(uuid)', 'record_gallery_download(uuid,uuid)',
       'record_gallery_view(text)', 'record_photo_view(text,uuid)', 'record_site_lead(text,text,text,text)',
       'set_selection(text,uuid,text,boolean,text)',
