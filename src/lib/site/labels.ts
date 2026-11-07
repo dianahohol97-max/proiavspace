@@ -53,6 +53,10 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     giftPrintsText: p.giftPrintsText,
     order: p.order,
     filterAll: p.filterAll,
+    before: p.before,
+    after: p.after,
+    howToPrepare: p.howToPrepare,
+    compareRetouch: p.compareRetouch,
   }
 }
 
