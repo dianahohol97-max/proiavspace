@@ -259,7 +259,7 @@ export async function setGalleryDelivery(
     return { ok: false }
   }
   // «Готово» for the first time + the client's address → «Ваші фото готові»
-  // (0066). Once per gallery; a failed letter never fails the status save.
+  // (0067). Once per gallery; a failed letter never fails the status save.
   if (deliveryStatus === 'ready') {
     const { notifyClientIfReady } = await import('@/lib/gallery/ready-email-store')
     await notifyClientIfReady(supabase, user, galleryId)
@@ -284,7 +284,7 @@ export async function setGalleryPublished(
 
   if (error) throw new Error(`Failed to update gallery: ${error.message}`)
   // Status «Готово» set while the gallery was still a draft: the letter
-  // waited for a working link (0066). No-op when already sent / no address.
+  // waited for a working link (0067). No-op when already sent / no address.
   if (published) {
     const { notifyClientIfReady } = await import('@/lib/gallery/ready-email-store')
     await notifyClientIfReady(supabase, user, galleryId)
@@ -368,4 +368,27 @@ export async function signOut(locale: Locale): Promise<void> {
   const supabase = createSupabaseServerClient()
   await supabase.auth.signOut()
   redirect(`/${locale}`)
+}
+
+export type SortMode = 'taken' | 'uploaded'
+export type SortResult = { ok: true; changed: number } | { ok: false; error: 'not_ready' | 'failed' }
+
+/**
+ * «Впорядкувати за часом зйомки» / «за часом завантаження»: rewrites the
+ * gallery's order (assets.position) in one call to sort_gallery_assets
+ * (migration 0067), which checks ownership itself. Photos from several
+ * cameras end up interleaved by capture time; ones without EXIF time go last.
+ */
+export async function sortGalleryAssets(locale: Locale, galleryId: string, mode: SortMode): Promise<SortResult> {
+  if (mode !== 'taken' && mode !== 'uploaded') return { ok: false, error: 'failed' }
+  const { supabase } = await requireUser()
+  const { data, error } = await supabase.rpc('sort_gallery_assets', { p_gallery: galleryId, p_mode: mode })
+  if (error) {
+    // Migration 0067 not applied yet: the function doesn't exist.
+    const missing = error.code === 'PGRST202' || error.code === '42883' || /sort_gallery_assets/.test(error.message ?? '')
+    console.error('sort_gallery_assets failed', galleryId, error.message)
+    return { ok: false, error: missing ? 'not_ready' : 'failed' }
+  }
+  revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  return { ok: true, changed: typeof data === 'number' ? data : 0 }
 }

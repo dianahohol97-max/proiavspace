@@ -4,6 +4,7 @@ import {
   deleteGallery,
   setAssetFocal,
   setGalleryCover,
+  sortGalleryAssets,
   setGalleryDelivery,
   setGalleryPublished,
   setGalleryTheme,
@@ -16,6 +17,7 @@ import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
+import { GallerySortControl } from '@/components/gallery/GallerySortControl'
 import { CullingPanel } from '@/components/gallery/CullingPanel'
 import type { CullingPhoto } from '@/lib/culling/types'
 import { setHiddenFromClient } from '@/lib/actions/culling'
@@ -190,7 +192,7 @@ export default async function ManageGalleryPage({
               id: asset.id,
               url: analysisUrl,
               order,
-              takenAt: null,
+              takenAt: asset.taken_at ? Date.parse(asset.taken_at) : null,
               name: assetOriginalName(asset),
               hidden: asset.hidden_from_client === true,
             }
@@ -424,6 +426,14 @@ export default async function ManageGalleryPage({
       {previews.length > 0 && (
         <div className="mt-10">
           <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">{m.photosFocusHint}</p>
+          {previews.length > 1 && (
+            <GallerySortControl
+              locale={locale}
+              total={previews.length}
+              withTakenAt={previews.filter(({ asset }) => asset.taken_at).length}
+              action={sortGalleryAssets.bind(null, locale, gallery.id)}
+            />
+          )}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4" data-testid="photo-grid">
             {previews.map(({ asset, url }) => {
               const favoritedBy = favoriteCounts.get(asset.id) ?? 0
