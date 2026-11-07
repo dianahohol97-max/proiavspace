@@ -20,3 +20,6 @@ scratchpad/
 
 # Wrangler local state
 .wrangler/
+
+# Local screenshots for reports (not part of the repo)
+/screenshots/
