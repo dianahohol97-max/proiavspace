@@ -5,6 +5,8 @@ import { verifyPassword } from '@/lib/password'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
+// Next to Supabase (eu-central-1) — same region as the public gallery page.
+export const preferredRegion = 'fra1'
 
 /**
  * Password gate for public galleries. On a correct password the response sets

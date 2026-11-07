@@ -4,6 +4,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { SelectionKind } from '@/lib/types'
 
 export const runtime = 'nodejs'
+// Next to Supabase (eu-central-1) — same region as the public gallery page.
+export const preferredRegion = 'fra1'
 
 interface ToggleBody {
   assetId: string
