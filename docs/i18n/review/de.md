@@ -45,3 +45,14 @@ Phrases I am not fully sure about. Format: `key or location — translation — 
 - landing `principles.items[3].title` — „Ihre Fotos bleiben bei Ihnen“ — free rendering of “Photos are not shipped off for analysis”.
 - landing `pricing.plans.pro.note` — „Große Archive und eine volle Saison“ — “a busy season” is now close to the Plus note („Für eine volle Saison“); consider „… und viel Betrieb in der Hochsaison“.
 - landing `hero.status.eta` — „Voraussichtlich bis 14. Dezember“ — mock date in the hero card.
+
+## Delta 3 (dashboard redesign)
+
+- `galleryManage.tabClient` — „Kunde“ — tab label; singular to keep it short, „Kunden“ would match the rest of the UI.
+- `galleryManage.tabDesign` — „Design“ — identical to English, but the standard German word.
+- `galleryManage.hintGoDesign` — „Gestalten“ — button for “Style it”; check it fits next to „Teilen“.
+- `dashboard.galleriesCount` — `{n, plural, one {# Galerie} other {# Galerien}}` — changed from the “Label: {n}” style to a plural; confirm the layout still works without a label.
+- `galleryManage.accessDownloadsCount` — „Bisher # Download(s)“ — plural form, “Downloads so far”.
+- `galleryManage.shareQrHint` — „… öffnen Sie die Galerie damit auf dem Smartphone“ — source is ambiguous (scan with a phone vs open from a phone).
+- `publicGallery.shareInProgress/sharePassword` — the message the photographer sends uses „Sie“ and first person („schicke ich Ihnen“); some photographers write to clients with „du“. Should this be configurable?
+- `dashboard.onboardStep3` — „Link teilen — per Telegram, Viber, WhatsApp oder E-Mail“ — the messenger list is Ukraine-oriented; kept as is.

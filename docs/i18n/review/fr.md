@@ -45,3 +45,13 @@ Format : `clé ou emplacement — traduction — pourquoi je doute`
 - landing products.features[2].title — « Une coupure réseau ne vous oblige pas à tout recommencer » — plus long que l’anglais ; à vérifier dans la mise en page.
 - landing hero.status.eta — « Prévue pour le 14 décembre » — maquette, accord féminin (la galerie).
 - landing bento.cards.languages — « au choix parmi neuf » — tournure à valider.
+
+## Delta 3 (tableau de bord)
+
+- galleryManage.accessDownloadsCount — « {n, plural, one {# téléchargement jusqu’ici} other {# téléchargements jusqu’ici}} » — passé du style « Libellé : {n} » à une phrase avec pluriel ; « jusqu’ici » à valider (« au total » possible).
+- dashboard.sortNewest / sortUpdated — « Les plus récentes » / « Modifiées récemment » — accord au féminin (galeries) ; vérifier que le libellé est bien affiché dans un menu de tri de galeries.
+- galleryManage.hintGoDesign — « Personnaliser » — pour « Style it » ; l’onglet s’appelle « Design ».
+- galleryManage.tabDesign — « Design » — identique à l’anglais, mot courant en français ; « Apparence » serait une alternative.
+- galleryManage.shareQr — « Code QR » — « QR code » est aussi très courant en France ; changé pour ne pas rester identique à l’anglais.
+- publicGallery.shareReady / shareInProgress / sharePassword — message envoyé par le photographe au client, en vouvoiement et à la première personne (« je vous l’envoie ») ; vérifier que le ton convient à des photographes qui tutoient parfois leurs clients.
+- dashboard.onboardLede — « C’est l’affaire de quelques minutes » — tournure idiomatique pour « It takes a few minutes ».

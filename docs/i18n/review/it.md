@@ -43,3 +43,12 @@ Frasi su cui non sono del tutto sicuro. Formato: `chiave o posizione — traduzi
 - landing `principles.items[3].title` — «Le foto non vengono spedite altrove per l’analisi» — un po’ lungo per un titolo.
 - landing `bento.cards.languages.text` — «Il cliente passa la galleria nella sua lingua: sono nove» — formulazione da rivedere.
 - help `upload.items[0]` — «Nessuna connessione» — l’etichetta dell’uploader non è (ancora) localizzata nei dizionari, quindi la traduzione citata è un’ipotesi.
+
+## Delta 3 (dashboard)
+
+- dictionary `dashboard.onboardStep2` — «Carica le foto: trascinale semplicemente nella finestra» — «finestra» per «window»; forse meglio «nel riquadro».
+- dictionary `galleryManage.hintGoDesign` — «Personalizza» — per «Style it»; alternativa «Scegli lo stile».
+- dictionary `galleryManage.tabDesign` — «Design» lasciato uguale all’inglese (comune in italiano); alternativa «Aspetto».
+- dictionary `galleryManage.shareVia` — «Invia con» — seguito dai nomi delle app; verificare con il layout (alternativa «Invia tramite»).
+- dictionary `galleryManage.shareQrHint` — «Stampalo su un biglietto…» — «biglietto» per «card» (biglietto da visita / cartoncino).
+- dictionary `publicGallery.shareInProgress` — «Sto ancora lavorando alle foto» — prima persona singolare del fotografo; per gli studi servirebbe il plurale.

@@ -51,3 +51,14 @@ Formato: `chave ou local — tradução — porque há dúvida`
 - landing `hero.status.eta` — «Prevista até 14 de dezembro» — data fixa de maquete.
 - help `upload.items[0]` — «Sem ligação»: o rótulo real do carregador não está localizado no código (não encontrei a string); confirmar quando existir.
 - help `delivery.items[1..2]` — «antevisão em fundo», «faixa no topo» (banner) — confirmar termos.
+
+## Delta 3 (painel)
+
+- `dashboard.galleriesCount` — `{n, plural, one {# galeria} other {# galerias}}` — passou de «Galleries: {n}» a plural; confirmar que o rótulo funciona sozinho no contexto da lista.
+- `galleryManage.accessDownloadsCount` — «# transferências até agora» — «transferência» para download pode confundir-se com transferência bancária; alternativa «descargas».
+- `galleryManage.tabDesign` — «Design» (igual ao inglês) — usado em pt-PT; alternativa «Aspeto».
+- `galleryManage.hintGoDesign` — «Personalizar» para «Style it» — confirmar.
+- `galleryManage.hintUploaded` — «As fotos já cá estão ✓» — tom coloquial; confirmar.
+- `dashboard.sortUpdated` — «Alteradas recentemente» (concorda com «galerias») — confirmar.
+- `publicGallery.sharePassword` — alterado para «envio-lhe a palavra-passe numa mensagem à parte» (a mensagem é do fotógrafo para o cliente, 1.ª pessoa) — confirmar tom.
+- `publicGallery.shareReady` / `shareInProgress` — «Olá!» + 3.ª pessoa formal («a sua galeria») — ver se para mensagens de Telegram/WhatsApp se prefere um tom mais próximo.

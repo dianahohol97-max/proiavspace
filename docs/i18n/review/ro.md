@@ -49,3 +49,11 @@ Format: `cheie sau loc — traducerea — de ce nu sunt sigur`
 - help `upload.items[0]` — „Fără conexiune” — eticheta uploaderului („No connection”) nu am găsit-o în fișierele mele de traducere; trebuie să coincidă cu textul real din interfață.
 - `designer.picksFavorite` / `picksRetouch` — „inimă” / „retuș” — valori în coloana CSV a exportului; de verificat dacă „favorit” ar fi mai clar decât „inimă”.
 - `designer.focusGridHint` — „punctul focal” pentru „crop focus” — de confirmat termenul.
+
+## Delta 3
+
+- `galleryManage.share` / `dashboard.actionShare` — „Trimite clientului” / „Trimite” pentru „Share” — „Distribuie” sună a rețele sociale; de confirmat lungimea pentru buton.
+- `galleryManage.hintGoDesign` — „Personalizați designul” pentru „Style it” — poate prea lung pentru un buton.
+- `publicGallery.shareReady` / `shareInProgress` — „Bună ziua! … galeria dumneavoastră” — mesaj trimis de fotograf clientului; am trecut la formal, dar mulți fotografi le scriu clienților informal („Bună! … galeria ta”). De decis tonul.
+- `galleryManage.tabDesign` / `tabClient` — „Design” / „Client” — identice cu engleza (cuvinte românești uzuale).
+- `dashboard.sortNewest` — „Cele mai noi” — se referă la galerii (feminin plural); OK dacă eticheta apare doar în lista de galerii.
