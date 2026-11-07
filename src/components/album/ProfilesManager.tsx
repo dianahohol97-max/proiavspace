@@ -29,6 +29,7 @@ interface FormState {
   coverH: string
   coverBleed: string
   spine: string
+  spineStep: string
 }
 
 const s = (n: number) => String(n)
@@ -50,6 +51,7 @@ function toForm(name: string, spec: PrintSpec, id?: string): FormState {
     coverH: s(spec.cover?.heightMm ?? spec.spreadHeightMm),
     coverBleed: s(spec.cover?.bleedMm ?? 15),
     spine: s(spec.cover?.spineMm ?? 10),
+    spineStep: s(spec.cover?.spinePerSpreadMm ?? 0),
   }
 }
 
@@ -64,7 +66,7 @@ function fromForm(f: FormState): PrintSpec {
     gapMm: f.gap,
     dpi: f.dpi,
     colorProfile: f.color,
-    cover: f.coverOn ? { widthMm: f.coverW, heightMm: f.coverH, bleedMm: f.coverBleed, spineMm: f.spine } : null,
+    cover: f.coverOn ? { widthMm: f.coverW, heightMm: f.coverH, bleedMm: f.coverBleed, spineMm: f.spine, spinePerSpreadMm: f.spineStep } : null,
   })
 }
 
@@ -100,6 +102,10 @@ export function ProfilesManager({ backendKind, basePath }: { backendKind: 'serve
       const spec = fromForm(form)
       const px = sheetSizePx(formatFor(spec, 'spread'), spec.dpi)
       preview = `Розворот ${spec.spreadWidthMm}×${spec.spreadHeightMm} мм → файл ${px.width}×${px.height} px з вильотом`
+      if (spec.cover?.spinePerSpreadMm) {
+        const at = (n: number) => Math.round((spec.cover!.spineMm + spec.cover!.spinePerSpreadMm! * n) * 10) / 10
+        preview += ` · корінець: 10 розворотів — ${at(10)} мм, 20 — ${at(20)} мм`
+      }
     } catch (e) {
       formError = (e as Error).message
     }
@@ -173,11 +179,12 @@ export function ProfilesManager({ backendKind, basePath }: { backendKind: 'serve
             Обкладинка окремим форматом (розгортка з корінцем)
           </label>
           {form.coverOn && (
-            <div className="mt-3 grid gap-3 sm:grid-cols-4">
+            <div className="mt-3 grid gap-3 sm:grid-cols-5">
               <Field id="pf-cw" text="Ширина розгортки" suffix="мм" value={form.coverW} onChange={(v) => set({ coverW: v })} />
               <Field id="pf-ch" text="Висота" suffix="мм" value={form.coverH} onChange={(v) => set({ coverH: v })} />
               <Field id="pf-cb" text="Виліт / загин" suffix="мм" value={form.coverBleed} onChange={(v) => set({ coverBleed: v })} />
-              <Field id="pf-spine" text="Корінець" suffix="мм" value={form.spine} onChange={(v) => set({ spine: v })} />
+              <Field id="pf-spine" text="Корінець (база)" suffix="мм" value={form.spine} onChange={(v) => set({ spine: v })} />
+              <Field id="pf-spine-step" text="+ на розворот" suffix="мм" value={form.spineStep} onChange={(v) => set({ spineStep: v })} />
             </div>
           )}
           <p className={`mt-4 text-xs ${formError ? 'text-red-700' : 'text-muted'}`} data-testid="profile-preview">

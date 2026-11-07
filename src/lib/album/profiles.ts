@@ -21,7 +21,7 @@ export const EXAMPLE_PROFILES: PrintProfile[] = [
       gapMm: 4,
       dpi: DEFAULT_DPI,
       colorProfile: 'srgb',
-      cover: { widthMm: 615, heightMm: 300, bleedMm: 15, spineMm: 15 },
+      cover: { widthMm: 615, heightMm: 300, bleedMm: 15, spineMm: 15, spinePerSpreadMm: 0 },
     },
   },
   {
@@ -37,7 +37,7 @@ export const EXAMPLE_PROFILES: PrintProfile[] = [
       gapMm: 5,
       dpi: DEFAULT_DPI,
       colorProfile: 'adobe_rgb',
-      cover: { widthMm: 818, heightMm: 300, bleedMm: 15, spineMm: 18 },
+      cover: { widthMm: 810, heightMm: 300, bleedMm: 15, spineMm: 10, spinePerSpreadMm: 0.8 },
     },
   },
   {
@@ -86,6 +86,7 @@ const LIMITS = {
   coverHeightMm: [50, 1000],
   coverBleedMm: [0, 50],
   spineMm: [0, 100],
+  spinePerSpreadMm: [0, 5],
 } as const
 
 const num = (v: unknown): number => (typeof v === 'number' ? v : Number(String(v ?? '').replace(',', '.')))
@@ -112,14 +113,17 @@ export function normalizeSpec(input: Partial<Record<keyof PrintSpec, unknown>> &
     colorProfile,
     cover: null,
   }
-  const cover = input.cover as Partial<Record<'widthMm' | 'heightMm' | 'bleedMm' | 'spineMm', unknown>> | null | undefined
+  const cover = input.cover as Partial<Record<'widthMm' | 'heightMm' | 'bleedMm' | 'spineMm' | 'spinePerSpreadMm', unknown>> | null | undefined
   if (cover && cover.widthMm !== undefined && cover.widthMm !== '' && cover.widthMm !== null) {
     spec.cover = {
       widthMm: check('coverWidthMm', cover.widthMm, 'Ширина обкладинки, мм'),
       heightMm: check('coverHeightMm', cover.heightMm, 'Висота обкладинки, мм'),
       bleedMm: check('coverBleedMm', or(cover.bleedMm, 15), 'Виліт обкладинки, мм'),
       spineMm: check('spineMm', or(cover.spineMm, 0), 'Корінець, мм'),
+      spinePerSpreadMm: Math.round(Number(String(or(cover.spinePerSpreadMm, 0)).replace(',', '.')) * 100) / 100,
     }
+    const step = spec.cover.spinePerSpreadMm ?? 0
+    if (!Number.isFinite(step) || step < 0 || step > 5) throw new Error('Приріст корінця на розворот: від 0 до 5 мм')
     if (spec.cover.spineMm >= spec.cover.widthMm / 2) throw new Error('Корінець ширший за половину обкладинки')
   }
   if (spec.safeMm * 2 >= Math.min(spec.spreadWidthMm / 2, spec.spreadHeightMm)) {
@@ -144,6 +148,8 @@ export interface PrintProfileRow {
   cover_height_mm: number | string | null
   cover_bleed_mm: number | string
   cover_spine_mm: number | string
+  /** 0064; absent before the migration. */
+  cover_spine_per_spread_mm?: number | string | null
 }
 
 export function profileFromRow(row: PrintProfileRow): PrintProfile {
@@ -166,6 +172,7 @@ export function profileFromRow(row: PrintProfileRow): PrintProfile {
               heightMm: Number(row.cover_height_mm),
               bleedMm: Number(row.cover_bleed_mm),
               spineMm: Number(row.cover_spine_mm),
+              spinePerSpreadMm: Number(row.cover_spine_per_spread_mm ?? 0),
             }
           : null,
     },
@@ -187,6 +194,7 @@ export function rowFromSpec(name: string, spec: PrintSpec): Omit<PrintProfileRow
     cover_height_mm: spec.cover?.heightMm ?? null,
     cover_bleed_mm: spec.cover?.bleedMm ?? 15,
     cover_spine_mm: spec.cover?.spineMm ?? 0,
+    cover_spine_per_spread_mm: spec.cover?.spinePerSpreadMm ?? 0,
   }
 }
 

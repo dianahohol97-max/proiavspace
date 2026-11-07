@@ -206,3 +206,64 @@ describe('PSD розвороту', () => {
     assert.deepEqual(psd.imageResources!.iccProfile, iccProfile('srgb'))
   })
 })
+
+describe('PDF: живий текст з кирилицею', () => {
+  const hasPoppler = spawnSync('pdftotext', ['-v']).status === 0 && spawnSync('pdffonts', ['-v']).status === 0
+
+  test('шрифти вбудовані, текст читається назад, поворот на корінці', { skip: hasPoppler ? false : 'немає pdftotext/pdffonts' }, async () => {
+    const { FontSubsetter, fontkitCreate } = await import('../../src/lib/album/export/pdf-fonts')
+    const create = await fontkitCreate()
+    const file = (name: string) => new Uint8Array(readFileSync(join(ROOT, 'public/album-fonts', name)))
+    const cormorant = new FontSubsetter(create(file('CormorantGaramond-Medium.ttf')), 'serif', file('CormorantGaramond-Medium.ttf'))
+    const vibes = new FontSubsetter(create(file('GreatVibes-Regular.ttf')), 'script', file('GreatVibes-Regular.ttf'))
+    const title = ['Аня й Тарас', 'Ґанна, Їжак, Євген — 12.09.2026']
+    const blob = await buildAlbumPdf(
+      [
+        {
+          jpeg: new Blob([jpeg()]),
+          widthPx: 2000,
+          heightPx: 1335,
+          trimWidthMm: 600,
+          trimHeightMm: 300,
+          bleedMm: 3,
+          texts: [
+            { fontKey: 'cormorant', sizePt: 28, rgb: [255, 255, 255], x: 450, y: 250, rotation: 0, align: 'center', lineStepMm: 12, lines: title.map((l) => cormorant.shape(l)) },
+            { fontKey: 'vibes', sizePt: 18, rgb: [20, 20, 20], x: 300, y: 150, rotation: 90, align: 'center', lineStepMm: 8, lines: [vibes.shape('Наше весілля')] },
+          ],
+        },
+      ],
+      {
+        title: 'T',
+        cropMarks: false,
+        icc: iccProfile('srgb'),
+        fonts: [
+          { key: 'cormorant', data: await cormorant.finish() },
+          { key: 'vibes', data: await vibes.finish() },
+        ],
+      }
+    )
+    const dir = tmp()
+    try {
+      const file = join(dir, 'text.pdf')
+      const bytes = new Uint8Array(await blob.arrayBuffer())
+      writeFileSync(file, bytes)
+      if (process.env.KEEP_PDF) writeFileSync(process.env.KEEP_PDF, bytes)
+      const text = spawnSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' })
+      assert.equal(text.status, 0, text.stderr)
+      // Rotated (spine) text comes back split by pdftotext, so compare without line breaks.
+      const flat = text.stdout.replace(/\s+/g, ' ')
+      for (const line of [...title, 'Наше весілля']) assert.ok(flat.includes(line), `«${line}» у: ${flat}`)
+      const fonts = spawnSync('pdffonts', [file], { encoding: 'utf8' })
+      assert.match(fonts.stdout, /CormorantGaramond-Medium\s+CID TrueType\s+Identity-H\s+yes\s+no\s+yes/)
+      assert.match(fonts.stdout, /GreatVibes-Regular\s+CID TrueType\s+Identity-H\s+yes\s+no\s+yes/)
+      const info = spawnSync('pdfinfo', [file], { encoding: 'utf8' })
+      assert.doesNotMatch(info.stderr, /Error/)
+      // Render to be sure the page draws without errors.
+      const ppm = spawnSync('pdftoppm', ['-r', '10', '-png', file, join(dir, 'p')], { encoding: 'utf8' })
+      assert.equal(ppm.status, 0, ppm.stderr)
+      assert.doesNotMatch(ppm.stderr, /Error/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})

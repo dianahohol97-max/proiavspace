@@ -13,6 +13,17 @@ export interface PsdLayerInput {
   width: number
   height: number
   data: Uint8ClampedArray
+  /** Present for text: written as a live Photoshop text layer (pixels = our render). */
+  text?: {
+    text: string
+    fontPostscript: string
+    fontSizePx: number
+    color: { r: number; g: number; b: number }
+    justification: 'left' | 'center' | 'right'
+    leadingPx: number
+    /** [a, b, c, d, tx, ty]: rotation + baseline anchor in document px. */
+    transform: number[]
+  }
 }
 
 export interface PsdInput {
@@ -52,6 +63,22 @@ export function buildSpreadPsd(input: PsdInput): Uint8Array {
       right: layer.left + layer.width,
       bottom: layer.top + layer.height,
       imageData: { data: layer.data, width: layer.width, height: layer.height },
+      ...(layer.text
+        ? {
+            text: {
+              text: layer.text.text,
+              transform: layer.text.transform,
+              style: {
+                font: { name: layer.text.fontPostscript },
+                fontSize: layer.text.fontSizePx,
+                fillColor: layer.text.color,
+                autoLeading: false,
+                leading: layer.text.leadingPx,
+              },
+              paragraphStyle: { justification: layer.text.justification },
+            },
+          }
+        : {}),
     })),
   ]
   const psd: Psd = {

@@ -59,8 +59,15 @@ function reducer(state: State, action: Action): State {
 
 export type SaveStatus = 'saved' | 'pending' | 'saving' | 'error'
 
-export function useAlbumDoc(backend: AlbumBackend, projectId: string, initial: AlbumSpread[]) {
-  const [state, dispatch] = useReducer(reducer, { spreads: initial, past: [], future: [], lastKey: null })
+export function useAlbumDoc(
+  backend: AlbumBackend,
+  projectId: string,
+  stored: AlbumSpread[],
+  /** Applied after every change (e.g. re-fit the cover to the spine). Must return the same array when nothing changes. */
+  normalize: (spreads: AlbumSpread[]) => AlbumSpread[] = (s) => s
+) {
+  const initial = stored
+  const [state, dispatch] = useReducer(reducer, { spreads: normalize(stored), past: [], future: [], lastKey: null })
   const [status, setStatus] = useState<SaveStatus>('saved')
   const [error, setError] = useState<string | null>(null)
   const saved = useRef<{ byId: Map<string, string>; order: string }>({
@@ -141,7 +148,20 @@ export function useAlbumDoc(backend: AlbumBackend, projectId: string, initial: A
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [isDirty])
 
-  const commit = useCallback((update: (spreads: AlbumSpread[]) => AlbumSpread[], key?: string) => dispatch({ type: 'commit', update, key }), [])
+  const normalizeRef = useRef(normalize)
+  normalizeRef.current = normalize
+  const commit = useCallback(
+    (update: (spreads: AlbumSpread[]) => AlbumSpread[], key?: string) =>
+      dispatch({
+        type: 'commit',
+        update: (spreads) => {
+          const next = update(spreads)
+          return next === spreads ? spreads : normalizeRef.current(next)
+        },
+        key,
+      }),
+    []
+  )
   const undo = useCallback(() => dispatch({ type: 'undo' }), [])
   const redo = useCallback(() => dispatch({ type: 'redo' }), [])
 

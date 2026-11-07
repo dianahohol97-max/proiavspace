@@ -117,3 +117,20 @@ export function applyCoverPreset(cover: AlbumSpread, preset: CoverPreset, spec: 
   if (spine) texts.push(spine)
   return { ...laidOut, texts }
 }
+
+/**
+ * Keeps the cover fitted to the spine for the current number of spreads.
+ * Returns the same array when nothing changes (so no-op edits stay no-ops).
+ */
+export function normalizeCovers(spreads: AlbumSpread[], spec: PrintSpec): AlbumSpread[] {
+  if (!spec.cover) return spreads
+  const spine = spineWidthMm(spec, innerSpreadCount(spreads))
+  let changed = false
+  const out = spreads.map((s) => {
+    if (s.kind !== 'cover') return s
+    const next = adaptCoverToSpine(s, spec, spine)
+    if (next !== s) changed = true
+    return next
+  })
+  return changed ? out : spreads
+}

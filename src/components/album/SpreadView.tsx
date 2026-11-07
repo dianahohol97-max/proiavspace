@@ -1,28 +1,36 @@
 'use client'
 
 /**
- * Renders one spread/cover at a given scale (CSS px per mm). Pure DOM: each
- * slot is an overflow-hidden box with the preview <img> placed by the same
- * computeCrop the export uses. Interactive mode adds selection, panning,
- * wheel zoom, drag-and-drop of photos and slot swapping; read-only mode is
- * used for thumbnails and the phone viewer.
+ * Renders one spread/cover at a given scale (CSS px per mm). Pure DOM/SVG:
+ * each slot is an overflow-hidden box with the preview <img> placed by the
+ * same placement() the export uses (zoom, focal point, rotation); text is an
+ * SVG layer positioned by baseline, like the canvas and the PDF. Interactive
+ * mode adds selection, panning, wheel zoom, drag-and-drop of photos (one or
+ * several), slot swapping and moving text; read-only mode is used for
+ * thumbnails and the phone viewer.
  */
 import { memo, useEffect, useRef, useState } from 'react'
-import { computeCrop, dpiLevel, effectiveDpi } from '@/lib/album/crop'
+import { dpiLevel, effectiveDpi, slotImageStyle } from '@/lib/album/crop'
+import { fontById } from '@/lib/album/fonts'
 import { formatFor, safeBoxes, sheetSizeMm } from '@/lib/album/geometry'
-import type { AlbumPhoto, AlbumSlot, AlbumSpread, PrintSpec } from '@/lib/album/types'
+import { baselineOffsets, lineStart, ptToMm, textLines } from '@/lib/album/texts'
+import type { AlbumPhoto, AlbumSlot, AlbumSpread, AlbumText, PrintSpec } from '@/lib/album/types'
 
 export const DND_PHOTO = 'application/x-proiav-photo'
+export const DND_PHOTOS = 'application/x-proiav-photos'
 export const DND_SLOT = 'application/x-proiav-slot'
 
+export type Selection = { type: 'slot' | 'text'; id: string } | null
+
 export interface SpreadViewHandlers {
-  onSelectSlot(slotId: string | null): void
-  /** Drop of a photo (from the strip) onto a slot, or onto an empty spread (slotId null). */
-  onDropPhoto(slotId: string | null, photoId: string): void
+  onSelect(selection: Selection): void
+  /** Photos (from the strip) dropped onto a slot, or onto the spread (slotId null). */
+  onDropPhotos(slotId: string | null, photoIds: string[]): void
   onSwapSlots(fromSlotId: string, toSlotId: string): void
   /** Live pan; gesture identifies one drag for undo coalescing. */
   onPan(slotId: string, dxMm: number, dyMm: number, gesture: number): void
   onZoom(slotId: string, factor: number, gesture: number): void
+  onMoveText(textId: string, dxMm: number, dyMm: number, gesture: number): void
 }
 
 interface Props {
@@ -31,20 +39,20 @@ interface Props {
   photos: Map<string, AlbumPhoto>
   scale: number
   showGuides?: boolean
-  selectedSlotId?: string | null
+  selected?: Selection
   handlers?: SpreadViewHandlers
   /** Thumbnails: use small renditions, no DPI badges. */
   thumbs?: boolean
   /** Read-only viewing (phone): no DPI badges. */
   plain?: boolean
+  /** Widest line (mm) of a text, measured with its font — for the hit box. */
+  measure?: (t: AlbumText) => number
 }
 
 let gestureSeq = 0
 
-function SlotImage({ slot, photo, wPx, hPx, thumbs }: { slot: AlbumSlot; photo: AlbumPhoto; wPx: number; hPx: number; thumbs?: boolean }) {
-  const crop = computeCrop(photo.width, photo.height, slot.w, slot.h, slot.zoom, slot.fx, slot.fy)
-  const imgW = wPx / crop.w
-  const imgH = hPx / crop.h
+function SlotImage({ slot, photo, wPx, thumbs }: { slot: AlbumSlot; photo: AlbumPhoto; wPx: number; thumbs?: boolean }) {
+  const style = slotImageStyle(photo.width, photo.height, slot.w, slot.h, wPx, slot.zoom, slot.fx, slot.fy, slot.rotation ?? 0)
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -52,12 +60,27 @@ function SlotImage({ slot, photo, wPx, hPx, thumbs }: { slot: AlbumSlot; photo: 
       alt=""
       draggable={false}
       className="pointer-events-none absolute max-w-none select-none"
-      style={{ width: imgW, height: imgH, left: -crop.x * imgW, top: -crop.y * imgH }}
+      style={style}
     />
   )
 }
 
-function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, selectedSlotId, handlers, thumbs, plain }: Props) {
+function readDrop(e: React.DragEvent): { photos: string[]; slot: string } {
+  let photos: string[] = []
+  try {
+    const many = e.dataTransfer.getData(DND_PHOTOS)
+    if (many) photos = JSON.parse(many) as string[]
+  } catch {
+    photos = []
+  }
+  if (!photos.length) {
+    const one = e.dataTransfer.getData(DND_PHOTO)
+    if (one) photos = [one]
+  }
+  return { photos, slot: e.dataTransfer.getData(DND_SLOT) }
+}
+
+function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, selected, handlers, thumbs, plain, measure }: Props) {
   const format = formatFor(spec, spread)
   const sheet = sheetSizeMm(format)
   const b = format.bleedMm
@@ -66,18 +89,19 @@ function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, sele
   const [dropTarget, setDropTarget] = useState<string | null>(null)
 
   const dragAccepts = (e: React.DragEvent) =>
-    e.dataTransfer.types.includes(DND_PHOTO) || e.dataTransfer.types.includes(DND_SLOT)
+    e.dataTransfer.types.includes(DND_PHOTO) || e.dataTransfer.types.includes(DND_PHOTOS) || e.dataTransfer.types.includes(DND_SLOT)
 
   const onDrop = (slotId: string | null) => (e: React.DragEvent) => {
     if (!handlers || !dragAccepts(e)) return
     e.preventDefault()
     e.stopPropagation()
     setDropTarget(null)
-    const photoId = e.dataTransfer.getData(DND_PHOTO)
-    const fromSlot = e.dataTransfer.getData(DND_SLOT)
-    if (photoId) handlers.onDropPhoto(slotId, photoId)
-    else if (fromSlot && slotId && fromSlot !== slotId) handlers.onSwapSlots(fromSlot, slotId)
+    const { photos: ids, slot } = readDrop(e)
+    if (ids.length) handlers.onDropPhotos(ids.length > 1 ? null : slotId, ids)
+    else if (slot && slotId && slot !== slotId) handlers.onSwapSlots(slot, slotId)
   }
+
+  const texts = spread.texts ?? []
 
   return (
     <div
@@ -86,13 +110,13 @@ function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, sele
       data-testid={thumbs ? undefined : 'spread-sheet'}
       onDragOver={interactive ? (e) => dragAccepts(e) && e.preventDefault() : undefined}
       onDrop={interactive ? onDrop(null) : undefined}
-      onPointerDown={interactive ? (e) => e.target === e.currentTarget && handlers!.onSelectSlot(null) : undefined}
+      onPointerDown={interactive ? (e) => e.target === e.currentTarget && handlers!.onSelect(null) : undefined}
     >
       {spread.slots.map((slot, index) => {
         const photo = slot.assetId ? photos.get(slot.assetId) : undefined
         const wPx = px(slot.w)
         const hPx = px(slot.h)
-        const dpi = photo ? effectiveDpi(photo.width, photo.height, slot.w, slot.h, slot.zoom) : 0
+        const dpi = photo ? effectiveDpi(photo.width, photo.height, slot.w, slot.h, slot.zoom, slot.rotation ?? 0) : 0
         const level = photo ? dpiLevel(dpi, spec.dpi) : 'ok'
         return (
           <SlotBox
@@ -103,7 +127,7 @@ function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, sele
             top={px(slot.y + b)}
             width={wPx}
             height={hPx}
-            selected={selectedSlotId === slot.id}
+            selected={selected?.type === 'slot' && selected.id === slot.id}
             dropping={dropTarget === slot.id}
             handlers={handlers}
             scale={scale}
@@ -113,7 +137,7 @@ function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, sele
             onDrop={onDrop(slot.id)}
             dragAccepts={dragAccepts}
           >
-            {photo && <SlotImage slot={slot} photo={photo} wPx={wPx} hPx={hPx} thumbs={thumbs} />}
+            {photo && <SlotImage slot={slot} photo={photo} wPx={wPx} thumbs={thumbs} />}
             {!thumbs && !plain && photo && level !== 'ok' && (
               <span
                 className={`pointer-events-none absolute right-1.5 top-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold text-white ${level === 'bad' ? 'bg-red-600' : 'bg-amber-500'}`}
@@ -127,14 +151,24 @@ function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, sele
         )
       })}
 
+      {texts.length > 0 && (
+        <svg
+          className="pointer-events-none absolute inset-0"
+          width={px(sheet.widthMm)}
+          height={px(sheet.heightMm)}
+          viewBox={`${-b} ${-b} ${sheet.widthMm} ${sheet.heightMm}`}
+          data-testid={thumbs ? undefined : 'text-layer'}
+        >
+          {texts.map((t) => (
+            <TextItem key={t.id} t={t} scale={scale} handlers={handlers} selected={selected?.type === 'text' && selected.id === t.id} measure={measure} />
+          ))}
+        </svg>
+      )}
+
       {showGuides && (
         <div className="pointer-events-none absolute inset-0" data-testid="guides">
           {/* bleed zone: everything outside the trim gets tinted */}
-          <div
-            className="absolute border-red-500/35"
-            style={{ inset: 0, borderWidth: px(b), borderStyle: 'solid' }}
-            title="Виліт"
-          />
+          <div className="absolute border-red-500/35" style={{ inset: 0, borderWidth: px(b), borderStyle: 'solid' }} title="Виліт" />
           <div className="absolute border border-red-500" style={{ left: px(b), top: px(b), width: px(format.widthMm), height: px(format.heightMm) }} />
           {safeBoxes(format).map((box, i) => (
             <div
@@ -147,7 +181,8 @@ function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, sele
             <div
               className="absolute bg-fuchsia-500/15 outline outline-1 outline-fuchsia-500"
               style={{ left: px(b + (format.widthMm - format.spineMm) / 2), top: 0, width: px(format.spineMm), height: px(sheet.heightMm) }}
-              title="Корінець"
+              title={`Корінець ${format.spineMm} мм`}
+              data-testid="spine-guide"
             />
           ) : (
             <div className="absolute w-px bg-fuchsia-500/70" style={{ left: px(b + format.widthMm / 2), top: 0, height: px(sheet.heightMm) }} title="Згин" />
@@ -155,6 +190,87 @@ function SpreadViewInner({ spread, spec, photos, scale, showGuides = false, sele
         </div>
       )}
     </div>
+  )
+}
+
+function TextItem({
+  t,
+  scale,
+  handlers,
+  selected,
+  measure,
+}: {
+  t: AlbumText
+  scale: number
+  handlers?: SpreadViewHandlers
+  selected: boolean
+  measure?: (t: AlbumText) => number
+}) {
+  const drag = useRef<{ x: number; y: number; gesture: number } | null>(null)
+  const size = ptToMm(t.sizePt)
+  const offsets = baselineOffsets(t)
+  const lines = textLines(t.text)
+  const anchor = t.align === 'center' ? 'middle' : t.align === 'right' ? 'end' : 'start'
+  const widest = measure ? measure(t) : size * 0.55 * Math.max(...lines.map((l) => l.length), 1)
+  const box = {
+    x: lineStart(t.align, widest) - size * 0.1,
+    y: -0.9 * size,
+    w: widest + size * 0.2,
+    h: offsets[offsets.length - 1]! + 1.25 * size,
+  }
+  return (
+    <g transform={`translate(${t.x} ${t.y}) rotate(${t.rotation})`} data-testid={handlers ? 'text-item' : undefined}>
+      {handlers && (
+        <rect
+          x={box.x}
+          y={box.y}
+          width={box.w}
+          height={box.h}
+          fill="transparent"
+          stroke={selected ? 'var(--color-fg)' : 'transparent'}
+          strokeWidth={1.5 / scale}
+          strokeDasharray={`${4 / scale} ${3 / scale}`}
+          className="cursor-move"
+          style={{ pointerEvents: 'all' }}
+          role="button"
+          aria-label={`Текст: ${lines[0]}`}
+          aria-pressed={selected}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            handlers.onSelect({ type: 'text', id: t.id })
+            drag.current = { x: e.clientX, y: e.clientY, gesture: ++gestureSeq }
+            ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+          }}
+          onPointerMove={(e) => {
+            const d = drag.current
+            if (!d) return
+            const dx = e.clientX - d.x
+            const dy = e.clientY - d.y
+            if (Math.hypot(dx, dy) < 2) return
+            d.x = e.clientX
+            d.y = e.clientY
+            handlers.onMoveText(t.id, dx / scale, dy / scale, d.gesture)
+          }}
+          onPointerUp={() => {
+            drag.current = null
+          }}
+        />
+      )}
+      <text
+        fontFamily={`"${fontById(t.font).family}"`}
+        fontSize={size}
+        fill={t.color}
+        textAnchor={anchor}
+        style={{ fontKerning: 'normal', whiteSpace: 'pre' }}
+        className="select-none"
+      >
+        {lines.map((line, i) => (
+          <tspan key={i} x={0} y={offsets[i]}>
+            {line || ' '}
+          </tspan>
+        ))}
+      </text>
+    </g>
   )
 }
 
@@ -221,7 +337,7 @@ function SlotBox(props: SlotBoxProps) {
       style={{ left: props.left, top: props.top, width: props.width, height: props.height }}
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest('[data-swap-handle]')) return
-        handlers.onSelectSlot(slot.id)
+        handlers.onSelect({ type: 'slot', id: slot.id })
         if (!props.hasPhoto || e.button !== 0) return
         drag.current = { x: e.clientX, y: e.clientY, gesture: ++gestureSeq, moved: false }
         e.currentTarget.setPointerCapture(e.pointerId)

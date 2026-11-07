@@ -11,6 +11,8 @@ import { redirect } from 'next/navigation'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { normalizeSpec, profileFromRow, rowFromSpec, type PrintProfileRow } from '@/lib/album/profiles'
+import { normalizeRotation } from '@/lib/album/crop'
+import { sanitizeText } from '@/lib/album/texts'
 import type {
   AlbumPhoto,
   AlbumProject,
@@ -48,7 +50,7 @@ async function wrap<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
 }
 
 const PROFILE_COLUMNS =
-  'id, name, spread_width_mm, spread_height_mm, bleed_mm, safe_mm, margin_mm, gap_mm, dpi, color_profile, cover_width_mm, cover_height_mm, cover_bleed_mm, cover_spine_mm'
+  'id, name, spread_width_mm, spread_height_mm, bleed_mm, safe_mm, margin_mm, gap_mm, dpi, color_profile, cover_width_mm, cover_height_mm, cover_bleed_mm, cover_spine_mm, cover_spine_per_spread_mm'
 
 // ---------------------------------------------------------------------------
 // print profiles
@@ -241,6 +243,7 @@ interface SlotRow {
   zoom: number | string
   focal_x: number | string
   focal_y: number | string
+  rotation: number | string | null
 }
 
 export async function loadAlbumProject(id: string): Promise<
@@ -258,11 +261,11 @@ export async function loadAlbumProject(id: string): Promise<
     if (!row) throw new Error('Альбом не знайдено')
     const { data: spreads, error: spreadError } = await supabase
       .from('album_spreads')
-      .select('id, kind, layout, position, album_slots(position, x_mm, y_mm, w_mm, h_mm, asset_id, zoom, focal_x, focal_y)')
+      .select('id, kind, layout, position, texts, spine_mm, album_slots(position, x_mm, y_mm, w_mm, h_mm, asset_id, zoom, focal_x, focal_y, rotation)')
       .eq('project_id', id)
       .order('position')
       .order('created_at')
-      .returns<{ id: string; kind: SpreadKind; layout: string; position: number; album_slots: SlotRow[] }[]>()
+      .returns<{ id: string; kind: SpreadKind; layout: string; position: number; texts: unknown; spine_mm: number | string | null; album_slots: SlotRow[] }[]>()
     if (spreadError) throw new Error(spreadError.message)
     const project: AlbumProject = {
       id: row.id,
@@ -273,6 +276,8 @@ export async function loadAlbumProject(id: string): Promise<
         id: s.id,
         kind: s.kind,
         layout: s.layout,
+        texts: (Array.isArray(s.texts) ? s.texts : []).map(sanitizeText).filter((t): t is NonNullable<typeof t> => !!t),
+        spineMm: s.spine_mm === null || s.spine_mm === undefined ? null : Number(s.spine_mm),
         slots: [...(s.album_slots ?? [])]
           .sort((a, b) => a.position - b.position)
           .map((slot) => ({
@@ -285,6 +290,7 @@ export async function loadAlbumProject(id: string): Promise<
             zoom: Number(slot.zoom),
             fx: Number(slot.focal_x),
             fy: Number(slot.focal_y),
+            rotation: Number(slot.rotation ?? 0),
           })),
       })),
     }
@@ -323,6 +329,8 @@ export async function saveAlbumSpread(projectId: string, spread: AlbumSpread, po
       position,
       kind: spread.kind,
       layout: spread.layout,
+      spine_mm: spread.kind === 'cover' && typeof spread.spineMm === 'number' ? round(spread.spineMm, 1) : null,
+      texts: (spread.texts ?? []).slice(0, 40).map(sanitizeText).filter(Boolean),
       slots: spread.slots.slice(0, 40).map((s, i) => ({
         position: i,
         x_mm: round(s.x, 2),
@@ -333,6 +341,7 @@ export async function saveAlbumSpread(projectId: string, spread: AlbumSpread, po
         zoom: round(Math.min(Math.max(s.zoom, 1), 10), 3),
         focal_x: round(Math.min(Math.max(s.fx, 0), 1), 4),
         focal_y: round(Math.min(Math.max(s.fy, 0), 1), 4),
+        rotation: normalizeRotation(s.rotation),
       })),
     }
     const { error } = await supabase.rpc('album_save_spread', { p_spread: payload })

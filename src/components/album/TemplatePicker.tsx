@@ -7,6 +7,7 @@
  */
 import { useMemo, useState } from 'react'
 import { formatFor, pageBoxes, type SpreadFormat } from '@/lib/album/geometry'
+import { COVER_PRESETS, type CoverPreset } from '@/lib/album/cover'
 import { PAGE_TEMPLATES, SPREAD_TEMPLATES, pagesLayout, parseLayout, resolveLayout } from '@/lib/album/templates'
 import type { AlbumSpread, PrintSpec } from '@/lib/album/types'
 
@@ -27,7 +28,17 @@ function Diagram({ layout, format, spec, half }: { layout: string; format: Sprea
   )
 }
 
-export function TemplatePicker({ spread, spec, onApply }: { spread: AlbumSpread; spec: PrintSpec; onApply(layout: string): void }) {
+export function TemplatePicker({
+  spread,
+  spec,
+  onApply,
+  onCoverPreset,
+}: {
+  spread: AlbumSpread
+  spec: PrintSpec
+  onApply(layout: string): void
+  onCoverPreset?(preset: CoverPreset): void
+}) {
   const [target, setTarget] = useState<Target>('left')
   const format = formatFor(spec, spread)
   const parsed = parseLayout(spread.layout)
@@ -42,11 +53,37 @@ export function TemplatePicker({ spread, spec, onApply }: { spread: AlbumSpread;
   const tabs: [Target, string][] = [
     ['left', spread.kind === 'cover' ? 'Задня' : 'Ліва'],
     ['right', spread.kind === 'cover' ? 'Лице' : 'Права'],
-    ['spread', 'Розворот'],
+    ['spread', spread.kind === 'cover' ? 'Уся' : 'Розворот'],
   ]
 
   return (
     <div>
+      {spread.kind === 'cover' && onCoverPreset && (
+        <div className="mb-4" data-testid="cover-presets">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
+            Шаблони обкладинки · корінець {format.spineMm} мм
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {COVER_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => onCoverPreset(preset)}
+                aria-label={`Обкладинка: ${preset.name}`}
+                className="overflow-hidden rounded-md border border-line p-1 text-left hover:border-muted"
+              >
+                <div style={{ aspectRatio: `${format.widthMm} / ${format.heightMm}` }} className="relative">
+                  <Diagram layout={preset.layout} format={format} spec={spec} />
+                  <span
+                    className="absolute top-0 h-full bg-fuchsia-500/30"
+                    style={{ left: `${((format.widthMm - format.spineMm) / 2 / format.widthMm) * 100}%`, width: `${Math.max((format.spineMm / format.widthMm) * 100, 0.8)}%` }}
+                  />
+                </div>
+                <p className="mt-1 truncate text-[10.5px] font-semibold text-muted">{preset.name}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="mb-3 flex gap-1 rounded-full bg-bg p-1" role="tablist" aria-label="До чого застосувати шаблон">
         {tabs.map(([key, text]) => (
           <button

@@ -34,6 +34,7 @@ export function ExportDialog({
   const [progress, setProgress] = useState<ExportProgress | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [doneName, setDoneName] = useState<string | null>(null)
+  const [engine, setEngine] = useState<'worker' | 'main' | null>(null)
   const abort = useRef<AbortController | null>(null)
 
   const effectiveScope = kind === 'psd' ? 'current' : scope
@@ -54,7 +55,7 @@ export function ExportDialog({
       if (!spreadIds.includes(s.id)) continue
       for (const slot of s.slots) {
         const p = slot.assetId ? photosById.get(slot.assetId) : undefined
-        if (p && dpiLevel(effectiveDpi(p.width, p.height, slot.w, slot.h, slot.zoom), project.spec.dpi) !== 'ok') n++
+        if (p && dpiLevel(effectiveDpi(p.width, p.height, slot.w, slot.h, slot.zoom, slot.rotation ?? 0), project.spec.dpi) !== 'ok') n++
       }
     }
     return n
@@ -81,6 +82,7 @@ export function ExportDialog({
       })
       saveBlob(result.blob, result.fileName)
       setDoneName(result.fileName)
+      setEngine(result.engine)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Експорт не вдався')
     } finally {
@@ -137,7 +139,7 @@ export function ExportDialog({
             <span className={label}>Вихід</span>
             <br />
             {size.width}×{size.height} px з вильотом · {project.spec.dpi} DPI · {iccDescription(project.spec.colorProfile)}.
-            Рендер іде у вашому браузері по одному розвороту (~{Math.round((size.width * size.height * 4) / 1024 / 1024)} МБ пам'яті на розворот); оригінали
+            Рендер іде у вашому браузері, у фоновому потоці, по одному розвороту (~{Math.round((size.width * size.height * 4) / 1024 / 1024)} МБ пам'яті на розворот); оригінали
             завантажуються напряму зі сховища.
           </p>
         )}
@@ -158,8 +160,11 @@ export function ExportDialog({
         )}
         {error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</p>}
         {doneName && (
-          <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800" data-testid="export-done">
+          <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800" data-testid="export-done" data-engine={engine ?? undefined}>
             Готово: {doneName}
+            <span className="block text-xs opacity-80">
+              {engine === 'worker' ? 'Зібрано у фоновому потоці — редактор не зависав.' : 'Зібрано в основному потоці (браузер не підтримує фоновий рендер).'}
+            </span>
           </p>
         )}
         <div className="mt-5 flex justify-end gap-2">

@@ -8,18 +8,22 @@
  */
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { applyLayout, autoFillAlbum, autoFillSpread, buildSlots } from '@/lib/album/autofill'
+import { applyLayout, applyVariant, autoDesignAlbum, autoFillSpread, buildSlots, layoutVariants, type Density, type PickedLayout } from '@/lib/album/autofill'
 import { backendFor, type LoadedProject } from '@/lib/album/backend'
-import { MAX_ZOOM, dpiLevel, effectiveDpi, panFocal } from '@/lib/album/crop'
-import { formatFor, sheetSizeMm } from '@/lib/album/geometry'
+import { MAX_ZOOM, dpiLevel, effectiveDpi, normalizeRotation, panFocal } from '@/lib/album/crop'
+import { applyCoverPreset, innerSpreadCount, normalizeCovers, spineWidthMm, type CoverPreset } from '@/lib/album/cover'
+import { cssFont, loadAlbumFonts } from '@/lib/album/fonts'
+import { newText, ptToMm, textLines } from '@/lib/album/texts'
+import { formatFor, pageBoxes, sheetSizeMm } from '@/lib/album/geometry'
 import { describeSpec } from '@/lib/album/profiles'
 import { layoutCount, resolveLayout } from '@/lib/album/templates'
 import { spreadLabel } from '@/lib/album/export/run'
-import type { AlbumPhoto, AlbumSlot, AlbumSpread, PrintSpec } from '@/lib/album/types'
+import type { AlbumPhoto, AlbumSlot, AlbumSpread, AlbumText, PrintSpec } from '@/lib/album/types'
 import { Uploader } from '@/components/Uploader'
 import { ExportDialog } from './ExportDialog'
 import { SlotInspector } from './SlotInspector'
-import { DND_PHOTO, DND_SLOT, SpreadView, type SpreadViewHandlers } from './SpreadView'
+import { DND_PHOTO, DND_PHOTOS, DND_SLOT, SpreadView, type Selection, type SpreadViewHandlers } from './SpreadView'
+import { TextInspector } from './TextInspector'
 import { TemplatePicker } from './TemplatePicker'
 import { mapSpread, useAlbumDoc, type SaveStatus } from './useAlbumDoc'
 import { btn, btnGhost, btnPrimary, label } from './ui'
@@ -91,13 +95,20 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
   const backend = backendFor(backendKind)
   const { project: initial } = loaded
   const spec = initial.spec
-  const doc = useAlbumDoc(backend, initial.id, initial.spreads)
+  const normalize = useCallback((all: AlbumSpread[]) => normalizeCovers(all, spec), [spec])
+  const doc = useAlbumDoc(backend, initial.id, initial.spreads, normalize)
   const { spreads, commit } = doc
   const [photos, setPhotos] = useState<AlbumPhoto[]>(loaded.photos)
   const photosById = useMemo(() => new Map(photos.map((p) => [p.id, p])), [photos])
   const [title, setTitle] = useState(initial.title)
   const [spreadId, setSpreadId] = useState<string | null>(initial.spreads[0]?.id ?? null)
-  const [slotId, setSlotId] = useState<string | null>(null)
+  const [selection, setSelection] = useState<Selection>(null)
+  const slotId = selection?.type === 'slot' ? selection.id : null
+  const textId = selection?.type === 'text' ? selection.id : null
+  const setSlotId = useCallback((id: string | null) => setSelection(id ? { type: 'slot', id } : null), [])
+  const [variants, setVariants] = useState<{ spreadId: string; list: PickedLayout[]; index: number; key: string } | null>(null)
+  const [density, setDensity] = useState<Density>('normal')
+  const [fontsVersion, setFontsVersion] = useState(0)
   const [picked, setPicked] = useState<string[]>([])
   const [showGuides, setShowGuides] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -109,6 +120,26 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
   const current = spreads.find((s) => s.id === spreadId) ?? spreads[0] ?? null
   const currentIndex = current ? spreads.indexOf(current) : -1
   const selectedSlot = current?.slots.find((s) => s.id === slotId) ?? null
+  const selectedText = current?.texts?.find((t) => t.id === textId) ?? null
+  const spine = spineWidthMm(spec, innerSpreadCount(spreads))
+
+  // Fonts used on the spreads: load them so the SVG text and measurements are exact.
+  const fontKey = useMemo(() => [...new Set(spreads.flatMap((s) => (s.texts ?? []).map((t) => t.font)))].sort().join(','), [spreads])
+  useEffect(() => {
+    if (!fontKey) return
+    loadAlbumFonts(fontKey.split(','))
+      .then(() => setFontsVersion((v) => v + 1))
+      .catch(() => undefined)
+  }, [fontKey])
+  const measure = useMemo(() => {
+    const ctx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null
+    return (t: AlbumText) => {
+      if (!ctx) return ptToMm(t.sizePt) * 0.55 * Math.max(...textLines(t.text).map((l) => l.length), 1)
+      ctx.font = cssFont(t.font, 100)
+      return (Math.max(...textLines(t.text).map((l) => ctx.measureText(l).width), 1) / 100) * ptToMm(t.sizePt)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fontsVersion])
 
   useEffect(() => {
     if (!current && spreads.length) setSpreadId(spreads[0]!.id)
@@ -125,7 +156,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
     for (const s of spreads)
       for (const slot of s.slots) {
         const p = slot.assetId ? photosById.get(slot.assetId) : undefined
-        if (p && dpiLevel(effectiveDpi(p.width, p.height, slot.w, slot.h, slot.zoom), spec.dpi) !== 'ok') n++
+        if (p && dpiLevel(effectiveDpi(p.width, p.height, slot.w, slot.h, slot.zoom, slot.rotation ?? 0), spec.dpi) !== 'ok') n++
       }
     return n
   }, [spreads, photosById, spec.dpi])
@@ -144,7 +175,60 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
     zoom: 1,
     fx: photo.focalX ?? 0.5,
     fy: photo.focalY ?? 0.5,
+    rotation: 0,
   })
+
+  const updateText = useCallback(
+    (sid: string, id: string, patch: Partial<AlbumText>, key?: string) =>
+      commit((all) => mapSpread(all, sid, (s) => ({ ...s, texts: (s.texts ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)) })), key),
+    [commit]
+  )
+
+  const addText = () => {
+    if (!current) return
+    const format = formatFor(spec, current)
+    // Cover: on the front board; spread: centre of the right page.
+    const [, right] = pageBoxes(format)
+    const t = newText(uuid(), { x: right.x + right.w / 2, y: format.heightMm * 0.85, text: title || 'Текст' })
+    commit((all) => mapSpread(all, current.id, (s) => ({ ...s, texts: [...(s.texts ?? []), t] })))
+    setSelection({ type: 'text', id: t.id })
+    setRightTab('frame')
+  }
+
+  const deleteText = (id: string) => {
+    if (!current) return
+    commit((all) => mapSpread(all, current.id, (s) => ({ ...s, texts: (s.texts ?? []).filter((t) => t.id !== id) })))
+    setSelection(null)
+  }
+
+  const applyCover = (preset: CoverPreset) => {
+    if (!current || current.kind !== 'cover') return
+    commit((all) => mapSpread(all, current.id, (s) => applyCoverPreset(s, preset, spec, title, uuid)))
+    setSelection(null)
+  }
+
+  /** Layout variants for these photos on the current spread; applies the best one and opens the switcher. */
+  const openVariants = (photoIds: string[], spreadArg?: AlbumSpread) => {
+    const target = spreadArg ?? current
+    if (!target) return
+    const chosen = [...new Set(photoIds)].map((id) => photosById.get(id)).filter((p): p is AlbumPhoto => !!p)
+    if (!chosen.length) return
+    const list = layoutVariants(chosen, formatFor(spec, target), { marginMm: spec.marginMm, gapMm: spec.gapMm }, 12)
+    if (!list.length) return
+    const key = `variants-${target.id}-${uuid()}`
+    commit((all) => mapSpread(all, target.id, (s) => applyVariant(s, list[0]!, photosById, uuid)), key)
+    setVariants({ spreadId: target.id, list, index: 0, key })
+    setSelection(null)
+  }
+
+  const stepVariant = (dir: 1 | -1) => {
+    if (!variants) return
+    const index = (variants.index + dir + variants.list.length) % variants.list.length
+    commit((all) => mapSpread(all, variants.spreadId, (s) => applyVariant(s, variants.list[index]!, photosById, uuid)), variants.key)
+    setVariants({ ...variants, index })
+  }
+
+  const spreadPhotoIds = (s: AlbumSpread) => s.slots.map((x) => x.assetId).filter((id): id is string => !!id)
 
   const addSpread = () => {
     const spread: AlbumSpread = { id: uuid(), kind: 'spread', layout: 'blank', slots: [] }
@@ -206,7 +290,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
       ? picked.map((id) => photosById.get(id)).filter((p): p is AlbumPhoto => !!p)
       : photos.filter((p) => !usage.has(p.id))
     if (!pool.length) return
-    const created = autoFillAlbum(pool, spec, 3, uuid)
+    const created = autoDesignAlbum(pool, spec, density, uuid)
     commit((all) => {
       // Trailing empty spreads are placeholders — the auto-filled ones replace them.
       let end = all.length
@@ -219,13 +303,20 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
 
   const handlers: SpreadViewHandlers = useMemo(
     () => ({
-      onSelectSlot: (id) => {
-        setSlotId(id)
-        if (id) setRightTab('frame')
+      onSelect: (sel) => {
+        setSelection(sel)
+        if (sel) setRightTab('frame')
       },
-      onDropPhoto: (targetSlot, photoId) => {
-        const photo = photosById.get(photoId)
-        if (!photo || !current) return
+      onDropPhotos: (targetSlot, photoIds) => {
+        if (!current) return
+        if (photoIds.length > 1) {
+          // Several photos at once: they join the photos already on the spread and the layout is redone.
+          openVariants([...spreadPhotoIds(current), ...photoIds])
+          setPicked([])
+          return
+        }
+        const photo = photosById.get(photoIds[0]!)
+        if (!photo) return
         if (targetSlot) {
           updateSlot(current.id, targetSlot, (slot) => fillSlot(slot, photo))
           setSlotId(targetSlot)
@@ -250,7 +341,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
             const a = s.slots.find((x) => x.id === from)
             const b = s.slots.find((x) => x.id === to)
             if (!a || !b) return s
-            const pick = (x: AlbumSlot) => ({ assetId: x.assetId, zoom: x.zoom, fx: x.fx, fy: x.fy })
+            const pick = (x: AlbumSlot) => ({ assetId: x.assetId, zoom: x.zoom, fx: x.fx, fy: x.fy, rotation: x.rotation ?? 0 })
             return { ...s, slots: s.slots.map((x) => (x.id === from ? { ...x, ...pick(b) } : x.id === to ? { ...x, ...pick(a) } : x)) }
           })
         )
@@ -263,7 +354,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
           (slot) => {
             const p = slot.assetId ? photosById.get(slot.assetId) : undefined
             if (!p) return slot
-            const next = panFocal(p.width, p.height, slot.w, slot.h, slot.zoom, slot.fx, slot.fy, dx, dy)
+            const next = panFocal(p.width, p.height, slot.w, slot.h, slot.zoom, slot.fx, slot.fy, dx, dy, slot.rotation ?? 0)
             return { ...slot, ...next }
           },
           `pan-${gesture}`
@@ -273,9 +364,20 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
         if (!current) return
         updateSlot(current.id, id, (slot) => ({ ...slot, zoom: Math.min(Math.max(slot.zoom * factor, 1), MAX_ZOOM) }), `wheel-${gesture}`)
       },
+      onMoveText: (id, dx, dy, gesture) => {
+        if (!current) return
+        commit(
+          (all) =>
+            mapSpread(all, current.id, (s) => ({
+              ...s,
+              texts: (s.texts ?? []).map((t) => (t.id === id ? { ...t, x: Math.round((t.x + dx) * 10) / 10, y: Math.round((t.y + dy) * 10) / 10 } : t)),
+            })),
+          `text-move-${gesture}`
+        )
+      },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [current?.id, photosById, commit, updateSlot, spec]
+    [current?.id, current?.slots, photosById, commit, updateSlot, spec]
   )
 
   // ---- keyboard -----------------------------------------------------------
@@ -294,9 +396,18 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
         doc.redo()
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && current && slotId) {
         e.preventDefault()
-        updateSlot(current.id, slotId, (s) => ({ ...s, assetId: null, zoom: 1, fx: 0.5, fy: 0.5 }))
-      } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-        const next = spreads[currentIndex + (e.key === 'ArrowRight' ? 1 : -1)]
+        updateSlot(current.id, slotId, (s) => ({ ...s, assetId: null, zoom: 1, fx: 0.5, fy: 0.5, rotation: 0 }))
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && current && textId) {
+        e.preventDefault()
+        deleteText(textId)
+      } else if (variants && variants.spreadId === current?.id && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        // The layout switcher is open: arrows flip through the variants.
+        e.preventDefault()
+        stepVariant(e.key === 'ArrowRight' ? 1 : -1)
+      } else if (e.key === 'Escape' && variants) {
+        setVariants(null)
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'PageDown' || e.key === 'PageUp') {
+        const next = spreads[currentIndex + (e.key === 'ArrowRight' || e.key === 'PageDown' ? 1 : -1)]
         if (next) {
           setSpreadId(next.id)
           setSlotId(null)
@@ -305,7 +416,8 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doc, current, slotId, spreads, currentIndex, updateSlot])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, current, slotId, textId, spreads, currentIndex, updateSlot, variants])
 
   const [stageRef, stage] = useElementSize<HTMLDivElement>()
   const sheet = current ? sheetSizeMm(formatFor(spec, current)) : null
@@ -377,6 +489,9 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
         <button className={btnGhost} onClick={doc.redo} disabled={!doc.canRedo} aria-label="Повторити" title="Повторити (Ctrl+Shift+Z)">
           ↷
         </button>
+        <button className={btnGhost} onClick={addText} disabled={!current} title="Додати текст на розворот">
+          + Текст
+        </button>
         <label className="flex items-center gap-1.5 text-xs font-semibold text-muted">
           <input type="checkbox" checked={showGuides} onChange={(e) => setShowGuides(e.target.checked)} />
           Напрямні
@@ -409,7 +524,10 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
                     <SpreadView spread={s} spec={spec} photos={photosById} scale={thumbScale} thumbs />
                   </button>
                   <div className="mt-0.5 flex items-center justify-between px-1">
-                    <span className="whitespace-nowrap text-[11px] font-semibold text-muted">{spreadLabel(s, i, spreads)}</span>
+                    <span className="whitespace-nowrap text-[11px] font-semibold text-muted">
+                      {spreadLabel(s, i, spreads)}
+                      {s.kind === 'cover' && spec.cover ? ` · ${formatFor(spec, s).spineMm} мм` : ''}
+                    </span>
                     {active && (
                       <span className="flex [&>button]:px-1.5">
                         <button className={btnGhost} onClick={() => moveSpread(s.id, -1)} aria-label="Перемістити вище" title="Вище">↑</button>
@@ -453,8 +571,9 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
                 photos={photosById}
                 scale={scale}
                 showGuides={showGuides}
-                selectedSlotId={slotId}
+                selected={selection}
                 handlers={handlers}
+                measure={measure}
               />
             </div>
           ) : (
@@ -470,10 +589,32 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
               </div>
             </div>
           )}
-          {current && current.slots.length === 0 && (
+          {current && current.slots.length === 0 && !(current.texts ?? []).length && (
             <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-sm text-muted">
-              Оберіть шаблон праворуч, перетягніть фото на розворот або натисніть «Автозаповнити».
+              Оберіть шаблон праворуч, перетягніть фото на розворот (можна кілька позначених одразу) або натисніть «Автозаповнити».
             </p>
+          )}
+          {variants && variants.spreadId === current?.id && (
+            <div
+              className="absolute inset-x-0 bottom-3 mx-auto flex w-max items-center gap-2 rounded-full bg-fg px-2 py-1.5 text-sm font-semibold text-white shadow-lg"
+              data-testid="variant-bar"
+              role="toolbar"
+              aria-label="Варіанти розкладки"
+            >
+              <button className="rounded-full px-3 py-1 hover:bg-white/15" onClick={() => stepVariant(-1)} aria-label="Попередній варіант">
+                ‹
+              </button>
+              <span data-testid="variant-counter">
+                Варіант {variants.index + 1} з {variants.list.length}
+              </span>
+              <button className="rounded-full px-3 py-1 hover:bg-white/15" onClick={() => stepVariant(1)} aria-label="Наступний варіант">
+                ›
+              </button>
+              <span className="hidden text-xs font-normal text-white/70 xl:inline">← → на клавіатурі</span>
+              <button className="rounded-full px-3 py-1 hover:bg-white/15" onClick={() => setVariants(null)} aria-label="Готово">
+                ✓
+              </button>
+            </div>
           )}
         </main>
 
@@ -490,7 +631,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
               className={`flex-1 rounded-full px-3 py-1 text-sm font-bold ${rightTab === 'frame' ? 'bg-fg text-white' : 'text-muted hover:text-fg'}`}
               onClick={() => setRightTab('frame')}
             >
-              Кадр
+              {selectedText ? 'Текст' : 'Кадр'}
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
@@ -498,18 +639,54 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
               <p className="text-sm text-muted">Додайте розворот.</p>
             ) : rightTab === 'templates' ? (
               <>
-                <TemplatePicker spread={current} spec={spec} onApply={setLayout} />
+                <TemplatePicker spread={current} spec={spec} onApply={setLayout} onCoverPreset={applyCover} />
                 <div className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
                   <p className={label}>Автозаповнення</p>
                   <button className={btn} onClick={autofillCurrent} disabled={!photos.length}>
                     Заповнити розворот {picked.length ? `обраними (${picked.length})` : 'наступними кадрами'}
                   </button>
-                  <button className={btn} onClick={autofillAlbum} disabled={!photos.length}>
-                    Розкласти {picked.length ? `обрані (${picked.length})` : 'невикористані'} по нових розворотах
+                  <button className={btn} onClick={() => openVariants(spreadPhotoIds(current))} disabled={!current.slots.some((x) => x.assetId)}>
+                    Варіанти розкладки цього розвороту
                   </button>
-                  <p className="text-xs text-muted">Позначте кадри в плівці клацанням — шаблон підбереться під їхню орієнтацію.</p>
+                  <p className="text-xs text-muted">
+                    Позначте кадри в плівці клацанням і перетягніть їх разом на розворот — розкладка підбереться, а стрілками ← → можна перебрати варіанти.
+                  </p>
+                </div>
+                <div className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
+                  <p className={label}>Автодизайн альбому</p>
+                  <div className="flex gap-1 rounded-full bg-bg p-1" role="radiogroup" aria-label="Щільність">
+                    {(
+                      [
+                        ['airy', 'Повітряно'],
+                        ['normal', 'Звично'],
+                        ['dense', 'Щільно'],
+                      ] as [Density, string][]
+                    ).map(([value, name]) => (
+                      <button
+                        key={value}
+                        role="radio"
+                        aria-checked={density === value}
+                        onClick={() => setDensity(value)}
+                        className={`flex-1 rounded-full px-2 py-1 text-xs font-bold ${density === value ? 'bg-white text-fg shadow-sm' : 'text-muted hover:text-fg'}`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                  <button className={btn} onClick={autofillAlbum} disabled={!photos.length}>
+                    Автодизайн {picked.length ? `з обраних (${picked.length})` : 'з невикористаних'}
+                  </button>
+                  <p className="text-xs text-muted">
+                    Серії кадрів (сусідні номери файлів, одна орієнтація) лишаються на одному розвороті; самотній горизонтальний кадр інколи отримує весь розворот.
+                  </p>
                 </div>
               </>
+            ) : selectedText && current ? (
+              <TextInspector
+                text={selectedText}
+                onChange={(patch, key) => updateText(current.id, selectedText.id, patch, key)}
+                onDelete={() => deleteText(selectedText.id)}
+              />
             ) : selectedSlot && current ? (
               <SlotInspector
                 slot={selectedSlot}
@@ -517,11 +694,12 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
                 spec={spec}
                 onZoom={(zoom, key) => updateSlot(current.id, selectedSlot.id, (s) => ({ ...s, zoom }), key)}
                 onFocal={(fx, fy) => updateSlot(current.id, selectedSlot.id, (s) => ({ ...s, fx, fy }))}
-                onClear={() => updateSlot(current.id, selectedSlot.id, (s) => ({ ...s, assetId: null, zoom: 1, fx: 0.5, fy: 0.5 }))}
+                onRotate={(rotation, key) => updateSlot(current.id, selectedSlot.id, (s) => ({ ...s, rotation: normalizeRotation(rotation) }), key)}
+                onClear={() => updateSlot(current.id, selectedSlot.id, (s) => ({ ...s, assetId: null, zoom: 1, fx: 0.5, fy: 0.5, rotation: 0 }))}
                 onFitReset={() =>
                   updateSlot(current.id, selectedSlot.id, (s) => {
                     const p = s.assetId ? photosById.get(s.assetId) : undefined
-                    return { ...s, zoom: 1, fx: p?.focalX ?? 0.5, fy: p?.focalY ?? 0.5 }
+                    return { ...s, zoom: 1, fx: p?.focalX ?? 0.5, fy: p?.focalY ?? 0.5, rotation: 0 }
                   })
                 }
               />
@@ -586,13 +764,15 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData(DND_PHOTO, p.id)
+                  // Dragging one of several marked photos carries all of them.
+                  if (isPicked && picked.length > 1) e.dataTransfer.setData(DND_PHOTOS, JSON.stringify(picked))
                   e.dataTransfer.effectAllowed = 'copy'
                 }}
                 onClick={() => setPicked((all) => (all.includes(p.id) ? all.filter((x) => x !== p.id) : [...all, p.id]))}
                 onDoubleClick={() => {
                   if (!current) return
                   const target = selectedSlot ?? current.slots.find((s) => !s.assetId)
-                  handlers.onDropPhoto(target?.id ?? null, p.id)
+                  handlers.onDropPhotos(target?.id ?? null, [p.id])
                 }}
                 className={`relative h-20 flex-none overflow-hidden rounded-md bg-neutral-200 ${isPicked ? 'ring-4 ring-accent' : ''}`}
                 style={{ width: Math.round((80 * p.width) / p.height) }}
