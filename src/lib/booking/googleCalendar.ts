@@ -127,6 +127,27 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
   return payload.access_token
 }
 
+const OAUTH_REVOKE = 'https://oauth2.googleapis.com/revoke'
+
+/**
+ * Revokes a refresh token at Google (the grant disappears from the user's
+ * Google account). 400 invalid_token = already revoked/expired → success.
+ */
+export async function revokeToken(token: string, timeoutMs = 5_000): Promise<void> {
+  const response = await fetch(OAUTH_REVOKE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ token }),
+    signal: AbortSignal.timeout(timeoutMs),
+  })
+  if (response.ok) return
+  if (response.status === 400) {
+    const text = await response.text().catch(() => '')
+    if (text.includes('invalid_token')) return
+  }
+  throw new Error(`google revoke: ${response.status}`)
+}
+
 /** The connected Google account's email, for display in the dashboard. */
 export async function getUserEmail(accessToken: string): Promise<string | null> {
   const response = await fetch(USERINFO, {

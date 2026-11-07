@@ -25,6 +25,7 @@ import { DEFAULT_BOOKING_TIME_ZONE, addDays, todayIn } from '@/lib/booking/time'
 import { reportServerError } from '@/lib/sentry/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { BookingSettings } from '@/lib/booking/types'
+import { maskSecret, readSecret, type SecretField } from '@/lib/booking/secrets'
 import { SlotList, type DashboardSlot } from '@/components/booking/SlotList'
 import { SlotTemplateForm } from '@/components/booking/SlotTemplateForm'
 
@@ -37,7 +38,7 @@ export default async function BookingDashboardPage({
   searchParams,
 }: {
   params: { locale: string }
-  searchParams: { google?: string }
+  searchParams: { google?: string; settings?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -56,7 +57,7 @@ export default async function BookingDashboardPage({
   // Upcoming slots plus the last 60 days (recent bookings stay visible for
   // payment follow-up without loading years of history).
   const today = todayIn(DEFAULT_BOOKING_TIME_ZONE)
-  const [{ data: settings }, { data: slotRows }] = await Promise.all([
+  const [{ data: settingsRow }, { data: slotRows }] = await Promise.all([
     supabase
       .from('booking_settings')
       .select('*')
@@ -73,18 +74,39 @@ export default async function BookingDashboardPage({
   ])
   const slots = slotRows ?? []
 
+  // Secrets never reach the browser: they are split off right here, decrypted
+  // only to compute «••••1234» masks (and the Google token to list calendars),
+  // and the rest of the page works with `settings` that has none of them.
+  const onSecretError = (e: unknown) => reportServerError(e, { area: 'booking.secrets' })
+  const {
+    mono_token: storedMonoToken,
+    wfp_secret: storedWfpSecret,
+    mono_personal_token: storedPersonalToken,
+    google_refresh_token: storedGoogleToken,
+    ...settingsSafe
+  } = settingsRow ?? ({} as Partial<BookingSettings>)
+  const settings = settingsRow ? (settingsSafe as Omit<BookingSettings, SecretField>) : null
+  const secretMask: Record<'mono_token' | 'wfp_secret' | 'mono_personal_token', string | null> = {
+    mono_token: storedMonoToken ? maskSecret(readSecret(storedMonoToken, 'mono_token', onSecretError)) ?? '••••' : null,
+    wfp_secret: storedWfpSecret ? maskSecret(readSecret(storedWfpSecret, 'wfp_secret', onSecretError)) ?? '••••' : null,
+    mono_personal_token: storedPersonalToken
+      ? maskSecret(readSecret(storedPersonalToken, 'mono_personal_token', onSecretError)) ?? '••••'
+      : null,
+  }
+
   const saveAction = saveBookingSettings.bind(null, locale)
   const addAction = addBookingSlot.bind(null, locale)
 
   // Google: which calendars count as busy. Accounts connected before the
   // free/busy scope existed are asked to reconnect.
   const calendarConfig = parseCalendarConfig(settings?.google_calendar_id)
-  const googleConnected = !!settings?.google_refresh_token
+  const googleConnected = !!storedGoogleToken
   const needsReconnect = googleConnected && !calendarConfig.busyScopes
   let calendars: GoogleCalendarInfo[] | null = null
-  if (googleConnected && !needsReconnect && isGoogleConfigured()) {
+  const googleToken = googleConnected ? readSecret(storedGoogleToken, 'google_refresh_token', onSecretError) : null
+  if (googleToken && !needsReconnect && isGoogleConfigured()) {
     try {
-      calendars = await listCalendars(await refreshAccessToken(settings!.google_refresh_token!))
+      calendars = await listCalendars(await refreshAccessToken(googleToken))
     } catch (error) {
       reportServerError(error, { area: 'booking.calendarList' })
       calendars = null
@@ -112,7 +134,7 @@ export default async function BookingDashboardPage({
       <section className="mt-10" aria-labelledby="schedule-title">
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <h2 id="schedule-title" className="font-display text-2xl">{dict.booking.scheduleTitle}</h2>
-          {settings?.auto_confirm_manual && settings.mono_personal_token && (
+          {settings?.auto_confirm_manual && storedPersonalToken && (
             <form action={checkManualPayments.bind(null, locale)}>
               <button type="submit" className="text-sm underline hover:text-accent">
                 {dict.booking.checkPayments}
@@ -183,6 +205,11 @@ export default async function BookingDashboardPage({
         {searchParams.google === 'connected' && (
           <p className="mt-4 border border-fg px-4 py-2 text-sm">{dict.booking.googleStatusOk}</p>
         )}
+        {searchParams.google === 'secrets_key' && (
+          <p className="mt-4 border border-accent px-4 py-2 text-sm text-accent">
+            {dict.booking.secretsKeyMissing}
+          </p>
+        )}
         {searchParams.google === 'error' && (
           <p className="mt-4 border border-accent px-4 py-2 text-sm text-accent">
             {dict.booking.googleStatusError}
@@ -191,7 +218,7 @@ export default async function BookingDashboardPage({
 
         {!isGoogleConfigured() ? (
           <p className="mt-5 text-sm text-muted">{dict.booking.googleUnconfigured}</p>
-        ) : settings?.google_refresh_token ? (
+        ) : settings && googleConnected ? (
           <>
           <div className="mt-5 flex flex-wrap items-center gap-4">
             <span className="text-sm">
@@ -268,9 +295,17 @@ export default async function BookingDashboardPage({
       </section>
 
       {/* -------- settings -------- */}
-      <details className="group mt-10 border border-line" open={!settings?.enabled}>
+      <details
+        className="group mt-10 border border-line"
+        open={!settings?.enabled || searchParams.settings === 'secrets_key'}
+      >
         <summary className="cursor-pointer px-4 py-4 font-display text-xl sm:px-6">{dict.booking.settingsTitle}</summary>
       <form action={saveAction} className="flex flex-col gap-5 border-t border-line p-4 sm:p-6">
+        {searchParams.settings === 'secrets_key' && (
+          <p role="alert" className="border border-accent px-4 py-2 text-sm text-accent">
+            {dict.booking.secretsKeyMissing}
+          </p>
+        )}
         <label className="flex items-center gap-3 text-sm">
           <input type="checkbox" name="enabled" defaultChecked={settings?.enabled ?? false} />
           {dict.booking.enabled}
@@ -327,11 +362,11 @@ export default async function BookingDashboardPage({
             <input type="checkbox" name="mono_enabled" defaultChecked={settings?.mono_enabled} />
             {dict.booking.monoLabel}
           </label>
-          <input
+          <SecretField
             name="mono_token"
-            defaultValue={settings?.mono_token ?? ''}
+            mask={secretMask.mono_token}
             placeholder={dict.booking.monoTokenLabel}
-            className={inputClass}
+            labels={dict.booking}
           />
         </fieldset>
 
@@ -346,11 +381,11 @@ export default async function BookingDashboardPage({
             placeholder={dict.booking.wfpMerchantLabel}
             className={inputClass}
           />
-          <input
+          <SecretField
             name="wfp_secret"
-            defaultValue={settings?.wfp_secret ?? ''}
+            mask={secretMask.wfp_secret}
             placeholder={dict.booking.wfpSecretLabel}
-            className={inputClass}
+            labels={dict.booking}
           />
         </fieldset>
 
@@ -395,11 +430,11 @@ export default async function BookingDashboardPage({
             {dict.booking.autoConfirmLabel}
           </label>
           <p className="text-xs leading-relaxed text-muted">{dict.booking.autoConfirmHint}</p>
-          <input
+          <SecretField
             name="mono_personal_token"
-            defaultValue={settings?.mono_personal_token ?? ''}
+            mask={secretMask.mono_personal_token}
             placeholder={dict.booking.personalTokenLabel}
-            className={inputClass}
+            labels={dict.booking}
           />
           <input
             name="mono_personal_account"
@@ -420,5 +455,47 @@ export default async function BookingDashboardPage({
 
 
     </main>
+  )
+}
+
+/**
+ * A stored secret is shown only as «••••1234». The input starts EMPTY: left
+ * empty it keeps the stored value; typed into, it replaces it; «стерти»
+ * removes it.
+ */
+function SecretField({
+  name,
+  mask,
+  placeholder,
+  labels,
+}: {
+  name: string
+  mask: string | null
+  placeholder: string
+  labels: { secretSaved: string; secretReplace: string; secretClear: string }
+}) {
+  return (
+    <div className="flex flex-col gap-1.5" data-testid={`secret-${name}`}>
+      {mask && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span>
+            {labels.secretSaved}: <span className="font-mono tracking-wider">{mask}</span>
+          </span>
+          <label className="flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" name={`${name}_clear`} />
+            {labels.secretClear}
+          </label>
+        </div>
+      )}
+      <input
+        name={name}
+        type="password"
+        autoComplete="off"
+        defaultValue=""
+        placeholder={mask ? labels.secretReplace : placeholder}
+        aria-label={placeholder}
+        className={inputClass}
+      />
+    </div>
   )
 }

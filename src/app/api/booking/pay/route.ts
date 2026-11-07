@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { readSecret } from '@/lib/booking/secrets'
+import { reportServerError } from '@/lib/sentry/server'
 import { monoCreateInvoice } from '@/lib/booking/monobank'
 import { wfpCreateInvoice } from '@/lib/booking/wayforpay'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -61,6 +63,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'not_configured' }, { status: 404 })
   }
 
+  // Secrets are encrypted at rest; decrypted only here, on the server.
+  const onSecretError = (e: unknown) => reportServerError(e, { area: 'booking.secrets' })
+  const monoToken = readSecret(settings.mono_token, 'mono_token', onSecretError)
+  const wfpSecret = readSecret(settings.wfp_secret, 'wfp_secret', onSecretError)
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
   const locale = body.locale === 'en' ? 'en' : 'uk'
   const redirectUrl = `${appUrl}/${locale}/b/${settings.handle}?paid=1`
@@ -68,10 +75,10 @@ export async function POST(request: NextRequest) {
 
   try {
     if (body.method === 'mono') {
-      if (!settings.mono_enabled || !settings.mono_token) {
+      if (!settings.mono_enabled || !monoToken) {
         return NextResponse.json({ error: 'method_disabled' }, { status: 400 })
       }
-      const invoice = await monoCreateInvoice(settings.mono_token, {
+      const invoice = await monoCreateInvoice(monoToken, {
         amountUah: Number(slot.price_uah),
         reference: slot.id,
         destination,
@@ -85,10 +92,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: invoice.pageUrl })
     }
 
-    if (!settings.wfp_enabled || !settings.wfp_merchant || !settings.wfp_secret) {
+    if (!settings.wfp_enabled || !settings.wfp_merchant || !wfpSecret) {
       return NextResponse.json({ error: 'method_disabled' }, { status: 400 })
     }
-    const invoice = await wfpCreateInvoice(settings.wfp_merchant, settings.wfp_secret, {
+    const invoice = await wfpCreateInvoice(settings.wfp_merchant, wfpSecret, {
       amountUah: Number(slot.price_uah),
       orderReference: slot.id,
       productName: destination,

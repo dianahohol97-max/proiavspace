@@ -17,6 +17,7 @@ import { reportServerError } from '@/lib/sentry/server'
 import { filterFreeSlots, isSlotBusy, parseBusy, slotsWindow, type SlotLike } from './busy'
 import { parseCalendarConfig, type CalendarConfig } from './calendarConfig'
 import { queryFreeBusy, refreshAccessToken } from './googleCalendar'
+import { readSecret } from './secrets'
 import { DEFAULT_BOOKING_TIME_ZONE, slotInterval, utcToWall, wallString, type Interval } from './time'
 
 export const BUSY_CACHE_TTL_MS = 3 * 60_000
@@ -36,6 +37,12 @@ const busyCache = new Map<string, { fetchedAt: number; window: Interval; busy: I
 export function resetAvailabilityCache(): void {
   tokenCache.clear()
   busyCache.clear()
+}
+
+/** Drops this instance's cached Google access for an owner (after disconnect). */
+export function forgetGoogleAccess(ownerId: string): void {
+  tokenCache.delete(ownerId)
+  busyCache.delete(ownerId)
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -72,7 +79,11 @@ function ownerCalendar(row: {
   if (!row?.google_refresh_token) return null
   const config = parseCalendarConfig(row.google_calendar_id)
   if (!config.busyScopes || config.busy.length === 0) return null
-  return { ownerId: row.user_id, refreshToken: row.google_refresh_token, config }
+  const refreshToken = readSecret(row.google_refresh_token, 'google_refresh_token', (error) =>
+    reportServerError(error, { area: 'booking.secrets' })
+  )
+  if (!refreshToken) return null
+  return { ownerId: row.user_id, refreshToken, config }
 }
 
 async function fetchBusy(

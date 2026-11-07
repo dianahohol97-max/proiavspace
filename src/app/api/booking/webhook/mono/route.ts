@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { readSecret } from '@/lib/booking/secrets'
+import { reportServerError } from '@/lib/sentry/server'
 import { monoIsPaid } from '@/lib/booking/monobank'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -43,11 +45,14 @@ export async function POST(request: NextRequest) {
     .select('mono_token')
     .eq('user_id', slot.owner_id)
     .single()
-  if (!settings?.mono_token) {
+  const monoToken = readSecret(settings?.mono_token, 'mono_token', (e) =>
+    reportServerError(e, { area: 'booking.secrets' })
+  )
+  if (!monoToken) {
     return NextResponse.json({ ok: true })
   }
 
-  if (await monoIsPaid(settings.mono_token, invoiceId)) {
+  if (await monoIsPaid(monoToken, invoiceId)) {
     await admin
       .from('booking_slots')
       .update({ status: 'paid', paid_at: new Date().toISOString() })

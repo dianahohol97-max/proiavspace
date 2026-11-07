@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { defaultLocale, isLocale } from '@/lib/i18n/config'
-import { exchangeCode, getUserEmail, hasBusyScopes } from '@/lib/booking/googleCalendar'
+import { exchangeCode, getUserEmail, hasBusyScopes, revokeToken } from '@/lib/booking/googleCalendar'
+import { canEncryptSecrets, encryptSecret } from '@/lib/booking/secrets'
+import { reportServerError } from '@/lib/sentry/server'
 import { parseCalendarConfig, serializeCalendarConfig } from '@/lib/booking/calendarConfig'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -44,6 +46,18 @@ export async function GET(request: NextRequest) {
   try {
     const tokens = await exchangeCode(code)
     if (!tokens.refresh_token) return fail()
+    // No encryption key (production misconfiguration): never store the token
+    // in plaintext. Give the grant back to Google and say why.
+    if (!canEncryptSecrets()) {
+      await revokeToken(tokens.refresh_token).catch((e) =>
+        reportServerError(e, { area: 'booking.google.revoke' })
+      )
+      reportServerError(new Error('BOOKING_SECRETS_KEY missing: Google token not stored'), {
+        area: 'booking.secrets',
+      })
+      bookingUrl.searchParams.set('google', 'secrets_key')
+      return clear(NextResponse.redirect(bookingUrl))
+    }
     const email = await getUserEmail(tokens.access_token)
     // Keep the photographer's earlier calendar choice on a reconnect. If the
     // free/busy grant was unticked on the consent screen, store the legacy
@@ -63,7 +77,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.from('booking_settings').upsert(
       {
         user_id: user.id,
-        google_refresh_token: tokens.refresh_token,
+        google_refresh_token: encryptSecret(tokens.refresh_token, 'google_refresh_token'),
         google_email: email,
         google_calendar_id: calendarValue,
       },

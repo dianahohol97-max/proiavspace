@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Server } from 'node:http'
+import { encryptSecret, decryptSecret } from '../../src/lib/booking/secrets'
 import { FAKE_USER_ID, newState, sessionCookie, startFakeSupabase, type FakeState } from './helpers/fake-supabase'
 
 /**
@@ -31,6 +32,7 @@ async function openBooking(page: Page) {
 
 function reset(settings: Record<string, unknown> | null = null) {
   state.rpc = {}
+  state.settingsWrites = []
   state.slots = []
   state.inserts = []
   state.settings = settings
@@ -197,5 +199,58 @@ test.describe('«Забронювати зйомку» на сайті з тем
     await expect(bookLinks(page).first()).toHaveAttribute('href', '#contact')
     await expect(page.locator('section#booking')).toHaveCount(0)
     await expect(page.locator('#contact form')).toBeVisible()
+  })
+})
+
+test.describe('секрети оплати не потрапляють у браузер', () => {
+  test.beforeEach(({}, testInfo) => {
+    test.skip(testInfo.project.name === 'android', 'досить десктопа й iPhone')
+  })
+
+  test('HTML кабінету: лише «••••1234», ні токена, ні шифротексту; порожнє поле не стирає; старий текст перешифровується', async ({ page }) => {
+    // Next dev і цей тест без BOOKING_SECRETS_KEY → обидва беруть тестовий ключ.
+    const monoPlain = 'mono-acquiring-SECRET-9876'
+    const monoEnc = encryptSecret(monoPlain, 'mono_token')
+    const legacyWfp = 'legacy-wfp-PLAINTEXT-4321'
+    const googlePlain = '1//0google-refresh-SECRET'
+    reset({
+      user_id: FAKE_USER_ID,
+      enabled: true,
+      handle: 'olena',
+      mono_enabled: true,
+      mono_token: monoEnc,
+      wfp_enabled: true,
+      wfp_merchant: 'olena_studio',
+      wfp_secret: legacyWfp,
+      mono_personal_token: null,
+      google_refresh_token: encryptSecret(googlePlain, 'google_refresh_token'),
+      google_calendar_id: 'primary',
+      google_email: 'olena@gmail.com',
+    })
+
+    const html = await (await page.context().request.get('/uk/dashboard/booking', {
+      headers: { cookie: `${sessionCookie().name}=${sessionCookie().value}` },
+    })).text()
+    for (const leaked of [monoPlain, monoEnc, legacyWfp, googlePlain, 'enc:v1:']) {
+      expect(html, `не має бути в HTML: ${leaked.slice(0, 12)}…`).not.toContain(leaked)
+    }
+    expect(html).toContain('••••9876')
+    expect(html).toContain('••••4321')
+
+    await openBooking(page)
+    const settings = page.locator('details', { hasText: 'Налаштування бронювання й оплати' })
+    if (!(await settings.getAttribute('open'))) await settings.locator('summary').click()
+    await expect(page.getByTestId('secret-mono_token')).toContainText('••••9876')
+    await expect(page.getByTestId('secret-mono_token').locator('input[name="mono_token"]')).toHaveValue('')
+
+    // Зберегти, нічого не вводячи в поля секретів.
+    await settings.getByRole('button', { name: 'Зберегти налаштування' }).click()
+    await expect.poll(() => state.settingsWrites.length).toBeGreaterThan(0)
+    const write = state.settingsWrites[0]
+    expect(write).not.toHaveProperty('mono_token') // порожнє поле = не змінювати
+    expect(write).not.toHaveProperty('mono_personal_token')
+    expect(String(write.wfp_secret)).toMatch(/^enc:v1:/) // старий текст перешифровано
+    expect(decryptSecret(String(write.wfp_secret), 'wfp_secret')).toBe(legacyWfp)
+    expect(write).not.toHaveProperty('google_refresh_token') // уже зашифрований
   })
 })

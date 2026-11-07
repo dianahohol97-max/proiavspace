@@ -292,6 +292,10 @@ export const en: Dictionary = {
     googleBusyListError: 'Could not load your calendars. Try later or reconnect the calendar.',
     googleBusyNone: 'No calendar ticked — busy time is not checked.',
     googlePrimary: 'primary',
+    secretSaved: 'Saved',
+    secretReplace: 'New value — replaces the saved one (empty keeps it)',
+    secretClear: 'Remove',
+    secretsKeyMissing: 'Secret keys were not saved: encryption is not configured on the server. Other settings were saved. Please contact support.',
   },
   publicBooking: {
     chooseSlot: 'Pick a time that works',

@@ -17,10 +17,12 @@ export interface FakeState {
   inserts: Row[][]
   /** Public RPC answers by function name (get_site, get_free_slots…). */
   rpc: Record<string, unknown>
+  /** Bodies of upserts/updates sent to booking_settings. */
+  settingsWrites: Row[]
 }
 
 export function newState(): FakeState {
-  return { settings: null, slots: [], inserts: [], rpc: {} }
+  return { settings: null, slots: [], inserts: [], rpc: {}, settingsWrites: [] }
 }
 
 export function sessionCookie(): { name: string; value: string } {
@@ -87,6 +89,9 @@ export function startFakeSupabase(state: FakeState, port = 54321): Promise<Serve
       if (p === '/rest/v1/profiles') return rows([profile])
       if (p === '/rest/v1/booking_settings') {
         if (req.method === 'GET') return rows(state.settings ? [state.settings] : [])
+        const write = (Array.isArray(body) ? body[0] : body) as Row
+        state.settingsWrites.push(write)
+        state.settings = { ...(state.settings ?? {}), ...write }
         return send(204, undefined)
       }
       if (p === '/rest/v1/booking_slots') {

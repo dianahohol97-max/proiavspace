@@ -5,6 +5,7 @@ import { insertCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCal
 import { checkSlotWithGoogle } from '@/lib/booking/availability'
 import { parseCalendarConfig } from '@/lib/booking/calendarConfig'
 import { reportServerError } from '@/lib/sentry/server'
+import { readSecret } from '@/lib/booking/secrets'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -107,9 +108,12 @@ export async function POST(request: NextRequest) {
       // Google Calendar sync (best-effort): push the booking into the
       // photographer's calendar. A calendar failure must never fail the
       // booking, so everything here is wrapped and swallowed.
-      if (settings?.google_refresh_token) {
+      const refreshToken = readSecret(settings?.google_refresh_token, 'google_refresh_token', (e) =>
+        reportServerError(e, { area: 'booking.secrets' })
+      )
+      if (settings && refreshToken) {
         try {
-          const accessToken = await refreshAccessToken(settings.google_refresh_token)
+          const accessToken = await refreshAccessToken(refreshToken)
           const eventId = await insertCalendarEvent(
             accessToken,
             parseCalendarConfig(settings.google_calendar_id).write,

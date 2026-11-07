@@ -3,7 +3,15 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { monoStatement } from '@/lib/booking/monoPersonal'
-import { deleteCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCalendar'
+import { deleteCalendarEvent, refreshAccessToken, revokeToken } from '@/lib/booking/googleCalendar'
+import { forgetGoogleAccess } from '@/lib/booking/availability'
+import {
+  SECRET_FIELDS,
+  buildSecretPatch,
+  readSecret,
+  type SecretField,
+} from '@/lib/booking/secrets'
+import { reportServerError } from '@/lib/sentry/server'
 import { parseCalendarConfig, serializeCalendarConfig, MAX_BUSY_CALENDARS } from '@/lib/booking/calendarConfig'
 import {
   DB_MAX_SLOT_MINUTES,
@@ -41,6 +49,23 @@ export async function saveBookingSettings(locale: Locale, formData: FormData): P
 
   const releaseHours = Number(formData.get('unpaid_release_hours') ?? 24)
 
+  // Secrets: encrypted at rest; an empty field keeps the stored value, a
+  // ticked «стерти» removes it. The form never receives the stored values.
+  const { data: current } = await supabase
+    .from('booking_settings')
+    .select(SECRET_FIELDS.join(', '))
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const { patch: secretPatch, keyMissing } = buildSecretPatch({
+    submitted: {
+      mono_token: str(formData, 'mono_token'),
+      wfp_secret: str(formData, 'wfp_secret'),
+      mono_personal_token: str(formData, 'mono_personal_token'),
+    },
+    clear: SECRET_FIELDS.filter((f) => formData.get(`${f}_clear`) === 'on'),
+    existing: (current ?? {}) as Partial<Record<SecretField, string | null>>,
+  })
+
   const { error } = await supabase.from('booking_settings').upsert(
     {
       user_id: user.id,
@@ -52,23 +77,23 @@ export async function saveBookingSettings(locale: Locale, formData: FormData): P
           ? Math.round(releaseHours)
           : 24,
       auto_confirm_manual: formData.get('auto_confirm_manual') === 'on',
-      mono_personal_token: str(formData, 'mono_personal_token'),
       mono_personal_account: str(formData, 'mono_personal_account') ?? '0',
       mono_enabled: formData.get('mono_enabled') === 'on',
-      mono_token: str(formData, 'mono_token'),
       wfp_enabled: formData.get('wfp_enabled') === 'on',
       wfp_merchant: str(formData, 'wfp_merchant'),
-      wfp_secret: str(formData, 'wfp_secret'),
       manual_link_enabled: formData.get('manual_link_enabled') === 'on',
       manual_link: str(formData, 'manual_link'),
       card_enabled: formData.get('card_enabled') === 'on',
       card_details: str(formData, 'card_details'),
+      ...secretPatch,
     },
     { onConflict: 'user_id' }
   )
   if (error) throw new Error(`Failed to save booking settings: ${error.message}`)
 
   revalidatePath(`/${locale}/dashboard/booking`)
+  // Everything else is saved; the new secrets were not (no encryption key).
+  if (keyMissing) redirect(`/${locale}/dashboard/booking?settings=secrets_key`)
 }
 
 export async function addBookingSlot(locale: Locale, formData: FormData): Promise<void> {
@@ -136,7 +161,10 @@ export async function checkManualPayments(locale: Locale): Promise<void> {
     .select('auto_confirm_manual, mono_personal_token, mono_personal_account, last_statement_check')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (!settings?.auto_confirm_manual || !settings.mono_personal_token) return
+  const personalToken = readSecret(settings?.mono_personal_token, 'mono_personal_token', (e) =>
+    reportServerError(e, { area: 'booking.secrets' })
+  )
+  if (!settings?.auto_confirm_manual || !personalToken) return
 
   if (
     settings.last_statement_check &&
@@ -162,7 +190,7 @@ export async function checkManualPayments(locale: Locale): Promise<void> {
 
   const earliest = Math.min(...slots.map((s) => new Date(s.booked_at ?? 0).getTime()))
   const entries = await monoStatement(
-    settings.mono_personal_token,
+    personalToken,
     settings.mono_personal_account ?? '0',
     Math.floor(earliest / 1000)
   )
@@ -218,9 +246,12 @@ export async function reopenSlot(locale: Locale, slotId: string): Promise<void> 
       .select('google_refresh_token, google_calendar_id')
       .eq('user_id', user.id)
       .maybeSingle()
-    if (settings?.google_refresh_token) {
+    const refreshToken = readSecret(settings?.google_refresh_token, 'google_refresh_token', (e) =>
+      reportServerError(e, { area: 'booking.secrets' })
+    )
+    if (settings && refreshToken) {
       try {
-        const accessToken = await refreshAccessToken(settings.google_refresh_token)
+        const accessToken = await refreshAccessToken(refreshToken)
         await deleteCalendarEvent(
           accessToken,
           parseCalendarConfig(settings.google_calendar_id).write,
@@ -252,9 +283,29 @@ export async function reopenSlot(locale: Locale, slotId: string): Promise<void> 
   revalidatePath(`/${locale}/dashboard/booking`)
 }
 
-/** Disconnects Google Calendar — clears the stored refresh token and email. */
+/**
+ * Disconnects Google Calendar: revokes the grant at Google, then clears the
+ * stored refresh token and email. If Google does not answer, the token is
+ * still deleted here (we can no longer use it) and the failure goes to Sentry.
+ */
 export async function disconnectGoogleCalendar(locale: Locale): Promise<void> {
   const { supabase, user } = await requireUser()
+  const { data: stored } = await supabase
+    .from('booking_settings')
+    .select('google_refresh_token')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const token = readSecret(stored?.google_refresh_token, 'google_refresh_token', (e) =>
+    reportServerError(e, { area: 'booking.secrets' })
+  )
+  if (token) {
+    try {
+      await revokeToken(token)
+    } catch (revokeError) {
+      reportServerError(revokeError, { area: 'booking.google.revoke' })
+    }
+  }
+  forgetGoogleAccess(user.id)
   const { error } = await supabase
     .from('booking_settings')
     .update({ google_refresh_token: null, google_email: null })
@@ -396,9 +447,15 @@ export async function saveBusyCalendars(locale: Locale, formData: FormData): Pro
     .map((v) => String(v).trim())
     .filter((v) => v.length > 0 && v.length <= 255)
     .slice(0, MAX_BUSY_CALENDARS)
+  // Legacy plaintext refresh token → encrypted on this save.
+  const { patch: upgrade } = buildSecretPatch({
+    submitted: {},
+    clear: [],
+    existing: { google_refresh_token: settings.google_refresh_token },
+  })
   const { error } = await supabase
     .from('booking_settings')
-    .update({ google_calendar_id: serializeCalendarConfig({ write: config.write, busy }) })
+    .update({ google_calendar_id: serializeCalendarConfig({ write: config.write, busy }), ...upgrade })
     .eq('user_id', user.id)
   if (error) throw new Error(`Failed to save calendars: ${error.message}`)
   revalidatePath(`/${locale}/dashboard/booking`)

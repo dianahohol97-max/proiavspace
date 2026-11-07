@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { readSecret } from '@/lib/booking/secrets'
+import { reportServerError } from '@/lib/sentry/server'
 import { wfpIsPaid } from '@/lib/booking/wayforpay'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -48,8 +50,11 @@ export async function POST(request: NextRequest) {
       .select('wfp_merchant, wfp_secret')
       .eq('user_id', slot.owner_id)
       .single()
-    if (settings?.wfp_merchant && settings.wfp_secret) {
-      if (await wfpIsPaid(settings.wfp_merchant, settings.wfp_secret, orderReference)) {
+    const wfpSecret = readSecret(settings?.wfp_secret, 'wfp_secret', (e) =>
+      reportServerError(e, { area: 'booking.secrets' })
+    )
+    if (settings?.wfp_merchant && wfpSecret) {
+      if (await wfpIsPaid(settings.wfp_merchant, wfpSecret, orderReference)) {
         await admin
           .from('booking_slots')
           .update({ status: 'paid', paid_at: new Date().toISOString() })
