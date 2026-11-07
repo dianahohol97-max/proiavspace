@@ -45,6 +45,8 @@ export default defineConfig({
       NEXT_TELEMETRY_DISABLED: '1',
       // Google OAuth "configured" so the booking dashboard renders its calendar
       // states; no test reaches Google (calendar calls only for connected v2 accounts).
+      // /api/cron/* auth in e2e (booking-release test).
+      CRON_SECRET: 'e2e-cron-secret',
       GOOGLE_CLIENT_ID: 'e2e-placeholder-client-id',
       GOOGLE_CLIENT_SECRET: 'e2e-placeholder-client-secret',
       // Storage placeholders: published-site pages build the client up front;

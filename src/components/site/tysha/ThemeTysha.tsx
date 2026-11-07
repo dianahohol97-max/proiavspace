@@ -147,9 +147,12 @@ export function ThemeTysha({
     all: labels.allPortfolio ?? labels.portfolio,
   }
 
-  // Where «Забронювати дату» leads: the form when it is on, else the booking
-  // section/page, else the contacts.
+  // Pack buttons: the form when it is on (it gets the pack name), else the
+  // booking section/page, else the contacts.
   const bookHref = leadForm ? '#contact' : contact.bookingUrl || bookingNav?.href || '#contact'
+  // «Забронювати дату»: open dates → the inline #booking section (bookingNav is
+  // present only then, release 6); otherwise the same as the pack buttons.
+  const bookDateHref = bookingNav?.href ?? bookHref
 
   const navLinks: NavLink[] = [
     ...(photos.length > 0 ? [{ href: '#portfolio', label: labels.portfolio }] : []),
@@ -211,7 +214,7 @@ export function ThemeTysha({
           brand={brand}
           logoUrl={logoUrl}
           links={navLinks}
-          cta={{ href: bookHref, label: L.bookDate }}
+          cta={{ href: bookDateHref, label: L.bookDate }}
           langSwitch={langSwitch}
           overHero={heroSlides.length > 0}
           menuLabel={L.menu}
@@ -249,7 +252,7 @@ export function ThemeTysha({
                   </p>
                 )}
                 <div className={t.heroFade} style={afterName}>
-                  <MagneticButton href={bookHref} className={t.ctaLight}>
+                  <MagneticButton href={bookDateHref} className={t.ctaLight}>
                     {L.bookDate} <span className={t.arrow}>→</span>
                   </MagneticButton>
                 </div>

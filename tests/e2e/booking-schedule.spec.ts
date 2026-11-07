@@ -182,20 +182,30 @@ test.describe('«Забронювати зйомку» на сайті з тем
       get_free_slots: freeSlots,
     }
   }
-  const bookLinks = (page: Page) => page.locator('a', { hasText: 'Забронювати зйомку' })
+  const bookLinks = (page: Page) => page.locator('a', { hasText: /Забронювати (дату|зйомку)/ })
+  const bookDate = (page: Page) => page.locator('a', { hasText: 'Забронювати дату' })
 
   test('є вільні дати → кнопка веде на #booking, секція бронювання на сторінці', async ({ page }) => {
     tysha([{ id: '00000000-0000-4000-8000-0000000000aa', starts_at: '2027-05-15T10:00:00', duration_minutes: 720, price_uah: 18000 }])
     await page.goto('/uk/s/olena')
+    // Головна кнопка «Тиші» (hero) і кнопка внизу — обидві на #booking.
+    expect(await bookDate(page).count()).toBeGreaterThan(0)
+    for (const href of await bookDate(page).evaluateAll((els) => els.map((e) => e.getAttribute('href')))) {
+      expect(href).toBe('#booking')
+    }
     await expect(bookLinks(page).first()).toHaveAttribute('href', '#booking')
     await expect(page.locator('section#booking')).toContainText('15.05.2027 · 10:00–22:00')
-    await bookLinks(page).first().click()
+    // На телефоні частина посилань — у згорнутому меню; клікаємо видиму кнопку.
+    await bookDate(page).locator('visible=true').first().click()
     await expect(page).toHaveURL(/#booking$/)
   })
 
   test('вільних дат немає → кнопка веде на форму заявки (#contact), секції бронювання немає', async ({ page }) => {
     tysha([])
     await page.goto('/uk/s/olena')
+    for (const href of await bookDate(page).evaluateAll((els) => els.map((e) => e.getAttribute('href')))) {
+      expect(href).toBe('#contact')
+    }
     await expect(bookLinks(page).first()).toHaveAttribute('href', '#contact')
     await expect(page.locator('section#booking')).toHaveCount(0)
     await expect(page.locator('#contact form')).toBeVisible()
@@ -252,5 +262,54 @@ test.describe('секрети оплати не потрапляють у бра
     expect(String(write.wfp_secret)).toMatch(/^enc:v1:/) // старий текст перешифровано
     expect(decryptSecret(String(write.wfp_secret), 'wfp_secret')).toBe(legacyWfp)
     expect(write).not.toHaveProperty('google_refresh_token') // уже зашифрований
+  })
+})
+
+test.describe('погодинний крон звільнення броней', () => {
+  test.beforeEach(({}, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'серверний сценарій — досить десктопа')
+  })
+
+  test('прострочена неоплачена бронь звільняється кроном і знову видна на /b', async ({ page, request }) => {
+    reset({
+      user_id: FAKE_USER_ID,
+      enabled: true,
+      handle: 'olena',
+      unpaid_release_hours: 24,
+      google_refresh_token: null,
+      google_calendar_id: 'primary',
+    })
+    state.slots = [
+      {
+        id: '00000000-0000-4000-8000-0000000000c1',
+        owner_id: FAKE_USER_ID,
+        starts_at: '2027-05-10T10:00:00',
+        duration_minutes: 60,
+        price_uah: 2500,
+        status: 'booked',
+        booked_at: new Date(Date.now() - 30 * 3_600_000).toISOString(),
+        client_name: 'Марко',
+        client_phone: '+380501234567',
+        client_email: 'marko@example.com',
+        google_event_id: 'evt-stale',
+      },
+    ]
+
+    await page.goto('/uk/b/olena')
+    await expect(page.getByText('10.05.2027 · 10:00')).toHaveCount(0)
+
+    expect((await request.get('/api/cron/booking-release')).status()).toBe(401)
+    expect(
+      (await request.get('/api/cron/booking-release', { headers: { authorization: 'Bearer wrong' } })).status()
+    ).toBe(401)
+    const res = await request.get('/api/cron/booking-release', {
+      headers: { authorization: 'Bearer e2e-cron-secret' },
+    })
+    expect(res.status()).toBe(200)
+    expect(await res.json()).toMatchObject({ ok: true, owners: 1, released: 1, eventsCleared: 1, errors: 0 })
+    expect(state.slots[0]).toMatchObject({ status: 'free', client_name: null, google_event_id: null })
+
+    await page.goto('/uk/b/olena')
+    await expect(page.getByText('10.05.2027 · 10:00–11:00')).toBeVisible()
   })
 })
