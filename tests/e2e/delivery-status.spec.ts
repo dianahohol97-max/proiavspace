@@ -140,6 +140,36 @@ test.describe('акцент теми й обкладинка на фоні', () 
   })
 })
 
+test.describe('кадр-тизер: один видимий кадр — екран, 2+ — плашка', () => {
+  test('один видимий кадр → екран статусу з ним розмитим на фоні; скріншот', async ({ page }, info) => {
+    await page.goto('/uk/e2e/delivery?status=editing&theme=opivnich&photos=1&eta=2026-12-14')
+    await expect(page.locator('[data-delivery="screen"]')).toBeVisible()
+    await expect(page.locator('[data-delivery="banner"]')).toHaveCount(0)
+    await expect(page.locator('[data-delivery="cover"] img')).toHaveAttribute('src', /-1080\.webp$/)
+    await expect(page.locator('figure')).toHaveCount(0)
+    mkdirSync(SHOTS, { recursive: true })
+    await page.screenshot({ path: join(SHOTS, `screen-teaser-opivnich-${info.project.name}.png`), fullPage: true })
+  })
+
+  test('один видимий + приховані → усе одно екран з тизером', async ({ page }) => {
+    await page.goto('/uk/e2e/delivery?status=shot&photos=1&hidden=5')
+    await expect(page.locator('[data-delivery="screen"]')).toBeVisible()
+    await expect(page.locator('[data-delivery="cover"]')).toHaveCount(1)
+  })
+
+  test('лише приховані → екран без фону', async ({ page }) => {
+    await page.goto('/uk/e2e/delivery?status=shot&hidden=5')
+    await expect(page.locator('[data-delivery="screen"]')).toBeVisible()
+    await expect(page.locator('[data-delivery="cover"]')).toHaveCount(0)
+  })
+
+  test('два видимі кадри → галерея з плашкою', async ({ page }) => {
+    await page.goto('/uk/e2e/delivery?status=editing&photos=2&hidden=3')
+    await expect(page.locator('[data-delivery="banner"]')).toBeVisible()
+    await expect(page.locator('[data-delivery="screen"]')).toHaveCount(0)
+  })
+})
+
 test.describe('плашка над галереєю і звичайна галерея', () => {
   test("кілька прев'ю → галерея з плашкою «Повна галерея в обробці · орієнтовно до …»; скріншот", async ({ page }, info) => {
     await page.goto('/uk/e2e/delivery?status=editing&theme=opivnich&photos=4&eta=2026-12-14')
@@ -177,6 +207,9 @@ test.describe('кабінет: перемикач статусу', () => {
     await page.goto('/uk/e2e/delivery/control?reset=1')
     const group = page.getByRole('radiogroup', { name: 'Статус для клієнта' })
     await expect(group.getByRole('radio')).toHaveCount(4)
+    await expect(page.getByTestId('delivery-teaser-hint')).toHaveText(
+      'Додайте один кадр-тизер — клієнт побачить його на фоні, поки галерея в обробці.'
+    )
     // Nothing but the control on the page: no «null», no service values.
     await expect(page.locator('main')).not.toContainText('null')
     expect((await page.locator('main').innerText()).trim().startsWith('Статус для клієнта')).toBe(true)

@@ -61,7 +61,7 @@ export default async function E2EDeliveryPreview({
         title={title}
         brandName={brandName}
         logoUrl={null}
-        coverUrl={searchParams.cover === '1' ? '/themes/07-1080.webp' : null}
+        coverUrl={searchParams.cover === '1' || count === 1 ? '/themes/07-1080.webp' : null}
         status={status}
         etaText={etaText}
         contactUrl="https://instagram.com/"

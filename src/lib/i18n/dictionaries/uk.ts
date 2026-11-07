@@ -147,6 +147,7 @@ export const uk = {
     deliveryShot: 'Зйомка пройшла',
     deliveryEditing: 'Обробка',
     deliveryReady: 'Готово',
+    deliveryTeaserHint: 'Додайте один кадр-тизер — клієнт побачить його на фоні, поки галерея в обробці.',
     deliveryEtaLabel: 'Орієнтовна дата готовності',
     deliveryEtaHint: 'Необовʼязково. Клієнт побачить «орієнтовно до …».',
     deliveryEtaClear: 'Прибрати дату',
