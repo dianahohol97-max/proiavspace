@@ -23,6 +23,7 @@ export const THEME_IDS = [
   'nizhnist',
   'kontent',
   'lyst',
+  'portret',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -178,6 +179,15 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Letter Hand", "Letter Hand Fallback", Georgia, serif',
     },
   },
+  portret: {
+    id: 'portret',
+    tokens: {
+      ...base,
+      // «Портрет»: studio grey-white, graphite, a deep bottle green (7.2:1).
+      bg: '#f6f6f4', fg: '#16191d', muted: '#596068', accent: '#1f5c4a', line: '#dfe1e0',
+      fontDisplay: '"Studio Sans", "Studio Sans Fallback", Arial, sans-serif',
+    },
+  },
 }
 
 /**
@@ -189,6 +199,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   nizhnist: { theme: 'povitria', mode: 'light' },
   kontent: { theme: 'galereia', mode: 'light' },
   lyst: { theme: 'tysha', mode: 'light' },
+  portret: { theme: 'galereia', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -273,4 +284,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'nizhnist', theme: 'nizhnist', mode: 'light' },
   { value: 'kontent', theme: 'kontent', mode: 'light' },
   { value: 'lyst', theme: 'lyst', mode: 'light' },
+  { value: 'portret', theme: 'portret', mode: 'light' },
 ]

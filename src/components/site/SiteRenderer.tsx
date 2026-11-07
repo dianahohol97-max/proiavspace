@@ -20,6 +20,8 @@ import { FEED_FONT_VARS } from './kontent/fonts'
 import { ThemeKontent } from './kontent/ThemeKontent'
 import { LETTER_FONT_VARS } from './lyst/fonts'
 import { ThemeLyst } from './lyst/ThemeLyst'
+import { STUDIO_FONT_VARS } from './portret/fonts'
+import { ThemePortret } from './portret/ThemePortret'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -147,6 +149,10 @@ export interface SiteLabels {
   giftPrints?: string
   giftPrintsText?: string
   order?: string
+  before?: string
+  after?: string
+  howToPrepare?: string
+  compareRetouch?: string
   filterAll?: string
 }
 
@@ -362,6 +368,7 @@ export function SiteRenderer({
     nizhnist: { Component: ThemeNizhnist, fonts: TENDER_FONT_VARS },
     kontent: { Component: ThemeKontent, fonts: FEED_FONT_VARS },
     lyst: { Component: ThemeLyst, fonts: LETTER_FONT_VARS },
+    portret: { Component: ThemePortret, fonts: STUDIO_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {
