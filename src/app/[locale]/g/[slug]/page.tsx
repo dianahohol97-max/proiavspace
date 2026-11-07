@@ -147,6 +147,9 @@ export default async function PublicGalleryPage({
       .from('assets')
       .select('*')
       .eq('gallery_id', gallery.id)
+      // Password galleries are read with the service role, which skips the
+      // RLS rule that hides these from clients (0054) — filter explicitly.
+      .eq('hidden_from_client', false)
       .order('position')
       .order('created_at')
       .returns<Asset[]>(),

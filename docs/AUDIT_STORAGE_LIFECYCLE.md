@@ -64,7 +64,7 @@ psql "$SUPABASE_DB_URL" -At -c "select conname, confdeltype from pg_constraint w
 
 1. **Vercel → `dianatracker-dtks` → Environment Variables:** додати `GEMINI_MODEL` (production + preview) з поточною назвою моделі. **Без цього після деплою чернетки Threads і генератор блогу перестануть працювати** (помилка `GEMINI_MODEL is not set` у логах, решта застосунку не зачеплена).
 2. **GitHub → Settings → Secrets and variables → Actions → Variables:** `GEMINI_MODEL` (те саме значення).
-3. **B2:** новий бакет `proiav-db-backups` (Private, **Object Lock: увімкнено** при створенні, default retention governance 30 днів, lifecycle «keep only last version»); окремий application key лише на цей бакет (`listFiles, readFiles, writeFiles`).
+3. **B2:** новий бакет `proiav-db-backups` (Private; Object Lock за бажанням, default retention **≤ 14 днів** — інакше ротація «14 копій» не зможе видаляти; lifecycle «keep only last version»); окремий application key лише на цей бакет (`listFiles, readFiles, writeFiles, deleteFiles`). *Оновлено в `db/1`, див. `docs/DB_BACKUP_RESTORE.md`.*
 4. **GitHub Secrets:** `SUPABASE_DB_URL` (Supabase → Connect → Session pooler, порт 5432, IPv4), `B2_BACKUP_KEY_ID`, `B2_BACKUP_APPLICATION_KEY`, `B2_BACKUP_BUCKET`, `B2_BACKUP_REGION`.
 5. **Vercel:** переконатися, що `CRON_SECRET` є (він є — крон білінгу працює на ньому). Hobby дозволяє 2 cron-задачі — рівно стільки й стало.
 6. **Namecheap DNS (EM-04):** замінити існуючий SPF-запис на `v=spf1 include:spf.efwd.registrar-servers.com include:spf.brevo.com ~all`; через 2–4 тижні чистих DMARC-звітів — `_dmarc` на `v=DMARC1; p=quarantine; rua=mailto:rua@dmarc.brevo.com`.
@@ -154,6 +154,68 @@ psql "$SUPABASE_DB_URL" -At -c "select count(*) from public.profiles where galle
 8. **Firewall:** 12 швидких POST на `/api/galleries/<slug>/unlock` з одного IP → після 10-го — 429; Vercel → Firewall → Traffic показує спрацювання правила.
 9. **Live — лише після кількох днів у `notify`** і перегляду `planned`: `RETENTION_MODE=live`. Перше реальне видалення можливе не раніше ніж через 14 + 60 днів після першого листа 3 (тобто не раніше грудня 2026 для тих, хто отримав лист зараз). До того `live` і `notify` поводяться однаково.
 10. Тексти: `/uk/tsiny` (fineprint, FAQ), `/uk/oferta` розділ 4, промо-сторінка — «14 днів … 60 днів», ніде «файли не видаляються».
+
+---
+
+## db/1 — зміни бази, що чекають доступу до Supabase (07.11.2026, гілка `db/1`)
+
+Усі зміни схеми, які не можна було накотити без доступу до бази, зібрано в одній гілці, щоб застосувати їх за один захід. **Не накочено нікуди**, перевірено лише на локальному Postgres: усі міграції з нуля на чистій БД (`tests/audit-storage/helpers/local-pg.ts`).
+
+| Міграція | Що робить | Закриває |
+|---|---|---|
+| `0053_asset_thumbhash.sql` | `assets.thumbhash text` (base64, nullable, ≤ 100 символів). Генерації ще немає | — |
+| `0054_asset_hidden_from_client.sql` | `assets.hidden_from_client boolean not null default false`. RLS анонімів: `+ not hidden_from_client`. `set_selection` не приймає прихований кадр, `record_gallery_download` / `record_photo_view` його не пишуть, `get_site_galleries` не бере його в обкладинку | AI-відбір (підготовка) |
+| `0055_gallery_delivery_status.sql` | `galleries.delivery_status` (`shot` / `editing` / `ready` / NULL) і `delivery_eta date`; column-list grant для anon/authenticated (правило 0032) | — |
+| `0056_promo_slots_survive_account_deletion.sql` | `promo_grants`: новий PK `id`, `user_id` nullable + unique, FK `on delete set null`, `user_deleted_at` ставить тригер. Рядок промо переживає видалення акаунта, слот не звільняється | **PR-01** ✅ |
+| `0057_account_deletion_purge_queue.sql` | Таблиця `storage_purge_queue` (лише service role). `BEFORE DELETE` на `profiles` кладе в неї всі ключі оригіналів і варіантів з `assets` і `portfolio_assets` та префікс `u/<id>/` | **LC-02** ✅ (БД-частина) |
+
+Код у тій самій гілці:
+- `src/lib/types.ts`: `Asset.thumbhash?` (може бути порожнім), `Asset.hidden_from_client`, `Gallery.delivery_status?`, `Gallery.delivery_eta?`, тип `GalleryDeliveryStatus`.
+- Фільтр `hidden_from_client = false` там, де assets читаються service-роллю в обхід RLS (галереї з паролем): `g/[slug]/page.tsx`, `api/galleries/[slug]/archive-urls`. `api/assets/[id]/download` віддає прихований кадр лише власнику.
+- `stats/page.tsx`: `promo_grants.user_id` тепер `string | null`.
+- **BK-01**: `.github/workflows/db-backup.yml` пропускається без `SUPABASE_DB_URL` (зелений, з попередженням), тримає 14 останніх дампів під `db/` (решту видаляє після успішного upload), ключ B2 бере з секретів. Інструкція з відновлення: `docs/DB_BACKUP_RESTORE.md`.
+
+**Тести:** `npm run test:audit` — **146 ✅ / 0 ❌**. PR-01 і LC-02 позеленіли: LC-02 тепер перевіряє справжній вміст черги, а не лише наявність таблиці. Нові тести на справжній БД: прихований кадр (анонім і чужий фотограф не бачать, власник бачить; вибір відхиляється; статистика не пишеться; клієнт не може зняти позначку), звичайне видалення галереї не потрапляє в чергу, анонім не читає чергу, нові поля thumbhash і статусу. `tests/audit-storage/sql/supabase-stub.sql` тепер видає API-ролям default privileges, як Supabase, тож RLS перевіряється так, як її бачить PostgREST. `npx tsc --noEmit` чистий.
+
+**Що свідомо не ввійшло:** генерація thumbhash; інтерфейс статусу зйомки й позначки «приховано»; **обробник черги `storage_purge_queue`** (крон, що робить `delete` / `list(prefix)` у B2 і ставить `purged_at`). До нього черга лише накопичує ключі. Частину сиріт під `u/*/g/*` і `u/*/portfolio/` і так прибирає крон `storage-cleanup` (ST-02), але лого й social-відео видалених акаунтів — ні. Повторна реєстрація з тією ж поштою дає новий `user_id` і, отже, право на промо ще раз (як і раніше).
+
+### Міграції на прод — у такому порядку
+
+```bash
+# 0. Спершу переконатися, що на проді вже є все до 0052 включно:
+psql "$SUPABASE_DB_URL" -At -c "select
+  to_regclass('public.lifecycle_notices') is not null as m0048,
+  exists(select 1 from information_schema.columns where table_name='galleries' and column_name='free_expires_at') as m0049,
+  to_regclass('public.partner_periods') is not null as m0051,
+  to_regclass('public.renewal_notices') is not null as m0052"
+#    Якщо щось f — спершу накотити відповідні 0045…0052 за розділами PR 1 / PR 2 вище.
+# 1. До деплою коду гілки db/1 (код фільтрує за hidden_from_client, без 0054 він зламає публічну галерею):
+for f in 0053_asset_thumbhash 0054_asset_hidden_from_client 0055_gallery_delivery_status \
+         0056_promo_slots_survive_account_deletion 0057_account_deletion_purge_queue; do
+  psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -1 -f supabase/migrations/$f.sql || break
+done
+# 2. Перевірка
+psql "$SUPABASE_DB_URL" -At -c "select column_name from information_schema.columns
+  where (table_name='assets' and column_name in ('thumbhash','hidden_from_client'))
+     or (table_name='galleries' and column_name in ('delivery_status','delivery_eta'))
+     or (table_name='promo_grants' and column_name in ('id','user_deleted_at')) order by 1"
+# очікую 6 рядків
+psql "$SUPABASE_DB_URL" -At -c "select has_column_privilege('anon','public.galleries','delivery_status','select'),
+  has_table_privilege('anon','public.storage_purge_queue','select'),
+  (select confdeltype from pg_constraint where conname='promo_grants_user_id_fkey'),
+  (select count(*) from pg_trigger where tgname in ('profiles_enqueue_storage_purge','promo_grants_mark_user_deleted'))"
+# очікую: t|f|n|2
+psql "$SUPABASE_DB_URL" -At -c "select count(*) from public.promo_grants"
+# те саме число, що до міграції (0056 нічого не видаляє)
+```
+Кожен файл іде в окремій транзакції (`-1`). Усі п'ять безпечні для коду, що зараз на проді: лише нові колонки з дефолтами, нова таблиця, `create or replace` функцій із тими самими сигнатурами. `0056` коротко блокує `promo_grants` (кілька десятків рядків). `0054` перевизначає `set_selection` з 0049, тож **0049 має бути накочена раніше**. Через MCP / SQL Editor — ті самі файли в тому ж порядку.
+
+### Після накочування
+
+1. **Деплой коду `db/1`** (разом із релізом, що піде в `main`).
+2. Відкрити будь-яку публічну галерею і галерею з паролем: фото на місці, «Завантажити все» працює.
+3. Перевірити прихований кадр на тестовій галереї: `update assets set hidden_from_client = true where id = '<id>'`. В інкогніто кадру немає ні в галереї, ні в архіві, `/api/assets/<id>/download` → 404. Власник у кабінеті кадр бачить. Потім повернути `false`.
+4. **GitHub Secrets** для бекапу (див. `docs/DB_BACKUP_RESTORE.md`): `SUPABASE_DB_URL`, `B2_BACKUP_KEY_ID`, `B2_BACKUP_APPLICATION_KEY`, `B2_BACKUP_BUCKET`, `B2_BACKUP_REGION`. Потім Actions → «DB — nightly backup to B2» → Run workflow: зелений прогін, у логах «Restore check» однакові кількості, у B2 з'явився `db/proiav-<дата>.dump`.
 
 ---
 
@@ -302,7 +364,7 @@ psql "$SUPABASE_DB_URL" -At -c "select count(*) from public.profiles where galle
 | Імпорт після платного тарифу | під час дії тарифу або grace — **ні** ✅. Коли grace минув — **так**, колишній платник знову отримує безкоштовний місяць (PR-02: рішення за тобою) |
 | Промо-місяць + кредит на першу оплату після нього | Під час промо кредит не списується. Після кінця промо звичайний checkout списує кредит аж до «мінімум 1 ₴». Тобто при кредиті ≥ 128 ₴ другий місяць «Базового» коштує 1 ₴ — **фактично два безкоштовні місяці підряд**. Так працює кредит; якщо небажано — обмеж частку знижки |
 | Чи рахується промо як «оплата» для рефералів | **Ні** ✅. Промо не створює рядок у `payments`, `referrals.status` лишається `pending`, `referral_earnings` порожня (тест на БД). Оплата `promo_autopay` — справжня, тож 10% з неї нараховуються. Це правильно |
-| Лічильник «перші 30» | `count(*) from promo_grants` під advisory lock — гонки немає ✅, N+1-й не отримує ✅ (тест). ❌ **PR-01:** рядок видаляється каскадом при видаленні акаунта з Auth, тож слот звільняється й загалом можна роздати понад 30 |
+| Лічильник «перші 30» | `count(*) from promo_grants` під advisory lock — гонки немає ✅, N+1-й не отримує ✅ (тест). ❌→✅ db/1 **PR-01:** рядок видалявся каскадом при видаленні акаунта з Auth, тож слот звільняється й загалом можна роздати понад 30 |
 | Дедлайн | `2027-01-01T00:00:00+02:00` = 31.12.2026 включно за Києвом ✅ |
 | Зайвий шлях | `pending_free_months` у `renew/route.ts:246-264` ніщо не нараховує (лише колонка з `0023`). Мертвий код, у скоуп рефералів |
 
@@ -418,7 +480,7 @@ npx vercel env ls --scope <інший-скоуп> 2>/dev/null
 | Лист «промо закінчується» | «за 7 днів надішлемо лист» | Brevo, крон 06:00 UTC | ✅ |
 | «Фото готові» клієнту | сайт не обіцяє; `MANUAL_TASKS.md:63` — так | немає | ⚠️ лише внутрішній док |
 | Скидання пароля | вхід паролем пропонується | немає | ❌ EM-01 |
-| Видалення даних | «видаляються у розумний строк» (політика) | шляху немає; файли в B2 лишаються | ❌ LC-02 |
+| Видалення даних | «видаляються у розумний строк» (політика) | шляху немає; файли в B2 лишаються (з db/1 ключі йдуть у чергу `storage_purge_queue`, обробника ще немає) | ⚠️ LC-02 |
 
 ---
 
@@ -449,9 +511,9 @@ npx tsx --test tests/audit-storage/*.test.ts
 | ST-01 | `upload-gate` · паралельні `complete` > 100 ГБ; `db-lifecycle` · БД пропускає вставку понад ліміт |
 | ST-02 | `client-delivery` · presigned PUT без `content-length` |
 | LC-01 | `plans-and-copy` · немає крону прибирання B2 |
-| LC-02 | `db-lifecycle` · ключі видаленого акаунта ніде не лишаються |
+| LC-02 ✅ db/1 | `db-lifecycle` · ключі видаленого акаунта ніде не лишаються |
 | LC-03 | `db-lifecycle` · FK рефералів блокує видалення з Auth |
-| PR-01 | `db-lifecycle` · слот «перших 30» звільняється |
+| PR-01 ✅ db/1 | `db-lifecycle` · слот «перших 30» звільняється |
 | CL-01 | `client-delivery` · zip > 4 ГБ битий |
 | CL-02 | `client-delivery` · fallback у RAM |
 | CL-03 | `client-delivery` · TTL архіву 900 с |
@@ -542,12 +604,12 @@ npx tsx --test tests/audit-storage/*.test.ts
 | **LC-01** ✅ PR 2 | блокер | 💰 | Файли неоплачених, понижених і промо-акаунтів лежать у B2 безстроково; тексти обіцяють «не видаляються» | 1) Рішення про політику: наприклад, після grace ще 30 днів «лише перегляд», листи на D0/D14/D25, потім видалення галерей від найновіших, поки `used ≤ ліміт Free`. 2) Колонка `profiles.over_limit_since` і щоденний крон `/api/cron/storage-retention` (у `vercel.json`). 3) Оновити оферту, `copy.ts:210, 272`, `product-pages.ts:273-293`, лист промо |
 | **ST-02** ✅ PR 1 | блокер | 💰 | Presigned PUT не обмежує розмір; об'єкти без `complete` не рахуються й не прибираються | 1) `PutObjectCommand({ …, ContentLength: sizeBytes })` у `getUploadUrl` — SigV4 підпише `content-length`, і PUT іншого розміру отримає 403 (браузер надсилає точний розмір). 2) Таблиця `pending_uploads(key, declared_bytes, expires_at)`: резерв квоти на presign, зняття на `complete`. 3) Щоденний крон-сирота: `list('u/')` мінус ключі з `assets`/`portfolio_assets` (з варіантами), старше 24 год → `delete`. 4) Ліміт частоти presign |
 | **ST-04** | блокер* | 💰 | *Перевірити:* без lifecycle-правила B2 зберігає приховані версії всього «видаленого» | Правило на бакет: `[{"fileNamePrefix":"","daysFromHidingToDeleting":7,"daysFromUploadingToHiding":null}]`. 7 днів — «кошик» на випадок помилкового видалення. *Блокер, якщо `b2 bucket get` покаже порожні `lifecycleRules`* |
-| **BK-01** ✅ PR 1 | блокер | | Supabase Free: бекапів БД немає зовсім | Мінімум (≈ $0): нічний `pg_dump` з GitHub Actions у **окремий** бакет B2 з Object Lock на 30 днів. Надійніше: Supabase Pro $25/міс (щоденні бекапи 7 днів). PITR (+$100/міс) зараз зайвий |
+| **BK-01** ✅ PR 1, db/1 (пропуск без секрету, 14 копій, `docs/DB_BACKUP_RESTORE.md`) | блокер | | Supabase Free: бекапів БД немає зовсім | Мінімум (≈ $0): нічний `pg_dump` з GitHub Actions у **окремий** бакет B2 з Object Lock на 30 днів. Надійніше: Supabase Pro $25/міс (щоденні бекапи 7 днів). PITR (+$100/міс) зараз зайвий |
 | **CL-01** | блокер | | Архів > 4 ГБ битий — fflate не пише ZIP64. Типове весілля — 10–30 ГБ | Перейти на `@zip.js/zip.js` (вже в `dependencies`): `ZipWriter` зі `zip64: true`, стрім у `WritableStream` |
 | **EM-02** ✅ SMTP увімкнено, шаблони — PR 2 | блокер* | | *Перевірити:* листи Auth (підтвердження, magic link) ідуть вбудованим SMTP Supabase — він для тестів, з лімітом листів на годину | Supabase → Authentication → Emails → SMTP: `smtp-relay.brevo.com:587`, SMTP-ключ Brevo, відправник `@proiav.space`. *Блокер, якщо Custom SMTP вимкнено* |
 | **ST-01** ✅ PR 1 | важливо | 💰 | Паралельні `complete` перевищують ліміт; БД не страхує | `BEFORE INSERT` тригер на `assets`/`portfolio_assets`: `select … for update` профілю, ефективний ліміт (з урахуванням `grace_until`), `raise exception` → `registerAsset` видаляє об'єкт |
 | **ST-03** ✅ PR 1 | важливо | 💰 | Незавершені multipart у B2 висять і тарифікуються | Крон: `ListMultipartUploads` + `AbortMultipartUpload` для старших за 24 год. Виправити коментар про «R2 сам прибирає» |
-| **LC-02** | важливо | 💰 | Немає видалення акаунта; видалення з Auth лишає сироти в B2 | Дія «Видалити акаунт»: скасувати підписку й видалити токен → `list('u/<id>/')` + `delete` → `auth.admin.deleteUser`. Сироти від ручних видалень прибере крон з ST-02 |
+| **LC-02** ✅ db/1 (БД: черга `storage_purge_queue`, 0057; обробник черги — ще ні) | важливо | 💰 | Немає видалення акаунта; видалення з Auth лишає сироти в B2 | Дія «Видалити акаунт»: скасувати підписку й видалити токен → `list('u/<id>/')` + `delete` → `auth.admin.deleteUser`. Сироти від ручних видалень прибере крон з ST-02 |
 | **CL-04** | важливо | 💰 | З `MEDIA_CDN_URL` архів роздає оригінали вічними публічними CDN-посиланнями; бакет стає Public; трафік через платний CDN | У `archive-urls` передавати `downloadFileName` (завжди presigned). Бакет **не** робити Public: для Bunny — Origin з S3-автентифікацією на приватний бакет + Token Authentication. Виправити `MANUAL_TASKS.md:44-47` |
 | **RL-01** ✅ PR 2 | важливо | 💰 | Жодного rate limit у застосунку; `/unlock` — scrypt без ліміту (перебір + CPU Vercel) | Див. «Rate limit» нижче |
 | **CL-02** | важливо | | Safari, Firefox і мобільні збирають увесь zip у RAM | Без `showSaveFilePicker`: ділити на томи ≤ 1–2 ГБ або пропонувати завантаження по одному. Показувати розмір заздалегідь |
@@ -564,7 +626,7 @@ npx tsx --test tests/audit-storage/*.test.ts
 | **PR-02** ✅ рішення: так | питання | | Колишній платник після grace знову отримує промо | Якщо ні: у `grant_import_promo` додати `not exists (select 1 from payments where user_id = p_user and status = 'paid')` |
 | **CP-02** ✅ PR 1 | дрібниця | | «Про» і «1024 ГБ» на сторінці оплати Monobank | `planNameUk.pro = 'Максимальний'`, формат ТБ як у `billing/page.tsx` |
 | **CP-05** | дрібниця | | Банер невдалого списання не каже про 7 днів grace | Додати дату з `grace_until` у `uk.ts:371`, `en.ts` |
-| **PR-01** | дрібниця | | Слот «перших 30» звільняється при видаленні акаунта | Рахувати за окремим лічильником або не каскадити: `promo_grants.user_id … on delete set null` + `unique` лише для not null |
+| **PR-01** ✅ db/1 (0056) | дрібниця | | Слот «перших 30» звільняється при видаленні акаунта | Рахувати за окремим лічильником або не каскадити: `promo_grants.user_id … on delete set null` + `unique` лише для not null |
 | **PR-03** | дрібниця | | Купівля звичайного тарифу під час промо стартує від сьогодні, залишок промо згорає; кредит ≥ 128 ₴ після промо робить другий місяць майже безкоштовним | Для першої оплати під час промо брати `periodStart = ends_at`; ліміт знижки кредитом (напр. ≤ 50%), якщо не хочеш «два місяці підряд» |
 | **LC-04** | дрібниця | | `past_due` не має повторних спроб; `renew` обробляє ≤ 25 підписок на добу; `next_charge_at` відраховується від «зараз», а не від дати списання | 1–2 повторні спроби в grace; пагінація в `renew`; `nextChargeAt(sub.next_charge_at)` |
 | **EM-04** | дрібниця | | DMARC `p=none`; SPF без Brevo | Див. таблицю DNS у 2.2 |
