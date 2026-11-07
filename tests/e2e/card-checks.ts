@@ -134,6 +134,10 @@ export function cardSuite(
     if (opts.gifts) {
       test('подарунки: «Замовити» сертифікат відкриває форму з номіналом/кому/від кого', async ({ page }) => {
         await page.goto(URL)
+        // A click before hydration is a plain #contact jump: the certificate
+        // fields never open. Wait for both the link and the form, as above.
+        await waitHydrated(page, '#contact form')
+        await waitHydrated(page, '#gifts [data-gift=certificate] a')
         const cert = page.locator('#gifts [data-gift=certificate]')
         // Як у сусідніх тестах: клік до гідрації не відкриває форму.
         await waitHydrated(page, '#contact form')

@@ -682,6 +682,10 @@ export const ro: PartialDictionary = {
     deliveryBanner: 'Galeria completă este în editare',
     deliveryBannerEta: 'estimat până la {date}',
     contactPhotographer: 'Contactați fotograful',
+    shareReady: "Bună! Galeria ta „{title}” este gata:\n{url}",
+    shareInProgress: "Bună! Iată linkul către galeria ta „{title}”:\n{url}\nFotografiile sunt în editare — galeria completă va apărea la același link.",
+    sharePassword: "Galeria este protejată cu parolă — ți-o trimit într-un mesaj separat.",
+    shareSubject: "Galeria ta „{title}”",
   },
   pages: {
     siteTitle: 'proiav — galerii online pentru clienții fotografilor',

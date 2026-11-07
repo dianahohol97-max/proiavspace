@@ -17,11 +17,14 @@ async function requireUser() {
   return { supabase, user }
 }
 
-export async function createGallery(locale: Locale, formData: FormData): Promise<void> {
+/** Insert a draft gallery; shared by both create actions below. */
+async function insertGallery(
+  formData: FormData
+): Promise<{ ok: true; id: string } | { ok: false; error: 'title' | 'failed' }> {
   const { supabase, user } = await requireUser()
 
   const title = String(formData.get('title') ?? '').trim()
-  if (!title) throw new Error('Title is required')
+  if (!title) return { ok: false, error: 'title' }
 
   const description = String(formData.get('description') ?? '').trim() || null
   const eventDate = String(formData.get('event_date') ?? '').trim() || null
@@ -52,10 +55,97 @@ export async function createGallery(locale: Locale, formData: FormData): Promise
     .select('id')
     .single()
 
-  if (error) throw new Error(`Failed to create gallery: ${error.message}`)
+  if (error || !data) {
+    console.error('createGallery failed', error?.message)
+    return { ok: false, error: 'failed' }
+  }
+  return { ok: true, id: data.id as string }
+}
 
+export async function createGallery(locale: Locale, formData: FormData): Promise<void> {
+  const result = await insertGallery(formData)
+  if (!result.ok) {
+    throw new Error(result.error === 'title' ? 'Title is required' : 'Failed to create gallery')
+  }
   revalidatePath(`/${locale}/dashboard`)
-  redirect(`/${locale}/dashboard/galleries/${data.id}`)
+  redirect(`/${locale}/dashboard/galleries/${result.id}`)
+}
+
+export type FormState = { status: 'idle' | 'saved' | 'error'; error?: string; at?: number }
+
+/**
+ * «Нова галерея» (short form: name + shoot date) for useFormState: problems
+ * come back as a code the form turns into plain words, success goes straight
+ * to the upload tab of the new gallery.
+ */
+export async function createGalleryFromForm(
+  locale: Locale,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const result = await insertGallery(formData)
+  if (!result.ok) return { status: 'error', error: result.error, at: Date.now() }
+  revalidatePath(`/${locale}/dashboard`)
+  redirect(`/${locale}/dashboard/galleries/${result.id}?tab=photos&created=1`)
+}
+
+/** Next's redirect()/notFound() throw on purpose — never swallow them. */
+function rethrowNavigation(error: unknown) {
+  const digest = (error as { digest?: unknown } | null)?.digest
+  if (typeof digest === 'string' && (digest.startsWith('NEXT_REDIRECT') || digest === 'NEXT_NOT_FOUND')) {
+    throw error
+  }
+}
+
+/** «Доступ»: password + expiry via useFormState (saved / error instead of a crash page). */
+export async function saveGalleryAccess(
+  locale: Locale,
+  galleryId: string,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  try {
+    await updateGallerySettings(locale, galleryId, formData)
+    return { status: 'saved', at: Date.now() }
+  } catch (error) {
+    rethrowNavigation(error)
+    console.error('saveGalleryAccess failed', galleryId, error)
+    return { status: 'error', error: 'failed', at: Date.now() }
+  }
+}
+
+/**
+ * «Назва й дата» in the Design tab: title, shoot date and the client-facing
+ * description — before, these could only be typed once, at creation.
+ */
+export async function updateGalleryDetails(
+  locale: Locale,
+  galleryId: string,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const { supabase, user } = await requireUser()
+  const title = String(formData.get('title') ?? '').trim()
+  if (!title) return { status: 'error', error: 'title', at: Date.now() }
+  const eventDate = String(formData.get('event_date') ?? '').trim()
+  const description = String(formData.get('description') ?? '').trim()
+  const { data, error } = await supabase
+    .from('galleries')
+    .update({
+      title: title.slice(0, 200),
+      event_date: /^\d{4}-\d{2}-\d{2}$/.test(eventDate) ? eventDate : null,
+      description: description ? description.slice(0, 2000) : null,
+    })
+    .eq('id', galleryId)
+    .eq('owner_id', user.id)
+    .select('id')
+  if (error || !data?.length) {
+    if (error) console.error('updateGalleryDetails failed', galleryId, error.message)
+    return { status: 'error', error: 'failed', at: Date.now() }
+  }
+  revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  revalidatePath(`/${locale}/dashboard`)
+  return { status: 'saved', at: Date.now() }
 }
 
 /**
@@ -175,6 +265,7 @@ export async function setGalleryDelivery(
     await notifyClientIfReady(supabase, user, galleryId)
   }
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  revalidatePath(`/${locale}/dashboard`)
   return { ok: true }
 }
 

@@ -675,6 +675,10 @@ export const es: PartialDictionary = {
     deliveryBanner: 'La galería completa se está editando',
     deliveryBannerEta: 'prevista para el {date}',
     contactPhotographer: 'Contactar con el fotógrafo',
+    shareReady: "¡Hola! Tu galería «{title}» ya está lista:\n{url}",
+    shareInProgress: "¡Hola! Aquí tienes el enlace a tu galería «{title}»:\n{url}\nAhora mismo estoy editando las fotos; la galería completa aparecerá en este mismo enlace.",
+    sharePassword: "La galería tiene contraseña; te la envío en un mensaje aparte.",
+    shareSubject: "Tu galería «{title}»",
   },
   pages: {
     siteTitle: 'proiav — galerías online para clientes de fotógrafos',
