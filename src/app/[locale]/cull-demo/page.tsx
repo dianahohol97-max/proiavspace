@@ -11,13 +11,20 @@ import { folderLabels } from '@/lib/folder-cull/i18n'
  */
 export const metadata: Metadata = { title: 'Відбір із папки — демо', robots: { index: false, follow: false } }
 
-export default function FolderCullDemo({ params }: { params: { locale: string } }) {
+export default function FolderCullDemo({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  searchParams: { opfs?: string }
+}) {
   if (!isLocale(params.locale)) notFound()
   const l = folderLabels(params.locale)
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h1 className="font-display text-4xl">{l.title} · demo</h1>
-      <FolderCull locale={params.locale} />
+      {/* ?opfs=<folder>: e2e of «write .xmp into the folder» via the browser's private file system. */}
+      <FolderCull locale={params.locale} opfsFolder={searchParams.opfs && /^[\w-]{1,40}$/.test(searchParams.opfs) ? searchParams.opfs : undefined} />
     </main>
   )
 }

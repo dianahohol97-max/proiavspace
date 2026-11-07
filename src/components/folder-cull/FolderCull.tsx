@@ -45,7 +45,11 @@ function supported() {
   return typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined'
 }
 
-export function FolderCull({ locale }: { locale: string }) {
+/**
+ * @param opfsFolder demo/e2e only: use this folder of the browser's private
+ *   file system (OPFS) instead of the system folder picker — same handle API.
+ */
+export function FolderCull({ locale, opfsFolder }: { locale: string; opfsFolder?: string }) {
   const l = folderLabels(locale)
   const [session, setSession] = useState<FolderSession | null>(null)
   const scanRef = useRef<Scan | null>(null)
@@ -72,7 +76,7 @@ export function FolderCull({ locale }: { locale: string }) {
 
   useEffect(() => {
     setCanRun(supported())
-    setFsApi(hasDirectoryPicker())
+    setFsApi(hasDirectoryPicker() || !!opfsFolder)
     listSessions().then(setRecent)
     return () => abortRef.current?.abort()
   }, [])
@@ -120,7 +124,9 @@ export function FolderCull({ locale }: { locale: string }) {
   )
 
   const chooseFolder = async () => {
-    const handle = await pickDirectory()
+    const handle = opfsFolder
+      ? await navigator.storage.getDirectory().then((root) => root.getDirectoryHandle(opfsFolder)).catch(() => null)
+      : await pickDirectory()
     if (!handle) return
     setScanning(true)
     try {
