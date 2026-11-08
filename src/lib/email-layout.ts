@@ -21,6 +21,9 @@ export const BUSINESS = {
  */
 export const SUPPORT_EMAIL = 'hello@proiav.space'
 
+/** The support form (public; signed-in photographers also have «Допомога» in the dashboard). */
+export const SUPPORT_PAGE_URL = `https://${BUSINESS.site}/uk/contact`
+
 /** Where replies and questions go; also the Reply-To of every letter. */
 export function supportEmail(): string {
   return SUPPORT_EMAIL
@@ -32,6 +35,7 @@ export function footerLines(): string[] {
     `проЯв · ${BUSINESS.site}`,
     `${BUSINESS.entity}, ${BUSINESS.city}`,
     `Питання й рахунок для ФОП: ${supportEmail()}`,
+    `Підтримка: ${SUPPORT_PAGE_URL}`,
   ]
 }
 

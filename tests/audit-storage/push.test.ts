@@ -12,6 +12,7 @@
  */
 import assert from 'node:assert/strict'
 import { createECDH, randomBytes } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { after, before, describe, mock, test } from 'node:test'
@@ -25,7 +26,7 @@ import {
   notifyGalleryExpiring,
   notifyStorageIfLow,
 } from '@/lib/push/events'
-import { parsePreferencesPatch, parseSubscription, type PushKind } from '@/lib/push/kinds'
+import { PUSH_KINDS, availablePushKinds, parsePreferencesPatch, parseSubscription, type PushKind } from '@/lib/push/kinds'
 import { buildRecentEvents, timeAgo } from '@/lib/app/events'
 import { offlinePhotoKey } from '@/lib/app/offline-pack'
 import { dashboardManifest } from '@/lib/app/manifest'
@@ -92,6 +93,14 @@ function fakeSender(statusFor: (endpoint: string) => number = () => 201) {
 const message = { message: () => ({ title: 'T', body: 'B', path: '/dashboard' }) }
 
 describe('відправка (notifyOwner)', () => {
+  // These cases use «Нова заявка» as the sample type: booking is switched on.
+  before(() => {
+    process.env.NEXT_PUBLIC_SITES_ENABLED = '1'
+  })
+  after(() => {
+    delete process.env.NEXT_PUBLIC_SITES_ENABLED
+  })
+
   test('без ключів VAPID — нічого не надсилається й не падає', async () => {
     const { store } = memoryStore({ subs: [sub('a')] })
     const { sender, sent } = fakeSender()
@@ -187,6 +196,46 @@ describe('відправка (notifyOwner)', () => {
     const result = await notifyOwner({ ownerId: 'o', kind: 'booking', dedupeKey: 'k', ...message }, { vapid, store })
     errors.mock.restore()
     assert.equal(result.status, 'sent')
+  })
+})
+
+describe('«Нова заявка» під прапорцем сайтів і бронювання (NEXT_PUBLIC_SITES_ENABLED)', () => {
+  test('прапорець вимкнено: сповіщення не надсилається, навіть якщо тип увімкнений і є пристрої', async () => {
+    delete process.env.NEXT_PUBLIC_SITES_ENABLED
+    const { store, delivered } = memoryStore({ subs: [sub('a')] })
+    const { sender, sent } = fakeSender()
+    const result = await notifyBooking({ id: 'slot-9', owner_id: 'o', starts_at: '2026-11-14T11:00:00' }, 'Олена', { vapid, store, sender })
+    assert.deepEqual(result, { status: 'skipped', reason: 'disabled' })
+    assert.equal(sent.length, 0)
+    assert.equal(delivered.size, 0, 'nothing is recorded as sent')
+    // Other types are not affected.
+    const other = await notifyOwner({ ownerId: 'o', kind: 'first_view', dedupeKey: 'g', ...message }, { vapid, store, sender })
+    assert.equal(other.status, 'sent')
+  })
+
+  test('прапорець вимкнено: у налаштуваннях немає перемикача «Нова заявка»', () => {
+    delete process.env.NEXT_PUBLIC_SITES_ENABLED
+    assert.deepEqual(availablePushKinds(), ['client_picks', 'first_view', 'storage_low', 'gallery_expiring'])
+    assert.deepEqual(availablePushKinds(false), availablePushKinds())
+  })
+
+  test('прапорець увімкнено: перемикач є, сповіщення надсилається', async () => {
+    process.env.NEXT_PUBLIC_SITES_ENABLED = '1'
+    try {
+      assert.deepEqual(availablePushKinds(), [...PUSH_KINDS])
+      const { store } = memoryStore({ subs: [sub('a')] })
+      const { sender, sent } = fakeSender()
+      const result = await notifyBooking({ id: 'slot-9', owner_id: 'o', starts_at: '2026-11-14T11:00:00' }, 'Олена', { vapid, store, sender })
+      assert.equal(result.status, 'sent')
+      assert.equal(sent[0].payload.title, 'Нова заявка на зйомку')
+    } finally {
+      delete process.env.NEXT_PUBLIC_SITES_ENABLED
+    }
+  })
+
+  test('сторінка налаштувань передає прапорець у блок сповіщень', () => {
+    const page = readFileSync(join(ROOT, 'src/app/[locale]/dashboard/settings/page.tsx'), 'utf8')
+    assert.match(page, /showBooking=\{bookingPushEnabled\(\)\}/)
   })
 })
 

@@ -205,5 +205,6 @@ export const es: LandingCopy = {
     blog: 'Blog',
     terms: 'Oferta pública',
     privacy: 'Política de privacidad',
+    support: 'Ayuda',
   },
 }

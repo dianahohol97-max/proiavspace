@@ -551,6 +551,9 @@ export default async function LandingPage({ params }: { params: { locale: string
             <Link href={`/${locale}/privacy`} style={{ color: 'inherit' }}>
               {t.footer.privacy}
             </Link>
+            <Link href={`/${locale}/contact`} style={{ color: 'inherit' }}>
+              {t.footer.support}
+            </Link>
           </span>
         </footer>
       </div>
