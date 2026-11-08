@@ -58,7 +58,7 @@ export function cardSuite(
       for (const sel of ['#portfolio', '#pricing', '#about', '#contact']) {
         await expect(page.locator(sel).first(), sel).toBeAttached()
       }
-      const frames = await page.locator('#portfolio img:visible').count()
+      const frames = await page.locator('#portfolio img:visible:not([alt=""])').count()
       expect(frames).toBeGreaterThanOrEqual(6)
       expect(frames).toBeLessThanOrEqual(15)
       const packs = await page.locator('#pricing [data-pack]').count()
@@ -139,6 +139,8 @@ export function cardSuite(
         await waitHydrated(page, '#contact form')
         await waitHydrated(page, '#gifts [data-gift=certificate] a')
         const cert = page.locator('#gifts [data-gift=certificate]')
+        // Як у сусідніх тестах: клік до гідрації не відкриває форму.
+        await waitHydrated(page, '#contact form')
         await cert.locator('a').click()
         await expect(page.locator('#contact [name=cert_to]')).toBeVisible()
         await expect(page.locator('#contact [name=cert_from]')).toBeVisible()

@@ -1,16 +1,18 @@
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { primaryNav } from '@/lib/seo/nav'
+import { getDictionary } from '@/lib/i18n'
+import { isLocale } from '@/lib/i18n/config'
 
 /** Header for inner marketing pages (blog, product pages). */
-export function SiteHeader({ locale, current }: { locale: string; current?: string }) {
-  const uk = locale === 'uk'
+export async function SiteHeader({ locale, current }: { locale: string; current?: string }) {
+  const { pages } = await getDictionary(isLocale(locale) ? locale : 'uk')
   return (
     <header className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-6">
-      <Link href={`/${locale}`} className="text-fg no-underline" aria-label={uk ? 'проЯв — на головну' : 'proiav — home'}>
+      <Link href={`/${locale}`} className="text-fg no-underline" aria-label={pages.homeAria}>
         <Logo />
       </Link>
-      <nav aria-label={uk ? 'Головне меню' : 'Main'} className="hidden items-center gap-7 text-sm text-muted sm:flex">
+      <nav aria-label={pages.mainNavAria} className="hidden items-center gap-7 text-sm text-muted sm:flex">
         {primaryNav(locale).map((link) => (
           <Link
             key={link.href}
@@ -26,7 +28,7 @@ export function SiteHeader({ locale, current }: { locale: string; current?: stri
         href={`/${locale}/login`}
         className="shrink-0 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white no-underline transition-colors hover:bg-accent-deep"
       >
-        {uk ? 'Почати безкоштовно' : 'Start for free'}
+        {pages.startFree}
       </Link>
     </header>
   )

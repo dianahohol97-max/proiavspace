@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { isAdminEmail } from '@/lib/admin'
@@ -218,7 +219,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
     gallery: galleryPlanName[p.plan as GalleryPlanId] ?? p.plan,
     site: sitePlanName[p.site_plan as SitePlanId] ?? p.site_plan,
     storage: formatGb(p.storage_used_bytes ?? 0),
-    joined: new Date(p.created_at).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+    joined: new Date(p.created_at).toLocaleDateString(intlLocale(locale), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -302,7 +303,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
     .reduce((sum, b) => sum + Number(b.price_uah), 0)
 
   const dateFmt = (iso: string) =>
-    new Date(iso).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+    new Date(iso).toLocaleDateString(intlLocale(locale), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -365,7 +366,7 @@ export default async function StatsPage({ params }: { params: { locale: string }
         {tile(uk ? 'Промо: з автоплатежем' : 'Promo: auto-payment', promoAutopay)}
       </div>
 
-      {/* --- support requests (migration 0068) --- */}
+      {/* --- support requests (migration 0069) --- */}
       <SupportRequestsAdmin admin={admin} locale={locale} />
 
       {/* --- growth / galleries / photos --- */}

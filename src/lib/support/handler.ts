@@ -5,7 +5,7 @@
  * (tests/audit-storage/support.test.ts).
  *
  * Delivery order of truth: the letter to hello@proiav.space is what someone
- * reads, the support_requests row (migration 0068) is the archive. A request
+ * reads, the support_requests row (migration 0069) is the archive. A request
  * counts as delivered when either one worked — so the form keeps working
  * before the migration is applied, and a failed insert only goes to Sentry.
  */
@@ -63,7 +63,7 @@ export interface SupportDeps {
   now: () => Date
   /**
    * Saved requests since `sinceIso` for this sender (support_requests);
-   * null when the table is not there yet (migration 0068 not applied).
+   * null when the table is not there yet (migration 0069 not applied).
    */
   countRecent: (who: { userId: string } | { ipHash: string }, sinceIso: string) => Promise<number | null>
   head: (key: string) => Promise<{ sizeBytes: number; contentType: string | null } | null>

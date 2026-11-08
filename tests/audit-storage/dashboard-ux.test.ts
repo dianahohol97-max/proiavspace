@@ -32,7 +32,7 @@ describe('меню кабінету', () => {
     }
     assert.deepEqual(
       items.map((item) => item.href),
-      ['/uk/dashboard', '/uk/dashboard/site', '/uk/dashboard/booking', '/uk/dashboard/billing', '/uk/dashboard/referrals', '/uk/dashboard/settings']
+      ['/uk/dashboard', '/uk/dashboard/site', '/uk/dashboard/booking', '/uk/dashboard/offline', '/uk/dashboard/billing', '/uk/dashboard/referrals', '/uk/dashboard/settings']
     )
   })
 

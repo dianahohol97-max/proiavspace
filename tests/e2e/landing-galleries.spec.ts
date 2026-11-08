@@ -18,7 +18,8 @@ async function noHorizontalOverflow(page: Page) {
 for (const locale of ['uk', 'en'] as const) {
   test(`лендинг /${locale}: три нові можливості зі скріншотами, без сайтів і бронювання`, async ({ page }) => {
     await page.goto(`/${locale}`)
-    const shots = page.locator('#products img')
+    // Interface screenshots only — the gallery card's photos are decorative (alt="").
+    const shots = page.locator('#products img:not([alt=""])')
     await expect(shots).toHaveCount(3)
     for (const [index, name] of ['culling', 'status', 'upload'].entries()) {
       const img = shots.nth(index)

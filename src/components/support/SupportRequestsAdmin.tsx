@@ -19,7 +19,7 @@ const STATUS_UK: Record<SupportStatus, string> = { new: 'Нове', answered: '�
 /**
  * Admin block on /dashboard/stats: the latest support requests with their
  * status. Reads through the service role (the page has checked the
- * allowlist). Before migration 0068 the table is missing — the block says so
+ * allowlist). Before migration 0069 the table is missing — the block says so
  * instead of breaking the page; letters still reach hello@proiav.space.
  */
 export async function SupportRequestsAdmin({ admin, locale }: { admin: SupabaseClient; locale: string }) {
@@ -40,7 +40,7 @@ export async function SupportRequestsAdmin({ admin, locale }: { admin: SupabaseC
       </h2>
       {error ? (
         <p className="text-sm text-muted">
-          Таблиці звернень ще немає (міграція 0068). Звернення приходять листом на hello@proiav.space.
+          Таблиці звернень ще немає (міграція 0069). Звернення приходять листом на hello@proiav.space.
         </p>
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted">Звернень поки немає.</p>

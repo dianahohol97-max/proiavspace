@@ -1,5 +1,6 @@
 'use client'
 
+import { intlLocale } from '@/lib/i18n/format'
 import { useState } from 'react'
 import type { Locale } from '@/lib/i18n/config'
 
@@ -64,9 +65,7 @@ export function BillingSubscriptions({
       <ul className="divide-y divide-line border border-line">
         {subscriptions.map((sub) => {
           const isCanceled = sub.status === 'canceled' || canceledNow.includes(sub.product)
-          const date = new Date(sub.nextChargeAt).toLocaleDateString(
-            locale === 'uk' ? 'uk-UA' : 'en-GB'
-          )
+          const date = new Date(sub.nextChargeAt).toLocaleDateString(intlLocale(locale))
           return (
             <li
               key={sub.product}

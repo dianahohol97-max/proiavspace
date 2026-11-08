@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 /**
  * A sliding one-hour window per key, in this server instance's memory. On
  * serverless every warm instance has its own copy, so the route also counts
- * saved requests in support_requests (migration 0068) and refuses when either
+ * saved requests in support_requests (migration 0069) and refuses when either
  * says «too many». Without the table this is the only guard — still enough to
  * stop one script from hammering one instance.
  */

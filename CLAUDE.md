@@ -22,6 +22,13 @@
     - `0065` — альбоми, етап 1.1 (`release/8`, тексти/поворот/обкладинка/зберігання; перейменувати з 0064 через конфлікт із темами), не застосована
     - `0066` — обране для Lightroom + лист «Ваші фото готові» (`feat/client-picks` → `release/4`, `0066_client_picks_ready_email.sql`; замовлено як 0064, перейменовано через конфлікт із темами): `assets.source_file_name`; `galleries.client_email`/`client_email_consent_at`/`ready_email_sent_at` без грантів для anon/authenticated; не застосована; код без неї працює (завантаження без назви, блок листа пише «після оновлення бази»)
     - `0067` — дата зйомки (`feat/gallery-grid` → `release/4`, `0067_asset_taken_at.sql`): `assets.taken_at` + `sort_gallery_assets(uuid, text)` для «Порядок: за часом зйомки»; не застосована (замовлено як 0061, потім 0066 — обидва номери зайняли інші гілки); без неї код працює (завантаження пише фото без дати, кнопка сортування каже, що потрібна міграція)
-    - `0068` — підтримка (`feat/support` → `release/4`, `0068_support_requests.sql`): таблиця `support_requests` (звернення з кабінету «Допомога» і /contact), RLS: вставка лише service role, власник читає свої; не застосована; код без неї працює (лист на hello@ іде, insert падає в Sentry, ліміт на IP — лише в памʼяті інстансу)
-    - **наступний вільний номер — `0069`**
+    - `0068` — застосунок фотографа на телефоні (`feat/photographer-app` → `release/4`, `0068_push_notifications.sql`): `push_subscriptions`, `push_preferences` (RLS лише власник), `push_deliveries` (лише service role); не застосована; без неї кабінет працює, блок «Сповіщення» пише «після оновлення бази», сповіщення не надсилаються
+    - `0069` — підтримка (`feat/support` → `release/4`, `0069_support_requests.sql`; замовлено як 0068, той номер зайняв застосунок фотографа): таблиця `support_requests` (звернення з кабінету «Допомога» і /contact), RLS: вставка лише service role, власник читає свої; не застосована; код без неї працює (лист на hello@ іде, insert падає в Sentry, ліміт на IP — лише в памʼяті інстансу)
+    - **наступний вільний номер — `0070`**
   - Нова міграція має бути безпечною для коду, що зараз на проді (нові колонки з дефолтами, `create or replace` з тими самими сигнатурами). Якщо код без міграції падає, написати це в PR явно.
+
+## Мови (9: uk, en, pl, de, es, fr, it, ro, pt)
+
+- **Новий рядок інтерфейсу — одразу в усі 9 мов**: словники `src/lib/i18n/dictionaries/*.ts`, лендинг `src/lib/landing/locales/`, юридичні тексти `src/lib/legal/locales/`, політики клієнтів `src/lib/legal/client-policies/`, AI-відбір `src/lib/culling/locales/`, довідка «Як це працює» `src/lib/gallery/help-locales/`. Тест `tests/audit-storage/i18n-parity.test.ts` (у `test:audit`) падає, якщо чогось бракує, а `tests/e2e/i18n.spec.ts` ловить англійські фолбеки на сторінках.
+- Терміни — за `docs/i18n/GLOSSARY.md`. Не пишіть `locale === 'uk' ? '…' : 'English'` у компонентах — рядок у словник.
+- Числа, дати, гривні, множина — через `src/lib/i18n/format.ts` (`formatMessage` з `{n, plural, …}`, `formatDate`, `formatUah`, `intlLocale`).

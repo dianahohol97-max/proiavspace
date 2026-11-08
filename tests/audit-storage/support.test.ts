@@ -1,5 +1,5 @@
 /**
- * Підтримка (0068): форма «Допомога» в кабінеті й публічна /contact.
+ * Підтримка (0069): форма «Допомога» в кабінеті й публічна /contact.
  *   - обробник: валідний запит, порожній текст, задовгий текст, поганий email,
  *     honeypot, ліміт 5 на IP за годину (памʼять і таблиця), чужі скриншоти;
  *   - доставка: лист на hello@ з Reply-To фотографа й темою «[Підтримка] …»,
@@ -186,7 +186,7 @@ describe('звернення з кабінету', () => {
     assert.equal(f.mails.length, 0)
   })
 
-  test('без міграції 0068: insert падає → лист однаково йде, помилка в Sentry', async () => {
+  test('без міграції 0069: insert падає → лист однаково йде, помилка в Sentry', async () => {
     const f = fake()
     f.insertFails = true
     f.saved = null
@@ -411,8 +411,8 @@ describe('тексти, підвали, міграція', () => {
     assert.match(source('src/components/support/SupportPanel.tsx'), /mailto:\$\{SUPPORT_MAILTO\}/)
   })
 
-  test('міграція 0068: таблиця, RLS (insert лише service role, select — свої), реєстр у CLAUDE.md', () => {
-    const sql = source('supabase/migrations/0068_support_requests.sql')
+  test('міграція 0069: таблиця, RLS (insert лише service role, select — свої), реєстр у CLAUDE.md', () => {
+    const sql = source('supabase/migrations/0069_support_requests.sql')
     assert.match(sql, /create table if not exists public\.support_requests/)
     assert.match(sql, /user_id uuid references auth\.users \(id\) on delete set null/)
     assert.match(sql, /status text not null default 'new' check \(status in \('new', 'answered', 'closed'\)\)/)
@@ -422,7 +422,7 @@ describe('тексти, підвали, міграція', () => {
     assert.doesNotMatch(sql, /for insert|grant insert/i)
     assert.match(sql, /using \(user_id = \(select auth\.uid\(\)\)\)/)
     const registry = source('CLAUDE.md')
-    assert.match(registry, /`0068` — підтримка/)
-    assert.match(registry, /наступний вільний номер — `0069`/)
+    assert.match(registry, /`0069` — підтримка/)
+    assert.match(registry, /наступний вільний номер — `0070`/)
   })
 })

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getDictionary, type Dictionary } from '@/lib/i18n'
+import { formatMessage } from '@/lib/i18n/format'
 import { setGalleryDelivery } from '@/lib/actions/galleries'
 import { parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import { GalleryList, type GalleryCardData } from '@/components/dashboard/GalleryList'
@@ -10,6 +11,9 @@ import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Gallery } from '@/lib/types'
+import { buildRecentEvents, type BookingRow, type SelectionRow } from '@/lib/app/events'
+import { InstallAppCard } from '@/components/app/InstallAppCard'
+import { QuickActions } from '@/components/app/QuickActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,16 +106,27 @@ export default async function DashboardPage({ params }: { params: { locale: stri
     coverUrl,
     photoCount,
     views: ownerPlan.features.stats ? gallery.view_count : null,
-    freeBadge: freeBadge(gallery, dict),
+    freeBadge: freeBadge(gallery, dict, locale),
   }))
+
+  // Phone home screen: «Поділитися останньою» + the latest client events.
+  const lastPublishedGallery = (galleries ?? []).find((gallery) => gallery.is_published)
+  const lastPublished = lastPublishedGallery
+    ? { title: lastPublishedGallery.title, url: `${appUrl}/${locale}/g/${lastPublishedGallery.slug}` }
+    : null
+  const events = cards.length > 0 ? await recentClientEvents(supabase, user.id, galleries ?? []) : []
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-12">
+      <div className="mb-6 flex flex-col gap-4 lg:hidden" data-testid="phone-home">
+        {cards.length > 0 && <QuickActions t={dict.app} locale={locale} lastPublished={lastPublished} events={events} />}
+        <InstallAppCard t={dict.app} dismissible />
+      </div>
       <header className="mb-6 flex flex-wrap items-center gap-3 sm:mb-8 sm:gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="font-brand text-2xl sm:text-3xl">{d.title}</h1>
           {cards.length > 0 && (
-            <p className="mt-1 text-sm font-semibold text-muted">{d.galleriesCount.replace('{n}', String(cards.length))}</p>
+            <p className="mt-1 text-sm font-semibold text-muted">{formatMessage(d.galleriesCount, { n: cards.length }, locale)}</p>
           )}
         </div>
         {cards.length > 0 && (
@@ -126,7 +141,7 @@ export default async function DashboardPage({ params }: { params: { locale: stri
           <Link
             href={`/${locale}/dashboard/galleries/new`}
             data-testid="new-gallery"
-            className="w-full rounded-full bg-accent px-6 py-3 text-center text-sm font-bold text-white no-underline transition-colors hover:bg-accent-deep sm:w-auto"
+            className="hidden w-full rounded-full bg-accent px-6 py-3 text-center text-sm font-bold text-white no-underline transition-colors hover:bg-accent-deep sm:w-auto lg:inline-block"
           >
             + {d.newGallery}
           </Link>
@@ -205,13 +220,50 @@ export default async function DashboardPage({ params }: { params: { locale: stri
 }
 
 /** «До закриття N дн.» / «Закрита для клієнтів» — the Free plan's 30 days (0049). */
-function freeBadge(gallery: Gallery, dict: Dictionary): GalleryCardData['freeBadge'] {
+function freeBadge(gallery: Gallery, dict: Dictionary, locale: string): GalleryCardData['freeBadge'] {
   if (gallery.free_purged_at) return { text: dict.dashboard.freePurged, tone: 'red' }
   if (gallery.free_expired_at) return { text: dict.dashboard.freeClosed, tone: 'red' }
   if (!gallery.free_expires_at) return null
   const days = daysLeft(gallery.free_expires_at)
   return {
-    text: days === 0 ? dict.dashboard.freeClosesToday : dict.dashboard.freeClosesIn.replace('{n}', String(days)),
+    text: days === 0 ? dict.dashboard.freeClosesToday : formatMessage(dict.dashboard.freeClosesIn, { n: days }, locale),
     tone: days <= 7 ? 'amber' : 'muted',
   }
+}
+
+/**
+ * Client picks of the last 14 days and recent bookings, for «Останні події від
+ * клієнтів». Selections are filtered by the photographer's own gallery ids:
+ * RLS alone also lets anyone read picks of published galleries.
+ */
+async function recentClientEvents(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  userId: string,
+  galleries: Pick<Gallery, 'id' | 'title'>[]
+) {
+  const titles = new Map(galleries.map((gallery) => [gallery.id, gallery.title]))
+  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  const ids = Array.from(titles.keys()).slice(0, 200)
+  const [{ data: selections }, { data: bookings }] = await Promise.all([
+    ids.length > 0
+      ? supabase
+          .from('selections')
+          .select('gallery_id, asset_id, kind, created_at')
+          .in('gallery_id', ids)
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(500)
+          .returns<SelectionRow[]>()
+      : Promise.resolve({ data: [] as SelectionRow[] }),
+    supabase
+      .from('booking_slots')
+      .select('id, client_name, starts_at, booked_at')
+      .eq('owner_id', userId)
+      .in('status', ['booked', 'paid'])
+      .gte('booked_at', since)
+      .order('booked_at', { ascending: false })
+      .limit(5)
+      .returns<BookingRow[]>(),
+  ])
+  return buildRecentEvents(selections ?? [], titles, bookings ?? [])
 }

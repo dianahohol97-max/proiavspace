@@ -1,5 +1,6 @@
 'use client'
 
+import { intlLocale } from '@/lib/i18n/format'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { copyText } from '@/lib/clipboard'
@@ -279,7 +280,7 @@ function GalleryCard({
 function formatDate(value: string, locale: string): string {
   const [y, m, d] = value.slice(0, 10).split('-').map(Number)
   if (!y || !m || !d) return value
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(intlLocale(locale), {
     timeZone: 'UTC',
     day: 'numeric',
     month: 'short',

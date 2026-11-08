@@ -1,5 +1,6 @@
 'use client'
 
+import { intlLocale } from '@/lib/i18n/format'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { BillingOverview as Overview, PaymentMethod } from '@/lib/billing/cabinet'
@@ -63,7 +64,7 @@ export function BillingOverview({
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
-  const lang = locale === 'uk' ? 'uk-UA' : 'en-GB'
+  const lang = intlLocale(locale)
   const date = (iso: string) => new Date(iso).toLocaleDateString(lang, { timeZone: 'Europe/Kyiv' })
   const fill = (t: string, v: Record<string, string>) => t.replace(/\{(\w+)\}/g, (m, k: string) => v[k] ?? m)
   const planName = (id: string) => planNames[id] ?? id

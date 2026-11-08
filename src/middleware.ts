@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { defaultLocale, locales } from '@/lib/i18n/config'
+import { defaultLocale, isLocale, locales } from '@/lib/i18n/config'
 import { captureRefParam } from '@/lib/referrals'
 import { updateSession } from '@/lib/supabase/middleware'
 
@@ -24,7 +24,13 @@ export async function middleware(request: NextRequest) {
 
   if (!hasLocale) {
     const url = request.nextUrl.clone()
-    url.pathname = `/${defaultLocale}${pathname === '/' ? '' : pathname}`
+    // The phone app starts at /dashboard (lib/app/manifest.ts): open it in the
+    // language the photographer last used the dashboard in (cookie set by
+    // components/app/AppShell), not always in Ukrainian.
+    const remembered = request.cookies.get('dash_locale')?.value
+    const locale =
+      /^\/dashboard(\/|$)/.test(pathname) && remembered && isLocale(remembered) ? remembered : defaultLocale
+    url.pathname = `/${locale}${pathname === '/' ? '' : pathname}`
     const redirect = NextResponse.redirect(url)
     captureRefParam(request, redirect)
     return redirect

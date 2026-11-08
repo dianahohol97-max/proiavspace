@@ -21,6 +21,7 @@ export function dashboardNavItems(locale: string, dict: Dictionary, isAdmin: boo
     { href: base, label: dict.billing.galleryPlansTitle, prefix: true },
     { href: `${base}/site`, label: dict.site.navLink },
     { href: `${base}/booking`, label: dict.booking.navLink },
+    { href: `${base}/offline`, label: dict.app.offlineTitle },
     { href: `${base}/billing`, label: dict.dashboard.billingLink },
     { href: `${base}/referrals`, label: dict.referrals.navLink },
     { href: `${base}/settings`, label: dict.dashboard.settingsLink },

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { isLocale } from '@/lib/i18n/config'
+import { getDictionary } from '@/lib/i18n'
 import { renderClientPolicy, type PolicyDoc } from '@/lib/legal/clientPolicies'
 import { localizedSiteContent, parseSiteContent } from '@/lib/site/content'
 import { isThemeId } from '@/lib/site/themes'
@@ -66,7 +67,7 @@ export default async function ClientPolicyPage({
     email: content.contact.email,
     locale: params.locale,
   })
-  const uk = params.locale === 'uk'
+  const { pages } = await getDictionary(params.locale)
   const vars = siteCssVars(site.theme, site.mode === 'night' ? 'night' : 'light')
 
   return (
@@ -99,7 +100,7 @@ export default async function ClientPolicyPage({
           {policy.title}
         </h1>
         <p style={{ color: 'var(--site-muted)', fontSize: 13, margin: '0 0 32px' }}>
-          {uk ? 'Оновлено для сайту ' : 'For the site of '} {brand}
+          {pages.legalForSite} {brand}
         </p>
 
         <article style={{ display: 'flex', flexDirection: 'column', gap: 14, lineHeight: 1.75 }}>
@@ -129,12 +130,8 @@ export default async function ClientPolicyPage({
             style={{ color: 'inherit' }}
           >
             {params.doc === 'privacy'
-              ? uk
-                ? 'Умови оплати та повернення →'
-                : 'Payment & refund terms →'
-              : uk
-                ? 'Політика конфіденційності →'
-                : 'Privacy policy →'}
+              ? pages.legalRefundLink
+              : pages.legalPrivacyLink}
           </Link>
         </p>
       </div>
