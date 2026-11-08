@@ -61,6 +61,7 @@ const SAME_AS_EN_ALLOWED = new Set<string>([
   'site.contactEmail',
   'site.contactInstagram',
   'site.contactTelegram',
+  'site.themeTemna', // «Temna kimnata» — a theme name (transliteration), same in every language
   'settings.title',
   'publicSite.portfolio',
   'publicGallery.viewerSlideOf',

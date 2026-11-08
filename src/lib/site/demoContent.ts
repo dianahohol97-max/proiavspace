@@ -23,6 +23,9 @@ export interface ThemeDemo {
   freeDates?: string[]
 }
 
+/** Pre-v2 demos: kept for the gallery-style demo, not offered as site themes. */
+export const LEGACY_DEMO_VALUES = new Set(['plivka', 'galereia', 'arkhiv', 'prodakshn'])
+
 /** A few weekend dates over the next six weeks, for calendar demos. */
 function sampleFreeDates(): string[] {
   const out: string[] = []
