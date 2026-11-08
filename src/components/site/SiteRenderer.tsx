@@ -36,6 +36,8 @@ import { LAB_FONT_VARS } from './temna/fonts'
 import { ThemeTemna } from './temna/ThemeTemna'
 import { FINDER_FONT_VARS } from './vydoshukach/fonts'
 import { ThemeVydoshukach } from './vydoshukach/ThemeVydoshukach'
+import { ROUTE_FONT_VARS } from './marshrut/fonts'
+import { ThemeMarshrut } from './marshrut/ThemeMarshrut'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -176,6 +178,7 @@ export interface SiteLabels {
   freeShort?: string
   projectWord?: string
   framesWord?: string
+  nextStops?: string
   filterAll?: string
 }
 
@@ -408,6 +411,7 @@ export function SiteRenderer({
     kontakt: { Component: ThemeKontakt, fonts: SHEET_FONT_VARS },
     temna: { Component: ThemeTemna, fonts: LAB_FONT_VARS },
     vydoshukach: { Component: ThemeVydoshukach, fonts: FINDER_FONT_VARS },
+    marshrut: { Component: ThemeMarshrut, fonts: ROUTE_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {

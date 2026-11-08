@@ -132,6 +132,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     kontakt: dict.site.themeKontakt,
     temna: dict.site.themeTemna,
     vydoshukach: dict.site.themeVydoshukach,
+    marshrut: dict.site.themeMarshrut,
   }
 
   return (

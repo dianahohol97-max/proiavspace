@@ -31,6 +31,7 @@ export const THEME_IDS = [
   'kontakt',
   'temna',
   'vydoshukach',
+  'marshrut',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -269,6 +270,15 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Finder Sans", "Finder Sans Fallback", Arial, sans-serif',
     },
   },
+  marshrut: {
+    id: 'marshrut',
+    tokens: {
+      ...base,
+      // «Маршрут»: map paper, deep spruce ink, route rust (4.9:1), forest green.
+      bg: '#f3efe6', fg: '#1f2a2a', muted: '#56625f', accent: '#a44618', line: '#ddd5c4',
+      fontDisplay: '"Route Sans", "Route Sans Fallback", Arial, sans-serif',
+    },
+  },
 }
 
 /**
@@ -288,6 +298,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   kontakt: { theme: 'arkhiv', mode: 'light' },
   temna: { theme: 'tysha', mode: 'night' },
   vydoshukach: { theme: 'tysha', mode: 'night' },
+  marshrut: { theme: 'povitria', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -380,4 +391,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'kontakt', theme: 'kontakt', mode: 'light' },
   { value: 'temna', theme: 'temna', mode: 'night' },
   { value: 'vydoshukach', theme: 'vydoshukach', mode: 'night' },
+  { value: 'marshrut', theme: 'marshrut', mode: 'light' },
 ]
