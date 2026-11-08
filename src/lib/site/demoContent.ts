@@ -157,10 +157,21 @@ function pht(
   category: string,
   caption: string,
   [width, height]: [number, number],
-  /** First-screen frame: has 828/1280 WebP + AVIF copies next to it. */
-  hero = false
+  /** First-screen frame: 828/1280 WebP + AVIF copies; 'sheet': a 480 px copy in /themes/sheet. */
+  hero: boolean | 'sheet' = false
 ): PortfolioItem {
   const base = `/themes/${String(n).padStart(2, '0')}`
+  if (hero === 'sheet')
+    return {
+      id,
+      previewUrl: `${base}.webp`,
+      visible: true,
+      category,
+      caption,
+      width,
+      height,
+      srcSet: `/themes/sheet/${n}-480.webp 480w, ${base}.webp ${width}w`,
+    }
   return {
     id,
     previewUrl: `${base}.webp`,
@@ -1087,6 +1098,70 @@ export const THEME_DEMOS: ThemeDemo[] = [
       pht('9', 39, 'Світло', 'Вікно у вечір', [1600, 2000]),
       pht('10', 50, 'Портрет', 'Місто', [2000, 1334]),
       phs('11', '15', 'Портрет', 'Контражур', [1333, 2000]),
+    ],
+  },
+  {
+    value: 'kontakt',
+    theme: 'kontakt',
+    mode: 'light',
+    name: 'Контакт',
+    suits: 'Репортаж, вулиця, документальні історії',
+    displayName: 'Нестор Глинка',
+    content: content({
+      hero: {
+        title: 'Нестор Глинка',
+        subtitle: 'Документую події й людей так, як вони є',
+        imageId: '1',
+        role: 'Фотограф-документаліст',
+        city: 'Харків',
+        directions: ['Вулиця', 'Репортаж', 'Портрет'],
+      },
+      about: {
+        text: 'Знімаю на плівку й на цифру, але думаю аркушами: серія кадрів, з якої обводжу один. Документую події, конференції, родинні історії й місто — без постановки і без ретуші, що змінює правду.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '30% при бронюванні',
+        delivery: 'контрольний аркуш за 2 дні, добірка за тиждень',
+        travel: 'Харків — без доплат; інші міста — дорога',
+        bring: 'нічого особливого — просто будьте собою',
+      },
+      testimonials: {
+        items: [
+          { names: 'Фестиваль «Дах»', text: 'Нестор помітив те, що ми самі пропустили за три дні фестивалю. Аркуш читається як історія.', photoId: '' },
+          { names: 'Родина Шевченків', text: 'Ми отримали не позовані кадри, а наше справжнє свято. Дякуємо!', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Репортаж', price: 'від 1 500 ₴ / год', includes: ['від 2 годин', 'контрольний аркуш', '40+ кадрів на годину'] },
+          {
+            name: 'Документальна історія',
+            price: 'від 12 000 ₴',
+            includes: ['день із вашою родиною чи командою', 'аркуш + добірка', '150+ кадрів', '10 відбитків'],
+            featured: true,
+          },
+          { name: 'Плівкова сесія', price: 'від 4 500 ₴', includes: ['2 плівки 36 кадрів', 'проявка і скани', 'контрольний аркуш на папері'] },
+        ],
+      },
+      contact: { email: 'nestor@example.com', phone: '+380 95 777 66 55', instagram: '@nestor.hlynka', telegram: 'nestor_hlynka', bookingUrl: '' },
+    }),
+    // Own: 50–54 (black-and-white street). TEMPORARY (until assets/kontakt):
+    // black-and-white frames of «Журнал» and evening portraits of «Опівніч».
+    portfolio: [
+      pht('1', 51, 'Вулиця', 'Трамвай', [2000, 1334], true),
+      pht('2', 50, 'Вулиця', 'Вікно', [2000, 1334], 'sheet'),
+      pht('3', 52, 'Вулиця', 'Погляд', [2000, 1334], 'sheet'),
+      pht('4', 53, 'Вулиця', 'Телефон', [2000, 1334], 'sheet'),
+      pht('5', 54, 'Вулиця', 'Рух', [2000, 1334], 'sheet'),
+      pht('6', 42, 'Портрет', 'Монохром', [1333, 2000], 'sheet'),
+      pht('7', 44, 'Портрет', 'Вузька вулиця', [1333, 2000], 'sheet'),
+      pht('8', 45, 'Портрет', 'Журнал у руках', [1333, 2000], 'sheet'),
+      pht('9', 37, 'Репортаж', 'Червоне світло', [2000, 1333], 'sheet'),
+      pht('10', 30, 'Репортаж', 'Остання година сонця', [2000, 1374], 'sheet'),
+      pht('11', 26, 'Репортаж', 'Перший танець', [2000, 1335], 'sheet'),
+      pht('12', 25, 'Репортаж', 'Коридор із вогнів', [2000, 1333], 'sheet'),
+      pht('13', 46, 'Портрет', 'Тінь і світло', [1333, 2000], 'sheet'),
     ],
   },
   {

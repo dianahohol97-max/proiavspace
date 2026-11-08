@@ -422,6 +422,7 @@ export const uk = {
     themeRozvorot: 'Розворот',
     themeIndeks: 'Індекс',
     themePaspartu: 'Паспарту',
+    themeKontakt: 'Контакт',
     heroLegend: 'Головний екран',
     heroTitle: 'Заголовок (наприклад, ваше ім’я або слоган)',
     heroSubtitle: 'Підзаголовок (жанр і місто)',

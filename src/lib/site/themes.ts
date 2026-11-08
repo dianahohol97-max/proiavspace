@@ -28,6 +28,7 @@ export const THEME_IDS = [
   'rozvorot',
   'indeks',
   'paspartu',
+  'kontakt',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -229,6 +230,15 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Mat Caps", "Mat Caps Fallback", Georgia, serif',
     },
   },
+  kontakt: {
+    id: 'kontakt',
+    tokens: {
+      ...base,
+      // «Контакт»: photo paper, black, grease-pencil red (5:1).
+      bg: '#efeee9', fg: '#121212', muted: '#56565a', accent: '#c4261a', line: '#d6d5cf',
+      fontDisplay: '"Sheet Mono", "Sheet Mono Fallback", ui-monospace, monospace',
+    },
+  },
 }
 
 /**
@@ -245,6 +255,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   rozvorot: { theme: 'tysha', mode: 'light' },
   indeks: { theme: 'prodakshn', mode: 'light' },
   paspartu: { theme: 'galereia', mode: 'light' },
+  kontakt: { theme: 'arkhiv', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -334,4 +345,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'rozvorot', theme: 'rozvorot', mode: 'light' },
   { value: 'indeks', theme: 'indeks', mode: 'light' },
   { value: 'paspartu', theme: 'paspartu', mode: 'light' },
+  { value: 'kontakt', theme: 'kontakt', mode: 'light' },
 ]
