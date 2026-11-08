@@ -1,4 +1,3 @@
-import { intlLocale } from '@/lib/i18n/format'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { waitUntil } from '@vercel/functions'
@@ -14,6 +13,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { deliveryLabels, galleryLabels } from '@/lib/gallery/labels'
 import { readDownloadsSetting } from '@/lib/gallery/downloads'
+import { galleryEventLine } from '@/lib/gallery/event-line'
 import {
   countVisibleAssets,
   deliveryCoverKey,
@@ -48,7 +48,7 @@ export default async function PublicGalleryPage({
   searchParams,
 }: {
   params: { locale: string; slug: string }
-  searchParams: { error?: string }
+  searchParams: { error?: string; preview?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -142,9 +142,13 @@ export default async function PublicGalleryPage({
     )
   }
 
+  // «Відкрити як клієнт» from the designer (owner-view route) adds ?preview=1:
+  // the photographer looking at their own gallery is not a client's view.
+  const ownerPreview = searchParams.preview === '1'
+
   // Basic stats: count the view without holding up the page. waitUntil keeps
   // the function alive until the write lands; a failure is only logged.
-  waitUntil(
+  if (!ownerPreview) waitUntil(
     Promise.resolve(supabase.rpc('record_gallery_view', { gallery_slug: gallery.slug })).then(
       ({ error }) => {
         if (error) console.error('record_gallery_view failed', gallery.slug, error.message)
@@ -155,7 +159,7 @@ export default async function PublicGalleryPage({
 
   // «Галерею вперше переглянули» (photographer's phone app). Only while the
   // gallery is fresh: a gallery viewed 20+ times has had its first visitor.
-  if (gallery.view_count < 20 && getVapidConfig()) {
+  if (!ownerPreview && gallery.view_count < 20 && getVapidConfig()) {
     waitUntil(
       notifyFirstView(gallery.id, async () => {
         const { data } = await supabase.auth.getUser()
@@ -313,25 +317,14 @@ export default async function PublicGalleryPage({
       })
     : null
 
-  const eventLine = [
-    gallery.event_date
-      ? new Date(gallery.event_date).toLocaleDateString(intlLocale(locale), {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })
-      : null,
-    gallery.description,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const eventLine = galleryEventLine(gallery.event_date, gallery.description, locale)
 
   return (
     <GalleryExperience
       locale={locale}
       slug={gallery.slug}
       title={gallery.title}
-      eventLine={eventLine || null}
+      eventLine={eventLine}
       brandName={brandName}
       contactUrl={branding?.contact_url ?? null}
       logoUrl={logoUrl}

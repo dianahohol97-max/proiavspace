@@ -1051,6 +1051,7 @@ export const uk = {
     brandLine: "ваш бренд · фотографія",
     desktop: "Комп’ютер",
     phone: "Телефон",
+    openAsClient: "Відкрити як клієнт",
     hiddenFromClient: "Сховано від клієнта",
     showToClient: "Повернути клієнту",
     picksFile: "Файл",

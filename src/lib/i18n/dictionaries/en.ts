@@ -1029,6 +1029,7 @@ export const en: Dictionary = {
     brandLine: "your brand · photography",
     desktop: "Desktop",
     phone: "Phone",
+    openAsClient: "Open as client",
     hiddenFromClient: "Hidden from client",
     showToClient: "Show to client",
     picksFile: "File",

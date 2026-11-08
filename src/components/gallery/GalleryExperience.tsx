@@ -451,6 +451,7 @@ export function GalleryExperience({
     <figure
       key={item.id}
       data-i={index}
+      data-id={item.id}
       className={`${s.shot}${tile.fill ? ` ${s.shotFill}` : ''}${tile.contain ? ` ${s.shotContain}` : ''}`}
       // The proportions are known before the photo loads: the server-rendered
       // grid has its final layout, with a placeholder background, at once.
