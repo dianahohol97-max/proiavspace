@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { isGalleryUnlocked } from '@/lib/gallery-access'
+import { downloadsDisabledResponse, readDownloadsSetting } from '@/lib/gallery/downloads'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -56,6 +57,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   if (!isOwner && !(await isGalleryUnlocked({ id: gallery.id, has_password: gallery.has_password }))) {
     return NextResponse.json({ error: 'locked' }, { status: 403 })
+  }
+
+  // «Клієнт може завантажувати фото» вимкнено (0068): 403 з людським текстом.
+  // Власник галереї завантажує завжди. Без міграції колонки нема → дозволено.
+  if (!isOwner && !(await readDownloadsSetting(supabase, gallery.id)).enabled) {
+    return downloadsDisabledResponse(request, 'text')
   }
 
   const fileName = asset.r2_key.split('/').pop() ?? 'photo.jpg'

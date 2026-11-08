@@ -12,6 +12,7 @@ export function galleryLabels(dict: Dictionary): GalleryLabels {
     downloadHint: t.downloadHint,
     preparingArchive: t.preparingArchive,
     archiveError: t.archiveError,
+    downloadsDisabled: t.downloadsDisabled,
     savePart: t.savePart,
     downloadOriginal: t.downloadOriginal,
     favoriteToggle: t.favoriteToggle,

@@ -10,6 +10,7 @@ import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { deliveryLabels, galleryLabels } from '@/lib/gallery/labels'
+import { readDownloadsSetting } from '@/lib/gallery/downloads'
 import {
   countVisibleAssets,
   deliveryCoverKey,
@@ -153,7 +154,7 @@ export default async function PublicGalleryPage({
 
   // Independent reads, in parallel: assets, branding (plan gates + site theme
   // for style inheritance) and this client's picks.
-  const [{ data: assets }, { data: brandingData }, { data: selections }] = await Promise.all([
+  const [{ data: assets }, { data: brandingData }, { data: selections }, downloads] = await Promise.all([
     galleryAssetsClient(supabase, gallery)
       .from('assets')
       .select('*')
@@ -170,6 +171,9 @@ export default async function PublicGalleryPage({
     clientToken
       ? supabase.rpc('list_selections', { p_gallery: gallery.id, p_token: clientToken })
       : Promise.resolve({ data: null }),
+    // «Клієнт може завантажувати фото» (0068) — own query, so a database
+    // without the column still renders the gallery (downloads allowed).
+    readDownloadsSetting(supabase, gallery.id),
   ])
   const initialFavorites = ((selections ?? []) as { asset_id: string; kind: string }[])
     .filter((s) => s.kind === 'favorite')
@@ -327,6 +331,7 @@ export default async function PublicGalleryPage({
       mode={mode}
       style={galleryStyle}
       labels={galleryLabels(dict)}
+      downloadsEnabled={downloads.enabled}
       deliveryNotice={
         view === 'banner'
           ? { text: dLabels.banner, etaText: etaText ? dLabels.bannerEta.replace('{date}', etaText) : null }

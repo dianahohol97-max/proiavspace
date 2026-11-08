@@ -59,6 +59,7 @@ export const pt: PartialDictionary = {
     shareInProgress: 'Olá! Aqui está o link para a sua galeria «{title}»:\n{url}\nAs fotos estão em edição — a galeria completa vai aparecer neste mesmo link.',
     sharePassword: 'A galeria está protegida por palavra-passe — envio-a numa mensagem à parte.',
     shareSubject: 'A sua galeria «{title}»',
+    downloadsDisabled: 'O fotógrafo desativou a opção de descarregar fotos nesta galeria. Pode vê-las à vontade — para os originais, contacte o fotógrafo.',
   },
   publicBooking: {
     chooseSlot: 'Escolha um horário que lhe convém',

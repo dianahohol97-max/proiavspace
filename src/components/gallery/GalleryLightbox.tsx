@@ -36,6 +36,8 @@ export interface GalleryLightboxProps {
   onClose: () => void
   onView: (index: number) => void
   onToggleFavorite: (assetId: string) => void
+  /** false — no «download original» button in the toolbar (0068). */
+  downloadsEnabled?: boolean
 }
 
 const SLIDE_DELAY_MS = 4500
@@ -111,6 +113,7 @@ export default function GalleryLightbox({
   onClose,
   onView,
   onToggleFavorite,
+  downloadsEnabled = true,
 }: GalleryLightboxProps) {
   const slides = useMemo(() => items.map(toSlide), [items])
   const slideshowRef = useRef<SlideshowRef | null>(null)
@@ -161,7 +164,9 @@ export default function GalleryLightbox({
             label={labels.favoriteToggle}
             onToggle={onToggleFavorite}
           />,
-          <DownloadButton key="download" items={items} label={labels.downloadOriginal} />,
+          ...(downloadsEnabled
+            ? [<DownloadButton key="download" items={items} label={labels.downloadOriginal} />]
+            : []),
           'zoom',
           'slideshow',
           'fullscreen',

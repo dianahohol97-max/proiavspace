@@ -269,6 +269,34 @@ export async function setGalleryDelivery(
   return { ok: true }
 }
 
+/**
+ * «Клієнт може завантажувати фото» (galleries.downloads_enabled, 0068). Saved
+ * on every flip of the switch. Without the migration the column is missing:
+ * answer `migration` so the switch can say so, and change nothing.
+ */
+export async function setGalleryDownloads(
+  locale: Locale,
+  galleryId: string,
+  enabled: boolean
+): Promise<{ ok: boolean; error?: 'migration' | 'failed' }> {
+  const { supabase, user } = await requireUser()
+  const { isMissingDownloadsColumn } = await import('@/lib/gallery/downloads')
+  const { data, error } = await supabase
+    .from('galleries')
+    .update({ downloads_enabled: enabled === true })
+    .eq('id', galleryId)
+    .eq('owner_id', user.id)
+    .select('id')
+  if (error) {
+    if (isMissingDownloadsColumn(error)) return { ok: false, error: 'migration' }
+    console.error('setGalleryDownloads failed', galleryId, error.message)
+    return { ok: false, error: 'failed' }
+  }
+  if (!data?.length) return { ok: false, error: 'failed' }
+  revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  return { ok: true }
+}
+
 export async function setGalleryPublished(
   locale: Locale,
   galleryId: string,

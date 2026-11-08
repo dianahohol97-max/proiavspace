@@ -59,6 +59,7 @@ export const ro: PartialDictionary = {
     shareInProgress: 'Bună! Iată linkul către galeria ta „{title}”:\n{url}\nFotografiile sunt în editare — galeria completă va apărea la același link.',
     sharePassword: 'Galeria este protejată cu parolă — ți-o trimit într-un mesaj separat.',
     shareSubject: 'Galeria ta „{title}”',
+    downloadsDisabled: 'Fotograful a dezactivat descărcarea pentru această galerie. Poți vedea fotografiile; pentru originale, scrie-i fotografului.',
   },
   publicBooking: {
     chooseSlot: 'Alege o oră care ți se potrivește',

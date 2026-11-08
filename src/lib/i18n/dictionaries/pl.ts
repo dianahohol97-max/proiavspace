@@ -59,6 +59,7 @@ export const pl: PartialDictionary = {
     shareInProgress: 'Dzień dobry! Oto link do Twojej galerii „{title}”:\n{url}\nZdjęcia są teraz w obróbce — gotowa galeria pojawi się pod tym samym linkiem.',
     sharePassword: 'Galeria jest chroniona hasłem — wyślę je w osobnej wiadomości.',
     shareSubject: 'Twoja galeria „{title}”',
+    downloadsDisabled: 'Fotograf wyłączył pobieranie w tej galerii. Zdjęcia możesz oglądać, a po oryginały zwróć się do fotografa.',
   },
   publicBooking: {
     chooseSlot: 'Wybierz dogodny termin',
