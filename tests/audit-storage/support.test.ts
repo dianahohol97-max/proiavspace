@@ -423,6 +423,9 @@ describe('тексти, підвали, міграція', () => {
     assert.match(sql, /using \(user_id = \(select auth\.uid\(\)\)\)/)
     const registry = source('CLAUDE.md')
     assert.match(registry, /`0069` — підтримка/)
-    assert.match(registry, /наступний вільний номер — `0070`/)
+    // Після 0069 номери беруть інші гілки (0070 — перемикач завантажень), тож
+    // перевіряємо лише, що наступний вільний уже за 0069.
+    const next = Number(registry.match(/наступний вільний номер — `(\d{4})`/)?.[1])
+    assert.ok(next > 69, `наступний вільний номер: ${next}`)
   })
 })
