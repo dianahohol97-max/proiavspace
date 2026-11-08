@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { isGalleryUnlocked } from '@/lib/gallery-access'
+import { notifyClientPick } from '@/lib/push/events'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { SelectionKind } from '@/lib/types'
 
@@ -63,6 +65,10 @@ export async function POST(request: NextRequest, { params }: { params: { slug: s
     p_token: clientToken,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // «Клієнт обрав фото / позначив ретуш» on the photographer's phone (one per
+  // gallery and hour, see lib/push/events). Never holds up the client's tap.
+  if (body.selected) waitUntil(notifyClientPick(gallery.id, body.kind).catch(() => null))
 
   return NextResponse.json({ ok: true })
 }

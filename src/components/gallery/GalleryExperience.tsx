@@ -48,7 +48,7 @@ export interface GalleryLabels {
   downloadHint: string
   preparingArchive: string
   archiveError: string
-  /** 403 from the archive list when the photographer turned downloads off (0068). */
+  /** 403 from the archive list when the photographer turned downloads off (0070). */
   downloadsDisabled?: string
   /** «Зберегти частину {i} з {n}» — shown when the archive comes in parts. */
   savePart: string
@@ -168,7 +168,7 @@ export function GalleryExperience({
    */
   deliveryNotice?: { text: string; etaText: string | null } | null
   /**
-   * «Клієнт може завантажувати фото» (0068). false — no «↓» on tiles, no
+   * «Клієнт може завантажувати фото» (0070). false — no «↓» on tiles, no
    * download in the viewer, no «Завантажити все» and no download hint; the
    * download routes answer 403 as well, so this is not the only guard.
    */

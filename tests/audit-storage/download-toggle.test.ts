@@ -1,5 +1,5 @@
 /**
- * «Клієнт може завантажувати фото» (galleries.downloads_enabled, 0068):
+ * «Клієнт може завантажувати фото» (galleries.downloads_enabled, 0070):
  * маршрути завантаження (одне фото, «Завантажити все») при вкл / викл / коли
  * колонки ще нема (міграцію не накочено) / для власника / при збої читання;
  * людський текст 403 мовою відвідувача; кнопки в галереї клієнта; перемикач
@@ -26,7 +26,7 @@ const fileUrl = (path: string) => pathToFileURL(join(ROOT, path)).href
 
 const OWNER = 'owner-1'
 const state = {
-  /** null — column missing (0068 not applied); 'boom' — any other failure. */
+  /** null — column missing (0070 not applied); 'boom' — any other failure. */
   column: 'present' as 'present' | 'missing' | 'boom',
   downloadsEnabled: true,
   user: null as { id: string } | null,
@@ -168,7 +168,7 @@ describe('маршрути завантаження', () => {
     assert.equal((await all()).status, 403)
   })
 
-  test('колонки нема (0068 не накочено) — дозволено, нічого не падає', async () => {
+  test('колонки нема (0070 не накочено) — дозволено, нічого не падає', async () => {
     state.column = 'missing'
     assert.equal((await one()).status, 302)
     assert.equal((await all()).status, 200)
@@ -320,7 +320,7 @@ describe('кабінет, тексти, міграція', () => {
         assert.ok(m[key], `${locale}.${key}`)
         if (locale !== 'en') assert.notEqual(m[key], en.galleryManage[key], `${locale}.${key} ще англійською`)
       }
-      assert.match(m.downloadsUnavailable, /0068/, locale)
+      assert.match(m.downloadsUnavailable, /0070/, locale)
     }
   })
 
@@ -332,12 +332,12 @@ describe('кабінет, тексти, міграція', () => {
     }
   })
 
-  test('міграція 0068: колонка з дефолтом true, грант на читання; номер у реєстрі CLAUDE.md', () => {
-    const sql = source('supabase/migrations/0068_gallery_downloads_enabled.sql')
+  test('міграція 0070: колонка з дефолтом true, грант на читання; номер у реєстрі CLAUDE.md', () => {
+    const sql = source('supabase/migrations/0070_gallery_downloads_enabled.sql')
     assert.match(sql, /add column if not exists downloads_enabled boolean not null default true/)
     assert.match(sql, /grant select \(downloads_enabled\) on public\.galleries to anon, authenticated/)
     const claude = source('CLAUDE.md')
-    assert.match(claude, /`0068` — перемикач завантажень/)
-    assert.match(claude, /наступний вільний номер — `0069`/)
+    assert.match(claude, /`0070` — перемикач завантажень/)
+    assert.match(claude, /наступний вільний номер — `0071`/)
   })
 })

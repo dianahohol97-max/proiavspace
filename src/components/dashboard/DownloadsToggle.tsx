@@ -18,7 +18,7 @@ type Save = (enabled: boolean) => Promise<{ ok: boolean; error?: 'migration' | '
 /**
  * «Клієнт може завантажувати фото» — a switch saved on every flip (like the
  * shoot status). On failure it flips back and says why; before migration
- * 0068 it is shown disabled with a plain explanation.
+ * 0070 it is shown disabled with a plain explanation.
  */
 export function DownloadsToggle({
   initialEnabled,
@@ -28,7 +28,7 @@ export function DownloadsToggle({
   children,
 }: {
   initialEnabled: boolean
-  /** false — the column is not in the database yet (0068 not applied). */
+  /** false — the column is not in the database yet (0070 not applied). */
   available: boolean
   save: Save
   labels: DownloadsToggleLabels

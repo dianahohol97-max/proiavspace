@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
+import { resolveSiteTheme, siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import type { SiteContent } from '@/lib/site/content'
 import type { Locale } from '@/lib/i18n/config'
 import { BookingWidget, type PublicSlot } from '@/components/BookingWidget'
@@ -36,6 +36,8 @@ import { LAB_FONT_VARS } from './temna/fonts'
 import { ThemeTemna } from './temna/ThemeTemna'
 import { FINDER_FONT_VARS } from './vydoshukach/fonts'
 import { ThemeVydoshukach } from './vydoshukach/ThemeVydoshukach'
+import { ROUTE_FONT_VARS } from './marshrut/fonts'
+import { ThemeMarshrut } from './marshrut/ThemeMarshrut'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -176,6 +178,7 @@ export interface SiteLabels {
   freeShort?: string
   projectWord?: string
   framesWord?: string
+  nextStops?: string
   filterAll?: string
 }
 
@@ -201,8 +204,8 @@ export interface LangSwitch {
  * in their footer (`platformCredit`). Paid sites never show it.
  */
 export function SiteRenderer({
-  theme,
-  mode,
+  theme: storedTheme,
+  mode: storedMode,
   content,
   displayName,
   logoUrl,
@@ -235,6 +238,9 @@ export function SiteRenderer({
   /** Theme demos only: sample free dates (real sites take them from booking). */
   freeDates?: string[]
 }) {
+  // Pre-v2 themes («Плівка», «Галерея», «Архів», «Продакшн») render with the
+  // nearest v2 theme; galleries keep their old styles separately.
+  const { theme, mode } = resolveSiteTheme(storedTheme, storedMode)
   const vars = siteCssVars(theme, mode)
   // Free dates (yyyy-mm-dd, Kyiv time) for themes that show a calendar.
   const freeDates = booking
@@ -408,6 +414,7 @@ export function SiteRenderer({
     kontakt: { Component: ThemeKontakt, fonts: SHEET_FONT_VARS },
     temna: { Component: ThemeTemna, fonts: LAB_FONT_VARS },
     vydoshukach: { Component: ThemeVydoshukach, fonts: FINDER_FONT_VARS },
+    marshrut: { Component: ThemeMarshrut, fonts: ROUTE_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {

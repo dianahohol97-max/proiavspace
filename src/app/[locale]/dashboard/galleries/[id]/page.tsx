@@ -400,6 +400,9 @@ export default async function ManageGalleryPage({
             videoPlanLink={m.videoPlanLink}
             billingHref={`/${locale}/dashboard/billing`}
             emphasis={photoCount === 0}
+            pickPhoneLabel={dict.app.uploadPickPhone}
+            backgroundHint={dict.app.uploadBackgroundHint}
+            pausedHint={dict.app.uploadPaused}
             progressLabel={m.uploadProgress}
             retryLabel={m.uploadRetry}
             errorLabels={{

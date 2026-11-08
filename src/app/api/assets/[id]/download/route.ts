@@ -59,7 +59,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'locked' }, { status: 403 })
   }
 
-  // «Клієнт може завантажувати фото» вимкнено (0068): 403 з людським текстом.
+  // «Клієнт може завантажувати фото» вимкнено (0070): 403 з людським текстом.
   // Власник галереї завантажує завжди. Без міграції колонки нема → дозволено.
   if (!isOwner && !(await readDownloadsSetting(supabase, gallery.id)).enabled) {
     return downloadsDisabledResponse(request, 'text')

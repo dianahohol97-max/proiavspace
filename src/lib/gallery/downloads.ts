@@ -2,9 +2,9 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { defaultLocale, isLocale, type Locale } from '@/lib/i18n/config'
 
 /**
- * «Клієнт може завантажувати фото» — galleries.downloads_enabled (0068).
+ * «Клієнт може завантажувати фото» — galleries.downloads_enabled (0070).
  *
- * Read in its own query, never added to an existing select: until 0068 is
+ * Read in its own query, never added to an existing select: until 0070 is
  * applied the column does not exist, and a select naming it would fail the
  * whole gallery read. A missing column means «allowed» — exactly how every
  * gallery behaved before the switch existed. Any other read failure means
@@ -12,7 +12,7 @@ import { defaultLocale, isLocale, type Locale } from '@/lib/i18n/config'
  */
 export interface DownloadsSetting {
   enabled: boolean
-  /** false — migration 0068 not applied yet (the column is missing). */
+  /** false — migration 0070 not applied yet (the column is missing). */
   available: boolean
 }
 
@@ -22,7 +22,7 @@ type PgError = { code?: string; message?: string } | null
 export function isMissingDownloadsColumn(error: PgError): boolean {
   if (!error) return false
   if (error.code === '42703' || error.code === 'PGRST204') return true
-  // Column added but grant (0068) not applied: «permission denied for … downloads_enabled».
+  // Column added but grant (0070) not applied: «permission denied for … downloads_enabled».
   return /downloads_enabled/.test(error.message ?? '')
 }
 

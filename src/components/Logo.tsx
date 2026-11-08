@@ -22,7 +22,8 @@ export function LogoMark({ size = 23 }: { size?: number }) {
  */
 export function Wordmark({ textSize = 15 }: { textSize?: number }) {
   return (
-    <b className="font-brand font-semibold tracking-[.01em]" style={{ fontSize: textSize }}>
+    // font-wordmark: a 2.8 KB Unbounded subset of these letters (globals.css)
+    <b className="font-wordmark font-semibold tracking-[.01em]" style={{ fontSize: textSize }}>
       про<span className="text-accent">Я</span>в
     </b>
   )

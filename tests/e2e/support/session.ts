@@ -54,7 +54,7 @@ export async function insertRow(table: string, row: Record<string, unknown>) {
   return (await res.json()) as Record<string, unknown>
 }
 
-/** Pretend migration 0068 is not applied (no galleries.downloads_enabled). Reset by resetDb(). */
+/** Pretend migration 0070 is not applied (no galleries.downloads_enabled). Reset by resetDb(). */
 export async function setDownloadsColumn(present: boolean) {
   const res = await fetch(`${FAKE_SUPABASE}/__e2e/schema`, {
     method: 'POST',

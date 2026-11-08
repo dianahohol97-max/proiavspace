@@ -7,6 +7,7 @@ import { isLocale } from '@/lib/i18n/config'
 import { isSiteTrialExpired, siteTrialDaysLeft } from '@/lib/plans'
 import { parseSiteContent } from '@/lib/site/content'
 import { leadFormLabelsFromDict, siteLabelsFromDict } from '@/lib/site/labels'
+import { siteCatalogValue } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { SiteEditor } from '@/components/site-editor/SiteEditor'
@@ -99,7 +100,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
 
   const content = parseSiteContent(site?.content)
   const currentCatalogValue =
-    site?.theme === 'tysha' && site.mode === 'night' ? 'opivnich' : (site?.theme ?? 'tysha')
+    siteCatalogValue(site?.theme, site?.mode)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const publicUrl =
@@ -132,6 +133,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     kontakt: dict.site.themeKontakt,
     temna: dict.site.themeTemna,
     vydoshukach: dict.site.themeVydoshukach,
+    marshrut: dict.site.themeMarshrut,
   }
 
   return (

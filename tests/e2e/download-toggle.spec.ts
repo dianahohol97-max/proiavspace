@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { dbState, resetDb, setDownloadsColumn, signIn } from './support/session'
 
 /**
- * «Клієнт може завантажувати фото» (0068): фотограф вимикає перемикач у
+ * «Клієнт може завантажувати фото» (0070): фотограф вимикає перемикач у
  * вкладці «Доступ» → у галереї клієнта нема жодної кнопки завантаження, а
  * прямий запит до маршрутів повертає 403 з людським текстом. Плюс база без
  * міграції: завантаження дозволені, перемикач пояснює, чому неактивний.
@@ -105,14 +105,14 @@ test('вимкнути → у клієнта нема кнопок, прямі �
   await client.close()
 })
 
-test('база без міграції 0068: завантаження дозволені, перемикач неактивний і пояснює чому', async ({ page, context, baseURL, request }) => {
+test('база без міграції 0070: завантаження дозволені, перемикач неактивний і пояснює чому', async ({ page, context, baseURL, request }) => {
   await setDownloadsColumn(false)
   await signIn(context, baseURL!)
   await page.goto(`/uk/dashboard/galleries/${GALLERY_ID}?tab=access`)
   const toggle = page.getByTestId('downloads-toggle')
   await expect(toggle.getByRole('switch')).toBeDisabled()
   await expect(toggle.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
-  await expect(toggle).toContainText('Перемикач запрацює після оновлення бази (міграція 0068)')
+  await expect(toggle).toContainText('Перемикач запрацює після оновлення бази (міграція 0070)')
 
   await context.clearCookies()
   await page.goto(`/uk/g/${SLUG}`)

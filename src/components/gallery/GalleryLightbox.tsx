@@ -36,7 +36,7 @@ export interface GalleryLightboxProps {
   onClose: () => void
   onView: (index: number) => void
   onToggleFavorite: (assetId: string) => void
-  /** false — no «download original» button in the toolbar (0068). */
+  /** false — no «download original» button in the toolbar (0070). */
   downloadsEnabled?: boolean
 }
 

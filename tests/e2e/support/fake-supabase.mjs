@@ -15,7 +15,7 @@
 //   GET  /media/<key>                     → a demo photo (MEDIA_CDN_URL)
 //   POST /__e2e/reset   {scenario}        → reseed the tables
 //   POST /__e2e/insert  {table,row}       → add a row (the tests' «upload»)
-//   POST /__e2e/schema  {downloadsColumn} → pretend migration 0068 is (not) applied
+//   POST /__e2e/schema  {downloadsColumn} → pretend migration 0070 is (not) applied
 //
 // The client gallery (/g/[slug]) and the download routes read with the anon
 // and service keys. Those requests are answered only when they are about an
@@ -149,7 +149,7 @@ function seed(scenario) {
 }
 
 let db = seed(process.env.FAKE_SUPABASE_SCENARIO || 'full')
-/** false — galleries.downloads_enabled does not exist (0068 not applied). */
+/** false — galleries.downloads_enabled does not exist (0070 not applied). */
 let downloadsColumn = true
 
 // ---------------------------------------------------------------- PostgREST

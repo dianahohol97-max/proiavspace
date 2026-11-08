@@ -270,7 +270,7 @@ export async function setGalleryDelivery(
 }
 
 /**
- * «Клієнт може завантажувати фото» (galleries.downloads_enabled, 0068). Saved
+ * «Клієнт може завантажувати фото» (galleries.downloads_enabled, 0070). Saved
  * on every flip of the switch. Without the migration the column is missing:
  * answer `migration` so the switch can say so, and change nothing.
  */
