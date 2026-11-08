@@ -903,6 +903,7 @@ export const pt: PartialDictionary = {
     brandLine: 'a sua marca · fotografia',
     desktop: 'Computador',
     phone: 'Telemóvel',
+    openAsClient: 'Abrir como cliente',
     hiddenFromClient: 'Oculta ao cliente',
     showToClient: 'Mostrar ao cliente',
     picksFile: 'Ficheiro',

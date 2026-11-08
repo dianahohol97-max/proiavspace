@@ -308,6 +308,18 @@ function aboutE2E(text) {
 
 async function rest(req, res, url, role = 'user', body = undefined) {
   const table = url.pathname.replace('/rest/v1/', '')
+  if (table === 'rpc/get_gallery_branding') {
+    // As the SQL function: the owner's profile, for published galleries only.
+    const target = db.galleries.find((g) => g.slug === body?.gallery_slug && g.is_published)
+    const owner = target && db.profiles.find((p) => p.user_id === target.owner_id)
+    return send(
+      res,
+      200,
+      owner
+        ? [{ display_name: owner.display_name, display_name_en: null, logo_key: null, plan: owner.plan, grace_until: null, site_theme: null, site_mode: null, tip_link: null, contact_url: null }]
+        : []
+    )
+  }
   if (table.startsWith('rpc/')) {
     // get_gallery_branding returns a set; the rest are scalars or void.
     return send(res, 200, table === 'rpc/get_gallery_branding' || table === 'rpc/list_selections' ? [] : null)

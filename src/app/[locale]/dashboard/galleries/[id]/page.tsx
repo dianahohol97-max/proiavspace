@@ -24,6 +24,8 @@ import { CullingPanel } from '@/components/gallery/CullingPanel'
 import type { CullingPhoto } from '@/lib/culling/types'
 import { setHiddenFromClient } from '@/lib/actions/culling'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
+import { PREVIEW_PHOTO_LIMIT, clientVisible, type PreviewPhoto } from '@/components/gallery/previewLayout'
+import { galleryEventLine } from '@/lib/gallery/event-line'
 import { DeliveryStatusControl } from '@/components/gallery/DeliveryStatusControl'
 import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
 import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
@@ -85,13 +87,15 @@ export default async function ManageGalleryPage({
   // Statistics are a «Плюс»+ feature; selection/favorites are free for all.
   const { data: planRow } = await supabase
     .from('profiles')
-    .select('plan, grace_until, watermark_enabled, display_name')
+    .select('plan, grace_until, watermark_enabled, display_name, display_name_en, logo_url')
     .eq('user_id', user.id)
     .single<{
       plan: string
       grace_until: string | null
       watermark_enabled: boolean
       display_name: string | null
+      display_name_en?: string | null
+      logo_url?: string | null
     }>()
   const ownerPlan = effectiveGalleryPlan(planRow?.plan ?? 'free', planRow?.grace_until)
   const watermarkText =
@@ -205,6 +209,53 @@ export default async function ManageGalleryPage({
       })
     )
   ).filter((p): p is CullingPhoto => p !== null)
+
+  // «Дизайн» preview: exactly the frames the client sees (no hidden ones), in
+  // the client's order, with their proportions; the cover as the client page
+  // picks it (lib: previewLayout.clientVisible).
+  const clientView = clientVisible(
+    previews.map(({ asset, url }) => ({ ...asset, url })),
+    gallery.cover_asset_id
+  )
+  const designPhotos: PreviewPhoto[] = clientView.visible
+    .slice(0, PREVIEW_PHOTO_LIMIT)
+    .map((asset) => ({
+      id: asset.id,
+      url: asset.url,
+      width: asset.width,
+      height: asset.height,
+      focalX: asset.focal_x ?? null,
+      focalY: asset.focal_y ?? null,
+    }))
+  const coverAsset = clientView.cover
+  const designCoverUrl = coverAsset
+    ? await storage
+        .getSignedReadUrl(
+          (coverAsset.kind === 'video' ? coverAsset.variants.poster : coverAsset.variants.mobile) ??
+            coverAsset.variants.preview ??
+            coverAsset.r2_key,
+          { expiresInSeconds: 60 * 60 }
+        )
+        .catch(() => coverAsset.url || null)
+    : null
+  // Brand on the cover: what get_gallery_branding gives the client page. It
+  // answers for published galleries only, so a draft takes the same fields
+  // straight from the profile — what the client will see once it is shared.
+  const designBrand = await (async () => {
+    const { data } = await supabase.rpc('get_gallery_branding', { gallery_slug: gallery.slug })
+    const row =
+      (data as { display_name: string | null; display_name_en: string | null; logo_key: string | null }[] | null)?.[0] ?? {
+        display_name: planRow?.display_name ?? null,
+        display_name_en: planRow?.display_name_en ?? null,
+        logo_key: planRow?.logo_url ?? null,
+      }
+    const name = (locale !== 'uk' ? row.display_name_en : null) ?? row.display_name ?? null
+    const logoUrl =
+      row.logo_key && ownerPlan.features.photographerLogo
+        ? await storage.getSignedReadUrl(row.logo_key, { expiresInSeconds: 60 * 60 }).catch(() => null)
+        : null
+    return { name, logoUrl }
+  })()
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
 
@@ -550,9 +601,22 @@ export default async function ManageGalleryPage({
         themeOptions={themeOptions}
         initialTheme={themeMood[gallery.theme ?? ''] ?? 'tysha'}
         initialStyle={parseGalleryStyle(gallery.style)}
-        coverUrl={previews.find((p) => p.asset.id === gallery.cover_asset_id)?.url ?? previews[0]?.url ?? null}
-        photos={previews.slice(0, 8).map((p) => p.url).filter(Boolean)}
+        coverUrl={designCoverUrl}
+        photos={designPhotos}
+        totalPhotos={clientView.visible.length}
         galleryTitle={gallery.title}
+        eventLine={galleryEventLine(gallery.event_date, gallery.description, locale)}
+        brandName={designBrand.name}
+        logoUrl={designBrand.logoUrl}
+        downloadsEnabled={downloads.enabled}
+        clientUrl={`/api/galleries/${encodeURIComponent(gallery.slug)}/owner-view?locale=${locale}`}
+        clientLabels={{
+          scrollHint: dict.publicGallery.scrollHint,
+          selected: dict.publicGallery.selected,
+          slideshow: dict.publicGallery.slideshow,
+          downloadAll: dict.publicGallery.downloadAll,
+          downloadHint: dict.publicGallery.downloadHint,
+        }}
         locale={locale}
         labels={{
           ...dict.designer,

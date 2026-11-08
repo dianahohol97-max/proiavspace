@@ -14,6 +14,8 @@ import {
   fontFamily,
   type GalleryStyle,
 } from '@/lib/gallery/style'
+import { DesignerPreview, type PreviewClientLabels } from './DesignerPreview'
+import type { PreviewPhoto } from './previewLayout'
 
 type DesignerLabels = Dictionary['designer'] & {
   styleLabel: string
@@ -67,7 +69,14 @@ export function GalleryDesigner({
   initialStyle,
   coverUrl,
   photos = [],
+  totalPhotos,
   galleryTitle,
+  eventLine = null,
+  brandName = null,
+  logoUrl = null,
+  downloadsEnabled = true,
+  clientUrl,
+  clientLabels,
   locale = 'uk',
   labels,
 }: {
@@ -77,11 +86,26 @@ export function GalleryDesigner({
   initialStyle: GalleryStyle
   /** Real gallery cover, so the preview + focal pad show the actual photo. */
   coverUrl?: string | null
-  /** Real photo preview URLs — the live preview renders the actual shoot. */
-  photos?: string[]
+  /**
+   * The frames the client sees (no hidden ones), in the client's order, with
+   * their real proportions — the live preview renders the actual shoot.
+   */
+  photos?: PreviewPhoto[]
+  /** All frames the client sees; `photos` may carry only the first ones. */
+  totalPhotos?: number
   galleryTitle?: string
+  /** «14 вересня 2026 · опис» — the line under the title on the client cover. */
+  eventLine?: string | null
+  brandName?: string | null
+  logoUrl?: string | null
+  /** «Клієнт може завантажувати фото» (0070): no «Завантажити все» when off. */
+  downloadsEnabled?: boolean
+  /** «Відкрити як клієнт» — the real gallery (owner unlock for passwords). */
+  clientUrl?: string
+  /** The client gallery's own texts (dict.publicGallery). */
+  clientLabels?: PreviewClientLabels
   locale?: string
-  labels: DesignerLabels
+  labels: DesignerLabels & { openAsClient?: string }
 }) {
   const [pending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
@@ -129,51 +153,9 @@ export function GalleryDesigner({
       ? galleryTitle.trim()
       : labels.sampleTitle
 
-  // Live preview photos: real shots, falling back to soft gradients pre-upload.
-  const tiles = photos.length > 0 ? photos.slice(0, Math.max(columns * 2, 4)) : []
-  const placeholderCount = Math.max(columns * 2 - tiles.length, tiles.length === 0 ? columns * 2 : 0)
-
-  // Tile shape mirrors the client gallery: masonry varies, the rest crop.
-  const editorialWide = (i: number) => i % 4 === 0 || i % 4 === 3
-  // «Рядки»: a mix of landscapes and portraits, as width ÷ height.
-  const rowAspect = (i: number) => (i % 3 === 0 ? 2 / 3 : 3 / 2)
-  const rowHeight = device === 'phone' ? 54 : Math.round(150 / Math.max(columns, 2))
-  const tileAspect = (i: number) =>
-    layout === 'rows'
-      ? String(rowAspect(i))
-      : layout === 'portrait'
-      ? '3 / 4'
-      : layout === 'masonry'
-        ? i % 3 === 0
-          ? '3 / 4'
-          : '1 / 1'
-        : layout === 'editorial' && editorialWide(i)
-          ? device === 'phone'
-            ? '3 / 2'
-            : '2 / 1'
-          : '1 / 1'
-  // Collage promotes every 6th tile to a 2×2 accent; editorial alternates a
-  // wide hero with squares — same rules as the client gallery.
-  const tileSpan = (i: number): React.CSSProperties =>
-    layout === 'rows'
-      ? { flex: `${rowAspect(i)} 1 ${rowAspect(i) * rowHeight}px`, minWidth: 0 }
-      : layout === 'collage' && i % 6 === 0
-      ? { gridColumn: 'span 2', gridRow: 'span 2' }
-      : layout === 'editorial' && editorialWide(i)
-        ? { gridColumn: 'span 2' }
-        : {}
   const layoutLabel = (v: (typeof LAYOUT_CHOICES)[number]['value']) => labels[LAYOUT_LABEL[v]]
   // Editorial is a fixed 3-column pattern — the columns pick doesn't apply.
   const columnsLocked = layout === 'editorial'
-  const previewCols =
-    layout === 'editorial'
-      ? device === 'phone'
-        ? 2
-        : 3
-      : device === 'phone'
-        ? Math.min(columns, 2)
-        : columns
-
   const seg = (on: boolean) =>
     `rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
       on ? 'bg-fg text-bg' : 'text-muted hover:text-fg'
@@ -527,178 +509,67 @@ export function GalleryDesigner({
 
         {/* ---------- live preview ---------- */}
         <div className="order-1 flex flex-col border-b border-line bg-[#f3f2ee] p-4 sm:p-7 lg:order-2 lg:border-b-0">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
             <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
               {labels.preview}
             </p>
-            <div className="flex items-center gap-1 rounded-full border border-line bg-white p-1">
-              <button type="button" className={seg(device === 'desktop')} onClick={() => setDevice('desktop')}>
-                {labels.desktop}
-              </button>
-              <button type="button" className={seg(device === 'phone')} onClick={() => setDevice('phone')}>
-                {labels.phone}
-              </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 rounded-full border border-line bg-white p-1">
+                <button type="button" className={seg(device === 'desktop')} onClick={() => setDevice('desktop')}>
+                  {labels.desktop}
+                </button>
+                <button type="button" className={seg(device === 'phone')} onClick={() => setDevice('phone')}>
+                  {labels.phone}
+                </button>
+              </div>
+              {clientUrl && (
+                <a
+                  href={clientUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="open-as-client"
+                  className="rounded-full border border-line bg-white px-3.5 py-2 text-[13px] font-semibold text-fg transition-colors hover:border-fg"
+                >
+                  {labels.openAsClient ?? 'Open as client'} ↗
+                </a>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-1 items-start justify-center">
-            <div
-              className={`overflow-hidden shadow-[0_24px_60px_-32px_rgba(13,12,10,.45)] transition-all ${
-                device === 'phone'
-                  ? 'w-[300px] rounded-[30px] border-[6px] border-[#1a1917]'
-                  : 'w-full max-w-[620px] rounded-2xl border border-line'
-              }`}
-              style={{ background: tokens.bg, color: tokens.fg, fontFamily: previewBodyFont }}
-            >
-              {/* cover — mirrors the chosen treatment */}
-              <div
-                className={`relative flex ${cover === 'left' ? 'items-end' : 'items-center'}`}
-                style={{
-                  height: cover === 'minimal' ? undefined : device === 'phone' ? 180 : 200,
-                  ...(cover === 'minimal'
-                    ? { background: tokens.bg }
-                    : coverUrl
-                      ? {
-                          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.42)), url("${coverUrl}")`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: `${focalX}% ${focalY}%`,
-                        }
-                      : { background: `linear-gradient(160deg, ${tokens.muted}, ${tokens.fg})` }),
-                }}
-              >
-                <div
-                  className={`w-full p-4 ${cover === 'left' ? 'text-left' : 'text-center'} ${
-                    cover === 'minimal' ? 'pb-2 pt-10' : ''
-                  }`}
-                >
-                  <p
-                    className="text-[10px] uppercase tracking-[0.25em]"
-                    style={{
-                      fontFamily: tokens.fontLabel,
-                      color: cover === 'minimal' ? tokens.muted : 'rgba(255,255,255,.8)',
-                    }}
-                  >
-                    {new Date().getFullYear()}
-                  </p>
-                  <p
-                    style={{
-                      color: cover === 'minimal' ? tokens.fg : '#fff',
-                      fontFamily: previewFont,
-                      fontWeight: tokens.displayWeight,
-                      textTransform: tokens.displayTransform as React.CSSProperties['textTransform'],
-                      letterSpacing: tokens.displayTracking,
-                      fontSize: Math.round(((device === 'phone' ? 22 : 28) * titleScale) / 100),
-                      lineHeight: 1.1,
-                      textShadow: cover === 'minimal' ? undefined : '0 1px 12px rgba(0,0,0,.35)',
-                    }}
-                  >
-                    {sampleTitle}
-                  </p>
-                </div>
-              </div>
-
-              {/* action bar — mirrors the client gallery */}
-              <div
-                className="flex items-center gap-2 px-4 py-2.5 text-[11px]"
-                style={{ borderBottom: `1px solid ${tokens.line}`, fontFamily: previewLabelFont }}
-              >
-                <span style={{ color: previewAccent }}>♥ 3 {labels.picked}</span>
-                <span
-                  className="text-[10px] uppercase tracking-wider"
-                  style={{ color: tokens.muted }}
-                >
-                  ▶ {labels.slideshow}
-                </span>
-                <span
-                  className="ml-auto rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-                  style={{ background: tokens.fg, color: tokens.bg }}
-                >
-                  {labels.downloadAll}
-                </span>
-              </div>
-
-              {/* photo grid — REAL photos. Masonry renders with CSS columns
-                  (like the client gallery) — a grid with mixed aspect ratios
-                  leaves holes under the shorter tiles. */}
-              <div
-                className="p-3"
-                style={
-                  layout === 'masonry'
-                    ? {
-                        columns: previewCols,
-                        columnGap: Math.max(2, Math.round(gap / 2)),
-                      }
-                    : layout === 'rows'
-                      ? {
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          alignItems: 'flex-start',
-                          gap: Math.max(2, Math.round(gap / 2)),
-                        }
-                      : {
-                        display: 'grid',
-                        gap: Math.max(2, Math.round(gap / 2)),
-                        gridTemplateColumns: `repeat(${previewCols}, 1fr)`,
-                        gridAutoFlow: layout === 'collage' ? 'dense' : undefined,
-                      }
-                }
-              >
-                {tiles.map((url, i) => (
-                  <div
-                    key={url + i}
-                    className="relative overflow-hidden"
-                    style={{
-                      aspectRatio: tileAspect(i),
-                      borderRadius: radius,
-                      background: `center / cover no-repeat url("${url}")`,
-                      ...(layout === 'masonry'
-                        ? {
-                            breakInside: 'avoid' as const,
-                            marginBottom: Math.max(2, Math.round(gap / 2)),
-                          }
-                        : tileSpan(i)),
-                    }}
-                  >
-                    {i === 1 && (
-                      <span
-                        className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-[11px]"
-                        style={{ color: previewAccent }}
-                      >
-                        ♥
-                      </span>
-                    )}
-                  </div>
-                ))}
-                {Array.from({ length: placeholderCount }).map((_, i) => (
-                  <div
-                    key={`ph-${i}`}
-                    style={{
-                      aspectRatio: tileAspect(tiles.length + i),
-                      borderRadius: radius,
-                      background: `linear-gradient(160deg, ${tokens.line}, ${tokens.muted})`,
-                      opacity: 0.6,
-                      ...(layout === 'masonry'
-                        ? {
-                            breakInside: 'avoid' as const,
-                            marginBottom: Math.max(2, Math.round(gap / 2)),
-                          }
-                        : tileSpan(tiles.length + i)),
-                    }}
-                  />
-                ))}
-                {/* «Рядки»: the last row keeps its height instead of stretching */}
-                {layout === 'rows' && <span aria-hidden style={{ flex: '1000000 1 0' }} />}
-              </div>
-
-              {/* footer signature — display font, like the real gallery */}
-              <p
-                className="pb-4 text-center text-[13px]"
-                style={{ color: tokens.muted, fontFamily: previewFont }}
-              >
-                {labels.brandLine}
-              </p>
-            </div>
-          </div>
+          <DesignerPreview
+            device={device}
+            layout={layout}
+            columns={columns}
+            gap={gap}
+            radius={radius}
+            cover={cover}
+            titleScale={titleScale}
+            focalX={focalX}
+            focalY={focalY}
+            tokens={tokens}
+            displayFont={previewFont}
+            bodyFont={previewBodyFont}
+            labelFont={previewLabelFont}
+            title={galleryTitle?.trim() || labels.sampleTitle}
+            eventLine={eventLine}
+            brandName={brandName}
+            logoUrl={logoUrl}
+            coverUrl={coverUrl ?? null}
+            photos={photos}
+            totalPhotos={totalPhotos ?? photos.length}
+            downloadsEnabled={downloadsEnabled}
+            locale={locale}
+            labels={
+              clientLabels ?? {
+                scrollHint: '',
+                selected: labels.picked,
+                slideshow: labels.slideshow,
+                downloadAll: labels.downloadAll,
+                downloadHint: '',
+              }
+            }
+            footerFallback={labels.brandLine}
+          />
         </div>
       </div>
     </form>

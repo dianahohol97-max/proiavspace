@@ -855,6 +855,7 @@ export const pl: PartialDictionary = {
     brandLine: 'Nazwa marki · fotografia',
     desktop: 'Komputer',
     phone: 'Telefon',
+    openAsClient: 'Otwórz jako klient',
     hiddenFromClient: 'Ukryte przed klientem',
     showToClient: 'Pokaż klientowi',
     picksFile: 'Plik',

@@ -908,6 +908,7 @@ export const ro: PartialDictionary = {
     brandLine: 'brandul dumneavoastră · fotografie',
     desktop: 'Desktop',
     phone: 'Telefon',
+    openAsClient: 'Deschide ca un client',
     hiddenFromClient: 'Ascuns de client',
     showToClient: 'Arată clientului',
     picksFile: 'Fișier',
