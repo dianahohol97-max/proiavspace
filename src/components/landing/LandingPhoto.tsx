@@ -72,9 +72,7 @@ export function LandingPhoto({
         height={height}
         loading={priority || eager ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
-        // React 18 doesn't know the camelCase prop yet; the lowercase attribute
-        // passes straight through to the DOM.
-        {...{ fetchpriority: priority ? 'high' : eager ? 'low' : 'auto' }}
+        fetchPriority={priority ? 'high' : eager ? 'low' : 'auto'}
         className={className}
         style={style}
       />
