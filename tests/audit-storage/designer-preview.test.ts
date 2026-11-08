@@ -27,6 +27,9 @@ import {
   type PreviewDevice,
 } from '@/components/gallery/previewLayout'
 import { COLUMN_CHOICES, LAYOUT_CHOICES } from '@/lib/gallery/style'
+import { isOwnerPreview } from '@/lib/gallery/owner-preview'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const LAYOUTS = LAYOUT_CHOICES.map((choice) => choice.value) as GridLayout[]
 const DEVICES: PreviewDevice[] = ['desktop', 'phone']
@@ -151,5 +154,65 @@ describe('фото для превʼю: як у клієнта', () => {
     assert.equal(clientVisible(assets, 'x').cover?.id, 'y', 'схована обкладинка → перший видимий')
     assert.equal(clientVisible(assets, null).cover?.id, 'y')
     assert.equal(clientVisible([asset('h', 0, 'a', true)], 'h').cover, null)
+  })
+})
+
+describe('?preview=1 на /g/[slug]: перегляд не рахуємо лише для власниці', () => {
+  const GALLERY = 'g-1'
+  const OWNER = 'owner-1'
+  /** Supabase stub: auth.getUser() + galleries filtered by .eq(), as PostgREST would. */
+  const client = (userId: string | null, calls: string[] = []) =>
+    ({
+      auth: {
+        getUser: async () => {
+          calls.push('getUser')
+          return { data: { user: userId ? { id: userId } : null }, error: null }
+        },
+      },
+      from: (table: string) => {
+        const filters: [string, string][] = []
+        const builder = {
+          select: () => builder,
+          eq: (column: string, value: string) => (filters.push([column, value]), builder),
+          maybeSingle: async () => {
+            calls.push(`from:${table}`)
+            const rows = [{ id: GALLERY, owner_id: OWNER }].filter((row) =>
+              filters.every(([column, value]) => String(row[column as keyof typeof row]) === value)
+            )
+            return { data: rows[0] ? { id: rows[0].id } : null, error: null }
+          },
+        }
+        return builder
+      },
+    }) as unknown as Parameters<typeof isOwnerPreview>[2]
+
+  test('власниця цієї галереї з ?preview=1 → перегляд не рахується', async () => {
+    assert.equal(await isOwnerPreview('1', GALLERY, client(OWNER)), true)
+  })
+
+  test('будь-хто інший з ?preview=1 → параметр ігнорується, перегляд рахується', async () => {
+    assert.equal(await isOwnerPreview('1', GALLERY, client('someone-else')), false, 'інший фотограф')
+    assert.equal(await isOwnerPreview('1', GALLERY, client(null)), false, 'клієнт без входу')
+    assert.equal(await isOwnerPreview('1', 'other-gallery', client(OWNER)), false, 'власниця, але чужа галерея')
+  })
+
+  test('без ?preview=1 — навіть власниця рахується, і зайвих запитів немає', async () => {
+    const calls: string[] = []
+    assert.equal(await isOwnerPreview(undefined, GALLERY, client(OWNER, calls)), false)
+    assert.equal(await isOwnerPreview('yes', GALLERY, client(OWNER, calls)), false)
+    assert.deepEqual(calls, [])
+  })
+
+  test('збій авторизації → рахуємо перегляд', async () => {
+    const broken = { auth: { getUser: async () => { throw new Error('down') } }, from: () => ({}) } as unknown as Parameters<typeof isOwnerPreview>[2]
+    assert.equal(await isOwnerPreview('1', GALLERY, broken), false)
+  })
+
+  test('сторінка галереї вирішує через isOwnerPreview, а не за самим параметром', () => {
+    const page = readFileSync(join(__dirname, '..', '..', 'src/app/[locale]/g/[slug]/page.tsx'), 'utf8')
+    assert.match(page, /const ownerPreview = await isOwnerPreview\(searchParams\.preview, gallery\.id, supabase\)/)
+    assert.doesNotMatch(page, /searchParams\.preview === '1'/)
+    assert.match(page, /if \(!ownerPreview\) waitUntil\(/)
+    assert.match(page, /if \(!ownerPreview && gallery\.view_count < 20/)
   })
 })
