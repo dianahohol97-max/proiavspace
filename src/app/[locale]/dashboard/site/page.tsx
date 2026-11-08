@@ -130,6 +130,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     indeks: dict.site.themeIndeks,
     paspartu: dict.site.themePaspartu,
     kontakt: dict.site.themeKontakt,
+    temna: dict.site.themeTemna,
   }
 
   return (

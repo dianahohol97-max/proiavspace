@@ -29,6 +29,7 @@ export const THEME_IDS = [
   'indeks',
   'paspartu',
   'kontakt',
+  'temna',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -239,6 +240,20 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Sheet Mono", "Sheet Mono Fallback", ui-monospace, monospace',
     },
   },
+  temna: {
+    id: 'temna',
+    tokens: {
+      ...base,
+      // «Темна кімната»: darkroom black-red, print white, safelight red (7:1).
+      bg: '#140707', fg: '#f1e6dc', muted: '#b9a89e', accent: '#ff6a57', line: '#3a1c18',
+      fontDisplay: '"Lab Serif", "Lab Serif Fallback", Georgia, serif',
+    },
+    night: {
+      ...base,
+      bg: '#140707', fg: '#f1e6dc', muted: '#b9a89e', accent: '#ff6a57', line: '#3a1c18',
+      fontDisplay: '"Lab Serif", "Lab Serif Fallback", Georgia, serif',
+    },
+  },
 }
 
 /**
@@ -256,6 +271,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   indeks: { theme: 'prodakshn', mode: 'light' },
   paspartu: { theme: 'galereia', mode: 'light' },
   kontakt: { theme: 'arkhiv', mode: 'light' },
+  temna: { theme: 'tysha', mode: 'night' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -346,4 +362,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'indeks', theme: 'indeks', mode: 'light' },
   { value: 'paspartu', theme: 'paspartu', mode: 'light' },
   { value: 'kontakt', theme: 'kontakt', mode: 'light' },
+  { value: 'temna', theme: 'temna', mode: 'night' },
 ]

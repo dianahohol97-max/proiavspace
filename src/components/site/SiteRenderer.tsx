@@ -32,6 +32,8 @@ import { MAT_FONT_VARS } from './paspartu/fonts'
 import { ThemePaspartu } from './paspartu/ThemePaspartu'
 import { SHEET_FONT_VARS } from './kontakt/fonts'
 import { ThemeKontakt } from './kontakt/ThemeKontakt'
+import { LAB_FONT_VARS } from './temna/fonts'
+import { ThemeTemna } from './temna/ThemeTemna'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -399,6 +401,7 @@ export function SiteRenderer({
     indeks: { Component: ThemeIndeks, fonts: INDEX_FONT_VARS },
     paspartu: { Component: ThemePaspartu, fonts: MAT_FONT_VARS },
     kontakt: { Component: ThemeKontakt, fonts: SHEET_FONT_VARS },
+    temna: { Component: ThemeTemna, fonts: LAB_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {
