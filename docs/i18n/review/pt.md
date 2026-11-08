@@ -62,3 +62,15 @@ Formato: `chave ou local — tradução — porque há dúvida`
 - `dashboard.sortUpdated` — «Alteradas recentemente» (concorda com «galerias») — confirmar.
 - `publicGallery.sharePassword` — alterado para «envio-lhe a palavra-passe numa mensagem à parte» (a mensagem é do fotógrafo para o cliente, 1.ª pessoa) — confirmar tom.
 - `publicGallery.shareReady` / `shareInProgress` — «Olá!» + 3.ª pessoa formal («a sua galeria») — ver se para mensagens de Telegram/WhatsApp se prefere um tom mais próximo.
+
+## Листи
+
+- `hello` / `helloClient` — «Olá, {name}!» / «Olá!» — confirmar se para e-mails de serviço se prefere «Caro/Cara …» (evitado por causa do género).
+- `footerQuestions` — «Questões e faturas» — rótulo antes do e-mail de suporte.
+- `planNames.site_basic` / `site_plus` — «Site Básico» / «Site Plus» — ordem das palavras.
+- `receipt` — «Encomenda» para o número do pedido (Order); alternativa «N.º do pedido».
+- `receipt.after` — «O comprovativo bancário é enviado em separado pelo {provider}» — artigo «pelo» assume nome masculino (Monobank/LiqPay).
+- `referralReward` — «recompensa de convite» / «crédito de convite» — coerência com «crédito de convites» no painel.
+- datas com «a {date}» («termina a 14.12.2026») — confirmar com o formato de data real.
+- `freeExpiry` — citação «Esta galeria está fechada. Contacte o seu fotógrafo.» dentro de «…» com ponto final — pontuação.
+- `failedCharge` — «Enviaremos lembretes 30, 7 e 1 dia antes» (evita «lembrá-lo», masculino).

@@ -11,7 +11,7 @@ import type { Locale } from '@/lib/i18n/config'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { parseClientEmail, sendReadyEmailAgain, type ReadyEmailResult } from '@/lib/gallery/ready-email'
-import { isMissingColumn, ownerReadyEmailDeps } from '@/lib/gallery/ready-email-store'
+import { isMissingColumn, ownerReadyEmailDeps, saveShareLocale } from '@/lib/gallery/ready-email-store'
 
 export type ClientEmailSaveResult = { ok: true } | { ok: false; error: 'invalid' | 'consent' | 'unavailable' | 'failed' }
 
@@ -72,4 +72,15 @@ export async function sendClientReadyEmailAgain(locale: Locale, galleryId: strin
   const result = await sendReadyEmailAgain(deps, galleryId, user.id)
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
   return result
+}
+
+/**
+ * «Поділитися» → language of the link: remembered on the gallery (0072), so
+ * «Ваші фото готові» goes in the same language with the same link. No-op
+ * before the migration (the letter then uses the photographer's language).
+ */
+export async function rememberShareLocale(galleryId: string, shareLocale: string): Promise<boolean> {
+  const { user } = await requireUser()
+  if (!user) return false
+  return saveShareLocale(galleryId, user.id, shareLocale)
 }

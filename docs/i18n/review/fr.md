@@ -55,3 +55,14 @@ Format : `clé ou emplacement — traduction — pourquoi je doute`
 - galleryManage.shareQr — « Code QR » — « QR code » est aussi très courant en France ; changé pour ne pas rester identique à l’anglais.
 - publicGallery.shareReady / shareInProgress / sharePassword — message envoyé par le photographe au client, en vouvoiement et à la première personne (« je vous l’envoie ») ; vérifier que le ton convient à des photographes qui tutoient parfois leurs clients.
 - dashboard.onboardLede — « C’est l’affaire de quelques minutes » — tournure idiomatique pour « It takes a few minutes ».
+
+## Листи
+
+- emails hello / helloClient — « Bonjour Olena, » / « Bonjour, » — formule de lettre avec virgule plutôt que « ! » (plus naturel en français pour un e-mail de service).
+- emails footerQuestions — « Questions et factures » — la source ukrainienne parle de « рахунок для ФОП » (facture pour entrepreneur individuel) ; simplifié.
+- emails planNames.site_basic / site_plus — « Site Essentiel » / « Site Plus » — composés à partir des noms d’offres.
+- emails closed — « Votre galerie est fermée / Vos N galeries sont fermées aux clients » — phrase restructurée pour l’accord au singulier.
+- emails freeExpiry — citation du message client « Cette galerie est fermée. Contactez votre photographe. » — reprise exacte de publicGallery.expired (l’anglais cite un texte légèrement différent).
+- emails referralReward — « Un ou une photographe venu(e) par votre lien » — écriture inclusive ; à alléger si besoin (« Un photographe venu par votre lien »).
+- emails receipt — « Merci de votre confiance ! » pour « Thank you for being with us! ».
+- emails graceStart / promoEnding — « mois gratuit de l’offre « Essentiel » obtenu grâce à l’import » — tournure un peu longue.

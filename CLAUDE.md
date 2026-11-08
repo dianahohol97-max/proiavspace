@@ -23,7 +23,9 @@
     - `0066` — обране для Lightroom + лист «Ваші фото готові» (`feat/client-picks` → `release/4`, `0066_client_picks_ready_email.sql`; замовлено як 0064, перейменовано через конфлікт із темами): `assets.source_file_name`; `galleries.client_email`/`client_email_consent_at`/`ready_email_sent_at` без грантів для anon/authenticated; не застосована; код без неї працює (завантаження без назви, блок листа пише «після оновлення бази»)
     - `0067` — дата зйомки (`feat/gallery-grid` → `release/4`, `0067_asset_taken_at.sql`): `assets.taken_at` + `sort_gallery_assets(uuid, text)` для «Порядок: за часом зйомки»; не застосована (замовлено як 0061, потім 0066 — обидва номери зайняли інші гілки); без неї код працює (завантаження пише фото без дати, кнопка сортування каже, що потрібна міграція)
     - `0068` — застосунок фотографа на телефоні (`feat/photographer-app` → `release/4`, `0068_push_notifications.sql`): `push_subscriptions`, `push_preferences` (RLS лише власник), `push_deliveries` (лише service role); не застосована; без неї кабінет працює, блок «Сповіщення» пише «після оновлення бази», сповіщення не надсилаються
-    - **наступний вільний номер — `0069`**
+    - `0069` — підтримка, `0070` — перемикач завантажень, `0071` — порядок галереї: зайняті іншими гілками (за словами власниці, 8.11.2026)
+    - `0072` — мови листів (`feat/i18n-emails` → `release/4`, `0072_email_locales.sql`): `profiles.locale` — усі 9 мов + `grant update (locale)` для authenticated; `galleries.share_locale` (мова посилання з «Поділитися», без грантів для anon/authenticated); не застосована; без неї листи йдуть як зараз (uk, або en для тих, у кого вже en), кабінет працює
+    - **наступний вільний номер — `0073`**
   - Нова міграція має бути безпечною для коду, що зараз на проді (нові колонки з дефолтами, `create or replace` з тими самими сигнатурами). Якщо код без міграції падає, написати це в PR явно.
 
 ## Мови (9: uk, en, pl, de, es, fr, it, ro, pt)
@@ -31,3 +33,4 @@
 - **Новий рядок інтерфейсу — одразу в усі 9 мов**: словники `src/lib/i18n/dictionaries/*.ts`, лендинг `src/lib/landing/locales/`, юридичні тексти `src/lib/legal/locales/`, політики клієнтів `src/lib/legal/client-policies/`, AI-відбір `src/lib/culling/locales/`, довідка «Як це працює» `src/lib/gallery/help-locales/`. Тест `tests/audit-storage/i18n-parity.test.ts` (у `test:audit`) падає, якщо чогось бракує, а `tests/e2e/i18n.spec.ts` ловить англійські фолбеки на сторінках.
 - Терміни — за `docs/i18n/GLOSSARY.md`. Не пишіть `locale === 'uk' ? '…' : 'English'` у компонентах — рядок у словник.
 - Числа, дати, гривні, множина — через `src/lib/i18n/format.ts` (`formatMessage` з `{n, plural, …}`, `formatDate`, `formatUah`, `intlLocale`).
+- **Листи** — теж 9 мовами: тексти в `src/lib/emails/locales/*.ts` (тип `EmailCopy`), логіка листа форматує значення мовою листа (`emailDate`, `emailMoney`, `emailSize`). Лист фотографу — мовою його профілю (`profiles.locale`, кабінет оновлює її сам), лист клієнту «Ваші фото готові» — мовою посилання з «Поділитися» (`galleries.share_locale`). Новий лист чи рядок — в усі 9 файлів; тест `tests/audit-storage/email-i18n.test.ts`.

@@ -57,3 +57,15 @@ Format: `cheie sau loc — traducerea — de ce nu sunt sigur`
 - `publicGallery.shareReady` / `shareInProgress` — „Bună ziua! … galeria dumneavoastră” — mesaj trimis de fotograf clientului; am trecut la formal, dar mulți fotografi le scriu clienților informal („Bună! … galeria ta”). De decis tonul.
 - `galleryManage.tabDesign` / `tabClient` — „Design” / „Client” — identice cu engleza (cuvinte românești uzuale).
 - `dashboard.sortNewest` — „Cele mai noi” — se referă la galerii (feminin plural); OK dacă eticheta apare doar în lista de galerii.
+
+## Листи
+
+- `hello` / `helloClient` — „Bună ziua, {name}!” — formal, ca în interfață; ucraineana folosește „Привіт” (mai familiar). Alternativă mai caldă: „Bună, {name}!”.
+- `footerQuestions` — „Întrebări și facturi” — originalul ucrainean spune „factura pentru ФОП” (pentru antreprenori ucraineni); am generalizat.
+- `planNames.site_basic` / `site_plus` — „Site Basic” / „Site Plus” — ca în engleză; în dicționar planurile de site sunt doar „Basic” / „Plus”.
+- `includes.sites` — „# site-uri-portofoliu” — formă compusă cu cratimă, poate stângace; alternativă: „# site-uri de portofoliu”.
+- `receipt.subject` — „Chitanță” pentru „Receipt” — dar chitanța bancară e trimisă separat de furnizor; poate „Confirmare de plată”.
+- `closed` — „perioada de tranziție” pentru perioada de grație — de verificat dacă e clar.
+- `referralReward.subject` — „prima recompensă de recomandare” / „primul credit de recomandare” — acordul de gen depinde de tip; de verificat.
+- `ready.after` — „ca să primiți o notificare când fotografiile sunt gata” — reformulat ca să evit acordul de gen („anunțat/anunțată”).
+- `failedCharge` — „debitare” pentru „charge” — termen bancar; poate „plată” sună mai firesc pentru clienți.

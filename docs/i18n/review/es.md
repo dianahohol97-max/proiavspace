@@ -62,3 +62,16 @@ Format: `key or location — translation — why unsure`
 - galleryManage.sharePublished — «Publicada ✓ El enlace ya funciona.» — feminine agreement with «galería» assumed.
 - galleryManage.shareEmail — «Correo» — short button label next to Telegram/Viber/WhatsApp; «Email» is also common in Spain.
 - publicGallery.shareInProgress — «Ahora mismo estoy editando las fotos» — written by the other session in the photographer's first person; I kept it because it reads naturally as a personal message.
+
+## Листи (e-mails, src/lib/emails/locales/es.ts)
+
+- hello — «¡Hola, {name}!» — friendly; a more formal service letter in Spain would be «Hola, {name}:».
+- footerQuestions — «Preguntas y facturas» — the Ukrainian «рахунок для ФОП» nuance (invoice for a sole proprietor) is dropped, as in English.
+- planNames.site_basic / site_plus — «Web Básico», «Web Plus» — not used in the UI dictionary (which says just «Básico»/«Plus» under «Webs»).
+- receipt rows — «Pedido» for order id; «Nº de pedido» may be clearer.
+- receipt credit — «(de los cuales, 12 ₴ con tu saldo de referidos)» — check phrasing.
+- receipt after — «justificante bancario» for the bank receipt from Monobank/LiqPay.
+- failedCharge — «que no hubiera saldo suficiente» — "saldo" here means card balance, while elsewhere «saldo» is the referral credit; possible confusion.
+- referralReward subject — «+12,90 ₴: tu primer saldo por referidos» — «primer saldo» sounds a bit odd; alternative «tu primera recompensa».
+- freeExpiry — quotes the client-facing closed text «Esta galería está cerrada. Ponte en contacto con tu fotógrafo» exactly from publicGallery.expired.
+- ready.rows — «Fotógrafo» label — gender-neutral alternative not available.

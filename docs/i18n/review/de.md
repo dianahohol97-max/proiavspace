@@ -56,3 +56,15 @@ Phrases I am not fully sure about. Format: `key or location — translation — 
 - `galleryManage.shareQrHint` — „… öffnen Sie die Galerie damit auf dem Smartphone“ — source is ambiguous (scan with a phone vs open from a phone).
 - `publicGallery.shareInProgress/sharePassword` — the message the photographer sends uses „Sie“ and first person („schicke ich Ihnen“); some photographers write to clients with „du“. Should this be configurable?
 - `dashboard.onboardStep3` — „Link teilen — per Telegram, Viber, WhatsApp oder E-Mail“ — the messenger list is Ukraine-oriented; kept as is.
+
+## Листи
+
+- `hello` — „Hallo Olena!“ / „Hallo!“ — friendly but not too familiar with „Sie“; alternative „Guten Tag, Olena,“ (more formal).
+- `helloClient` — „Guten Tag!“ — to the photographer's client; slightly more formal than the photographer greeting.
+- `footerQuestions` — „Fragen und Rechnungen“ — the Ukrainian original says “questions and invoices for sole proprietors (ФОП)”; the ФОП part was dropped as it means nothing to German readers.
+- `planNames.site_basic/site_plus` — „Website Basis“ / „Website Plus“ — not in the UI dictionary in this form (billing shows „Basis“/„Plus“ under „Websites“).
+- `receipt` — „Quittung“ for the receipt; „Zahlungsbestätigung“ might be closer to what a non-fiscal receipt is.
+- `referralReward` — „Empfehlungsprämie“ (ambassador cash) vs „Empfehlungsguthaben“ (credit) — check the distinction is clear.
+- `closed` / `freeExpiry` — the quoted client-facing messages repeat my UI strings („Diese Galerie ist vorübergehend nicht verfügbar“, „Diese Galerie ist geschlossen. Bitte wenden Sie sich an Ihren Fotografen.“); keep them in sync if the UI changes.
+- `ready` — „der Fotograf“ throughout (generic masculine), also in the row label „Fotograf“.
+- `failedCharge` — „(meist ist die Karte abgelaufen oder nicht ausreichend gedeckt)“ — banking phrasing, please confirm.

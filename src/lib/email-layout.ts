@@ -7,7 +7,9 @@
  *   everything else (plain text)                              → wrapText()
  *
  * Every HTML part ends with the business details and the support address.
+ * The language of a letter (lang, footer, greeting) comes from lib/emails.
  */
+import { emailCopy, emailLocale } from '@/lib/emails'
 
 export const BUSINESS = {
   entity: 'ФОП Гоголь Діана Іванівна',
@@ -26,12 +28,15 @@ export function supportEmail(): string {
   return SUPPORT_EMAIL
 }
 
-/** The footer lines, same in the text and the HTML part. */
-export function footerLines(): string[] {
+/**
+ * The footer lines, same in the text and the HTML part. The legal entity
+ * stays as registered (Ukrainian) in every language.
+ */
+export function footerLines(locale: string = 'uk'): string[] {
   return [
-    `проЯв · ${BUSINESS.site}`,
+    `${locale === 'uk' ? 'проЯв' : 'proiav'} · ${BUSINESS.site}`,
     `${BUSINESS.entity}, ${BUSINESS.city}`,
-    `Питання й рахунок для ФОП: ${supportEmail()}`,
+    `${emailCopy(locale).footerQuestions}${colon(locale)}${supportEmail()}`,
   ]
 }
 
@@ -52,10 +57,13 @@ export function greetingName(displayName: string | null | undefined, email?: str
   return name
 }
 
-export function hello(name: string | null, locale: 'uk' | 'en' = 'uk'): string {
-  if (locale === 'en') return name ? `Hi, ${name}!` : 'Hi!'
-  return name ? `Привіт, ${name}!` : 'Привіт!'
+/** «Привіт, Олено!» in the letter's language (lib/emails/locales). */
+export function hello(name: string | null, locale: string = 'uk'): string {
+  return emailCopy(locale).hello(name)
 }
+
+/** «Label: value»; French puts a non-breaking space before the colon. */
+const colon = (locale: string) => (locale === 'fr' ? '\u00a0: ' : ': ')
 
 export interface EmailDoc {
   greeting: string
@@ -72,18 +80,18 @@ export interface EmailDoc {
   link?: { label: string; url: string }
 }
 
-export function renderText(doc: EmailDoc): string {
+export function renderText(doc: EmailDoc, locale: string = 'uk'): string {
   const out: string[] = [doc.greeting, '', ...joinParas(doc.lead)]
   if (doc.rows?.length) {
-    out.push('', ...doc.rows.map(([k, v]) => `${k}: ${v}`))
+    out.push('', ...doc.rows.map(([k, v]) => `${k}${colon(locale)}${v}`))
   }
   if (doc.list?.items.length) {
-    out.push('', `${doc.list.title}:`, ...doc.list.items.map((i) => `• ${i}`))
+    out.push('', `${doc.list.title}${colon(locale).trimEnd()}`, ...doc.list.items.map((i) => `• ${i}`))
   }
   if (doc.after?.length) out.push('', ...joinParas(doc.after))
-  if (doc.button) out.push('', `${doc.button.label}: ${doc.button.url}`)
-  if (doc.link) out.push(`${doc.link.label}: ${doc.link.url}`)
-  out.push('', '—', ...footerLines())
+  if (doc.button) out.push('', `${doc.button.label}${colon(locale)}${doc.button.url}`)
+  if (doc.link) out.push(`${doc.link.label}${colon(locale)}${doc.link.url}`)
+  out.push('', '—', ...footerLines(locale))
   return out.join('\n')
 }
 
@@ -100,7 +108,7 @@ const linkify = (s: string) =>
 
 const P = 'margin:0 0 14px 0;font-size:15px;line-height:1.55;color:#0d0c0a;'
 
-export function renderHtml(doc: EmailDoc, subject: string): string {
+export function renderHtml(doc: EmailDoc, subject: string, locale: string = 'uk'): string {
   const parts: string[] = [`<p style="${P}">${esc(doc.greeting)}</p>`]
   for (const p of doc.lead) parts.push(`<p style="${P}">${linkify(esc(p))}</p>`)
   if (doc.rows?.length) {
@@ -131,21 +139,22 @@ export function renderHtml(doc: EmailDoc, subject: string): string {
       `<p style="margin:0 0 14px 0;font-size:13px;"><a href="${doc.link.url}" style="color:#2f55ff;">${esc(doc.link.label)}</a></p>`
     )
   }
-  return page(subject, parts.join(''))
+  return page(subject, parts.join(''), locale)
 }
 
 /** A plain-text letter as a proper HTML document with the same footer. */
-export function wrapText(text: string, subject: string): string {
+export function wrapText(text: string, subject: string, locale: string = 'uk'): string {
   const body = text
     .split(/\n{2,}/)
     .map((para) => `<p style="${P}">${linkify(esc(para)).replace(/\n/g, '<br>')}</p>`)
     .join('')
-  return page(subject, body)
+  return page(subject, body, locale)
 }
 
-function page(subject: string, body: string): string {
-  const footer = footerLines()
+function page(subject: string, body: string, locale: string): string {
+  const l = emailLocale(locale)
+  const footer = footerLines(l)
     .map((l) => linkify(esc(l)))
     .join('<br>')
-  return `<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head><body style="margin:0;padding:0;background:#f6f5f1;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;"><tr><td align="center" style="padding:28px 12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;"><tr><td style="padding:28px 28px 8px 28px;font-family:Arial,Helvetica,sans-serif;"><p style="margin:0 0 20px 0;font-size:18px;font-weight:700;color:#0d0c0a;">проЯв</p>${body}</td></tr><tr><td style="padding:12px 28px 24px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6f6d66;border-top:1px solid #ecebe6;">${footer}</td></tr></table></td></tr></table></body></html>`
+  return `<!doctype html><html lang="${l}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head><body style="margin:0;padding:0;background:#f6f5f1;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1;"><tr><td align="center" style="padding:28px 12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;"><tr><td style="padding:28px 28px 8px 28px;font-family:Arial,Helvetica,sans-serif;"><p style="margin:0 0 20px 0;font-size:18px;font-weight:700;color:#0d0c0a;">${l === 'uk' ? 'проЯв' : 'proiav'}</p>${body}</td></tr><tr><td style="padding:12px 28px 24px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6f6d66;border-top:1px solid #ecebe6;">${footer}</td></tr></table></td></tr></table></body></html>`
 }
