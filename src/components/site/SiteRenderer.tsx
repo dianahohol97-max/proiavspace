@@ -26,6 +26,8 @@ import { PARTY_FONT_VARS } from './sviato/fonts'
 import { ThemeSviato } from './sviato/ThemeSviato'
 import { SPREAD_FONT_VARS } from './rozvorot/fonts'
 import { ThemeRozvorot } from './rozvorot/ThemeRozvorot'
+import { INDEX_FONT_VARS } from './indeks/fonts'
+import { ThemeIndeks } from './indeks/ThemeIndeks'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -159,6 +161,8 @@ export interface SiteLabels {
   compareRetouch?: string
   freeDates?: string
   freeShort?: string
+  projectWord?: string
+  framesWord?: string
   filterAll?: string
 }
 
@@ -386,6 +390,7 @@ export function SiteRenderer({
     portret: { Component: ThemePortret, fonts: STUDIO_FONT_VARS },
     sviato: { Component: ThemeSviato, fonts: PARTY_FONT_VARS },
     rozvorot: { Component: ThemeRozvorot, fonts: SPREAD_FONT_VARS },
+    indeks: { Component: ThemeIndeks, fonts: INDEX_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {

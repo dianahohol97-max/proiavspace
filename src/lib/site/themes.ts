@@ -26,6 +26,7 @@ export const THEME_IDS = [
   'portret',
   'sviato',
   'rozvorot',
+  'indeks',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -209,6 +210,15 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Spread Serif", "Spread Serif Fallback", Georgia, serif',
     },
   },
+  indeks: {
+    id: 'indeks',
+    tokens: {
+      ...base,
+      // «Індекс»: paper grey, near-black, signal red (5:1).
+      bg: '#f1f1ee', fg: '#0b0b0b', muted: '#55555a', accent: '#c42d12', line: '#d9d9d4',
+      fontDisplay: '"Index Grotesk", "Index Grotesk Fallback", Arial, sans-serif',
+    },
+  },
 }
 
 /**
@@ -223,6 +233,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   portret: { theme: 'galereia', mode: 'light' },
   sviato: { theme: 'tysha', mode: 'night' },
   rozvorot: { theme: 'tysha', mode: 'light' },
+  indeks: { theme: 'prodakshn', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -310,4 +321,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'portret', theme: 'portret', mode: 'light' },
   { value: 'sviato', theme: 'sviato', mode: 'light' },
   { value: 'rozvorot', theme: 'rozvorot', mode: 'light' },
+  { value: 'indeks', theme: 'indeks', mode: 'light' },
 ]

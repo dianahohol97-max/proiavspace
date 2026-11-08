@@ -58,7 +58,7 @@ export function cardSuite(
       for (const sel of ['#portfolio', '#pricing', '#about', '#contact']) {
         await expect(page.locator(sel).first(), sel).toBeAttached()
       }
-      const frames = await page.locator('#portfolio img').count()
+      const frames = await page.locator('#portfolio img:visible').count()
       expect(frames).toBeGreaterThanOrEqual(6)
       expect(frames).toBeLessThanOrEqual(15)
       const packs = await page.locator('#pricing [data-pack]').count()
