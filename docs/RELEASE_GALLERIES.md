@@ -82,14 +82,21 @@
 
 ## Перевірки кандидата
 
-7.11.2026, HEAD `release/galleries`:
+8.11.2026, після злиття свіжого `release/4` (HEAD `release/galleries`):
 
 | Перевірка | Результат |
 |---|---|
 | `npx tsc --noEmit` | ✅ без помилок |
-| `npm run test:audit` | ✅ 316/316 (до виправлення 315/316: тест статусу зйомки чекав `resolveTokens`, а з «Візиткою» код бере `resolveGalleryTokens` — оновлено тест) |
-| `npm run test:e2e` (desktop, iphone, android) | ✅ 207 пройдено, 0 падінь, 60 пропущено (тести, привʼязані до одного профілю через `test.skip`); `upload-resume` повторно після правок рев'ю — 4/4 |
-| `next build` | ✅; `/[locale]/g/[slug]` First Load JS 257 → 259 kB |
+| `npm run test:audit` | ✅ 397/397 |
+| `npm run test:e2e` (desktop, iphone, android) | ✅ 456 пройдено, 157 пропущено (тести, привʼязані до одного профілю через `test.skip`). У повному прогоні 2 падіння в `upload-resume` — тест шукав `getByRole('status')`, а з release/4 прийшов ще й лічильник «N з M» з тією ж роллю; тест переведено на `data-testid="upload-network-wait"`. Після правки `upload-resume` — 4/4 на всіх профілях і 12/12 у трьох повторах |
+| `next build`, Lighthouse | не повторювалися після оновлення (дані нижче — з 7.11.2026, до злиття свіжого `release/4`) |
+
+Злиття коду завантаження (release/4 × release/5) — що зведено вручну:
+- превʼю генеруються у воркері (release/5) за правилами release/4: орієнтація EXIF, «завжди превʼю для HEIC/TIFF»
+  (`src/lib/images/renditionCore.ts`); HEIC, який воркер не декодує (Chrome), йде в головний потік до `heic-to`;
+- `client.ts`: докачування (release/5) + тип HEIC за розширенням, дата зйомки з EXIF, `sourceFileName` в обох шляхах (release/4);
+- `Uploader`: очікування мережі й незавершені завантаження (release/5) + причини відмов, лічильник, «Повторити» (release/4).
+- e2e `upload-preview` (HEIC, орієнтація 6) перевіряє головний потік; шлях HEIC через воркер автотестами не покритий — див. пункт 6 чекліста.
 
 **Lighthouse**, `/uk/gallery-demo` (той самий `GalleryExperience`, що й `/g/[slug]`; реальна галерея без бази не рендериться),
 `next start`, iPhone 390×844 @3x, iOS UA, simulated throttling, по 3 прогони, медіана:
