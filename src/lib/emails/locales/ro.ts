@@ -17,6 +17,7 @@ export const ro: EmailCopy = {
   hello: (name) => (name ? `Bună ziua, ${name}!` : 'Bună ziua!'),
   helloClient: 'Bună ziua!',
   footerQuestions: 'Întrebări și facturi',
+  footerSupport: 'Asistență',
   planNames: {
     free: 'Gratuit',
     basic: 'Basic',

@@ -16,6 +16,7 @@ export const en: EmailCopy = {
   hello: (name) => (name ? `Hi, ${name}!` : 'Hi!'),
   helloClient: 'Hello!',
   footerQuestions: 'Questions and invoices',
+  footerSupport: 'Support',
   planNames: {
     free: 'Free',
     basic: 'Basic',

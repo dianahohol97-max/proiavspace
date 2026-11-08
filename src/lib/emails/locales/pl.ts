@@ -23,6 +23,7 @@ export const pl: EmailCopy = {
   hello: (name) => (name ? `Dzień dobry, ${name}!` : 'Dzień dobry!'),
   helloClient: 'Dzień dobry!',
   footerQuestions: 'Pytania i rachunki',
+  footerSupport: 'Pomoc',
   planNames: {
     free: 'Darmowy',
     basic: 'Podstawowy',

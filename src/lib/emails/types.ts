@@ -178,6 +178,8 @@ export interface EmailCopy {
   helloClient: string
   /** Last footer line label: «Питання й рахунок для ФОП». */
   footerQuestions: string
+  /** Label before the support page link in the footer: «Підтримка». */
+  footerSupport: string
   planNames: {
     free: string
     basic: string

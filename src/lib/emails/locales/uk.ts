@@ -26,6 +26,7 @@ export const uk: EmailCopy = {
   hello: (name) => (name ? `Привіт, ${name}!` : 'Привіт!'),
   helloClient: 'Вітаємо!',
   footerQuestions: 'Питання й рахунок для ФОП',
+  footerSupport: 'Підтримка',
   planNames: {
     free: 'Безкоштовний',
     basic: 'Базовий',

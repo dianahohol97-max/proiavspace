@@ -104,6 +104,10 @@ describe('листи: 9 мов', () => {
         }
         if ('html' in m && m.html) assert.match(m.html, new RegExp(`<html lang="${locale}">`), `${where}: lang`)
       }
+      // Підвал: підтримка — сторінкою тією ж мовою.
+      const footer = renderText({ greeting: 'x', lead: ['y'] }, locale)
+      assert.match(footer, new RegExp(`https://proiav\\.space/${locale}/contact`))
+      assert.ok(footer.includes(emailCopy(locale).footerSupport))
     })
 
     if (locale === 'uk' || locale === 'en') continue

@@ -23,6 +23,14 @@ export const BUSINESS = {
  */
 export const SUPPORT_EMAIL = 'hello@proiav.space'
 
+/** The support form (public; signed-in photographers also have «Допомога» in the dashboard). */
+export const SUPPORT_PAGE_URL = `https://${BUSINESS.site}/uk/contact`
+
+/** The support page in the letter's language. */
+export function supportPageUrl(locale: string = 'uk'): string {
+  return `https://${BUSINESS.site}/${emailLocale(locale)}/contact`
+}
+
 /** Where replies and questions go; also the Reply-To of every letter. */
 export function supportEmail(): string {
   return SUPPORT_EMAIL
@@ -37,6 +45,7 @@ export function footerLines(locale: string = 'uk'): string[] {
     `${locale === 'uk' ? 'проЯв' : 'proiav'} · ${BUSINESS.site}`,
     `${BUSINESS.entity}, ${BUSINESS.city}`,
     `${emailCopy(locale).footerQuestions}${colon(locale)}${supportEmail()}`,
+    `${emailCopy(locale).footerSupport}${colon(locale)}${supportPageUrl(locale)}`,
   ]
 }
 
