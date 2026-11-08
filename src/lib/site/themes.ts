@@ -30,6 +30,7 @@ export const THEME_IDS = [
   'paspartu',
   'kontakt',
   'temna',
+  'vydoshukach',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -254,6 +255,20 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Lab Serif", "Lab Serif Fallback", Georgia, serif',
     },
   },
+  vydoshukach: {
+    id: 'vydoshukach',
+    tokens: {
+      ...base,
+      // «Видошукач»: camera graphite, LCD white, AF amber (10.7:1).
+      bg: '#0e1013', fg: '#eef0f2', muted: '#9aa1aa', accent: '#ffb340', line: '#23272d',
+      fontDisplay: '"Finder Sans", "Finder Sans Fallback", Arial, sans-serif',
+    },
+    night: {
+      ...base,
+      bg: '#0e1013', fg: '#eef0f2', muted: '#9aa1aa', accent: '#ffb340', line: '#23272d',
+      fontDisplay: '"Finder Sans", "Finder Sans Fallback", Arial, sans-serif',
+    },
+  },
 }
 
 /**
@@ -272,6 +287,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   paspartu: { theme: 'galereia', mode: 'light' },
   kontakt: { theme: 'arkhiv', mode: 'light' },
   temna: { theme: 'tysha', mode: 'night' },
+  vydoshukach: { theme: 'tysha', mode: 'night' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -363,4 +379,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'paspartu', theme: 'paspartu', mode: 'light' },
   { value: 'kontakt', theme: 'kontakt', mode: 'light' },
   { value: 'temna', theme: 'temna', mode: 'night' },
+  { value: 'vydoshukach', theme: 'vydoshukach', mode: 'night' },
 ]

@@ -131,6 +131,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     paspartu: dict.site.themePaspartu,
     kontakt: dict.site.themeKontakt,
     temna: dict.site.themeTemna,
+    vydoshukach: dict.site.themeVydoshukach,
   }
 
   return (

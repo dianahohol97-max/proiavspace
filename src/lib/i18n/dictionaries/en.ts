@@ -409,6 +409,7 @@ export const en: Dictionary = {
     themePaspartu: 'Paspartu',
     themeKontakt: 'Kontakt',
     themeTemna: 'Temna kimnata',
+    themeVydoshukach: 'Vydoshukach',
     heroLegend: 'Hero',
     heroTitle: 'Headline (your name or a tagline)',
     heroSubtitle: 'Subtitle (genre and city)',

@@ -424,6 +424,7 @@ export const uk = {
     themePaspartu: 'Паспарту',
     themeKontakt: 'Контакт',
     themeTemna: 'Темна кімната',
+    themeVydoshukach: 'Видошукач',
     heroLegend: 'Головний екран',
     heroTitle: 'Заголовок (наприклад, ваше ім’я або слоган)',
     heroSubtitle: 'Підзаголовок (жанр і місто)',

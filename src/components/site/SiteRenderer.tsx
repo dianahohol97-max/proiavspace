@@ -34,6 +34,8 @@ import { SHEET_FONT_VARS } from './kontakt/fonts'
 import { ThemeKontakt } from './kontakt/ThemeKontakt'
 import { LAB_FONT_VARS } from './temna/fonts'
 import { ThemeTemna } from './temna/ThemeTemna'
+import { FINDER_FONT_VARS } from './vydoshukach/fonts'
+import { ThemeVydoshukach } from './vydoshukach/ThemeVydoshukach'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -87,6 +89,9 @@ export interface PortfolioItem {
   /** Optional short vertical clip (MP4, muted) — themes that play video
    *  («Контент») show it, with previewUrl as the poster; others ignore it. */
   videoUrl?: string
+  /** Optional camera line, e.g. «35 мм · f/2 · 1/250 · ISO 400» — themes that
+   *  show EXIF («Видошукач») print it under the frame; others ignore it. */
+  exif?: string
 }
 
 /** Portfolio grouped into labeled collections, preserving first-seen order. */
@@ -402,6 +407,7 @@ export function SiteRenderer({
     paspartu: { Component: ThemePaspartu, fonts: MAT_FONT_VARS },
     kontakt: { Component: ThemeKontakt, fonts: SHEET_FONT_VARS },
     temna: { Component: ThemeTemna, fonts: LAB_FONT_VARS },
+    vydoshukach: { Component: ThemeVydoshukach, fonts: FINDER_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {
