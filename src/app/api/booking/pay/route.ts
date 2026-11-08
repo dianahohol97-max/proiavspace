@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { viewerCanSeeSites } from '@/lib/features/sites-server'
 import { monoCreateInvoice } from '@/lib/booking/monobank'
 import { wfpCreateInvoice } from '@/lib/booking/wayforpay'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -30,6 +31,8 @@ function isPayBody(value: unknown): value is PayBody {
  * server-side only.
  */
 export async function POST(request: NextRequest) {
+  // Shelved (src/lib/features/sites.ts): 404 unless sites are on or it is the owner.
+  if (!(await viewerCanSeeSites())) return new NextResponse('Not found', { status: 404 })
   const body: unknown = await request.json().catch(() => null)
   if (!isPayBody(body)) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { viewerCanSeeSites } from '@/lib/features/sites-server'
 import { waitUntil } from '@vercel/functions'
 import { sendEmail } from '@/lib/email'
 import { formatSlot } from '@/lib/booking/types'
@@ -34,6 +35,8 @@ function isBookBody(value: unknown): value is BookBody {
  * The booking does not wait for payment.
  */
 export async function POST(request: NextRequest) {
+  // Shelved (src/lib/features/sites.ts): 404 unless sites are on or it is the owner.
+  if (!(await viewerCanSeeSites())) return new NextResponse('Not found', { status: 404 })
   const body: unknown = await request.json().catch(() => null)
   if (!isBookBody(body) || !body.name.trim() || !body.phone.trim() || !body.email.trim()) {
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 })

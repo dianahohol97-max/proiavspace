@@ -3,6 +3,8 @@
  * Shared by the server (send.ts, API) and the settings UI. The column names
  * of push_preferences (migration 0068) are exactly these ids.
  */
+import { sitesEnabled } from '@/lib/features/sites'
+
 export const PUSH_KINDS = [
   'client_picks',
   'first_view',
@@ -45,7 +47,7 @@ export function parsePreferencesPatch(value: unknown): Partial<PushPreferences> 
  * is no switch for it in the settings and nothing is sent.
  */
 export function bookingPushEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_SITES_ENABLED === '1'
+  return sitesEnabled()
 }
 
 /** The types the photographer can switch on right now. */

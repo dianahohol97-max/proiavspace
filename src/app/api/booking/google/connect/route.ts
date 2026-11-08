@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { viewerCanSeeSites } from '@/lib/features/sites-server'
 import { defaultLocale, isLocale } from '@/lib/i18n/config'
 import { googleAuthUrl, isGoogleConfigured } from '@/lib/booking/googleCalendar'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -12,6 +13,8 @@ export const runtime = 'nodejs'
  * can send the photographer back to their dashboard in the right language.
  */
 export async function GET(request: NextRequest) {
+  // Shelved (src/lib/features/sites.ts): 404 unless sites are on or it is the owner.
+  if (!(await viewerCanSeeSites())) return new NextResponse('Not found', { status: 404 })
   const localeParam = request.nextUrl.searchParams.get('locale') ?? ''
   const locale = isLocale(localeParam) ? localeParam : defaultLocale
   const bookingUrl = new URL(`/${locale}/dashboard/booking`, request.nextUrl.origin)

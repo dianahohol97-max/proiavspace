@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { articleImages, getArticles } from '@/lib/blog/articles'
+import { sitesEnabled } from '@/lib/features/sites'
 import { CATEGORIES, articlesIn } from '@/lib/blog/categories'
 import { MARKETING_PAGES, brandOgImage, ogImagePath } from '@/lib/seo/pages'
 import { absoluteUrl, isIndexedLocale } from '@/lib/seo/site'
@@ -59,6 +60,8 @@ ${urls.join('\n')}
 }
 
 async function publishedSites(): Promise<Entry[]> {
+  // Shelved (src/lib/features/sites.ts): no /s/ pages while sites are off.
+  if (!sitesEnabled()) return []
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!supabaseUrl || !anonKey) return []

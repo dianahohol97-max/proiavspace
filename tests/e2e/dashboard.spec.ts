@@ -220,8 +220,9 @@ test.describe('кабінет: список галерей', () => {
     // On a phone the menu sits behind ☰.
     if (info.project.name === 'iphone') await page.getByRole('button', { name: 'Мої галереї' }).click()
     const menu = page.locator('nav:visible')
-    await expect(menu.getByRole('link', { name: 'Сайт', exact: true })).toBeVisible()
-    for (const name of ['Блог', 'Хаб', 'Контент', 'Сторіс', 'Threads', 'Статистика']) {
+    await expect(menu.getByRole('link', { name: 'Налаштування', exact: true })).toBeVisible()
+    // «Сайт» і «Бронювання» сховані до окремого релізу (tests/e2e/hide-sites.spec.ts).
+    for (const name of ['Блог', 'Хаб', 'Контент', 'Сторіс', 'Threads', 'Статистика', 'Сайт', 'Бронювання']) {
       await expect(page.getByRole('link', { name, exact: true })).toHaveCount(0)
     }
     const response = await page.goto('/uk/dashboard/blog')

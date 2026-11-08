@@ -32,6 +32,10 @@ const PORT = Number(process.env.FAKE_SUPABASE_PORT || 54321)
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 export const E2E_TOKEN = 'e2e-photographer-token'
 export const E2E_USER = { id: '00000000-0000-4000-8000-0000000000e2', email: 'olha@e2e.test' }
+// The platform owner (src/lib/admin.ts DEFAULT_ADMINS): sees sections hidden
+// from photographers (tests/e2e/hide-sites.spec.ts). Owns no galleries here.
+export const E2E_OWNER_TOKEN = 'e2e-owner-token'
+export const E2E_OWNER = { id: '00000000-0000-4000-8000-0000000000e3', email: 'dianahohol97@gmail.com' }
 
 const now = () => new Date().toISOString()
 const daysAgo = (n) => new Date(Date.now() - n * 86400_000).toISOString()
@@ -408,8 +412,10 @@ const server = createServer(async (req, res) => {
   }
 
   const auth = req.headers.authorization ?? ''
+  // The platform owner (tests/e2e/hide-sites.spec.ts) is a signed-in user too.
+  const asOwner = auth === `Bearer ${E2E_OWNER_TOKEN}`
   const role =
-    auth === `Bearer ${E2E_TOKEN}` ? 'user' : auth === `Bearer ${ANON_KEY}` ? 'anon' : auth === `Bearer ${SERVICE_KEY}` ? 'service' : null
+    auth === `Bearer ${E2E_TOKEN}` || asOwner ? 'user' : auth === `Bearer ${ANON_KEY}` ? 'anon' : auth === `Bearer ${SERVICE_KEY}` ? 'service' : null
   const body = ['POST', 'PATCH'].includes(req.method ?? '') ? await readBody(req) : undefined
   // Anon / service: only questions about an e2e gallery or photo get answers;
   // everything else behaves as if nothing listened here (as before).
@@ -422,11 +428,12 @@ const server = createServer(async (req, res) => {
   }
 
   if (url.pathname === '/auth/v1/user') {
+    const who = asOwner ? E2E_OWNER : E2E_USER
     return send(res, 200, {
-      id: E2E_USER.id,
+      id: who.id,
       aud: 'authenticated',
       role: 'authenticated',
-      email: E2E_USER.email,
+      email: who.email,
       app_metadata: { provider: 'email' },
       user_metadata: {},
       created_at: daysAgo(90),

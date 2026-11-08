@@ -425,7 +425,9 @@ test.describe('справжній кабінет на телефоні (фейк
     await expect(home.getByTestId('quick-share')).toContainText('Сімейна прогулянка в Карпатах')
     const events = home.getByTestId('client-event')
     await expect(events.first()).toContainText('«Марта і Богдан · весілля»: 3 фото на ретуш')
-    await expect(home.getByTestId('client-events')).toContainText('Заявка: Ірина, 05.12, 10:00')
+    // Booking is shelved (src/lib/features/sites.ts): no booking events for a
+    // photographer until NEXT_PUBLIC_SITES_ENABLED=1 (tests/e2e/hide-sites.spec.ts).
+    await expect(home.getByTestId('client-events')).not.toContainText('Заявка: Ірина')
     await expect(home.getByTestId('install-card')).toBeVisible()
     // One «Нова галерея» on the phone: the header button is for desktop.
     await expect(page.getByTestId('new-gallery')).toBeHidden()
