@@ -1,8 +1,16 @@
+import { formatMessage } from '@/lib/i18n/format'
+import { pl } from './locales/pl'
+import { de } from './locales/de'
+import { es } from './locales/es'
+import { fr } from './locales/fr'
+import { it } from './locales/it'
+import { ro } from './locales/ro'
+import { pt } from './locales/pt'
+
 /**
  * Strings of the culling panel. Kept next to the feature (not in the shared
  * dictionaries) so parallel releases editing uk.ts/en.ts don't conflict.
- * Same fallback rule as the project: uk and en are full; every other locale
- * falls back to English (the dashboard is uk/en anyway).
+ * All 9 languages are full: uk and en here, the rest in ./locales.
  */
 const uk = {
   title: 'Відбір кадрів',
@@ -46,7 +54,7 @@ const uk = {
   clearHint: 'Кадр нормальний — прибрати позначку.',
   undo: 'Скасувати рішення',
   series: 'Серія · {n}',
-  seriesTitle: 'Серія з {n} кадрів',
+  seriesTitle: '{n, plural, one {Серія з # кадру} other {Серія з # кадрів}}',
   makeBest: 'Зробити кращим',
   close: 'Закрити',
   sharpnessLabel: 'Різкість відносно сусідніх кадрів',
@@ -112,7 +120,7 @@ const en: CullingLabels = {
   clearHint: 'The photo is fine — remove the flag.',
   undo: 'Undo decision',
   series: 'Burst · {n}',
-  seriesTitle: 'A burst of {n} frames',
+  seriesTitle: '{n, plural, one {A burst of # frame} other {A burst of # frames}}',
   makeBest: 'Make best',
   close: 'Close',
   sharpnessLabel: 'Sharpness compared with neighbouring frames',
@@ -120,7 +128,7 @@ const en: CullingLabels = {
   hideHint: 'Hide confirmed rejects: the client will not see them, the files stay.',
   hideNothing: 'Confirm a reject first: «Keep flag» on a photo.',
   hideOne: 'Hide from client',
-  hideConfirm: 'Hide {n} photos from the client? Files are not deleted; you will still see them in your dashboard and can bring them back.',
+  hideConfirm: '{n, plural, one {Hide # photo from the client?} other {Hide # photos from the client?}} Files are not deleted; you will still see them in your dashboard and can bring them back.',
   hidden: 'Hidden from the client: {n}',
   unhidden: 'Shown to the client again: {n}',
   hideFailed: 'Could not change the photos’ visibility. Please try again.',
@@ -134,12 +142,15 @@ const en: CullingLabels = {
   preliminary: 'Flags are preliminary — the analysis is still running.',
 }
 
+const BY_LOCALE: Record<string, CullingLabels> = { uk, en, pl, de, es, fr, it, ro, pt }
+
 export function cullingLabels(locale: string): CullingLabels {
-  return locale === 'uk' ? uk : en
+  return BY_LOCALE[locale] ?? en
 }
 
-export function fill(template: string, values: Record<string, string | number>): string {
-  return template.replace(/\{(\w+)\}/g, (m, key) => (key in values ? String(values[key]) : m))
+/** Fills placeholders; `{n, plural, …}` blocks follow the locale's plural rules. */
+export function fill(template: string, values: Record<string, string | number>, locale = 'en'): string {
+  return formatMessage(template, values, locale)
 }
 
 export function formatEta(ms: number, l: CullingLabels): string {

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
+import { resolveSiteTheme, siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import type { SiteContent } from '@/lib/site/content'
 import type { Locale } from '@/lib/i18n/config'
 import { BookingWidget, type PublicSlot } from '@/components/BookingWidget'
@@ -14,6 +14,30 @@ import { ThemeZhurnal } from './journal/ThemeZhurnal'
 import { MIDNIGHT_FONT_VARS } from './midnight/fonts'
 import { START_FONT_VARS } from './start/fonts'
 import { ThemeStart } from './start/ThemeStart'
+import { TENDER_FONT_VARS } from './nizhnist/fonts'
+import { ThemeNizhnist } from './nizhnist/ThemeNizhnist'
+import { FEED_FONT_VARS } from './kontent/fonts'
+import { ThemeKontent } from './kontent/ThemeKontent'
+import { LETTER_FONT_VARS } from './lyst/fonts'
+import { ThemeLyst } from './lyst/ThemeLyst'
+import { STUDIO_FONT_VARS } from './portret/fonts'
+import { ThemePortret } from './portret/ThemePortret'
+import { PARTY_FONT_VARS } from './sviato/fonts'
+import { ThemeSviato } from './sviato/ThemeSviato'
+import { SPREAD_FONT_VARS } from './rozvorot/fonts'
+import { ThemeRozvorot } from './rozvorot/ThemeRozvorot'
+import { INDEX_FONT_VARS } from './indeks/fonts'
+import { ThemeIndeks } from './indeks/ThemeIndeks'
+import { MAT_FONT_VARS } from './paspartu/fonts'
+import { ThemePaspartu } from './paspartu/ThemePaspartu'
+import { SHEET_FONT_VARS } from './kontakt/fonts'
+import { ThemeKontakt } from './kontakt/ThemeKontakt'
+import { LAB_FONT_VARS } from './temna/fonts'
+import { ThemeTemna } from './temna/ThemeTemna'
+import { FINDER_FONT_VARS } from './vydoshukach/fonts'
+import { ThemeVydoshukach } from './vydoshukach/ThemeVydoshukach'
+import { ROUTE_FONT_VARS } from './marshrut/fonts'
+import { ThemeMarshrut } from './marshrut/ThemeMarshrut'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -64,6 +88,12 @@ export interface PortfolioItem {
    *  `srcSet` in WebP/JPEG, `avifSrcSet` in AVIF, both «url 828w, …». */
   srcSet?: string
   avifSrcSet?: string
+  /** Optional short vertical clip (MP4, muted) — themes that play video
+   *  («Контент») show it, with previewUrl as the poster; others ignore it. */
+  videoUrl?: string
+  /** Optional camera line, e.g. «35 мм · f/2 · 1/250 · ISO 400» — themes that
+   *  show EXIF («Видошукач») print it under the frame; others ignore it. */
+  exif?: string
 }
 
 /** Portfolio grouped into labeled collections, preserving first-seen order. */
@@ -94,8 +124,10 @@ export interface SiteLabels {
   pricing: string
   contacts: string
   book: string
-  /** Album lightbox: count word (e.g. «фото») and the close action. */
+  /** Album photo count: a {n} template, plural-aware (e.g. «{n} фото»), and the close action. */
   photos: string
+  /** Page language (plural rules, dates). */
+  locale?: string
   close: string
   /** «Дивитись серію» — opens an album. */
   viewSeries: string
@@ -138,6 +170,15 @@ export interface SiteLabels {
   giftPrints?: string
   giftPrintsText?: string
   order?: string
+  before?: string
+  after?: string
+  howToPrepare?: string
+  compareRetouch?: string
+  freeDates?: string
+  freeShort?: string
+  projectWord?: string
+  framesWord?: string
+  nextStops?: string
   filterAll?: string
 }
 
@@ -163,8 +204,8 @@ export interface LangSwitch {
  * in their footer (`platformCredit`). Paid sites never show it.
  */
 export function SiteRenderer({
-  theme,
-  mode,
+  theme: storedTheme,
+  mode: storedMode,
   content,
   displayName,
   logoUrl,
@@ -175,6 +216,7 @@ export function SiteRenderer({
   booking,
   footer,
   platformCredit = false,
+  freeDates: demoFreeDates,
 }: {
   theme: ThemeId
   mode: SiteMode
@@ -193,8 +235,19 @@ export function SiteRenderer({
   footer?: { brand: string; year: number; links: { href: string; label: string }[] }
   /** Free site plan only: «Тиша» shows a small «Сайт на проЯв» credit. */
   platformCredit?: boolean
+  /** Theme demos only: sample free dates (real sites take them from booking). */
+  freeDates?: string[]
 }) {
+  // Pre-v2 themes («Плівка», «Галерея», «Архів», «Продакшн») render with the
+  // nearest v2 theme; galleries keep their old styles separately.
+  const { theme, mode } = resolveSiteTheme(storedTheme, storedMode)
   const vars = siteCssVars(theme, mode)
+  // Free dates (yyyy-mm-dd, Kyiv time) for themes that show a calendar.
+  const freeDates = booking
+    ? Array.from(
+        new Set(booking.slots.map((slot) => new Date(slot.starts_at).toLocaleDateString('sv-SE', { timeZone: 'Europe/Kyiv' })))
+      ).sort()
+    : (demoFreeDates ?? [])
   const bookingNav: BookingNav | undefined = booking
     ? { href: '#booking', label: booking.navLabel }
     : undefined
@@ -347,9 +400,21 @@ export function SiteRenderer({
     )
   }
   // v2 one-page «візитка» themes: same props, own layout and type.
-  type CardThemeProps = Parameters<typeof ThemeStart>[0]
+  type CardThemeProps = Parameters<typeof ThemeStart>[0] & { freeDates?: string[] }
   const cardThemes: Partial<Record<ThemeId, { Component: (p: CardThemeProps) => React.ReactElement; fonts: object }>> = {
     start: { Component: ThemeStart, fonts: START_FONT_VARS },
+    nizhnist: { Component: ThemeNizhnist, fonts: TENDER_FONT_VARS },
+    kontent: { Component: ThemeKontent, fonts: FEED_FONT_VARS },
+    lyst: { Component: ThemeLyst, fonts: LETTER_FONT_VARS },
+    portret: { Component: ThemePortret, fonts: STUDIO_FONT_VARS },
+    sviato: { Component: ThemeSviato, fonts: PARTY_FONT_VARS },
+    rozvorot: { Component: ThemeRozvorot, fonts: SPREAD_FONT_VARS },
+    indeks: { Component: ThemeIndeks, fonts: INDEX_FONT_VARS },
+    paspartu: { Component: ThemePaspartu, fonts: MAT_FONT_VARS },
+    kontakt: { Component: ThemeKontakt, fonts: SHEET_FONT_VARS },
+    temna: { Component: ThemeTemna, fonts: LAB_FONT_VARS },
+    vydoshukach: { Component: ThemeVydoshukach, fonts: FINDER_FONT_VARS },
+    marshrut: { Component: ThemeMarshrut, fonts: ROUTE_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {
@@ -366,6 +431,7 @@ export function SiteRenderer({
           leadForm={leadForm}
           bookingNav={bookingNav}
           platformCredit={platformCredit}
+          freeDates={freeDates}
         />
         {bookingSectionEl}
         {footerEl}

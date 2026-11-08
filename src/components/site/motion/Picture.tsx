@@ -14,6 +14,7 @@ export function Picture({
   sizes,
   alt,
   priority = false,
+  low = false,
   className,
   objectPosition,
 }: {
@@ -24,6 +25,8 @@ export function Picture({
   alt: string
   /** LCP image: eager + fetchpriority=high; everything else lazy + async. */
   priority?: boolean
+  /** In view but not needed yet (e.g. later frames of a reel): fetchpriority=low. */
+  low?: boolean
   className?: string
   objectPosition?: string
 }) {
@@ -36,7 +39,7 @@ export function Picture({
       alt={alt}
       loading={priority ? 'eager' : 'lazy'}
       decoding={priority ? 'sync' : 'async'}
-      fetchPriority={priority ? 'high' : undefined}
+      fetchPriority={priority ? 'high' : low ? 'low' : undefined}
       className={`${k.fillImg} ${className ?? ''}`}
       style={objectPosition ? { objectPosition } : undefined}
     />

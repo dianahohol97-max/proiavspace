@@ -20,6 +20,18 @@ export const THEME_IDS = [
   'prodakshn',
   // v2 one-page «візитка» themes (sites only; migration 0064)
   'start',
+  'nizhnist',
+  'kontent',
+  'lyst',
+  'portret',
+  'sviato',
+  'rozvorot',
+  'indeks',
+  'paspartu',
+  'kontakt',
+  'temna',
+  'vydoshukach',
+  'marshrut',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -145,6 +157,128 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Start Sans", "Start Sans Fallback", Arial, sans-serif',
     },
   },
+  nizhnist: {
+    id: 'nizhnist',
+    tokens: {
+      ...base,
+      // «Ніжність»: milk white, warm ink, a dusty mauve that stays ≥ 4.5:1 on
+      // every pastel of the theme (blush, mint, butter).
+      bg: '#fbf6f3', fg: '#2e2629', muted: '#6d6266', accent: '#7d5160', line: '#ecdfdb',
+      fontDisplay: '"Tender Round", "Tender Round Fallback", Arial, sans-serif',
+    },
+  },
+  kontent: {
+    id: 'kontent',
+    tokens: {
+      ...base,
+      // «Контент»: app-white, ink, an electric indigo (7.4:1) and a lime
+      // highlight used only behind dark text (16.7:1).
+      bg: '#f3f3f0', fg: '#0f0f10', muted: '#5c5c63', accent: '#3a2fd6', line: '#e2e2dc',
+      fontDisplay: '"Feed Sans", "Feed Sans Fallback", Arial, sans-serif',
+    },
+  },
+  lyst: {
+    id: 'lyst',
+    tokens: {
+      ...base,
+      // «Лист»: letter paper, brown-black ink, blue fountain-pen ink (7.9:1);
+      // no pinks, no hearts.
+      bg: '#f4eee4', fg: '#2b2420', muted: '#6a5e55', accent: '#2e4a6b', line: '#e2d8ca',
+      fontDisplay: '"Letter Hand", "Letter Hand Fallback", Georgia, serif',
+    },
+  },
+  portret: {
+    id: 'portret',
+    tokens: {
+      ...base,
+      // «Портрет»: studio grey-white, graphite, a deep bottle green (7.2:1).
+      bg: '#f6f6f4', fg: '#16191d', muted: '#596068', accent: '#1f5c4a', line: '#dfe1e0',
+      fontDisplay: '"Studio Sans", "Studio Sans Fallback", Arial, sans-serif',
+    },
+  },
+  sviato: {
+    id: 'sviato',
+    tokens: {
+      ...base,
+      // «Свято»: party cream, deep violet ink, tomato (5:1) and confetti
+      // colours used behind dark text only.
+      bg: '#fff8ef', fg: '#1d1a2b', muted: '#5f5a6e', accent: '#c23a26', line: '#efe3d2',
+      fontDisplay: '"Party Sans", "Party Sans Fallback", Arial, sans-serif',
+    },
+  },
+  rozvorot: {
+    id: 'rozvorot',
+    tokens: {
+      ...base,
+      // «Розворот»: quiet luxury — stone paper, warm black, bronze (5.5:1).
+      bg: '#efebe4', fg: '#1e1c19', muted: '#665f55', accent: '#6f5b3e', line: '#ddd6cb',
+      fontDisplay: '"Spread Serif", "Spread Serif Fallback", Georgia, serif',
+    },
+  },
+  indeks: {
+    id: 'indeks',
+    tokens: {
+      ...base,
+      // «Індекс»: paper grey, near-black, signal red (5:1).
+      bg: '#f1f1ee', fg: '#0b0b0b', muted: '#55555a', accent: '#c42d12', line: '#d9d9d4',
+      fontDisplay: '"Index Grotesk", "Index Grotesk Fallback", Arial, sans-serif',
+    },
+  },
+  paspartu: {
+    id: 'paspartu',
+    tokens: {
+      ...base,
+      // «Паспарту»: gallery wall white, ink, a muted museum blue (6.5:1).
+      bg: '#f4f3f0', fg: '#1a1a1c', muted: '#5d5d63', accent: '#3b4f6b', line: '#dedcd6',
+      fontDisplay: '"Mat Caps", "Mat Caps Fallback", Georgia, serif',
+    },
+  },
+  kontakt: {
+    id: 'kontakt',
+    tokens: {
+      ...base,
+      // «Контакт»: photo paper, black, grease-pencil red (5:1).
+      bg: '#efeee9', fg: '#121212', muted: '#56565a', accent: '#c4261a', line: '#d6d5cf',
+      fontDisplay: '"Sheet Mono", "Sheet Mono Fallback", ui-monospace, monospace',
+    },
+  },
+  temna: {
+    id: 'temna',
+    tokens: {
+      ...base,
+      // «Темна кімната»: darkroom black-red, print white, safelight red (7:1).
+      bg: '#140707', fg: '#f1e6dc', muted: '#b9a89e', accent: '#ff6a57', line: '#3a1c18',
+      fontDisplay: '"Lab Serif", "Lab Serif Fallback", Georgia, serif',
+    },
+    night: {
+      ...base,
+      bg: '#140707', fg: '#f1e6dc', muted: '#b9a89e', accent: '#ff6a57', line: '#3a1c18',
+      fontDisplay: '"Lab Serif", "Lab Serif Fallback", Georgia, serif',
+    },
+  },
+  vydoshukach: {
+    id: 'vydoshukach',
+    tokens: {
+      ...base,
+      // «Видошукач»: camera graphite, LCD white, AF amber (10.7:1).
+      bg: '#0e1013', fg: '#eef0f2', muted: '#9aa1aa', accent: '#ffb340', line: '#23272d',
+      fontDisplay: '"Finder Sans", "Finder Sans Fallback", Arial, sans-serif',
+    },
+    night: {
+      ...base,
+      bg: '#0e1013', fg: '#eef0f2', muted: '#9aa1aa', accent: '#ffb340', line: '#23272d',
+      fontDisplay: '"Finder Sans", "Finder Sans Fallback", Arial, sans-serif',
+    },
+  },
+  marshrut: {
+    id: 'marshrut',
+    tokens: {
+      ...base,
+      // «Маршрут»: map paper, deep spruce ink, route rust (4.9:1), forest green.
+      bg: '#f3efe6', fg: '#1f2a2a', muted: '#56625f', accent: '#a44618', line: '#ddd5c4',
+      fontDisplay: '"Route Sans", "Route Sans Fallback", Arial, sans-serif',
+    },
+  },
 }
 
 /**
@@ -153,6 +287,18 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
  */
 export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: SiteMode }>> = {
   start: { theme: 'tysha', mode: 'light' },
+  nizhnist: { theme: 'povitria', mode: 'light' },
+  kontent: { theme: 'galereia', mode: 'light' },
+  lyst: { theme: 'tysha', mode: 'light' },
+  portret: { theme: 'galereia', mode: 'light' },
+  sviato: { theme: 'tysha', mode: 'night' },
+  rozvorot: { theme: 'tysha', mode: 'light' },
+  indeks: { theme: 'prodakshn', mode: 'light' },
+  paspartu: { theme: 'galereia', mode: 'light' },
+  kontakt: { theme: 'arkhiv', mode: 'light' },
+  temna: { theme: 'tysha', mode: 'night' },
+  vydoshukach: { theme: 'tysha', mode: 'night' },
+  marshrut: { theme: 'povitria', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -230,8 +376,46 @@ export const GALLERY_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[
   { value: 'prodakshn', theme: 'prodakshn', mode: 'light' },
 ]
 
-/** Site themes in the editor: the gallery styles plus the v2 «візитка» themes. */
+/**
+ * Pre-v2 site themes that are no longer offered for sites. A site that still
+ * has one renders with the nearest v2 theme, and the editor shows (and saves)
+ * that theme. Their gallery styles stay as they were (GALLERY_CATALOG).
+ */
+export const LEGACY_SITE_THEME: Partial<Record<ThemeId, { theme: ThemeId; mode: SiteMode; value: string }>> = {
+  plivka: { theme: 'kontakt', mode: 'light', value: 'kontakt' },
+  arkhiv: { theme: 'kontakt', mode: 'light', value: 'kontakt' },
+  galereia: { theme: 'paspartu', mode: 'light', value: 'paspartu' },
+  prodakshn: { theme: 'indeks', mode: 'light', value: 'indeks' },
+}
+
+/** The theme a site actually renders with (legacy values → nearest v2 theme). */
+export function resolveSiteTheme(theme: ThemeId, mode: SiteMode): { theme: ThemeId; mode: SiteMode } {
+  const mapped = LEGACY_SITE_THEME[theme]
+  return mapped ? { theme: mapped.theme, mode: mapped.mode } : { theme, mode }
+}
+
+/** Editor catalog value for a stored site theme (legacy → its replacement). */
+export function siteCatalogValue(theme: string | null | undefined, mode: string | null | undefined): string {
+  if (!theme) return 'tysha'
+  if (theme === 'tysha' && mode === 'night') return 'opivnich'
+  const mapped = isThemeId(theme) ? LEGACY_SITE_THEME[theme] : undefined
+  return mapped ? mapped.value : theme
+}
+
+/** Site themes in the editor: the four kept originals plus the v2 «візитка» themes. */
 export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
-  ...GALLERY_CATALOG,
+  ...GALLERY_CATALOG.filter((entry) => !LEGACY_SITE_THEME[entry.theme]),
   { value: 'start', theme: 'start', mode: 'light' },
+  { value: 'nizhnist', theme: 'nizhnist', mode: 'light' },
+  { value: 'kontent', theme: 'kontent', mode: 'light' },
+  { value: 'lyst', theme: 'lyst', mode: 'light' },
+  { value: 'portret', theme: 'portret', mode: 'light' },
+  { value: 'sviato', theme: 'sviato', mode: 'light' },
+  { value: 'rozvorot', theme: 'rozvorot', mode: 'light' },
+  { value: 'indeks', theme: 'indeks', mode: 'light' },
+  { value: 'paspartu', theme: 'paspartu', mode: 'light' },
+  { value: 'kontakt', theme: 'kontakt', mode: 'light' },
+  { value: 'temna', theme: 'temna', mode: 'night' },
+  { value: 'vydoshukach', theme: 'vydoshukach', mode: 'night' },
+  { value: 'marshrut', theme: 'marshrut', mode: 'light' },
 ]

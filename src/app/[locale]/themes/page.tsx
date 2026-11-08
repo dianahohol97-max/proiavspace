@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { isLocale } from '@/lib/i18n/config'
 import { buildMetadata } from '@/lib/seo/metadata'
-import { THEME_DEMOS } from '@/lib/site/demoContent'
+import { LEGACY_DEMO_VALUES, THEME_DEMOS } from '@/lib/site/demoContent'
 import { SiteRenderer, type SiteLabels } from '@/components/site/SiteRenderer'
 import { Logo } from '@/components/Logo'
 
@@ -109,7 +109,7 @@ export default function ThemesPage({ params }: { params: { locale: string } }) {
 
       <div className="mx-auto max-w-5xl px-6 pb-24">
         <div className="flex flex-col gap-14">
-          {THEME_DEMOS.map((demo) => (
+          {THEME_DEMOS.filter((demo) => !LEGACY_DEMO_VALUES.has(demo.value)).map((demo) => (
             <section key={demo.value}>
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-brand text-2xl">{demo.name}</h2>

@@ -7,6 +7,7 @@ import { isLocale } from '@/lib/i18n/config'
 import { isSiteTrialExpired, siteTrialDaysLeft } from '@/lib/plans'
 import { parseSiteContent } from '@/lib/site/content'
 import { leadFormLabelsFromDict, siteLabelsFromDict } from '@/lib/site/labels'
+import { siteCatalogValue } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { SiteEditor } from '@/components/site-editor/SiteEditor'
@@ -99,7 +100,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
 
   const content = parseSiteContent(site?.content)
   const currentCatalogValue =
-    site?.theme === 'tysha' && site.mode === 'night' ? 'opivnich' : (site?.theme ?? 'tysha')
+    siteCatalogValue(site?.theme, site?.mode)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const publicUrl =
@@ -121,6 +122,18 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     arkhiv: dict.site.themeArkhiv,
     prodakshn: dict.site.themeProdakshn,
     start: dict.site.themeStart,
+    nizhnist: dict.site.themeNizhnist,
+    kontent: dict.site.themeKontent,
+    lyst: dict.site.themeLyst,
+    portret: dict.site.themePortret,
+    sviato: dict.site.themeSviato,
+    rozvorot: dict.site.themeRozvorot,
+    indeks: dict.site.themeIndeks,
+    paspartu: dict.site.themePaspartu,
+    kontakt: dict.site.themeKontakt,
+    temna: dict.site.themeTemna,
+    vydoshukach: dict.site.themeVydoshukach,
+    marshrut: dict.site.themeMarshrut,
   }
 
   return (
@@ -133,12 +146,10 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
 
       <div className="mb-6 flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 text-sm">
         <span className="mt-0.5 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-          {locale === 'uk' ? 'В розробці' : 'In progress'}
+          {dict.studio.inProgress}
         </span>
         <p className="text-muted">
-          {locale === 'uk'
-            ? 'Конструктор сайтів ще в розробці — можете гратися й готувати контент, але поки не радимо давати адресу сайту клієнтам. Про повноцінний запуск повідомимо. А серце сервісу зараз — клієнтські галереї.'
-            : 'The site builder is still in development — feel free to experiment and prep content, but we don’t recommend sharing the site address with clients yet. We’ll announce the full launch. For now, client galleries are the core of the service.'}
+          {dict.studio.inProgressText}
         </p>
       </div>
 
@@ -148,7 +159,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         rel="noopener noreferrer"
         className="mb-6 inline-flex items-center gap-2 rounded-full border border-fg px-5 py-2 text-sm font-semibold no-underline transition-colors hover:bg-fg hover:text-bg"
       >
-        {locale === 'uk' ? 'Повне превʼю сайту ↗' : 'Full site preview ↗'}
+        {dict.studio.fullPreview}
       </a>
       {publicUrl && (
         <p className="mb-6 break-all text-sm text-muted">
@@ -181,6 +192,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
 
       <SiteEditor
         locale={locale}
+        studio={dict.studio}
         action={saveSite.bind(null, locale)}
         initialHandle={site?.handle ?? ''}
         initialCatalogValue={currentCatalogValue}

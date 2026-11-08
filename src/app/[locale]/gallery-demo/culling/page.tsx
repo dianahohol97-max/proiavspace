@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isLocale } from '@/lib/i18n/config'
+import { getDictionary } from '@/lib/i18n'
 import { CullingPanel } from '@/components/gallery/CullingPanel'
 import { HowItWorks } from '@/components/gallery/HowItWorks'
 import { galleryHelp } from '@/lib/gallery/help'
@@ -28,7 +29,7 @@ async function demoSetHidden(): Promise<void> {
 const FRAMES = Array.from({ length: 24 }, (_, i) => i + 1)
 const MAX = 2000
 
-export default function CullingDemoPage({
+export default async function CullingDemoPage({
   params,
   searchParams,
 }: {
@@ -36,6 +37,7 @@ export default function CullingDemoPage({
   searchParams: { n?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
+  const dict = await getDictionary(params.locale)
   const count = Math.min(Math.max(Number.parseInt(searchParams.n ?? '', 10) || FRAMES.length, 1), MAX)
   const photos: CullingPhoto[] = Array.from({ length: count }, (_, i) => {
     const n = FRAMES[i % FRAMES.length]
@@ -50,7 +52,7 @@ export default function CullingDemoPage({
   })
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <h1 className="font-display text-3xl">{params.locale === 'uk' ? 'Демо: відбір кадрів' : 'Demo: photo culling'}</h1>
+      <h1 className="font-display text-3xl">{dict.pages.cullingDemoTitle}</h1>
       <CullingPanel galleryId={`demo-${count}`} locale={params.locale} photos={photos} onSetHidden={demoSetHidden} />
       <HowItWorks help={galleryHelp(params.locale).culling} testId="help-culling" />
     </main>

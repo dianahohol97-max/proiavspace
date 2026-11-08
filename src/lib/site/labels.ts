@@ -4,7 +4,6 @@ import type { SiteLabels } from '@/components/site/SiteRenderer'
 
 /** Public-site wording from the dictionary — one place for every caller. */
 export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels {
-  const uk = locale === 'uk'
   const p = dict.publicSite
   return {
     portfolio: p.portfolio,
@@ -12,9 +11,10 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     pricing: p.pricing,
     contacts: p.contacts,
     book: p.book,
-    photos: uk ? 'фото' : 'photos',
-    viewSeries: uk ? 'Дивитись серію' : 'View series',
-    close: uk ? 'Закрити' : 'Close',
+    photos: dict.pages.sitePhotosCount,
+    locale,
+    viewSeries: dict.pages.viewSeries,
+    close: dict.pages.close,
     bookDate: p.bookDate,
     scrollHint: p.scrollHint,
     menu: p.menu,
@@ -53,6 +53,15 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     giftPrintsText: p.giftPrintsText,
     order: p.order,
     filterAll: p.filterAll,
+    nextStops: p.nextStops,
+    projectWord: p.projectWord,
+    framesWord: p.framesWord,
+    freeDates: p.freeDates,
+    freeShort: p.freeShort,
+    before: p.before,
+    after: p.after,
+    howToPrepare: p.howToPrepare,
+    compareRetouch: p.compareRetouch,
   }
 }
 

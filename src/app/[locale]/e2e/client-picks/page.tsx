@@ -5,7 +5,7 @@ import { isLocale } from '@/lib/i18n/config'
 import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
 import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
 import {
-  PICK_LABELS,
+  pickLabels,
   buildClientPicks,
   lightroomFilterLine,
   picksCsv,
@@ -62,9 +62,10 @@ export default async function E2EClientPicks({
   if (process.env.E2E_THEME_PREVIEW !== '1' || !isLocale(params.locale)) notFound()
   if (searchParams.reset === '1') await e2eReset(searchParams.ready !== '0')
   const locale = params.locale
-  const t = (await getDictionary(locale)).galleryManage
+  const dict = await getDictionary(locale)
+  const t = dict.galleryManage
   const picks = searchParams.empty === '1' ? [] : buildClientPicks(ASSETS, SELECTIONS)
-  const labels = PICK_LABELS[locale === 'uk' ? 'uk' : 'en']
+  const labels = pickLabels(dict.designer)
   const line = lightroomFilterLine(picks)
   const state = await e2eClientEmailState()
   const ready = state.ready

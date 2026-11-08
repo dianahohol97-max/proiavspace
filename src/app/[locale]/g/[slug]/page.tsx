@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { waitUntil } from '@vercel/functions'
@@ -5,6 +6,8 @@ import { galleryAssetsClient, isGalleryUnlocked } from '@/lib/gallery-access'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
+import { notifyFirstView } from '@/lib/push/events'
+import { getVapidConfig } from '@/lib/push/send'
 import { resolveGalleryTheme } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -57,11 +60,12 @@ export default async function PublicGalleryPage({
     supabase
       .from('galleries')
       .select(
-        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style, delivery_status, delivery_eta'
+        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style, view_count, delivery_status, delivery_eta'
       )
       .eq('slug', params.slug)
       .single<{
         id: string
+        view_count: number
         slug: string
         title: string
         description: string | null
@@ -148,6 +152,17 @@ export default async function PublicGalleryPage({
     )
   )
 
+  // «Галерею вперше переглянули» (photographer's phone app). Only while the
+  // gallery is fresh: a gallery viewed 20+ times has had its first visitor.
+  if (gallery.view_count < 20 && getVapidConfig()) {
+    waitUntil(
+      notifyFirstView(gallery.id, async () => {
+        const { data } = await supabase.auth.getUser()
+        return data.user?.id ?? null
+      }).catch(() => null)
+    )
+  }
+
   // This client's current favorites (scoped by the middleware-minted token).
   const clientToken = cookies().get('ct')?.value
 
@@ -194,7 +209,7 @@ export default async function PublicGalleryPage({
   // English-locale galleries show the Latin-script name when the photographer
   // set one — «Діана Гоголь» reads wrong under an English UI.
   const brandName =
-    (locale === 'en' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
+    (locale !== 'uk' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
   // Honour the grace window: once a canceled plan's grace expires, the public
   // gallery must fall back to free (badge returns, custom logo drops) instead of
   // keeping paid perks forever. grace_until comes from get_gallery_branding
@@ -296,7 +311,7 @@ export default async function PublicGalleryPage({
 
   const eventLine = [
     gallery.event_date
-      ? new Date(gallery.event_date).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+      ? new Date(gallery.event_date).toLocaleDateString(intlLocale(locale), {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
