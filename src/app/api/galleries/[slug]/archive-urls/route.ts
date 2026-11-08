@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { galleryAssetsClient, isGalleryUnlocked } from '@/lib/gallery-access'
+import { downloadsDisabledResponse, readDownloadsSetting } from '@/lib/gallery/downloads'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Asset } from '@/lib/types'
@@ -14,19 +15,28 @@ export const preferredRegion = 'fra1'
  * builds the zip locally (src/lib/gallery/archive.ts). One archive event is
  * logged per invocation.
  */
-export async function GET(_request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
   const supabase = createSupabaseServerClient()
 
   const { data: gallery } = await supabase
     .from('galleries')
-    .select('id, has_password')
+    .select('id, has_password, owner_id')
     .eq('slug', params.slug)
-    .single()
+    .single<{ id: string; has_password: boolean; owner_id: string }>()
   if (!gallery) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
   if (!(await isGalleryUnlocked(gallery))) {
     return NextResponse.json({ error: 'locked' }, { status: 403 })
+  }
+
+  // «Клієнт може завантажувати фото» вимкнено (0070): 403 з людським текстом.
+  // Власник галереї завантажує завжди. Без міграції колонки нема → дозволено.
+  if (!(await readDownloadsSetting(supabase, gallery.id)).enabled) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user?.id !== gallery.owner_id) return downloadsDisabledResponse(request, 'json')
   }
 
   const { data: assets } = await galleryAssetsClient(supabase, gallery)

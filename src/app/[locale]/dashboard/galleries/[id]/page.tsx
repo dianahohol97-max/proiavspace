@@ -6,6 +6,7 @@ import {
   setGalleryCover,
   sortGalleryAssets,
   setGalleryDelivery,
+  setGalleryDownloads,
   setGalleryPublished,
   setGalleryTheme,
   saveGalleryAccess,
@@ -41,6 +42,8 @@ import type { ShareMessageStrings } from '@/lib/gallery/share'
 import { parseGalleryTab } from '@/lib/dashboard/tabs'
 import { GalleryTabs, GoToTabButton } from '@/components/dashboard/GalleryTabs'
 import { OpenShareButton, ShareDialog } from '@/components/dashboard/ShareDialog'
+import { DownloadsToggle } from '@/components/dashboard/DownloadsToggle'
+import { readDownloadsSetting } from '@/lib/gallery/downloads'
 import { DeleteGalleryButton, GalleryAccessForm, GalleryDetailsForm } from '@/components/dashboard/GalleryForms'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
@@ -94,7 +97,7 @@ export default async function ManageGalleryPage({
   const watermarkText =
     planRow?.watermark_enabled && planRow.display_name ? planRow.display_name : undefined
 
-  const [{ data: assets }, { count: downloadCount }, { data: selections }, clientEmail] = await Promise.all([
+  const [{ data: assets }, { count: downloadCount }, { data: selections }, clientEmail, downloads] = await Promise.all([
     supabase
       .from('assets')
       .select('*')
@@ -113,6 +116,7 @@ export default async function ManageGalleryPage({
       .eq('gallery_id', gallery.id)
       .returns<{ asset_id: string; kind: string; client_token: string }[]>(),
     loadClientEmailState(params.id, user.id),
+    readDownloadsSetting(supabase, params.id),
   ])
 
   const favoriteCounts = new Map<string, number>()
@@ -605,15 +609,27 @@ export default async function ManageGalleryPage({
           }}
         />
       </section>
-      <section className={card}>
-        <h2 className={cardTitle}>{m.accessDownloadsTitle}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted">{m.accessDownloadsText}</p>
+      <DownloadsToggle
+        initialEnabled={downloads.enabled}
+        available={downloads.available}
+        save={setGalleryDownloads.bind(null, locale, gallery.id)}
+        labels={{
+          title: m.accessDownloadsTitle,
+          label: m.downloadsToggle,
+          onHint: m.downloadsOnHint,
+          offHint: m.downloadsOffHint,
+          unavailable: m.downloadsUnavailable,
+          saving: m.saving,
+          saved: m.saved,
+          error: m.saveError,
+        }}
+      >
         {statsOn && (
-          <p className="mt-2 text-sm font-bold text-fg">
+          <p className="text-sm font-bold text-fg" data-testid="downloads-count">
             {formatMessage(m.accessDownloadsCount, { n: downloadCount ?? 0 }, locale)}
           </p>
         )}
-      </section>
+      </DownloadsToggle>
       <section className={`${card} border-red-600/20`}>
         <h2 className={cardTitle}>{m.dangerTitle}</h2>
         <p className="mb-4 mt-2 text-sm leading-relaxed text-muted">{m.deleteConfirm}</p>

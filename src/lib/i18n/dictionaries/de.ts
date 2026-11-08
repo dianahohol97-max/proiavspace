@@ -254,7 +254,6 @@ export const de: PartialDictionary = {
     saveError: 'Speichern fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
     titleRequired: 'Der Name darf nicht leer sein.',
     accessDownloadsTitle: 'Downloads',
-    accessDownloadsText: 'Ihre Kunden können jedes Foto in voller Qualität oder die ganze Galerie als ein Archiv speichern.',
     accessDownloadsCount: '{n, plural, one {Bisher # Download} other {Bisher # Downloads}}',
     dangerTitle: 'Galerie löschen',
     deleteAsk: 'Die Galerie „{title}“ mit allen Fotos löschen? Das lässt sich nicht rückgängig machen.',
@@ -300,6 +299,10 @@ export const de: PartialDictionary = {
     clientEmailSent: 'E-Mail gesendet.',
     clientEmailTooSoon: 'Die E-Mail wurde gerade erst gesendet — versuchen Sie es in einer Minute erneut.',
     clientEmailSendFailed: 'Die E-Mail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.',
+    downloadsToggle: 'Kunden dürfen Fotos herunterladen',
+    downloadsOnHint: 'An: Ihre Kunden können jedes Foto in voller Qualität oder die ganze Galerie als ein Archiv speichern.',
+    downloadsOffHint: 'Aus: Ihre Kunden können die Fotos nur ansehen – in der Galerie gibt es keine Download-Schaltflächen. Sie selbst als Inhaber können weiterhin herunterladen.',
+    downloadsUnavailable: 'Der Schalter funktioniert nach dem Datenbank-Update (Migration 0070). Bis dahin bleiben Downloads erlaubt.',
   },
   booking: {
     title: 'Terminbuchung',
@@ -781,6 +784,7 @@ export const de: PartialDictionary = {
     shareInProgress: 'Hallo! Hier ist der Link zu Ihrer Galerie „{title}“:\n{url}\nDie Fotos sind gerade in Bearbeitung — die fertige Galerie erscheint unter genau diesem Link.',
     sharePassword: 'Die Galerie ist passwortgeschützt — das Passwort schicke ich Ihnen in einer eigenen Nachricht.',
     shareSubject: 'Ihre Galerie „{title}“',
+    downloadsDisabled: 'Der Fotograf hat Downloads für diese Galerie deaktiviert. Sie können die Fotos ansehen – für die Originale wenden Sie sich bitte an den Fotografen.',
   },
   pages: {
     siteTitle: 'proiav — Online-Kundengalerien für Fotografen',

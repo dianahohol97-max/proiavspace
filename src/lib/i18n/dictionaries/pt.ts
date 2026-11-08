@@ -259,8 +259,6 @@ export const pt: PartialDictionary = {
     saveError: 'Não foi possível guardar. Verifique a ligação e tente novamente.',
     titleRequired: 'O nome não pode ficar vazio.',
     accessDownloadsTitle: 'Transferências',
-    accessDownloadsText:
-      'O cliente pode guardar qualquer foto em qualidade máxima ou a galeria inteira num único arquivo.',
     accessDownloadsCount: '{n, plural, one {# transferência até agora} other {# transferências até agora}}',
     dangerTitle: 'Eliminar galeria',
     deleteAsk: 'Eliminar a galeria «{title}» com todas as fotos? Esta ação não pode ser anulada.',
@@ -306,6 +304,10 @@ export const pt: PartialDictionary = {
     clientEmailSent: 'E-mail enviado.',
     clientEmailTooSoon: 'O e-mail acabou de ser enviado — tente novamente dentro de um minuto.',
     clientEmailSendFailed: 'Não foi possível enviar o e-mail. Tente mais tarde.',
+    downloadsToggle: 'O cliente pode descarregar as fotos',
+    downloadsOnHint: 'Ativado: o cliente pode guardar qualquer foto em qualidade máxima ou a galeria inteira num só arquivo.',
+    downloadsOffHint: 'Desativado: o cliente só pode ver as fotos — a galeria não tem botões para descarregar. Como proprietário, continua a poder descarregar.',
+    downloadsUnavailable: 'O interruptor vai funcionar depois da atualização da base de dados (migração 0070). Até lá, os descarregamentos continuam permitidos.',
   },
   booking: {
     title: 'Marcação de sessões',
@@ -787,6 +789,7 @@ export const pt: PartialDictionary = {
     shareInProgress: "Olá! Aqui está o link para a sua galeria «{title}»:\n{url}\nAs fotos estão em edição — a galeria completa vai aparecer neste mesmo link.",
     sharePassword: "A galeria está protegida por palavra-passe — envio-lhe a palavra-passe numa mensagem à parte.",
     shareSubject: "A sua galeria «{title}»",
+    downloadsDisabled: 'O fotógrafo desativou a opção de descarregar fotos nesta galeria. Pode vê-las à vontade — para os originais, contacte o fotógrafo.',
   },
   pages: {
     siteTitle: 'proiav — galerias online para os clientes de fotógrafos',

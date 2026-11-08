@@ -250,7 +250,6 @@ export const pl: PartialDictionary = {
     saveError: 'Nie udało się zapisać. Prosimy sprawdzić połączenie i spróbować ponownie.',
     titleRequired: 'Nazwa nie może być pusta.',
     accessDownloadsTitle: 'Pobieranie',
-    accessDownloadsText: 'Klient może zapisać dowolne zdjęcie w pełnej jakości albo całą galerię jako jedno archiwum.',
     accessDownloadsCount: '{n, plural, one {Dotąd # pobranie} few {Dotąd # pobrania} many {Dotąd # pobrań} other {Dotąd # pobrania}}',
     dangerTitle: 'Usuń galerię',
     deleteAsk: 'Usunąć galerię „{title}” razem ze wszystkimi zdjęciami? Tej operacji nie można cofnąć.',
@@ -293,6 +292,10 @@ export const pl: PartialDictionary = {
     clientEmailSent: 'Wiadomość wysłana.',
     clientEmailTooSoon: 'Wiadomość została właśnie wysłana — prosimy spróbować ponownie za minutę.',
     clientEmailSendFailed: 'Nie udało się wysłać wiadomości. Prosimy spróbować później.',
+    downloadsToggle: 'Klient może pobierać zdjęcia',
+    downloadsOnHint: 'Włączone: klient zapisze każde zdjęcie w pełnej jakości albo całą galerię jednym archiwum.',
+    downloadsOffHint: 'Wyłączone: klient tylko ogląda zdjęcia — w galerii nie ma przycisków pobierania. Jako właściciel nadal możesz pobierać.',
+    downloadsUnavailable: 'Przełącznik zadziała po aktualizacji bazy danych (migracja 0070). Do tego czasu pobieranie jest dozwolone.',
   },
   booking: {
     title: 'Rezerwacja sesji',
@@ -743,6 +746,7 @@ export const pl: PartialDictionary = {
     shareInProgress: "Dzień dobry! Oto link do galerii „{title}”:\n{url}\nZdjęcia są właśnie w obróbce — gotowa galeria pojawi się pod tym samym linkiem.",
     sharePassword: 'Galeria jest chroniona hasłem — hasło wyślę w osobnej wiadomości.',
     shareSubject: 'Galeria „{title}”',
+    downloadsDisabled: 'Fotograf wyłączył pobieranie w tej galerii. Zdjęcia możesz oglądać, a po oryginały zwróć się do fotografa.',
   },
   pages: {
     siteTitle: 'proiav — galerie online dla klientów fotografów',

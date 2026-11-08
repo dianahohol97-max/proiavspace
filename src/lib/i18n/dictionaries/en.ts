@@ -253,7 +253,6 @@ export const en: Dictionary = {
     saveError: 'Couldn’t save. Check your connection and try again.',
     titleRequired: 'The name can’t be empty.',
     accessDownloadsTitle: 'Downloads',
-    accessDownloadsText: 'The client can save any photo in full quality or the whole gallery as one archive.',
     accessDownloadsCount: 'Downloads so far: {n}',
     dangerTitle: 'Delete gallery',
     deleteAsk: 'Delete the gallery “{title}” with all its photos? This can’t be undone.',
@@ -299,6 +298,10 @@ export const en: Dictionary = {
     clientEmailSent: 'Email sent.',
     clientEmailTooSoon: 'The email just went out — try again in a minute.',
     clientEmailSendFailed: 'Could not send the email. Please try later.',
+    downloadsToggle: 'Client can download photos',
+    downloadsOnHint: 'On: the client can save any photo in full quality or the whole gallery as one archive.',
+    downloadsOffHint: 'Off: the client can only view the photos — the gallery has no download buttons. You, as the owner, can still download.',
+    downloadsUnavailable: 'The switch will work after the database update (migration 0070). Until then downloads stay allowed.',
   },
   booking: {
     title: 'Session booking',
@@ -779,6 +782,7 @@ export const en: Dictionary = {
     shareInProgress: 'Hi! Here is the link to your gallery “{title}”:\n{url}\nThe photos are being edited right now — the finished gallery will appear at this same link.',
     sharePassword: 'The gallery is password-protected — I’ll send you the password in a separate message.',
     shareSubject: 'Your gallery “{title}”',
+    downloadsDisabled: 'The photographer has turned off downloads for this gallery. You can still view the photos — for the originals, please contact the photographer.',
   },
   support: {
     helpButton: "Help",
