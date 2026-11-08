@@ -14,6 +14,7 @@ import { parseGalleryStyle } from '@/lib/gallery/style'
 import { deliveryLabels, galleryLabels } from '@/lib/gallery/labels'
 import { readDownloadsSetting } from '@/lib/gallery/downloads'
 import { galleryEventLine } from '@/lib/gallery/event-line'
+import { isOwnerPreview } from '@/lib/gallery/owner-preview'
 import {
   countVisibleAssets,
   deliveryCoverKey,
@@ -144,7 +145,8 @@ export default async function PublicGalleryPage({
 
   // «Відкрити як клієнт» from the designer (owner-view route) adds ?preview=1:
   // the photographer looking at their own gallery is not a client's view.
-  const ownerPreview = searchParams.preview === '1'
+  // Trusted only when the signed-in user owns this gallery (lib/gallery/owner-preview).
+  const ownerPreview = await isOwnerPreview(searchParams.preview, gallery.id, supabase)
 
   // Basic stats: count the view without holding up the page. waitUntil keeps
   // the function alive until the write lands; a failure is only logged.
