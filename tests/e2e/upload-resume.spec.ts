@@ -165,13 +165,13 @@ test('обрив мережі посеред файлу — чекає, пока
   // request (in flight too) while the browser itself reports offline.
   backend.offline = true
   await context.setOffline(true)
-  await expect(page.getByRole('status')).toContainText('Немає з’єднання', { timeout: 15_000 })
+  await expect(page.getByTestId('upload-network-wait')).toContainText('Немає з’єднання', { timeout: 15_000 })
   await page.waitForTimeout(5_000)
   backend.offline = false
   await context.setOffline(false)
 
   await expect(page.getByText('✓')).toBeVisible({ timeout: 45_000 })
-  await expect(page.getByRole('status')).toHaveCount(0)
+  await expect(page.getByTestId('upload-network-wait')).toHaveCount(0)
   expect(backend.completes).toHaveLength(1)
   // Every part stored exactly once — nothing restarted from zero.
   expect(new Set(backend.partPuts).size).toBe(3)

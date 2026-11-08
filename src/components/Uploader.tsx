@@ -234,7 +234,7 @@ export function Uploader({
       )}
 
       {items.some((item) => item.waiting && item.status === 'uploading') && (
-        <p className="mt-6 text-sm text-accent" role="status">
+        <p className="mt-6 text-sm text-accent" role="status" data-testid="upload-network-wait">
           {networkWait}
         </p>
       )}
