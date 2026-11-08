@@ -1,6 +1,5 @@
 node_modules/
 .next/
-.next-sites/
 out/
 build/
 .env

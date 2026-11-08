@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test'
-import { SITES_ON_URL } from './sites-flag'
 
 /**
  * Google Analytics belongs to proiav's own pages only. Photographers' sites,
@@ -26,8 +25,7 @@ test.describe('Google Analytics', () => {
       page.on('request', (r) => {
         if (GA.test(r.url())) requests.push(r.url())
       })
-      // Photographer pages exist only with sites on (src/lib/features/sites.ts).
-      await page.goto(path.startsWith('/uk/g/') ? path : `${SITES_ON_URL}${path}`)
+      await page.goto(path)
       await page.waitForLoadState('load')
       await page.waitForTimeout(3000)
       await expect(page.locator('script[src*="googletagmanager.com"]')).toHaveCount(0)
