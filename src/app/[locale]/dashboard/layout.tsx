@@ -14,6 +14,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { Logo } from '@/components/Logo'
 import { DashNav, type NavItem } from '@/components/dashboard/DashNav'
 import { MobileMenu } from '@/components/dashboard/MobileMenu'
+import { SupportButton, SupportPanel } from '@/components/support/SupportPanel'
 import type { Profile } from '@/lib/types'
 
 /**
@@ -108,6 +109,7 @@ export default async function DashboardLayout({
         </Link>
         <DashNav items={items} />
         <div className="mt-auto flex flex-col gap-3">
+          <SupportButton label={dict.support.helpButton} />
           {profile && (
             <div className="rounded-2xl bg-bg p-4">
               <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted">
@@ -143,6 +145,7 @@ export default async function DashboardLayout({
           </Link>
           <MobileMenu label={dict.dashboard.title}>
             <DashNav items={items} />
+            <SupportButton label={dict.support.helpButton} />
             <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3">
               {profile && (
                 <div className="rounded-2xl bg-bg p-4">
@@ -173,6 +176,11 @@ export default async function DashboardLayout({
         </div>
         {children}
       </div>
+      <SupportPanel
+        locale={locale}
+        t={dict.support}
+        account={{ email: user.email ?? '', userId: user.id, plan: planName ?? '—' }}
+      />
     </div>
   )
 }

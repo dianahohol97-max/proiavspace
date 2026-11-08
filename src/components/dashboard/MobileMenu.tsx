@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { SUPPORT_OPEN_EVENT } from '@/components/support/SupportPanel'
 
 /**
  * Mobile dashboard menu: a ☰ button that opens a dropdown holding the full
@@ -16,6 +17,13 @@ export function MobileMenu({ label, children }: { label: string; children: React
   useEffect(() => {
     setOpen(false)
   }, [pathname])
+
+  // «Допомога» inside the menu opens the support panel: the menu steps aside.
+  useEffect(() => {
+    const close = () => setOpen(false)
+    window.addEventListener(SUPPORT_OPEN_EVENT, close)
+    return () => window.removeEventListener(SUPPORT_OPEN_EVENT, close)
+  }, [])
 
   useEffect(() => {
     if (!open) return

@@ -13,6 +13,7 @@ import {
 import { IMPORT_PROMO } from '@/lib/promo'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { SupportRequestsAdmin } from '@/components/support/SupportRequestsAdmin'
 
 export const dynamic = 'force-dynamic'
 
@@ -363,6 +364,9 @@ export default async function StatsPage({ params }: { params: { locale: string }
         )}
         {tile(uk ? 'Промо: з автоплатежем' : 'Promo: auto-payment', promoAutopay)}
       </div>
+
+      {/* --- support requests (migration 0068) --- */}
+      <SupportRequestsAdmin admin={admin} locale={locale} />
 
       {/* --- growth / galleries / photos --- */}
       <section className="mt-12">
