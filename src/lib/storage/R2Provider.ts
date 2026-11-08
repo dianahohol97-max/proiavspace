@@ -97,7 +97,9 @@ export class S3CompatProvider implements StorageProvider, PurgeStorage {
     // (each download is a billed Class B transaction plus egress, and hitting
     // the account cap breaks every image). A URL still lives >= 3/4 of its TTL.
     const windowMs = Math.max(1, Math.floor(expiresIn / 4)) * 1000
-    const signingDate = new Date(Math.floor(Date.now() / windowMs) * windowMs)
+    const signingDate = options?.signFromNow
+      ? new Date()
+      : new Date(Math.floor(Date.now() / windowMs) * windowMs)
 
     const command = new GetObjectCommand({
       Bucket: this.bucket,

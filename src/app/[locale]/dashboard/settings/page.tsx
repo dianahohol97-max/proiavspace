@@ -8,6 +8,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoUploader } from '@/components/LogoUploader'
 import { InstallAppCard } from '@/components/app/InstallAppCard'
 import { NotificationSettings } from '@/components/app/NotificationSettings'
+import { bookingPushEnabled } from '@/lib/push/kinds'
 import { getVapidConfig } from '@/lib/push/send'
 import type { Profile } from '@/lib/types'
 
@@ -135,7 +136,12 @@ export default async function SettingsPage({
 
       {/* Phone app: notifications (each type separately) and installation. */}
       <section id="app" className="mt-14 flex scroll-mt-6 flex-col gap-4 border-t border-line pt-10">
-        <NotificationSettings t={dict.app} locale={locale} publicKey={getVapidConfig()?.publicKey ?? ''} />
+        <NotificationSettings
+          t={dict.app}
+          locale={locale}
+          publicKey={getVapidConfig()?.publicKey ?? ''}
+          showBooking={bookingPushEnabled()}
+        />
         <InstallAppCard t={dict.app} />
       </section>
     </main>

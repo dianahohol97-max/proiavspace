@@ -34,6 +34,7 @@ export function SiteFooter({ locale }: { locale: string }) {
             <Link href="/uk/blog" className="text-muted no-underline hover:text-fg">{t.blog}</Link>
             <Link href={`/${locale}/oferta`} className="text-muted no-underline hover:text-fg">{t.terms}</Link>
             <Link href={`/${locale}/privacy`} className="text-muted no-underline hover:text-fg">{t.privacy}</Link>
+            <Link href={`/${locale}/contact`} className="text-muted no-underline hover:text-fg">{t.support}</Link>
           </nav>
         )}
       </div>

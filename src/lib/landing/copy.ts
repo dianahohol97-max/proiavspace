@@ -89,7 +89,7 @@ export interface LandingCopy {
   }
   faq: { label: string; title: string; items: { q: string; a: string }[] }
   final: { label: string; titleBefore: string; titleAccent: string; cta: string }
-  footer: { tagline: string; blog: string; terms: string; privacy: string }
+  footer: { tagline: string; blog: string; terms: string; privacy: string; support: string }
 }
 
 const uk: LandingCopy = {
@@ -296,6 +296,7 @@ const uk: LandingCopy = {
     blog: 'Блог',
     terms: 'Публічна оферта',
     privacy: 'Політика конфіденційності',
+    support: 'Підтримка',
   },
 }
 
@@ -494,6 +495,7 @@ const en: LandingCopy = {
     blog: 'Blog',
     terms: 'Public offer',
     privacy: 'Privacy policy',
+    support: 'Support',
   },
 }
 
