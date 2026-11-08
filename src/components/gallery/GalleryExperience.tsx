@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { buildZipBlob, splitIntoParts, writeZipToStream, type ArchiveFile } from '@/lib/gallery/archive'
-import { resolveTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
+import { resolveGalleryTokens, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import { fontFamily, type GalleryStyle } from '@/lib/gallery/style'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { LangPicker } from '@/components/LangPicker'
 import { GalleryGrid, type GridTileInfo } from './GalleryGrid'
-import { gridSrc, gridSrcSet } from './gridLayout'
+import { DeliveryBanner, deliveryVars } from './DeliveryStatusScreen'
+import { gridSrc, gridSrcSet, rowDesktopHeight } from './gridLayout'
 import type { GalleryLightboxProps } from './GalleryLightbox'
 import s from './GalleryExperience.module.css'
 
@@ -55,6 +56,7 @@ export interface GalleryLabels {
   tip: string
   /** «Слайд-шоу» button in the bar. */
   slideshow?: string
+  contactPhotographer?: string
   /** Full-screen viewer controls (aria labels / tooltips). */
   viewer?: ViewerLabels
 }
@@ -131,6 +133,7 @@ export function GalleryExperience({
   labels,
   style,
   demo = false,
+  deliveryNotice = null,
 }: {
   locale: string
   slug: string
@@ -156,8 +159,13 @@ export function GalleryExperience({
   style?: GalleryStyle
   /** Public showcase: keep the interactions visual, never hit gallery APIs. */
   demo?: boolean
+  /**
+   * «Повна галерея в обробці · орієнтовно до …» strip above the cover — the
+   * shoot is still in progress but some previews are already visible.
+   */
+  deliveryNotice?: { text: string; etaText: string | null } | null
 }) {
-  const tokens = resolveTokens(theme, mode)
+  const tokens = resolveGalleryTokens(theme, mode)
   // Default accent: on «Опівніч» (night) the theme's own flame gold, so hearts
   // and the favourites pill match the site; light themes keep the cobalt.
   const accent = style?.accent ?? (mode === 'night' ? tokens.accent : '#2f55ff')
@@ -191,7 +199,6 @@ export function GalleryExperience({
   const [done, setDone] = useState(0)
   const [total, setTotal] = useState(0)
   const [partReady, setPartReady] = useState<PartReady | null>(null)
-  const uk = locale === 'uk'
 
   async function toggleFavorite(assetId: string) {
     const selected = !favorites.has(assetId)
@@ -339,6 +346,8 @@ export function GalleryExperience({
     '--g-radius': `${style?.radius ?? 10}px`,
     '--g-gap': `${style?.gap ?? 14}px`,
     '--g-tile': style?.layout === 'portrait' ? '3 / 4' : '1 / 1',
+    // «Рядки»: desktop row height from the columns pick (phones/tablets: CSS).
+    '--g-row-h-d': `${rowDesktopHeight(style?.columns ?? 3)}px`,
   } as React.CSSProperties
 
   // Cover treatment + title size come straight from the designer.
@@ -348,15 +357,18 @@ export function GalleryExperience({
   // Everything except masonry crops to a uniform wall: collage adds 2×2
   // accents on squares, editorial alternates wide hero rows with squares.
   const layout = style?.layout ?? 'masonry'
-  // Per-photo crop focus only matters where tiles crop (uniform layouts).
+  // Per-photo crop focus only matters where tiles crop (uniform layouts);
+  // masonry and «Рядки» show every photo whole.
   const tileFocus = (item: GalleryItem): React.CSSProperties | undefined =>
-    layout !== 'masonry' && item.focalX != null
+    layout !== 'masonry' && layout !== 'rows' && item.focalX != null
       ? { objectPosition: `${item.focalX}% ${item.focalY ?? 50}%` }
       : undefined
   const gridClass =
     layout === 'masonry'
       ? s.grid
-      : `${s.grid} ${s.gridUniform}${
+      : layout === 'rows'
+        ? `${s.grid} ${s.gridRows}`
+        : `${s.grid} ${s.gridUniform}${
           layout === 'collage' ? ` ${s.gridCollage}` : layout === 'editorial' ? ` ${s.gridEditorial}` : ''
         }`
 
@@ -425,7 +437,15 @@ export function GalleryExperience({
       className={`${s.shot}${tile.fill ? ` ${s.shotFill}` : ''}${tile.contain ? ` ${s.shotContain}` : ''}`}
       // The proportions are known before the photo loads: the server-rendered
       // grid has its final layout, with a placeholder background, at once.
-      style={tile.aspect ? { aspectRatio: tile.aspect } : undefined}
+      style={
+        tile.aspect
+          ? ({
+              aspectRatio: tile.aspect,
+              // «Рядки»: the tile's share of its row (flex-grow ∝ width÷height).
+              ...(tile.grow ? { '--r': String(tile.grow) } : {}),
+            } as React.CSSProperties)
+          : undefined
+      }
       onClick={() => openAt(index)}
     >
       {
@@ -473,6 +493,13 @@ export function GalleryExperience({
       {mediaOrigins.map((origin) => (
         <link key={origin} rel="preconnect" href={origin} />
       ))}
+      {deliveryNotice && (
+        <DeliveryBanner
+          text={deliveryNotice.text}
+          etaText={deliveryNotice.etaText}
+          vars={deliveryVars(theme, mode, style)}
+        />
+      )}
       {/* -------- cover -------- */}
       <header className={`${s.cover}${cover === 'left' ? ` ${s.coverLeft}` : ''}${cover === 'minimal' ? ` ${s.coverMinimal}` : ''}`}>
         {cover !== 'minimal' &&
@@ -545,7 +572,7 @@ export function GalleryExperience({
         </span>
         {items.length > 0 && (
           <button type="button" className={s.slideBtn} onClick={startSlideshow}>
-            ▶ {labels.slideshow ?? (uk ? 'Слайд-шоу' : 'Slideshow')}
+            ▶ {labels.slideshow ?? 'Slideshow'}
           </button>
         )}
         {partReady ? (
@@ -618,7 +645,7 @@ export function GalleryExperience({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {uk ? 'Звʼязатися з фотографом' : 'Contact the photographer'}
+                {labels.contactPhotographer ?? 'Contact the photographer'}
               </a>
             )}
             {tipUrl && (

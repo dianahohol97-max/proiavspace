@@ -9,7 +9,7 @@ import { expect, test } from '@playwright/test'
 test.describe('сітка без JavaScript', () => {
   test.use({ javaScriptEnabled: false })
 
-  for (const query of ['', '?cover=minimal', '?cover=minimal&layout=collage', '?layout=editorial']) {
+  for (const query of ['', '?cover=minimal', '?cover=minimal&layout=collage', '?layout=editorial', '?cover=minimal&layout=rows']) {
     test(`плитки видно: /uk/gallery-demo${query}`, async ({ page }) => {
       await page.goto(`/uk/gallery-demo${query}`)
       const tiles = page.locator('main figure:visible')
@@ -41,7 +41,7 @@ test.describe('сітка без JavaScript', () => {
 })
 
 test.describe('сітка: заміна серверної сітки віртуальною без зсувів', () => {
-  for (const query of ['', '?cover=minimal', '?cover=minimal&layout=collage', '?cover=minimal&layout=editorial']) {
+  for (const query of ['', '?cover=minimal', '?cover=minimal&layout=collage', '?cover=minimal&layout=editorial', '?cover=minimal&layout=rows']) {
     test(`CLS < 0.05: /uk/gallery-demo${query}`, async ({ page }, testInfo) => {
       test.skip(testInfo.project.name === 'android', 'досить iPhone 13 і десктопа')
       await page.addInitScript(() => {

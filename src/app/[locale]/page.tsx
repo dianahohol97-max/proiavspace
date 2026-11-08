@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { getLandingCopy } from '@/lib/landing/copy'
+import { getDictionary } from '@/lib/i18n'
+import { formatDate, formatNumber, formatUah } from '@/lib/i18n/format'
 import { GALLERY_PLANS, type GalleryPlanId } from '@/lib/plans'
 import { preloadBrandFonts } from '@/lib/seo/fonts'
 import { buildMetadata } from '@/lib/seo/metadata'
@@ -14,26 +16,77 @@ import { Logo } from '@/components/Logo'
 import { AuthNav } from '@/components/landing/AuthNav'
 import { primaryNav } from '@/lib/seo/nav'
 import { GalleryShowcase } from '@/components/landing/GalleryShowcase'
+import { showcaseLabels } from '@/lib/landing/showcase-labels'
 import { Reveal } from '@/components/landing/Reveal'
+import { LandingPhoto } from '@/components/landing/LandingPhoto'
 import s from './landing.module.css'
 
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+/** Showcase frames shot in landscape (the rest are 2:3 portraits). */
+const LANDSCAPE = new Set(['05', '16'])
+
+/**
+ * A photo tile: the `.ph` frame (radius, placeholder colour, grain) with a
+ * responsive <picture> inside. Only the hero's lead frame gets `priority`;
+ * the rest of the hero is eager, everything below the fold lazy.
+ */
+function Ph({
+  n,
+  sizes,
+  className,
+  priority,
+  eager,
+  children,
+}: {
+  n: string
+  sizes: string
+  className?: string
+  priority?: boolean
+  eager?: boolean
+  children?: React.ReactNode
+}) {
+  const wide = LANDSCAPE.has(n)
+  return (
+    <div className={`${s.ph} ${className ?? ''}`}>
+      <LandingPhoto
+        name={`showcase-${n}`}
+        kind="showcase"
+        sizes={sizes}
+        width={wide ? 3 : 2}
+        height={wide ? 2 : 3}
+        priority={priority}
+        eager={eager}
+      />
+      {children}
+    </div>
+  )
+}
+
+/** Slot widths (CSS px) for `sizes`, per placement. */
+const SIZES = {
+  heroGrid: '(max-width: 520px) 28vw, (max-width: 880px) 140px, 160px',
+  heroTheme: '(max-width: 520px) 14vw, 80px',
+  marquee: '150px',
+  pGal: '(max-width: 880px) 44vw, 270px',
+  bentoPhoto: '(max-width: 880px) 48vw, 280px',
+  bSel: '(max-width: 880px) 22vw, 90px',
+}
+
+/** Screenshot per «new in galleries» card, in the order of t.products.features. */
+const FEATURE_SHOTS = ['culling', 'status', 'upload'] as const
+
+export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale = isLocale(params.locale) ? params.locale : 'uk'
-  const uk = locale === 'uk'
+  const { pages } = await getDictionary(locale)
   return buildMetadata({
     locale,
     path: '',
     languages: ['uk', 'en'],
     absoluteTitle: true,
-    title: uk
-      ? 'Онлайн-галерея для фотографа: передати фото клієнту — проЯв'
-      : 'Online client gallery for photographers — proiav',
-    description: uk
-      ? 'Онлайн-галерея для фотографа: передайте зйомку клієнту красивим посиланням — з відбором фото, паролем, оригіналами без стискання й zip. 3 ГБ безкоштовно.'
-      : 'Deliver shoots to clients in a beautiful online gallery: favourites, a password and expiry, uncompressed originals and one-click zip. 3 GB free.',
+    title: pages.homeTitle,
+    description: pages.homeDescription,
     image: {
       url: brandOgImage(locale),
-      alt: uk ? 'проЯв — усе, що стається після зйомки' : 'proiav — everything after the shutter clicks',
+      alt: pages.ogAlt,
     },
   })
 }
@@ -55,18 +108,23 @@ function buildJsonLd(locale: Locale, t: ReturnType<typeof getLandingCopy>) {
   )
 }
 
-export default function LandingPage({ params }: { params: { locale: string } }) {
+export default async function LandingPage({ params }: { params: { locale: string } }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const t = getLandingCopy(locale)
+  const dict = await getDictionary(locale)
+  const { pages } = dict
   const login = `/${locale}/login`
   const jsonLd = buildJsonLd(locale, t)
   preloadBrandFonts(locale)
 
-  const marqueeTiles = ['p01 t34', 'p08 t43', 'p07 t11', 'p14 t34', 'p15 t43', 'p16 t11', 'p12 t34', 'p03 t43']
+  // Screenshots exist in uk and en; other locales get the English landing copy.
+  const shotLocale = locale === 'uk' ? 'uk' : 'en'
+
+  const marqueeTiles = ['01 t34', '08 t43', '07 t11', '14 t34', '15 t43', '16 t11', '12 t34', '03 t43']
   const tile = (spec: string, key: number) => {
-    const [g, t_] = spec.split(' ')
-    return <div key={key} className={`${s.ph} ${s[g]} ${s[t_]}`} />
+    const [n, t_] = spec.split(' ')
+    return <Ph key={key} n={n} className={s[t_]} sizes={SIZES.marquee} />
   }
 
   return (
@@ -125,10 +183,10 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           <div className={s.stage} aria-hidden="true">
             <div className={s.mockGallery}>
               <div className={s.mockGrid}>
-                <div className={`${s.ph} ${s.p01}`} />
-                <div className={`${s.ph} ${s.p05}`} />
-                <div className={`${s.ph} ${s.p03}`} />
-                <div className={`${s.ph} ${s.p11}`} />
+                <Ph n="01" sizes={SIZES.heroGrid} priority />
+                <Ph n="05" sizes={SIZES.heroGrid} eager />
+                <Ph n="03" sizes={SIZES.heroGrid} eager />
+                <Ph n="11" sizes={SIZES.heroGrid} eager />
               </div>
               <span className={s.heart}>♥</span>
             </div>
@@ -139,24 +197,29 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               </span>
               <p>{t.hero.statText}</p>
             </div>
-            <div className={s.mockBooking}>
+            {/* The client's shoot status (see the «Статус зйомки» card below) */}
+            <div className={s.mockStatus}>
               <div className={s.slot}>
-                <span>Сб, 14:00</span>
-                <span>2 000 ₴</span>
+                <span>{t.hero.status.steps[0]}</span>
+                <span>✓</span>
               </div>
               <div className={s.slotOn}>
-                <span>Сб, 17:00</span>
-                <span>2 000 ₴</span>
+                <span>{t.hero.status.steps[1]}</span>
+                <span>{t.hero.status.now}</span>
               </div>
-              <div className={s.pay}>{t.hero.slotPay}</div>
+              <div className={s.slot}>
+                <span>{t.hero.status.steps[2]}</span>
+                <span />
+              </div>
+              <div className={s.pay}>{t.hero.status.eta}</div>
             </div>
             <div className={s.themeChip}>
               <div className={s.wm}>{t.hero.mockName}</div>
               <div className={s.hl}>{t.hero.mockTitle}</div>
               <div className={s.themeRow}>
-                <div className={`${s.ph} ${s.p02}`} />
-                <div className={`${s.ph} ${s.p13}`} />
-                <div className={`${s.ph} ${s.p10}`} />
+                <Ph n="02" sizes={SIZES.heroTheme} eager />
+                <Ph n="13" sizes={SIZES.heroTheme} eager />
+                <Ph n="10" sizes={SIZES.heroTheme} eager />
               </div>
             </div>
           </div>
@@ -187,60 +250,46 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
           <div className={`${s.prodGrid} ${s.prodGridTwo}`}>
             <Reveal>
               <div className={s.prod}>
-                <span className={s.prodNo}>{t.products.items[0].no}</span>
+                <span className={s.prodNo}>{t.products.gallery.no}</span>
                 <div className={s.pGal}>
-                  <div className={`${s.ph} ${s.p15}`} />
-                  <div className={`${s.ph} ${s.p06}`} />
-                  <div className={`${s.ph} ${s.p08}`} />
-                  <div className={`${s.ph} ${s.p12}`} />
+                  <Ph n="15" sizes={SIZES.pGal} />
+                  <Ph n="06" sizes={SIZES.pGal} />
+                  <Ph n="08" sizes={SIZES.pGal} />
+                  <Ph n="12" sizes={SIZES.pGal} />
                 </div>
-                <h3>{t.products.items[0].title}</h3>
-                <p>{t.products.items[0].text}</p>
+                <h3>{t.products.gallery.title}</h3>
+                <p>{t.products.gallery.text}</p>
                 <p className={s.tag}>
-                  <b>{t.products.items[0].tagStrong}</b>
-                  {t.products.items[0].tagRest}
+                  <b>{t.products.gallery.tagStrong}</b>
+                  {t.products.gallery.tagRest}
                 </p>
               </div>
             </Reveal>
-            <Reveal>
-              <div className={s.prod}>
-                <span className={s.prodNo}>{t.products.items[1].no}</span>
-                <div className={s.pBook}>
-                  {/* A week of slots so the mock fills the card the gallery sets the height of */}
-                  <div className={s.slotTaken}>
-                    <span>Пт, 10:00 · 60 хв</span>
-                    <span>{locale === 'uk' ? 'зайнято' : 'booked'}</span>
+            {t.products.features.map((feature, index) => (
+              <Reveal key={feature.no}>
+                <div className={s.prod}>
+                  <span className={s.prodNo}>{feature.no}</span>
+                  {/* Real screenshots of the interface (e2e demo pages), 960×640 WebP per language */}
+                  <div className={s.pShot}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/landing/${FEATURE_SHOTS[index]}-${shotLocale}.webp`}
+                      alt={feature.alt}
+                      width={960}
+                      height={640}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
-                  <div className={s.slot}>
-                    <span>Пт, 18:00 · 60 хв</span>
-                    <span>2 000 ₴</span>
-                  </div>
-                  <div className={s.slotTaken}>
-                    <span>Сб, 11:00 · 60 хв</span>
-                    <span>{locale === 'uk' ? 'зайнято' : 'booked'}</span>
-                  </div>
-                  <div className={s.slot}>
-                    <span>Сб, 14:00 · 60 хв</span>
-                    <span>2 000 ₴</span>
-                  </div>
-                  <div className={s.slotOn}>
-                    <span>Сб, 17:00 · 60 хв</span>
-                    <span>2 000 ₴</span>
-                  </div>
-                  <div className={s.slot}>
-                    <span>Нд, 10:00 · 60 хв</span>
-                    <span>2 000 ₴</span>
-                  </div>
-                  <div className={s.ok}>✓</div>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.text}</p>
+                  <p className={s.tag}>
+                    <b>{feature.tagStrong}</b>
+                    {feature.tagRest}
+                  </p>
                 </div>
-                <h3>{t.products.items[1].title}</h3>
-                <p>{t.products.items[1].text}</p>
-                <p className={s.tag}>
-                  <b>{t.products.items[1].tagStrong}</b>
-                  {t.products.items[1].tagRest}
-                </p>
-              </div>
-            </Reveal>
+              </Reveal>
+            ))}
           </div>
         </section>
 
@@ -251,25 +300,23 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
         <section id="galleries" className={s.products} style={{ scrollMarginTop: 90 }}>
           <Reveal>
             <div className={s.secHead}>
-              <span className={s.lbl}>{locale === 'uk' ? 'Дизайн-студія' : 'Design studio'}</span>
+              <span className={s.lbl}>{pages.studioLabel}</span>
               <h2 className={s.h2}>
-                {locale === 'uk' ? 'Онлайн-галерея, яку клієнт захоче ' : 'A gallery clients love '}
+                {pages.studioTitleBefore}
                 <span className={s.accentWord}>
-                  {locale === 'uk' ? 'переслати друзям' : 'to share'}
+                  {pages.studioTitleAccent}
                 </span>
               </h2>
               <p>
-                {locale === 'uk'
-                  ? 'Розкладка, тема, шрифти, відступи й обкладинка — усе налаштовується, і зміни видно одразу. Спробуй просто тут:'
-                  : 'Layout, theme, fonts, spacing and cover — all adjustable with a live preview. Try it right here:'}
+                {pages.studioLede}
               </p>
             </div>
           </Reveal>
-          <GalleryShowcase locale={locale} ctaPrimary={s.pillHot} ctaGhost={s.pillGhost} />
+          <GalleryShowcase locale={locale} labels={showcaseLabels(pages, dict.publicGallery, dict.designer)} ctaPrimary={s.pillHot} ctaGhost={s.pillGhost} />
         </section>
 
         {/* ---------- bento ---------- */}
-        <section className={s.bento}>
+        <section className={`${s.bento} ${s.lazyBento}`}>
           <Reveal>
             <div className={s.secHead}>
               <span className={s.lbl}>{t.bento.label}</span>
@@ -284,14 +331,14 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <span className={s.lbl}>{t.bento.cards.selection.label}</span>
               {/* A tiny «picked with hearts» strip, so the tall card is not empty */}
               <div className={s.bSel} aria-hidden="true">
-                <div className={`${s.ph} ${s.p08}`}><i>♥</i></div>
-                <div className={`${s.ph} ${s.p12}`} />
-                <div className={`${s.ph} ${s.p15}`}><i>♥</i></div>
+                <Ph n="08" sizes={SIZES.bSel}><i>♥</i></Ph>
+                <Ph n="12" sizes={SIZES.bSel} />
+                <Ph n="15" sizes={SIZES.bSel}><i>♥</i></Ph>
               </div>
               <h4>{t.bento.cards.selection.text}</h4>
             </div>
             <div className={s.b}>
-              <div className={`${s.ph} ${s.p06} ${s.bPhoto}`} />
+              <Ph n="06" className={s.bPhoto} sizes={SIZES.bentoPhoto} />
               <div className={s.over}>
                 <span className={s.lbl}>{t.bento.cards.galleryPhoto}</span>
               </div>
@@ -305,8 +352,8 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               <h4>{t.bento.cards.archive.text}</h4>
             </div>
             <div className={s.bHot}>
-              <span className={s.lbl}>{t.bento.cards.payments.label}</span>
-              <h4>{t.bento.cards.payments.text}</h4>
+              <span className={s.lbl}>{t.bento.cards.watermark.label}</span>
+              <h4>{t.bento.cards.watermark.text}</h4>
             </div>
             <div className={s.b}>
               <span className={s.lbl}>{t.bento.cards.stats.label}</span>
@@ -324,29 +371,29 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
               </div>
             </div>
             <div className={s.b}>
-              <div className={`${s.ph} ${s.p11} ${s.bPhoto}`} />
+              <Ph n="11" className={s.bPhoto} sizes={SIZES.bentoPhoto} />
               <div className={s.over}>
                 <span className={s.lbl}>{t.bento.cards.previewPhoto}</span>
               </div>
             </div>
             <div className={s.b}>
-              <span className={s.lbl}>{t.bento.cards.autoRelease.label}</span>
-              <h4>{t.bento.cards.autoRelease.text}</h4>
+              <span className={s.lbl}>{t.bento.cards.slideshow.label}</span>
+              <h4>{t.bento.cards.slideshow.text}</h4>
             </div>
             <div className={s.bWide}>
               <span className={s.lbl}>{t.bento.cards.video.label}</span>
               <h4>{t.bento.cards.video.text}</h4>
             </div>
             <div className={s.b}>
-              <span className={s.lbl}>{t.bento.cards.email.label}</span>
-              <h4>{t.bento.cards.email.text}</h4>
+              <span className={s.lbl}>{t.bento.cards.languages.label}</span>
+              <h4>{t.bento.cards.languages.text}</h4>
             </div>
           </div>
         </section>
       </div>
 
       {/* ---------- principles ---------- */}
-      <section className={s.principles}>
+      <section className={`${s.principles} ${s.lazyPrinciples}`}>
         <div className={s.wrap}>
           <p className={s.huge} aria-hidden="true">
             {t.principles.huge}
@@ -372,7 +419,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
 
       <div className={s.wrap}>
         {/* ---------- pricing ---------- */}
-        <section className={s.pricing} id="pricing">
+        <section className={`${s.pricing} ${s.lazyPricing}`} id="pricing">
           <Reveal>
             <div className={s.secHead}>
               <span className={s.lbl}>{t.pricing.label}</span>
@@ -395,13 +442,13 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
                   <h3>{copy.name}</h3>
                   <p className={s.gb}>{t.pricing.storage(plan.storageGb)}</p>
                   <p className={s.price}>
-                    {plan.priceUahMonth} ₴
+                    {formatUah(plan.priceUahMonth, locale)}
                     <small> {plan.priceUahMonth === 0 ? t.pricing.freeLabel : t.pricing.perMonth}</small>
                   </p>
                   <p className={s.yr}>
                     {plan.priceUahMonth === 0
                       ? copy.note
-                      : t.pricing.yearHint(String(plan.priceUahYear))}
+                      : t.pricing.yearHint(formatNumber(plan.priceUahYear, locale))}
                   </p>
                   <ul>
                     {copy.bullets.map((item) => (
@@ -423,7 +470,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
         </section>
 
         {/* ---------- referral ---------- */}
-        <section className={s.referral}>
+        <section className={`${s.referral} ${s.lazyReferral}`}>
           <Reveal>
             <div className={s.secHead}>
               <span className={s.lbl}>{t.referral.label}</span>
@@ -445,7 +492,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
         </section>
 
         {/* ---------- faq ---------- */}
-        <section className={s.faq}>
+        <section className={`${s.faq} ${s.lazyFaq}`}>
           <Reveal>
             <div className={s.secHead}>
               <span className={s.lbl}>{t.faq.label}</span>
@@ -464,7 +511,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
       </div>
 
       {/* ---------- final ---------- */}
-      <section className={s.final}>
+      <section className={`${s.final} ${s.lazyFinal}`}>
         <span className={s.lbl}>{t.final.label}</span>
         <h2 className={s.finalH2}>
           {t.final.titleBefore}
@@ -478,7 +525,7 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
         </div>
       </section>
 
-      <div className={s.wrap}>
+      <div className={`${s.wrap} ${s.lazyFoot}`}>
         <footer className={s.footer}>
           <Logo size={17} textSize={13} />
           <span>

@@ -22,25 +22,12 @@
 /* photo placeholders */
 /* Bias the crop toward the top: faces sit in the upper part of a frame, so
    center-cropping a `cover` background clips heads. 28% keeps them in view. */
-.ph { position: relative; overflow: hidden; background-color: #dedcd6; background-size: cover; background-position: center 28%; border-radius: 12px; }
+.ph { position: relative; overflow: hidden; background-color: #dedcd6; border-radius: 12px; }
 
-/* real showcase photography (one photographer's body of work) */
-.p01 { background-image: url("/showcase/01.webp"); }
-.p02 { background-image: url("/showcase/02.webp"); }
-.p03 { background-image: url("/showcase/03.webp"); }
-.p04 { background-image: url("/showcase/04.webp"); }
-.p05 { background-image: url("/showcase/05.webp"); }
-.p06 { background-image: url("/showcase/06.webp"); }
-.p07 { background-image: url("/showcase/07.webp"); }
-.p08 { background-image: url("/showcase/08.webp"); }
-.p09 { background-image: url("/showcase/09.webp"); }
-.p10 { background-image: url("/showcase/10.webp"); }
-.p11 { background-image: url("/showcase/11.webp"); }
-.p12 { background-image: url("/showcase/12.webp"); }
-.p13 { background-image: url("/showcase/13.webp"); }
-.p14 { background-image: url("/showcase/14.webp"); }
-.p15 { background-image: url("/showcase/15.webp"); }
-.p16 { background-image: url("/showcase/16.webp"); }
+/* Real showcase photography (one photographer's body of work) lives in a
+   responsive <picture> inside each .ph (see LandingPhoto) — not CSS
+   backgrounds, which every tile fetched at full 2000px on page load. */
+.ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 28%; }
 .ph::after {
   content: ""; position: absolute; inset: 0; opacity: .45; pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.13'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -71,6 +58,11 @@
 .pillGhost:hover { box-shadow: inset 0 0 0 1.5px var(--color-fg); background: transparent; }
 
 /* hero */
+/* Measures are in em, not ch: `ch` is the width of «0» in whatever face is
+   painting, so with ch every max-width changed when the fallback swapped for
+   Manrope — lines re-wrapped and the hero shifted (CLS). Values are the old
+   ch × Manrope's «0» (0.626em at 500, 0.658em at 700): identical once the
+   font is in. */
 .hero {
   display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: clamp(28px, 5vw, 64px); align-items: center;
@@ -88,10 +80,10 @@
   text-wrap: balance;
 }
 .h1 em, .accentWord { font-style: normal; color: var(--color-accent); }
-.subtitle { max-width: 40ch; margin: 18px 0 12px; font-size: clamp(17px, 1.6vw, 20px); font-weight: 700; line-height: 1.35; color: var(--color-fg); }
-.lede { max-width: 46ch; color: var(--color-muted); margin: 0 0 30px; font-size: 16px; }
+.subtitle { max-width: 26.33em; margin: 18px 0 12px; font-size: clamp(17px, 1.6vw, 20px); font-weight: 700; line-height: 1.35; color: var(--color-fg); }
+.lede { max-width: 28.8em; color: var(--color-muted); margin: 0 0 30px; font-size: 16px; }
 .ctaRow { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
-.ctaNote { font-size: 12.5px; color: var(--color-muted); max-width: 22ch; line-height: 1.5; }
+.ctaNote { font-size: 12.5px; color: var(--color-muted); max-width: 13.77em; line-height: 1.5; }
 
 .stage { position: relative; aspect-ratio: 5/5.1; }
 .card {
@@ -113,7 +105,7 @@
 .statNum { font-family: var(--font-brand); font-weight: 600; font-size: clamp(22px, 2.6vw, 32px); line-height: 1; }
 .statNum i { font-style: normal; color: var(--color-accent); }
 .statCard p { margin: 10px 0 0; font-size: 12px; color: var(--color-muted); line-height: 1.5; font-weight: 600; }
-.mockBooking { composes: card; width: 47%; right: 4%; bottom: 13%; z-index: 4; padding: 12px; animation-delay: -6s; }
+.mockStatus { composes: card; width: 47%; right: 4%; bottom: 13%; z-index: 4; padding: 12px; animation-delay: -6s; }
 .slot {
   background: var(--color-bg); border-radius: 10px; padding: 8px 11px; font-size: 10.5px; font-weight: 700;
   display: flex; justify-content: space-between; color: var(--color-muted); margin-bottom: 6px;
@@ -141,7 +133,7 @@
 
 /* sections */
 .products { padding: clamp(64px, 10vw, 120px) 0 clamp(40px, 7vw, 80px); }
-.secHead { max-width: 60ch; }
+.secHead { max-width: 37.57em; }
 .h2 {
   font-family: var(--font-brand); font-weight: 500; margin: 14px 0 12px;
   font-size: clamp(22px, 3vw, 34px); line-height: 1.22; letter-spacing: -.01em;
@@ -163,28 +155,19 @@
 .prod > p { margin: 0; font-size: 13.5px; color: var(--color-muted); }
 .tag { margin-top: 14px; font-size: 12px; font-weight: 700; }
 .tag b { color: var(--color-accent); font-weight: 800; }
-.pGal { composes: pic; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.pGal .ph:nth-child(1) { aspect-ratio: 4/5; }
-.pGal .ph:nth-child(2) { aspect-ratio: 4/3.2; align-self: end; }
-.pGal .ph:nth-child(3) { aspect-ratio: 4/3.2; }
-.pGal .ph:nth-child(4) { aspect-ratio: 4/5; }
+/* Same 3:2 frame as the screenshots in the neighbouring cards (.pShot), so
+   the 2×2 grid rows line up. */
+.pGal { composes: pic; aspect-ratio: 3/2; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; }
+.pGal .ph { aspect-ratio: auto; height: 100%; min-height: 0; }
 .pSite { composes: pic; padding: 16px; }
 .pSite .ph { aspect-ratio: 3/4; }
-.pBook { composes: pic; }
-.ok {
-  background: var(--color-accent); color: #fff; border-radius: 10px; text-align: center;
-  padding: 9px; font-size: 9.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
-}
-.pBook .slot { background: #fff; }
-/* Both product cards share the row height: the booking mock grows and centres
-   instead of leaving an empty block under the shorter card. */
+.pShot { composes: pic; padding: 0; overflow: hidden; aspect-ratio: 3/2; box-shadow: inset 0 0 0 1px rgba(13,12,10,.06); }
+.pShot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+/* Cards in a row share its height; the tag line sits at the bottom so the
+   rows line up whatever the picture's height. */
 .prodGrid > * { display: flex; }
 .prodGrid > * > .prod { flex: 1; }
-.pBook { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.pBook > div { padding: 14px 16px; font-size: 13px; margin-bottom: 10px; border-radius: 12px; }
-.pBook > div:last-child { margin-bottom: 0; font-size: 12px; }
-.pBook .slotOn { background: var(--color-fg); }
-.slotTaken { composes: slot; background: transparent !important; color: var(--color-muted); text-decoration: line-through; opacity: .6; }
+.prod > .tag { margin-top: auto; padding-top: 14px; }
 
 /* bento */
 .bento { padding: clamp(40px, 7vw, 80px) 0 clamp(64px, 10vw, 110px); }
@@ -300,7 +283,23 @@
 .faqList summary::-webkit-details-marker { display: none; }
 .faqList summary::after { content: "+"; float: right; color: var(--color-accent); font-family: var(--font-brand); }
 .faqList details[open] summary::after { content: "–"; }
-.faqList p { color: var(--color-muted); font-size: 13.5px; margin: 12px 0 0; max-width: 62ch; }
+.faqList p { color: var(--color-muted); font-size: 13.5px; margin: 12px 0 0; max-width: 38.82em; }
+
+/* Off-screen sections (bento → FAQ, the final CTA, the footer) are skipped
+   by style/layout/paint until they near the viewport, so the first frame
+   only lays out the top of the page (~30% less work before first paint) —
+   and an English page doesn't fetch Cyrillic Manrope for the footer's
+   «проЯв» before anyone scrolls there. Sizes are the real desktop heights
+   (phones override in the 880px query); `auto` then remembers the real size
+   once rendered. Sections holding nav anchors (#products, #galleries) are
+   left alone; #pricing is itself a target, which the browser renders on jump. */
+.lazyBento { content-visibility: auto; contain-intrinsic-size: auto 940px; }
+.lazyPrinciples { content-visibility: auto; contain-intrinsic-size: auto 700px; }
+.lazyPricing { content-visibility: auto; contain-intrinsic-size: auto 920px; }
+.lazyReferral { content-visibility: auto; contain-intrinsic-size: auto 620px; }
+.lazyFaq { content-visibility: auto; contain-intrinsic-size: auto 600px; }
+.lazyFinal { content-visibility: auto; contain-intrinsic-size: auto 590px; }
+.lazyFoot { content-visibility: auto; contain-intrinsic-size: auto 90px; }
 
 /* final */
 .final { text-align: center; padding: clamp(48px, 8vw, 90px) 24px 0; overflow: hidden; }
@@ -310,7 +309,7 @@
 }
 .giant {
   margin: clamp(44px, 8vw, 80px) 0 -0.33em;
-  font-family: var(--font-brand); font-weight: 700; text-transform: uppercase;
+  font-family: 'Unbounded Wordmark', var(--font-brand); font-weight: 700; text-transform: uppercase;
   font-size: clamp(80px, 17vw, 230px); line-height: .9; letter-spacing: -.02em;
   color: var(--color-fg); white-space: nowrap; user-select: none;
 }
@@ -323,6 +322,13 @@
 }
 
 @media (max-width: 880px) {
+  .lazyBento { contain-intrinsic-size: auto 1450px; }
+  .lazyPrinciples { contain-intrinsic-size: auto 950px; }
+  .lazyPricing { contain-intrinsic-size: auto 2050px; }
+  .lazyReferral { contain-intrinsic-size: auto 720px; }
+  .lazyFaq { contain-intrinsic-size: auto 640px; }
+  .lazyFinal { contain-intrinsic-size: auto 570px; }
+  .lazyFoot { contain-intrinsic-size: auto 190px; }
   .hero { grid-template-columns: 1fr; }
   .stage { max-width: 480px; margin: 0 auto; width: 100%; }
   .prodGrid, .plans { grid-template-columns: 1fr; }
@@ -361,9 +367,9 @@
   .statCard { padding: 10px 11px; width: 44%; }
   .statNum { font-size: 17px; }
   .statCard p { font-size: 9.5px; }
-  .mockBooking { width: 52%; right: 0; padding: 8px; }
-  .mockBooking .slot, .mockBooking .slotOn { font-size: 9px; padding: 6px 8px; white-space: nowrap; }
-  .mockBooking .pay { font-size: 8.5px; padding: 7px; }
+  .mockStatus { width: 52%; right: 0; padding: 8px; }
+  .mockStatus .slot, .mockStatus .slotOn { font-size: 9px; padding: 6px 8px; white-space: nowrap; }
+  .mockStatus .pay { font-size: 8.5px; padding: 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -405,7 +411,7 @@
 }
 .comingSoon p {
   margin: 0 auto 20px;
-  max-width: 62ch;
+  max-width: 38.82em;
   font-size: 15px;
   line-height: 1.65;
   color: var(--color-muted);

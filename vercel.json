@@ -15,6 +15,14 @@
     {
       "path": "/api/cron/storage-retention",
       "schedule": "15 5 * * *"
+    },
+    {
+      "path": "/api/cron/storage-purge",
+      "schedule": "20 * * * *"
+    },
+    {
+      "path": "/api/cron/push-reminders",
+      "schedule": "40 7 * * *"
     }
   ]
 }

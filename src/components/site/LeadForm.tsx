@@ -18,6 +18,10 @@ export interface LeadFormLabels {
   shootOther?: string
   contactHint?: string
   sending?: string
+  /* Gift certificate fields (opened from «Подарунки та друк»). */
+  certNominal?: string
+  certTo?: string
+  certFrom?: string
 }
 
 export type LeadStatus = 'idle' | 'busy' | 'sent' | 'error'

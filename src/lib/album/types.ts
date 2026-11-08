@@ -122,6 +122,13 @@ export interface AlbumPhoto {
   /** Gallery focal point (0..1) when the photographer set one. */
   focalX?: number | null
   focalY?: number | null
+  /** Capture time (EXIF, assets.taken_at, ms) when known — the story order of «Магічна збірка». */
+  takenAt?: number | null
+  /** assets.hidden_from_client: never goes into an automatic album. */
+  hidden?: boolean
+  /** Client picks: hearts (favorite selections, any client) and retouch requests. */
+  favorites?: number
+  retouch?: boolean
 }
 
 export interface AlbumProjectSummary {

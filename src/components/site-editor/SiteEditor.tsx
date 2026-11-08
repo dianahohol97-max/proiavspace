@@ -1,5 +1,6 @@
 'use client'
 
+import type { Dictionary } from '@/lib/i18n'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -10,7 +11,7 @@ import {
   setPortfolioVisibility,
 } from '@/lib/actions/portfolio'
 import { generateImageVariants } from '@/lib/images/variants'
-import type { SiteContent } from '@/lib/site/content'
+import type { GiftItem, GiftKind, SiteContent } from '@/lib/site/content'
 import { THEME_CATALOG } from '@/lib/site/themes'
 import {
   groupPortfolio,
@@ -33,6 +34,25 @@ export interface EditorLabels {
   heroLegend: string
   heroTitle: string
   heroSubtitle: string
+  heroRole: string
+  heroCity: string
+  heroDirections: string
+  termsLegend: string
+  termsHint: string
+  termsPrepayment: string
+  termsDelivery: string
+  termsTravel: string
+  termsBring: string
+  contactTelegram: string
+  giftsLegend: string
+  giftsHint: string
+  optGifts: string
+  giftShow: string
+  giftKinds: Record<GiftKind, string>
+  giftTitle: string
+  giftText: string
+  giftPrice: string
+  giftPhoto: string
   portfolioLegend: string
   portfolioHint: string
   portfolioUpload: string
@@ -183,6 +203,7 @@ export function SiteEditor({
   siteLabels,
   leadFormLabels,
   labels,
+  studio,
   platformCredit = false,
 }: {
   locale: Locale
@@ -199,6 +220,8 @@ export function SiteEditor({
   siteLabels: SiteLabels
   leadFormLabels: LeadFormLabels
   labels: EditorLabels
+  /** Editor wording outside EditorLabels (domain, hero, packages…). */
+  studio: Dictionary['studio']
   /** Free site plan → preview shows the «Сайт на проЯв» credit like the site. */
   platformCredit?: boolean
 }) {
@@ -228,17 +251,23 @@ export function SiteEditor({
       : [{ name: '', price: '', includes: '', featured: false }]
   )
   const [aboutImageId, setAboutImageId] = useState(content.about.imageId)
+  const [heroRole, setHeroRole] = useState(content.hero.role)
+  const [heroCity, setHeroCity] = useState(content.hero.city)
+  const [heroDirections, setHeroDirections] = useState(content.hero.directions.join(', '))
+  const [terms, setTerms] = useState(content.terms)
+  const [giftsOn, setGiftsOn] = useState(content.gifts.enabled)
+  // A never-configured block starts with all three cards switched on (the
+  // site fills default names); after that the photographer's choice stands.
+  const [gifts, setGifts] = useState<GiftItem[]>(() =>
+    content.gifts.items.some((g) => g.title || g.text || g.price || g.enabled)
+      ? content.gifts.items
+      : content.gifts.items.map((g) => ({ ...g, enabled: true }))
+  )
+  const setGift = (i: number, patch: Partial<GiftItem>) =>
+    setGifts((prev) => prev.map((g, k) => (k === i ? { ...g, ...patch } : g)))
   const [momentText, setMomentText] = useState(content.moment.text)
   const [momentImageId, setMomentImageId] = useState(content.moment.imageId)
-  const [steps, setSteps] = useState(content.process.steps)
   const [reviews, setReviews] = useState(content.testimonials.items)
-  const cleanSteps = useMemo(
-    () =>
-      steps
-        .map((st) => ({ title: st.title.trim(), text: st.text.trim() }))
-        .filter((st) => st.title || st.text),
-    [steps]
-  )
   const cleanReviews = useMemo(
     () =>
       reviews
@@ -326,18 +355,27 @@ export function SiteEditor({
 
   const previewContent: SiteContent = useMemo(
     () => ({
-      hero: { title: heroTitle, subtitle: heroSubtitle, imageId: heroImageId },
+      hero: {
+        title: heroTitle,
+        subtitle: heroSubtitle,
+        imageId: heroImageId,
+        role: heroRole.trim(),
+        city: heroCity.trim(),
+        directions: heroDirections.split(/[,;·\n]+/).map((d) => d.trim()).filter(Boolean).slice(0, 8),
+      },
+      terms,
+      gifts: { enabled: giftsOn, items: gifts },
       albumCovers,
       about: { text: aboutText, imageId: aboutImageId },
       pricing: { items: packsToItems(packs) },
       moment: { text: momentText.trim(), imageId: momentImageId },
-      process: { steps: cleanSteps },
+      process: { steps: [] },
       testimonials: { items: cleanReviews },
       contact,
       translations: content.translations,
       settings: { languages, leadForm, booking },
     }),
-    [heroTitle, heroSubtitle, heroImageId, albumCovers, aboutText, aboutImageId, momentText, momentImageId, packs, cleanSteps, cleanReviews, contact, content.translations, languages, leadForm, booking]
+    [heroTitle, heroSubtitle, heroImageId, heroRole, heroCity, heroDirections, terms, giftsOn, gifts, albumCovers, aboutText, aboutImageId, momentText, momentImageId, packs, cleanReviews, contact, content.translations, languages, leadForm, booking]
   )
 
   function setPack(index: number, patch: Partial<Pack>) {
@@ -434,16 +472,16 @@ export function SiteEditor({
           <div className="flex flex-col gap-2 rounded-lg border border-line bg-bg/60 p-4">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-semibold" htmlFor="se-domain">
-                {locale === 'uk' ? 'Власний домен' : 'Custom domain'}
+                {studio.customDomain}
               </label>
               {initialDomain &&
                 (initialDomainStatus === 'active' ? (
                   <span className="rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                    {locale === 'uk' ? '● Підключено' : '● Connected'}
+                    {studio.domainConnected}
                   </span>
                 ) : (
                   <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                    {locale === 'uk' ? '● Очікує підключення' : '● Pending'}
+                    {studio.domainPending}
                   </span>
                 ))}
             </div>
@@ -455,9 +493,7 @@ export function SiteEditor({
               className={inputClass}
             />
             <p className="text-xs leading-relaxed text-muted">
-              {locale === 'uk'
-                ? 'Щоб сайт відкривався на вашому домені, додайте в панелі свого реєстратора домену такі DNS-записи:'
-                : 'To serve your site on your own domain, add these DNS records in your registrar:'}
+              {studio.domainDnsHint}
             </p>
             <div className="rounded-md bg-fg/[0.04] p-3 font-mono text-xs leading-relaxed">
               <div>
@@ -468,9 +504,7 @@ export function SiteEditor({
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted">
-              {locale === 'uk'
-                ? 'Далі впишіть домен вище й збережіть. Ми підключимо його до 24 годин — SSL-сертифікат випуститься автоматично. Статус зміниться на «Підключено».'
-                : 'Then enter the domain above and save. We connect it within 24 hours — the SSL certificate is issued automatically. The status flips to “Connected”.'}
+              {studio.domainAfterHint}
             </p>
           </div>
           <div className="flex flex-col gap-1">
@@ -507,19 +541,40 @@ export function SiteEditor({
             onChange={(event) => setHeroSubtitle(event.target.value)}
             className={inputClass}
           />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input
+              name="hero_role"
+              defaultValue={content.hero.role}
+              placeholder={labels.heroRole}
+              onChange={(event) => setHeroRole(event.target.value)}
+              className={inputClass}
+            />
+            <input
+              name="hero_city"
+              defaultValue={content.hero.city}
+              placeholder={labels.heroCity}
+              onChange={(event) => setHeroCity(event.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <input
+            name="hero_directions"
+            defaultValue={content.hero.directions.join(', ')}
+            placeholder={labels.heroDirections}
+            onChange={(event) => setHeroDirections(event.target.value)}
+            className={inputClass}
+          />
 
           {/* Hero photo picker — choose which portfolio photo fills the hero. */}
           <input type="hidden" name="hero_image_id" value={heroImageId} />
           {/* Album covers map {category: assetId}, set via ★ on portfolio photos. */}
           <input type="hidden" name="album_covers" value={JSON.stringify(albumCovers)} />
           <p className="text-xs text-muted">
-            {locale === 'uk' ? 'Фото для головного екрана' : 'Hero photo'}
+            {studio.heroPhoto}
           </p>
           {visiblePortfolio.length === 0 ? (
             <p className="text-xs text-muted">
-              {locale === 'uk'
-                ? 'Спершу завантажте фото в портфоліо нижче.'
-                : 'Upload portfolio photos below first.'}
+              {studio.heroEmpty}
             </p>
           ) : (
             <div className="grid grid-cols-4 gap-2">
@@ -530,14 +585,14 @@ export function SiteEditor({
                   heroImageId === '' ? 'border-accent text-accent' : 'border-line text-muted'
                 }`}
               >
-                {locale === 'uk' ? 'Авто (перше)' : 'Auto (first)'}
+                {studio.heroAuto}
               </button>
               {visiblePortfolio.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setHeroImageId(item.id)}
-                  aria-label={locale === 'uk' ? 'Обрати для hero' : 'Use as hero'}
+                  aria-label={studio.heroPick}
                   className={`aspect-[4/5] rounded border-2 transition-colors ${
                     heroImageId === item.id ? 'border-accent' : 'border-transparent hover:border-line'
                   }`}
@@ -648,15 +703,11 @@ export function SiteEditor({
                                 return (
                                   <button
                                     type="button"
-                                    aria-label={locale === 'uk' ? 'Зробити обкладинкою' : 'Set as cover'}
+                                    aria-label={studio.setCover}
                                     title={
                                       isCover
-                                        ? locale === 'uk'
-                                          ? 'Обкладинка альбому'
-                                          : 'Album cover'
-                                        : locale === 'uk'
-                                          ? 'Зробити обкладинкою'
-                                          : 'Set as cover'
+                                        ? studio.albumCover
+                                        : studio.setCover
                                     }
                                     onClick={() => setAlbumCover(item.category, item.id)}
                                     className={`absolute left-1 top-8 h-6 w-6 place-items-center rounded-full bg-white text-xs shadow ${
@@ -763,53 +814,6 @@ export function SiteEditor({
           )}
         </fieldset>
 
-        {/* ---- «Як ми працюємо» (optional; hidden on the site when empty) ---- */}
-        <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
-          <legend className="px-2 text-sm text-muted">{labels.processLegend}</legend>
-          <p className="text-xs leading-relaxed text-muted">{labels.processHint}</p>
-          <input type="hidden" name="process_json" value={JSON.stringify(cleanSteps)} />
-          {steps.map((step, index) => (
-            <div key={index} className="relative flex flex-col gap-2 rounded border border-line p-3">
-              <span className="text-xs text-muted">{String(index + 1).padStart(2, '0')}</span>
-              <button
-                type="button"
-                aria-label={labels.removeItem}
-                title={labels.removeItem}
-                onClick={() => setSteps((prev) => prev.filter((_, i) => i !== index))}
-                className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full border border-line bg-bg text-xs hover:border-fg"
-              >
-                ✕
-              </button>
-              <input
-                value={step.title}
-                placeholder={labels.processTitle}
-                onChange={(event) =>
-                  setSteps((prev) => prev.map((st, i) => (i === index ? { ...st, title: event.target.value } : st)))
-                }
-                className={inputClass}
-              />
-              <textarea
-                rows={2}
-                value={step.text}
-                placeholder={labels.processText}
-                onChange={(event) =>
-                  setSteps((prev) => prev.map((st, i) => (i === index ? { ...st, text: event.target.value } : st)))
-                }
-                className={inputClass}
-              />
-            </div>
-          ))}
-          {steps.length < 8 && (
-            <button
-              type="button"
-              onClick={() => setSteps((prev) => [...prev, { title: '', text: '' }])}
-              className="self-start rounded-full border border-line px-4 py-2 text-sm transition-colors hover:border-fg"
-            >
-              + {labels.processAdd}
-            </button>
-          )}
-        </fieldset>
-
         {/* ---- «Відгуки» (optional; hidden on the site when empty) ---- */}
         <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
           <legend className="px-2 text-sm text-muted">{labels.testimonialsLegend}</legend>
@@ -892,12 +896,10 @@ export function SiteEditor({
                 checked={booking}
                 onChange={(event) => setBooking(event.target.checked)}
               />
-              {locale === 'uk' ? 'Бронювання на сайті' : 'Booking on the site'}
+              {studio.bookingOnSite}
             </label>
             <p className="pl-7 text-xs text-muted">
-              {locale === 'uk'
-                ? 'Показати секцію бронювання, зв’язану з вашою сторінкою бронювання (вільні дати, оплата напряму). Керуйте датами у вкладці «Бронювання».'
-                : 'Show a booking section wired to your own booking page (open dates, direct payment). Manage dates in the “Booking” tab.'}
+              {studio.bookingOnSiteHint}
             </p>
           </div>
         </fieldset>
@@ -984,8 +986,8 @@ export function SiteEditor({
               {packs.length > 1 && (
                 <button
                   type="button"
-                  aria-label={locale === 'uk' ? 'Видалити пакет' : 'Remove package'}
-                  title={locale === 'uk' ? 'Видалити пакет' : 'Remove package'}
+                  aria-label={studio.removePackage}
+                  title={studio.removePackage}
                   onClick={() => removePack(index)}
                   className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full border border-line bg-bg text-xs hover:border-fg"
                 >
@@ -1031,8 +1033,98 @@ export function SiteEditor({
             onClick={addPack}
             className="self-start rounded-full border border-line px-4 py-2 text-sm transition-colors hover:border-fg"
           >
-            + {locale === 'uk' ? 'Додати пакет' : 'Add package'}
+            + {studio.addPackage}
           </button>
+        </fieldset>
+
+        {/* ---- conditions under the packages ---- */}
+        <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
+          <legend className="px-2 text-sm text-muted">{labels.termsLegend}</legend>
+          <p className="text-xs leading-relaxed text-muted">{labels.termsHint}</p>
+          {(
+            [
+              ['prepayment', labels.termsPrepayment],
+              ['delivery', labels.termsDelivery],
+              ['travel', labels.termsTravel],
+              ['bring', labels.termsBring],
+            ] as const
+          ).map(([key, placeholder]) => (
+            <input
+              key={key}
+              name={`terms_${key}`}
+              maxLength={160}
+              defaultValue={content.terms[key]}
+              placeholder={placeholder}
+              onChange={(event) => setTerms((t) => ({ ...t, [key]: event.target.value }))}
+              className={inputClass}
+            />
+          ))}
+        </fieldset>
+
+        {/* ---- «Подарунки та друк» (optional, off by default) ---- */}
+        <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
+          <legend className="px-2 text-sm text-muted">{labels.giftsLegend}</legend>
+          <label className="flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              name="opt_gifts"
+              checked={giftsOn}
+              onChange={(event) => setGiftsOn(event.target.checked)}
+            />
+            {labels.optGifts}
+          </label>
+          <p className="text-xs leading-relaxed text-muted">{labels.giftsHint}</p>
+          <input type="hidden" name="gifts_json" value={JSON.stringify(gifts)} />
+          <div className={`flex-col gap-3 ${giftsOn ? 'flex' : 'hidden'}`}>
+            {gifts.map((gift, i) => (
+              <div key={gift.kind} className="flex flex-col gap-2 rounded border border-line p-3">
+                <label className="flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={gift.enabled}
+                    onChange={(event) => setGift(i, { enabled: event.target.checked })}
+                  />
+                  {labels.giftKinds[gift.kind]} · {labels.giftShow}
+                </label>
+                <div className={`flex-col gap-2 ${gift.enabled ? 'flex' : 'hidden'}`}>
+                  <input
+                    value={gift.title}
+                    maxLength={80}
+                    placeholder={`${labels.giftTitle}: ${labels.giftKinds[gift.kind]}`}
+                    onChange={(event) => setGift(i, { title: event.target.value })}
+                    className={inputClass}
+                  />
+                  <textarea
+                    rows={2}
+                    value={gift.text}
+                    maxLength={240}
+                    placeholder={labels.giftText}
+                    onChange={(event) => setGift(i, { text: event.target.value })}
+                    className={inputClass}
+                  />
+                  <input
+                    value={gift.price}
+                    maxLength={40}
+                    placeholder={labels.giftPrice}
+                    onChange={(event) => setGift(i, { price: event.target.value })}
+                    className={inputClass}
+                  />
+                  {visiblePortfolio.length > 0 && (
+                    <>
+                      <p className="text-xs text-muted">{labels.giftPhoto}</p>
+                      <PhotoPicker
+                        small
+                        items={visiblePortfolio}
+                        value={gift.imageId}
+                        onChange={(id) => setGift(i, { imageId: id })}
+                        noneLabel={labels.photoAuto}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </fieldset>
 
         <fieldset className="flex flex-col gap-3 rounded border border-line p-5">
@@ -1057,6 +1149,13 @@ export function SiteEditor({
             defaultValue={content.contact.instagram}
             placeholder={labels.contactInstagram}
             onChange={(event) => setContact((c) => ({ ...c, instagram: event.target.value }))}
+            className={inputClass}
+          />
+          <input
+            name="contact_telegram"
+            defaultValue={content.contact.telegram}
+            placeholder={labels.contactTelegram}
+            onChange={(event) => setContact((c) => ({ ...c, telegram: event.target.value }))}
             className={inputClass}
           />
           <input

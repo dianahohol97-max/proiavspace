@@ -4,7 +4,6 @@ import type { SiteLabels } from '@/components/site/SiteRenderer'
 
 /** Public-site wording from the dictionary — one place for every caller. */
 export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels {
-  const uk = locale === 'uk'
   const p = dict.publicSite
   return {
     portfolio: p.portfolio,
@@ -12,9 +11,10 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     pricing: p.pricing,
     contacts: p.contacts,
     book: p.book,
-    photos: uk ? 'фото' : 'photos',
-    viewSeries: uk ? 'Дивитись серію' : 'View series',
-    close: uk ? 'Закрити' : 'Close',
+    photos: dict.pages.sitePhotosCount,
+    locale,
+    viewSeries: dict.pages.viewSeries,
+    close: dict.pages.close,
     bookDate: p.bookDate,
     scrollHint: p.scrollHint,
     menu: p.menu,
@@ -31,6 +31,37 @@ export function siteLabelsFromDict(dict: Dictionary, locale: string): SiteLabels
     swipeHint: p.swipeHint,
     prev: p.prev,
     next: p.next,
+    inThisIssue: p.inThisIssue,
+    seasons: p.seasons,
+    editorLetter: p.editorLetter,
+    spread: p.spread,
+    pageShort: p.pageShort,
+    bookShoot: p.bookShoot,
+    dayInLight: p.dayInLight,
+    photographer: p.photographer,
+    termsTitle: p.termsTitle,
+    termsPrepayment: p.termsPrepayment,
+    termsDelivery: p.termsDelivery,
+    termsTravel: p.termsTravel,
+    termsBring: p.termsBring,
+    giftsTitle: p.giftsTitle,
+    giftCertificate: p.giftCertificate,
+    giftCertificateText: p.giftCertificateText,
+    giftBook: p.giftBook,
+    giftBookText: p.giftBookText,
+    giftPrints: p.giftPrints,
+    giftPrintsText: p.giftPrintsText,
+    order: p.order,
+    filterAll: p.filterAll,
+    nextStops: p.nextStops,
+    projectWord: p.projectWord,
+    framesWord: p.framesWord,
+    freeDates: p.freeDates,
+    freeShort: p.freeShort,
+    before: p.before,
+    after: p.after,
+    howToPrepare: p.howToPrepare,
+    compareRetouch: p.compareRetouch,
   }
 }
 
@@ -51,5 +82,8 @@ export function leadFormLabelsFromDict(dict: Dictionary): LeadFormLabels {
     shootOther: p.leadShootOther,
     contactHint: p.leadContactHint,
     sending: p.leadSending,
+    certNominal: p.certNominal,
+    certTo: p.certTo,
+    certFrom: p.certFrom,
   }
 }

@@ -4,15 +4,19 @@
  * looks the same as the CSS-only grid it replaced:
  *   - masonry: `columns: --g-cols`, 2 at ≤ 900 px, 1 at ≤ 560 px;
  *   - square / portrait / collage: `repeat(--g-cols)`, 2 at ≤ 900 px (phones too);
- *   - editorial: 3 columns, 2 at ≤ 900 px.
+ *   - editorial: 3 columns, 2 at ≤ 900 px;
+ *   - rows (justified): no columns — rows of one height, every photo whole
+ *     (see justifyRows); `columns` only picks the target row height.
  */
 
-export type GridLayout = 'masonry' | 'square' | 'portrait' | 'collage' | 'editorial'
+export type GridLayout = 'masonry' | 'square' | 'portrait' | 'collage' | 'editorial' | 'rows'
 
 /** Column count the CSS grid would use at this viewport width. */
 export function gridColumns(layout: GridLayout, desired: number, viewportWidth: number): number {
   if (layout === 'editorial') return viewportWidth <= 900 ? 2 : 3
-  if (viewportWidth <= 560) return layout === 'masonry' ? 1 : 2
+  // «Рядки» has no real columns; for `sizes` a tile is about as wide as a
+  // masonry column (a lone landscape on a phone takes the full width).
+  if (viewportWidth <= 560) return layout === 'masonry' || layout === 'rows' ? 1 : 2
   if (viewportWidth <= 900) return 2
   return Math.max(1, Math.round(desired))
 }
@@ -155,7 +159,7 @@ function lcm(a: number, b: number): number {
  */
 export function headCount(layout: GridLayout, desired: number, total: number): number {
   let unit = 1
-  if (layout !== 'masonry') {
+  if (layout !== 'masonry' && layout !== 'rows') {
     for (const viewport of [400, 800, 1280]) unit = lcm(unit, chunkSize(layout, gridColumns(layout, desired, viewport)))
   }
   return Math.min(total, Math.ceil(SSR_TILES / unit) * unit)
@@ -208,4 +212,98 @@ export function gridSrcSet(item: { previewUrl: string; gridUrl?: string | null }
 
 export function gridSrc(item: { previewUrl: string; gridUrl?: string | null }): string {
   return item.gridUrl || item.previewUrl
+}
+
+/* ---------- «Рядки» (justified rows, as on Pixieset / Flickr) ---------- */
+
+/**
+ * Target row height in px, by breakpoint. The SAME numbers are in
+ * GalleryExperience.module.css (`--g-row-h`): the server-rendered head wraps
+ * with CSS flexbox, the virtualized tail with justifyRows, and both must break
+ * the rows at the same photos. On desktop the «columns» pick sets it: more
+ * columns, lower rows, more photos per row.
+ */
+export const ROW_HEIGHT_PHONE = 100
+export const ROW_HEIGHT_TABLET = 200
+
+export function rowDesktopHeight(desired: number): number {
+  return desired <= 2 ? 340 : desired >= 4 ? 180 : 240
+}
+
+export function rowTargetHeight(desired: number, viewportWidth: number): number {
+  if (viewportWidth <= 560) return ROW_HEIGHT_PHONE
+  if (viewportWidth <= 900) return ROW_HEIGHT_TABLET
+  return rowDesktopHeight(desired)
+}
+
+/** Width ÷ height of a «Рядки» tile (unknown size: the same 4:5 slot as masonry). */
+export function rowAspect(width: number | null | undefined, height: number | null | undefined): number {
+  return 1 / masonryRatio(width, height)
+}
+
+export interface JustifiedRow {
+  /** First tile (gallery index) and one past the last. */
+  start: number
+  end: number
+  /** Row height in px; every tile of the row has it, widths follow the photos. */
+  height: number
+  /** The gallery's final row: not stretched, left-aligned at the target height. */
+  last: boolean
+}
+
+/**
+ * Splits photos into justified rows. It reproduces CSS `flex-wrap` exactly —
+ * each tile's basis is aspect × target height, a tile goes on the line while
+ * the bases plus gaps fit, then the line grows in proportion to the aspects —
+ * so the server's flexbox head and these rows break at the same photos.
+ * Every full row fills the width exactly: height = (width − gaps) ÷ Σ aspect.
+ * Nothing is cropped: each tile has its photo's proportions.
+ */
+export function justifyRows(
+  aspects: readonly number[],
+  width: number,
+  target: number,
+  gap: number
+): JustifiedRow[] {
+  const rows: JustifiedRow[] = []
+  if (width <= 0 || target <= 0) return rows
+  let start = 0
+  let used = 0
+  let sum = 0
+  const close = (end: number, last: boolean) => {
+    const fitted = (width - gap * (end - start - 1)) / sum
+    // A row that holds one photo wider than the screen shrinks to fit (CSS
+    // flex-shrink); the final row is never stretched beyond the target.
+    rows.push({ start, end, height: last ? Math.min(target, fitted) : fitted, last })
+  }
+  for (let index = 0; index < aspects.length; index++) {
+    const aspect = aspects[index] > 0 ? aspects[index] : 1 / UNKNOWN_RATIO
+    const basis = aspect * target
+    if (index > start && used + gap + basis > width + 1e-6) {
+      close(index, false)
+      start = index
+      used = 0
+      sum = 0
+    }
+    used += (index > start ? gap : 0) + basis
+    sum += aspect
+  }
+  if (aspects.length > start) close(aspects.length, true)
+  return rows
+}
+
+/** Total height of the rows (gaps between rows, none after the last). */
+export function rowsHeight(rows: readonly JustifiedRow[], gap: number): number {
+  return rows.reduce((sum, row) => sum + row.height, 0) + gap * Math.max(rows.length - 1, 0)
+}
+
+/**
+ * Where the server-rendered head ends once the width is known: it is extended
+ * to the end of the row holding its last tile, so that row is complete (and
+ * justified) and the virtualized tail starts on a fresh row.
+ */
+export function rowsHeadEnd(rows: readonly JustifiedRow[], head: number): number {
+  if (head <= 0) return 0
+  const row = rows.find((r) => r.start < head && head <= r.end)
+  return row ? row.end : head
 }

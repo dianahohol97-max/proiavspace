@@ -27,7 +27,9 @@
 .root {
   --t-bg: var(--site-bg);
   --t-fg: var(--site-fg);
-  --t-muted: var(--site-muted);
+  /* the token (#8a8781) is 3.2:1 on the paper — galleries keep it; the site
+     uses a deeper warm grey for small text (5.2:1) */
+  --t-muted: #67645f;
   --t-line: var(--site-line);
   --t-serif: 'Tysha Serif', 'Tysha Serif Fallback', Georgia, serif;
   /* muted text that still passes WCAG AA (≈ 6:1 on the light background) */
@@ -651,126 +653,6 @@
   }
 }
 
-/* ------------------------------------------------- signature moment --- */
-
-/* Fallback (no scroll-driven animations / reduced motion): the photo simply
-   spans the full width with the phrase over it. */
-.moment {
-  position: relative;
-  margin-top: var(--t-section);
-  view-timeline-name: --tysha-moment;
-  view-timeline-axis: block;
-}
-.momentStage {
-  position: relative;
-  overflow: hidden;
-  color: #fff;
-  display: grid;
-  place-items: center;
-}
-.momentFrame {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #1c1b19;
-  overflow: hidden;
-}
-.momentFrame::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at center, rgba(14, 13, 12, 0.36), rgba(14, 13, 12, 0.08) 70%);
-}
-.momentText {
-  position: absolute;
-  z-index: 1;
-  margin: 0;
-  padding: 0 var(--t-pad);
-  max-width: 16ch;
-  text-align: center;
-  font-family: var(--t-serif);
-  font-weight: 300;
-  font-size: clamp(40px, 7vw, 116px);
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.25);
-}
-@media (max-width: 760px) {
-  .momentFrame {
-    aspect-ratio: 4 / 5;
-  }
-}
-/* With scroll-driven animations: a pinned stage (≈ 0.8 screen of scroll, no
-   scroll-jacking) where the frame opens from ~60% width to the full screen
-   and the phrase develops out of a blur. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .moment {
-      height: 160vh;
-      height: 160svh;
-    }
-    @media (max-width: 760px) {
-      .moment {
-        height: 150vh;
-        height: 150svh;
-      }
-    }
-    .momentStage {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      height: 100svh;
-    }
-    .momentFrame {
-      position: absolute;
-      inset: 0;
-      aspect-ratio: auto;
-      animation: tyshaOpen linear both;
-      animation-timeline: --tysha-moment;
-      animation-range: entry 35% contain 60%;
-    }
-    .momentImg {
-      animation: tyshaSettle linear both;
-      animation-timeline: --tysha-moment;
-      animation-range: entry 35% contain 60%;
-    }
-    .momentText {
-      animation: tyshaPhrase linear both;
-      animation-timeline: --tysha-moment;
-      animation-range: contain 25% contain 85%;
-    }
-  }
-}
-@keyframes tyshaOpen {
-  from {
-    clip-path: inset(17% 20%);
-  }
-  to {
-    clip-path: inset(0 0);
-  }
-}
-@keyframes tyshaSettle {
-  from {
-    transform: scale(1.18);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-@keyframes tyshaPhrase {
-  from {
-    opacity: 0;
-    filter: blur(12px);
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: none;
-  }
-}
-
 /* -------------------------------------------------------------- about --- */
 
 .about {
@@ -939,44 +821,6 @@
   .seriesCount .label {
     display: none;
   }
-}
-
-/* ------------------------------------------------------------ process --- */
-
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: clamp(40px, 4vw, 56px) clamp(24px, 3vw, 48px);
-}
-.step {
-  border-top: 1px solid var(--t-line);
-  padding-top: 26px;
-}
-.stepNo {
-  display: block;
-  font-family: var(--t-serif);
-  font-weight: 300;
-  font-size: clamp(64px, 7vw, 104px);
-  line-height: 0.9;
-  letter-spacing: -0.02em;
-  color: color-mix(in srgb, var(--t-fg) 82%, var(--t-bg));
-}
-.stepTitle {
-  margin: 28px 0 12px;
-  font-family: var(--t-serif);
-  font-weight: 400;
-  font-size: 28px;
-  line-height: 1.15;
-}
-.stepText {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.7;
-  color: var(--t-muted-strong);
-  max-width: 34ch;
 }
 
 /* ------------------------------------------------------- testimonials --- */
@@ -1158,15 +1002,10 @@
 }
 .contactList {
   display: grid;
-  gap: 22px;
+  gap: 14px;
   margin: 0;
-}
-.contactList div {
-  display: grid;
-  gap: 4px;
-}
-.contactList dd {
-  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .contactList a {
   font-family: var(--t-serif);
@@ -1397,25 +1236,28 @@ select.input {
 
 /* ------------------------------------------------- phones: compactness --- */
 @media (max-width: 760px) {
-  .steps {
-    gap: 28px;
-  }
-  .step {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 18px;
-    padding-top: 18px;
-  }
-  .stepNo {
-    font-size: 44px;
-    grid-row: span 2;
-  }
-  .stepTitle {
-    margin: 4px 0 6px;
-    font-size: 24px;
-  }
+  /* reviews: a swipeable row, one at a time — keeps the page short */
   .reviews {
-    gap: 40px;
+    grid-auto-flow: column;
+    grid-auto-columns: 86%;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    margin: 0 calc(-1 * var(--t-pad));
+    padding: 0 var(--t-pad);
+    scroll-padding: 0 var(--t-pad);
+    scrollbar-width: none;
+  }
+  .reviews::-webkit-scrollbar {
+    display: none;
+  }
+  .review {
+    scroll-snap-align: start;
+    grid-template-columns: 1fr;
+  }
+  .reviewMark {
+    font-size: 90px;
   }
   .reviewWho {
     margin-top: 18px;
@@ -1438,5 +1280,221 @@ select.input {
   }
   .sectionHead {
     margin-bottom: 32px;
+  }
+}
+
+/* ------------------------------------------------ visiting-card blocks --- */
+
+/* «Фотограф · Весілля · Love story · Львів» under the name */
+.heroFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0 0 26px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.heroFacts > span + span::before {
+  content: '·';
+  margin-right: 18px;
+  opacity: 0.7;
+}
+.heroRole {
+  font-weight: 600;
+}
+@media (max-width: 760px) {
+  .heroFacts {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .heroFacts > span + span::before {
+    content: none;
+  }
+}
+
+/* portfolio filter: hairline chips */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -12px 0 clamp(28px, 4vw, 48px);
+}
+.filterChip {
+  appearance: none;
+  border: 1px solid var(--t-line);
+  background: none;
+  color: var(--t-fg);
+  padding: 10px 16px;
+  min-height: 40px;
+  font: 500 11px/1 var(--t-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+}
+.filterChip sup {
+  margin-left: 6px;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: var(--t-muted);
+}
+.filterChip:hover {
+  border-color: var(--t-fg);
+}
+.filterChipOn {
+  background: var(--t-fg);
+  border-color: var(--t-fg);
+  color: var(--t-bg);
+}
+.filterChipOn sup {
+  color: inherit;
+}
+/* filtered: a calm even grid instead of the editorial spread */
+.grid[data-filter]:not([data-filter='']) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  row-gap: clamp(16px, 2.4vw, 40px);
+}
+.grid[data-filter]:not([data-filter='']) .work {
+  grid-column: auto;
+  align-self: start;
+}
+.grid[data-filter]:not([data-filter='']) .workFrame {
+  aspect-ratio: 4 / 5;
+}
+@media (max-width: 760px) {
+  .grid[data-filter]:not([data-filter='']) {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
+/* terms under the packages */
+.terms {
+  margin-top: clamp(40px, 5vw, 72px);
+  padding-top: 28px;
+  border-top: 1px solid var(--t-line);
+}
+.termsTitle {
+  margin: 0 0 20px;
+  font: 500 11px/1 var(--t-sans);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+}
+.termsList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px clamp(18px, 2.4vw, 40px);
+  margin: 0;
+}
+.termsItem {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.termsLabel {
+  font-family: var(--t-serif);
+  font-size: 20px;
+}
+.termsText {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--t-muted);
+}
+@media (max-width: 860px) {
+  .termsList {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .termsList {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* gifts & prints */
+.giftGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(16px, 2.4vw, 40px);
+}
+.gift {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--t-line);
+}
+.giftImg {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--t-line);
+}
+.giftImg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.giftBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+}
+.giftTitle {
+  margin: 0;
+  font-family: var(--t-serif);
+  font-weight: 400;
+  font-size: 24px;
+}
+.giftText {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--t-muted);
+}
+.giftFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+.giftPrice {
+  font-family: var(--t-serif);
+  font-size: 20px;
+}
+.giftCta {
+  font: 600 11px/1 var(--t-sans);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 12px 0;
+  border-bottom: 1px solid currentColor;
+}
+@media (max-width: 760px) {
+  .giftGrid {
+    grid-template-columns: 1fr;
+  }
+  .gift {
+    flex-direction: row;
+  }
+  .giftImg {
+    flex: 0 0 34%;
+    aspect-ratio: auto;
+  }
+  .giftBody {
+    padding: 16px;
+  }
+  .giftText {
+    font-size: 14px;
   }
 }

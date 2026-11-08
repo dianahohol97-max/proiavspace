@@ -1,13 +1,16 @@
 'use client'
 
+import { formatMessage } from '@/lib/i18n/format'
 import { useEffect, useState } from 'react'
 import type { PortfolioGroup } from './SiteRenderer'
 
 export interface AlbumLabels {
   /** Section / fallback album title, e.g. «Портфоліо». */
   portfolio: string
-  /** Count word, e.g. «фото». */
+  /** Photo count: a template with {n} (plural-aware), e.g. «{n} фото». */
   photos: string
+  /** Page language — picks the plural form of `photos`. */
+  locale?: string
   /** «Дивитись серію» — opens the album. */
   viewSeries: string
   /** Close button in the lightbox. */
@@ -20,6 +23,13 @@ export interface AlbumLabels {
  * the whole album. Editorial layout with a gentle vertical stagger. Inherits
  * the theme's CSS vars; the lightbox is a neutral dark overlay.
  */
+/** «12 фото» / «12 zdjęć» — a {n} template, or (older labels) a bare count word. */
+export function photoCount(n: number, labels: Pick<AlbumLabels, 'photos' | 'locale'>): string {
+  return labels.photos.includes('{')
+    ? formatMessage(labels.photos, { n }, labels.locale ?? 'en')
+    : `${n} ${labels.photos}`
+}
+
 export function PortfolioAlbums({
   groups,
   labels,
@@ -82,7 +92,7 @@ export function PortfolioAlbums({
               />
               <figcaption style={{ marginTop: 12 }}>
                 <span style={{ ...mono, display: 'block' }}>
-                  ({idx}) · {group.items.length} {labels.photos}
+                  ({idx}) · {photoCount(group.items.length, labels)}
                 </span>
                 <h3
                   style={{
@@ -134,7 +144,7 @@ export function AlbumLightbox({
   onClose,
 }: {
   album: PortfolioGroup
-  labels: Pick<AlbumLabels, 'portfolio' | 'photos' | 'close'>
+  labels: Pick<AlbumLabels, 'portfolio' | 'photos' | 'close' | 'locale'>
   onClose: () => void
 }) {
   useEffect(() => {
@@ -180,7 +190,7 @@ export function AlbumLightbox({
           <h3 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>
             {album.category ?? labels.portfolio}{' '}
             <span style={{ opacity: 0.6, fontSize: 14 }}>
-              · {album.items.length} {labels.photos}
+              · {photoCount(album.items.length, labels)}
             </span>
           </h3>
           <button

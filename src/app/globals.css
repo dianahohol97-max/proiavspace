@@ -6,11 +6,14 @@
    Brand fonts — self-hosted variable subsets (latin + cyrillic), no
    build-time network dependency. Unbounded carries the platform's display
    voice; Manrope is the UI/body face.
+   Unbounded ships only the 400–900 part of its weight axis (nothing on the
+   site is lighter than 400; the 200–399 masters were cut with fontTools'
+   instancer, which leaves 400–900 bit-for-bit the same) — 20 KB lighter.
 --------------------------------------------------------------------------- */
 @font-face {
   font-family: 'Unbounded';
   font-style: normal;
-  font-weight: 300 900;
+  font-weight: 400 900;
   font-display: swap;
   src: url('/fonts/unbounded-cyrillic.woff2') format('woff2');
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
@@ -18,7 +21,7 @@
 @font-face {
   font-family: 'Unbounded';
   font-style: normal;
-  font-weight: 300 900;
+  font-weight: 400 900;
   font-display: swap;
   src: url('/fonts/unbounded-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
@@ -37,6 +40,112 @@
   font-weight: 200 800;
   font-display: swap;
   src: url('/fonts/manrope-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* The «проЯв» wordmark (logo, the giant word at the foot of the landing) is
+   Cyrillic on every locale. Set it in its own tiny Unbounded subset — just
+   п р о в я П Р О В Я, full weight axis and kerning, 2.8 KB inlined — so an
+   English page never downloads the 24 KB Cyrillic file for four letters, and
+   the logo paints in its real face on the first frame. Regenerate with
+   fontTools: subset unbounded-cyrillic.woff2 --text=проЯвПРОВяр --layout-features='*'. */
+@font-face {
+  font-family: 'Unbounded Wordmark';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url(data:font/woff2;base64,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) format('woff2');
+}
+.font-wordmark {
+  font-family: 'Unbounded Wordmark', var(--font-brand);
+}
+
+/* Metric-matched fallbacks: until a brand face arrives (font-display: swap)
+   text is set in Arial (Liberation Sans / Roboto where Arial is missing)
+   scaled to the brand face's advance widths and vertical metrics, so the swap
+   doesn't re-wrap lines and shift the hero (CLS). Ratios were measured in
+   Chromium on landing copy: regular weights (≤500) against Arial, bold
+   weights (600–800) against Arial Bold — a synthetic bold of Arial Regular
+   has the wrong widths — and cyrillic and latin separately, since they differ.
+   ascent/descent = the brand face's hhea metrics ÷ size-adjust. */
+@font-face {
+  font-family: 'Unbounded Fallback';
+  font-weight: 100 549;
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Roboto'), local('Roboto-Regular');
+  size-adjust: 138.4%;
+  ascent-override: 71.89%;
+  descent-override: 17.70%;
+  line-gap-override: 0%;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Unbounded Fallback';
+  font-weight: 100 549;
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Roboto'), local('Roboto-Regular');
+  size-adjust: 140.0%;
+  ascent-override: 71.07%;
+  descent-override: 17.50%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Unbounded Fallback';
+  font-weight: 550 900;
+  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Roboto Bold'), local('Roboto-Bold');
+  size-adjust: 131.0%;
+  ascent-override: 75.95%;
+  descent-override: 18.70%;
+  line-gap-override: 0%;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Unbounded Fallback';
+  font-weight: 550 900;
+  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Roboto Bold'), local('Roboto-Bold');
+  size-adjust: 130.0%;
+  ascent-override: 76.54%;
+  descent-override: 18.85%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Manrope Fallback';
+  font-weight: 100 549;
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Roboto'), local('Roboto-Regular');
+  size-adjust: 103.3%;
+  ascent-override: 103.19%;
+  descent-override: 29.04%;
+  line-gap-override: 0%;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Manrope Fallback';
+  font-weight: 100 549;
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Roboto'), local('Roboto-Regular');
+  size-adjust: 103.5%;
+  ascent-override: 103.00%;
+  descent-override: 28.99%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Manrope Fallback';
+  font-weight: 550 900;
+  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Roboto Bold'), local('Roboto-Bold');
+  size-adjust: 99.1%;
+  ascent-override: 107.57%;
+  descent-override: 30.27%;
+  line-gap-override: 0%;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Manrope Fallback';
+  font-weight: 550 900;
+  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Roboto Bold'), local('Roboto-Bold');
+  size-adjust: 100.1%;
+  ascent-override: 106.49%;
+  descent-override: 29.97%;
+  line-gap-override: 0%;
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
@@ -70,8 +179,8 @@
   --space-24: 6rem;
 
   --font-display: 'Georgia', 'Times New Roman', serif;
-  --font-brand: 'Unbounded', system-ui, sans-serif;
-  --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  --font-brand: 'Unbounded', 'Unbounded Fallback', system-ui, sans-serif;
+  --font-body: 'Manrope', 'Manrope Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -100,4 +209,10 @@ html {
 .masonry > * {
   break-inside: avoid;
   margin-bottom: var(--space-4);
+}
+
+/* One-page portfolio filter (components/site/card): a hidden frame stays hidden
+   whatever display a theme gives its grid items. */
+[data-cat][hidden] {
+  display: none !important;
 }

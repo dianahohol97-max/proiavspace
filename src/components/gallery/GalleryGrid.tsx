@@ -14,7 +14,12 @@ import {
   headCount,
   masonryBreakpointColumns,
   masonryRatio,
+  justifyRows,
+  rowAspect,
+  rowTargetHeight,
+  rowsHeadEnd,
   tileSpan,
+  type JustifiedRow,
   type GridLayout,
 } from './gridLayout'
 import s from './GalleryExperience.module.css'
@@ -26,8 +31,10 @@ export interface GridTileInfo {
   fill: boolean
   /** Masonry tile without stored dimensions: 4:5 slot, photo shown whole. */
   contain: boolean
-  /** Aspect ratio of the masonry box («1 / h÷w»). */
+  /** Aspect ratio of the masonry / «Рядки» box («1 / h÷w»). */
   aspect?: string
+  /** «Рядки»: the photo's width ÷ height — the tile's flex-grow (`--r`). */
+  grow?: number
   /** `sizes` for the tile's srcset — the same on the server and in the browser. */
   sizes: string
   /** Load at once (grid on the first screen) instead of lazily. */
@@ -64,7 +71,10 @@ type RenderTile<T> = (item: T, index: number, info: GridTileInfo) => ReactNode
  *   - masonry: lanes from assignMasonryLanes (proportions only, so the tail
  *     continues the head's columns exactly), one window virtualizer per lane;
  *   - square / portrait / collage / editorial: chunks of whole rows right
- *     below the head, each a CSS grid with the same classes (measured).
+ *     below the head, each a CSS grid with the same classes (measured);
+ *   - rows («Рядки», justified): the head is a CSS flex-wrap that breaks rows
+ *     exactly like justifyRows; once the width is known it is extended to the
+ *     end of its last row, and the tail is one virtualized row per item.
  */
 export function GalleryGrid<T extends Tile>({
   items,
@@ -125,12 +135,26 @@ export function GalleryGrid<T extends Tile>({
   }, [])
 
   const masonry = layout === 'masonry'
+  const justified = layout === 'rows'
+  const proportional = masonry || justified
   const ratios = useMemo(() => items.map((item) => masonryRatio(item.width, item.height)), [items])
-  const head = headCount(layout, desiredColumns, items.length)
+  const aspects = useMemo(
+    () => (justified ? items.map((item) => rowAspect(item.width, item.height)) : []),
+    [justified, items]
+  )
+  const rowTarget = geometry ? rowTargetHeight(desiredColumns, geometry.viewport) : 0
+  const rows = useMemo(
+    () => (justified && geometry ? justifyRows(aspects, geometry.width, rowTarget, gap) : []),
+    [justified, geometry, aspects, rowTarget, gap]
+  )
+  const ssrHead = headCount(layout, desiredColumns, items.length)
+  // «Рядки»: the head grows to the end of its last row once rows are known.
+  const head = justified && rows.length ? rowsHeadEnd(rows, ssrHead) : ssrHead
   const info = (index: number): GridTileInfo => ({
-    fill: masonry,
-    contain: masonry && !hasDimensions(items[index]?.width, items[index]?.height),
-    aspect: masonry ? `1 / ${ratios[index]}` : undefined,
+    fill: proportional,
+    contain: proportional && !hasDimensions(items[index]?.width, items[index]?.height),
+    aspect: proportional ? `1 / ${ratios[index]}` : undefined,
+    grow: justified ? aspects[index] : undefined,
     sizes: gridSizes(layout, desiredColumns, gap, tileSpan(layout, index)),
     eager: aboveFold && index < EAGER_TILES,
     priority: aboveFold && index < HIGH_PRIORITY_TILES,
@@ -173,6 +197,12 @@ export function GalleryGrid<T extends Tile>({
       >
         {masonry ? (
           <MasonryHead items={items} ratios={ratios} head={head} desired={desiredColumns} renderTile={renderTile} info={info} />
+        ) : justified ? (
+          // Flex-wrap head. Its last row stays unstretched (::after filler)
+          // until the rows are known, or when it is the gallery's final row.
+          <div ref={headRef} className={s.ssrRows} data-open={rows.length && head < items.length ? undefined : ''}>
+            {items.slice(0, head).map((item, index) => renderTile(item, index, info(index)))}
+          </div>
         ) : (
           <div ref={headRef} className={s.ssrGrid}>
             {items.slice(0, head).map((item, index) => renderTile(item, index, info(index)))}
@@ -180,6 +210,20 @@ export function GalleryGrid<T extends Tile>({
         )}
         {masonry
           ? masonryTail
+          : justified
+            ? geometry &&
+              rows.length > 0 &&
+              head < items.length && (
+                <RowsTail
+                  key={`${geometry.width}:${rowTarget}:${gap}`}
+                  items={items}
+                  rows={rows.filter((row) => row.start >= head)}
+                  gap={gap}
+                  offset={geometry.offset + geometry.head + gap}
+                  renderTile={renderTile}
+                  info={info}
+                />
+              )
           : geometry &&
             head < items.length && (
               <ChunkTail
@@ -383,6 +427,58 @@ function ChunkTail<T extends Tile>({
             {items
               .slice(start, start + perChunk)
               .map((item, inChunk) => renderTile(item, start + inChunk, info(start + inChunk)))}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ---------- «Рядки» tail: one virtualized justified row per item ---------- */
+
+function RowsTail<T extends Tile>({
+  items,
+  rows,
+  gap,
+  offset,
+  renderTile,
+  info,
+}: {
+  items: T[]
+  rows: JustifiedRow[]
+  gap: number
+  /** Document offset of the tail (below the head and one gap). */
+  offset: number
+  renderTile: RenderTile<T>
+  info: (index: number) => GridTileInfo
+}) {
+  // Heights are exact (justifyRows), so nothing needs measuring.
+  const virtualizer = useWindowVirtualizer({
+    count: rows.length,
+    overscan: 3,
+    scrollMargin: offset,
+    estimateSize: (row) => rows[row].height + gap,
+    getItemKey: (row) => `${rows[row].start}`,
+  })
+
+  return (
+    <div className={s.vChunkTail} style={{ marginTop: gap, height: Math.max(virtualizer.getTotalSize() - gap, 0) }}>
+      {virtualizer.getVirtualItems().map((virtual) => {
+        const row = rows[virtual.index]
+        return (
+          <div
+            key={virtual.key}
+            className={s.vRow}
+            data-last={row.last ? '' : undefined}
+            style={{
+              transform: `translate3d(0, ${virtual.start - offset}px, 0)`,
+              height: row.height,
+            }}
+          >
+            {items.slice(row.start, row.end).map((item, inRow) => {
+              const index = row.start + inRow
+              return renderTile(item, index, info(index))
+            })}
           </div>
         )
       })}

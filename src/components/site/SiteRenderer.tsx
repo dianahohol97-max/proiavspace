@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
+import { resolveSiteTheme, siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import type { SiteContent } from '@/lib/site/content'
 import type { Locale } from '@/lib/i18n/config'
 import { BookingWidget, type PublicSlot } from '@/components/BookingWidget'
@@ -7,13 +7,41 @@ import { LeadForm, type LeadFormLabels } from './LeadForm'
 import { SiteLangSwitch } from './SiteLangSwitch'
 import { ThemeGallery } from './ThemeGallery'
 import { ThemeSilence } from './ThemeSilence'
+import { AIR_FONT_VARS } from './air/fonts'
+import { ThemePovitria } from './air/ThemePovitria'
+import { JOURNAL_FONT_VARS } from './journal/fonts'
+import { ThemeZhurnal } from './journal/ThemeZhurnal'
 import { MIDNIGHT_FONT_VARS } from './midnight/fonts'
+import { START_FONT_VARS } from './start/fonts'
+import { ThemeStart } from './start/ThemeStart'
+import { TENDER_FONT_VARS } from './nizhnist/fonts'
+import { ThemeNizhnist } from './nizhnist/ThemeNizhnist'
+import { FEED_FONT_VARS } from './kontent/fonts'
+import { ThemeKontent } from './kontent/ThemeKontent'
+import { LETTER_FONT_VARS } from './lyst/fonts'
+import { ThemeLyst } from './lyst/ThemeLyst'
+import { STUDIO_FONT_VARS } from './portret/fonts'
+import { ThemePortret } from './portret/ThemePortret'
+import { PARTY_FONT_VARS } from './sviato/fonts'
+import { ThemeSviato } from './sviato/ThemeSviato'
+import { SPREAD_FONT_VARS } from './rozvorot/fonts'
+import { ThemeRozvorot } from './rozvorot/ThemeRozvorot'
+import { INDEX_FONT_VARS } from './indeks/fonts'
+import { ThemeIndeks } from './indeks/ThemeIndeks'
+import { MAT_FONT_VARS } from './paspartu/fonts'
+import { ThemePaspartu } from './paspartu/ThemePaspartu'
+import { SHEET_FONT_VARS } from './kontakt/fonts'
+import { ThemeKontakt } from './kontakt/ThemeKontakt'
+import { LAB_FONT_VARS } from './temna/fonts'
+import { ThemeTemna } from './temna/ThemeTemna'
+import { FINDER_FONT_VARS } from './vydoshukach/fonts'
+import { ThemeVydoshukach } from './vydoshukach/ThemeVydoshukach'
+import { ROUTE_FONT_VARS } from './marshrut/fonts'
+import { ThemeMarshrut } from './marshrut/ThemeMarshrut'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
-  ThemeAir,
   ThemeArchive,
   ThemeFilm,
-  ThemeJournal,
   ThemeProduction,
   type ThemeProps,
 } from './ThemeVariants'
@@ -60,6 +88,12 @@ export interface PortfolioItem {
    *  `srcSet` in WebP/JPEG, `avifSrcSet` in AVIF, both «url 828w, …». */
   srcSet?: string
   avifSrcSet?: string
+  /** Optional short vertical clip (MP4, muted) — themes that play video
+   *  («Контент») show it, with previewUrl as the poster; others ignore it. */
+  videoUrl?: string
+  /** Optional camera line, e.g. «35 мм · f/2 · 1/250 · ISO 400» — themes that
+   *  show EXIF («Видошукач») print it under the frame; others ignore it. */
+  exif?: string
 }
 
 /** Portfolio grouped into labeled collections, preserving first-seen order. */
@@ -90,8 +124,10 @@ export interface SiteLabels {
   pricing: string
   contacts: string
   book: string
-  /** Album lightbox: count word (e.g. «фото») and the close action. */
+  /** Album photo count: a {n} template, plural-aware (e.g. «{n} фото»), and the close action. */
   photos: string
+  /** Page language (plural rules, dates). */
+  locale?: string
   close: string
   /** «Дивитись серію» — opens an album. */
   viewSeries: string
@@ -112,6 +148,38 @@ export interface SiteLabels {
   swipeHint?: string
   prev?: string
   next?: string
+  inThisIssue?: string
+  /** «Зима,Весна,Літо,Осінь» — «Журнал»'s issue line. */
+  seasons?: string
+  editorLetter?: string
+  spread?: string
+  pageShort?: string
+  bookShoot?: string
+  dayInLight?: string
+  photographer?: string
+  termsTitle?: string
+  termsPrepayment?: string
+  termsDelivery?: string
+  termsTravel?: string
+  termsBring?: string
+  giftsTitle?: string
+  giftCertificate?: string
+  giftCertificateText?: string
+  giftBook?: string
+  giftBookText?: string
+  giftPrints?: string
+  giftPrintsText?: string
+  order?: string
+  before?: string
+  after?: string
+  howToPrepare?: string
+  compareRetouch?: string
+  freeDates?: string
+  freeShort?: string
+  projectWord?: string
+  framesWord?: string
+  nextStops?: string
+  filterAll?: string
 }
 
 /** One selectable language in a site's switcher. */
@@ -132,12 +200,12 @@ export interface LangSwitch {
  * pricing, contact. Every theme renders THESE blocks — themes only change
  * the CSS custom properties (see lib/site/themes.ts). No platform branding
  * anywhere on the page — with one exception: on the FREE site plan
- * ('site_trial') «Тиша» and «Опівніч» print a small «Сайт на проЯв» credit
+ * ('site_trial') «Тиша», «Опівніч», «Журнал» and «Повітря» print a small «Сайт на проЯв» credit
  * in their footer (`platformCredit`). Paid sites never show it.
  */
 export function SiteRenderer({
-  theme,
-  mode,
+  theme: storedTheme,
+  mode: storedMode,
   content,
   displayName,
   logoUrl,
@@ -148,6 +216,7 @@ export function SiteRenderer({
   booking,
   footer,
   platformCredit = false,
+  freeDates: demoFreeDates,
 }: {
   theme: ThemeId
   mode: SiteMode
@@ -166,8 +235,19 @@ export function SiteRenderer({
   footer?: { brand: string; year: number; links: { href: string; label: string }[] }
   /** Free site plan only: «Тиша» shows a small «Сайт на проЯв» credit. */
   platformCredit?: boolean
+  /** Theme demos only: sample free dates (real sites take them from booking). */
+  freeDates?: string[]
 }) {
+  // Pre-v2 themes («Плівка», «Галерея», «Архів», «Продакшн») render with the
+  // nearest v2 theme; galleries keep their old styles separately.
+  const { theme, mode } = resolveSiteTheme(storedTheme, storedMode)
   const vars = siteCssVars(theme, mode)
+  // Free dates (yyyy-mm-dd, Kyiv time) for themes that show a calendar.
+  const freeDates = booking
+    ? Array.from(
+        new Set(booking.slots.map((slot) => new Date(slot.starts_at).toLocaleDateString('sv-SE', { timeZone: 'Europe/Kyiv' })))
+      ).sort()
+    : (demoFreeDates ?? [])
   const bookingNav: BookingNav | undefined = booking
     ? { href: '#booking', label: booking.navLabel }
     : undefined
@@ -281,6 +361,83 @@ export function SiteRenderer({
       </div>
     )
   }
+  if (theme === 'povitria') {
+    return (
+      <div style={{ ...vars, ...AIR_FONT_VARS } as CSSProperties}>
+        <ThemePovitria
+          content={content}
+          displayName={displayName}
+          logoUrl={logoUrl}
+          portfolio={portfolio}
+          labels={labels}
+          langSwitch={langSwitch}
+          leadForm={leadForm}
+          bookingNav={bookingNav}
+          platformCredit={platformCredit}
+        />
+        {bookingSectionEl}
+        {footerEl}
+      </div>
+    )
+  }
+  if (theme === 'zhurnal') {
+    return (
+      <div style={{ ...vars, ...JOURNAL_FONT_VARS } as CSSProperties}>
+        <ThemeZhurnal
+          content={content}
+          displayName={displayName}
+          logoUrl={logoUrl}
+          portfolio={portfolio}
+          labels={labels}
+          langSwitch={langSwitch}
+          leadForm={leadForm}
+          bookingNav={bookingNav}
+          platformCredit={platformCredit}
+        />
+        {bookingSectionEl}
+        {footerEl}
+      </div>
+    )
+  }
+  // v2 one-page «візитка» themes: same props, own layout and type.
+  type CardThemeProps = Parameters<typeof ThemeStart>[0] & { freeDates?: string[] }
+  const cardThemes: Partial<Record<ThemeId, { Component: (p: CardThemeProps) => React.ReactElement; fonts: object }>> = {
+    start: { Component: ThemeStart, fonts: START_FONT_VARS },
+    nizhnist: { Component: ThemeNizhnist, fonts: TENDER_FONT_VARS },
+    kontent: { Component: ThemeKontent, fonts: FEED_FONT_VARS },
+    lyst: { Component: ThemeLyst, fonts: LETTER_FONT_VARS },
+    portret: { Component: ThemePortret, fonts: STUDIO_FONT_VARS },
+    sviato: { Component: ThemeSviato, fonts: PARTY_FONT_VARS },
+    rozvorot: { Component: ThemeRozvorot, fonts: SPREAD_FONT_VARS },
+    indeks: { Component: ThemeIndeks, fonts: INDEX_FONT_VARS },
+    paspartu: { Component: ThemePaspartu, fonts: MAT_FONT_VARS },
+    kontakt: { Component: ThemeKontakt, fonts: SHEET_FONT_VARS },
+    temna: { Component: ThemeTemna, fonts: LAB_FONT_VARS },
+    vydoshukach: { Component: ThemeVydoshukach, fonts: FINDER_FONT_VARS },
+    marshrut: { Component: ThemeMarshrut, fonts: ROUTE_FONT_VARS },
+  }
+  const cardTheme = cardThemes[theme]
+  if (cardTheme) {
+    const { Component, fonts } = cardTheme
+    return (
+      <div style={{ ...vars, ...fonts } as CSSProperties}>
+        <Component
+          content={content}
+          displayName={displayName}
+          logoUrl={logoUrl}
+          portfolio={portfolio}
+          labels={labels}
+          langSwitch={langSwitch}
+          leadForm={leadForm}
+          bookingNav={bookingNav}
+          platformCredit={platformCredit}
+          freeDates={freeDates}
+        />
+        {bookingSectionEl}
+        {footerEl}
+      </div>
+    )
+  }
   if (theme === 'galereia') {
     return (
       <div style={vars}>
@@ -300,9 +457,7 @@ export function SiteRenderer({
     )
   }
   const variant: Partial<Record<ThemeId, (p: ThemeProps) => React.ReactElement>> = {
-    povitria: ThemeAir,
     plivka: ThemeFilm,
-    zhurnal: ThemeJournal,
     arkhiv: ThemeArchive,
     prodakshn: ThemeProduction,
   }

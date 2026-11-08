@@ -2,7 +2,6 @@ import type { SiteContent } from '@/lib/site/content'
 import { BASE_URL } from '@/lib/seo/site'
 import type { LeadFormLabels } from '../LeadForm'
 import {
-  groupPortfolio,
   type BookingNav,
   type LangSwitch,
   type PortfolioItem,
@@ -12,13 +11,13 @@ import { DevelopImage, MagneticButton, MotionRoot, Reveal, RevealText } from '..
 import { ParallaxImage } from '../motion/ParallaxImage'
 import { Picture } from '../motion/Picture'
 import { ScrollLitText } from '../motion/ScrollLitText'
+import { ContactLinks, FilterBar, GiftsBlock, HeroFacts, TermsBlock } from '../card/blocks'
+import { buildCard, filtersFor, type Photo } from '../card/data'
 import { TYSHA_FONT_URL } from './fonts'
 import {
-  AllPortfolio,
   HeroCounter,
   HeroSlides,
   PackCta,
-  TyshaAlbums,
   TyshaLeadForm,
   TyshaNav,
 } from './islands'
@@ -28,7 +27,7 @@ import type { NavLink } from './TyshaNav'
 import t from './Tysha.module.css'
 
 /** The home page shows at most this many frames; the rest sit behind «Усе портфоліо». */
-const GRID_MAX = 9
+const GRID_MAX = 12
 const HERO_FRAMES = 4
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
@@ -39,8 +38,6 @@ const pad2 = (n: number) => String(n).padStart(2, '0')
  * the bytes. Desktops still get the preview.
  */
 const PHONE_FULL = '(max-width: 760px) 360px'
-type Photo = PortfolioItem & { previewUrl: string }
-const isLandscape = (p: Photo) => !!p.width && !!p.height && p.width >= p.height
 /** What the lightboxes need — keeps the client payload (and the HTML) lean. */
 const lean = (p: Photo): PortfolioItem => ({ id: p.id, previewUrl: p.previewUrl, caption: p.caption ?? null, category: p.category ?? null })
 
@@ -77,16 +74,14 @@ export function ThemeTysha({
   /** Free site plan only: the small «Сайт на проЯв» credit in the footer. */
   platformCredit?: boolean
 }) {
-  const brand = displayName || content.hero.title || ''
-  const title = content.hero.title || brand
-  const photos = portfolio.filter((p): p is Photo => !!p.previewUrl)
-  const byId = (id: string) => (id ? photos.find((p) => p.id === id) : undefined)
+  const card = buildCard({ content, displayName, portfolio, labels, leadForm: !!leadForm, bookingNav, gridMax: GRID_MAX })
+  const { brand, title, photos, bookHref } = card
   const shown = new Set<string>()
 
   // Hero: the chosen photo first, then the next frames of the portfolio.
-  const heroFirst = byId(content.hero.imageId) ?? photos[0]
+  const heroFirst = card.lead
   const heroPhotos = heroFirst
-    ? [heroFirst, ...photos.filter((p) => p.id !== heroFirst.id)].slice(0, HERO_FRAMES)
+    ? [heroFirst, ...photos.filter((p) => p.id !== heroFirst.id && p.id !== card.portrait?.id)].slice(0, HERO_FRAMES)
     : []
   heroPhotos.forEach((p) => shown.add(p.id))
   const heroSlides: HeroSlide[] = heroPhotos.map((p) => ({
@@ -97,72 +92,24 @@ export function ThemeTysha({
     alt: p.caption || p.category || title,
   }))
 
-  // Selected frames: continue where the hero stopped when there is enough to
-  // show; at most GRID_MAX, laid out as an editorial spread.
-  const pool = photos.length >= heroPhotos.length + 6 ? photos.filter((p) => !shown.has(p.id)) : photos
-  const gridItems = pool.slice(0, GRID_MAX)
-  gridItems.forEach((p) => shown.add(p.id))
+  // Best frames: continue where the hero stopped when there is enough.
+  const rest = photos.filter((p) => !shown.has(p.id) && p.id !== card.portrait?.id)
+  const gridItems = (rest.length >= 9 ? rest : card.grid).slice(0, GRID_MAX)
   const spread = layoutEditorial(gridItems)
+  const filters = filtersFor(gridItems, card.directions)
+  const portrait = card.portrait
 
-  // Signature frame: the chosen one, else a landscape frame not used yet.
-  const momentPhoto =
-    byId(content.moment.imageId) ??
-    photos.find((p) => !shown.has(p.id) && isLandscape(p)) ??
-    photos.find((p) => !shown.has(p.id)) ??
-    (photos.length > 1 ? photos[photos.length - 1] : undefined)
-  if (momentPhoto) shown.add(momentPhoto.id)
-
-  const portrait = byId(content.about.imageId)
-  if (portrait) shown.add(portrait.id)
-
-  // Series: a cover the visitor has not just seen above, when there is one.
-  const groups = groupPortfolio(photos)
-  const hasSeries = groups.some((g) => g.category !== null)
-  const covers: Record<string, { src: string; srcSet?: string }> = {}
-  for (const g of groups) {
-    const chosen = g.items.find((it) => it.id === content.albumCovers[g.category ?? ''])
-    const fresh = chosen && !shown.has(chosen.id) ? chosen : g.items.find((it) => !shown.has(it.id))
-    const cover = (fresh ?? chosen ?? g.items[0]) as Photo | undefined
-    if (cover) covers[g.category ?? ''] = { src: cover.previewUrl, srcSet: cover.srcSet }
-  }
-  const leanGroups = groups.map((g) => ({ category: g.category, items: (g.items as Photo[]).map(lean) }))
-
-  const steps = content.process.steps
-  const reviews = content.testimonials.items
-  const packs = content.pricing.items
-  const contact = content.contact
-  const instagram = contact.instagram.replace(/^@/, '')
+  const reviews = card.reviews
+  const packs = card.packs
 
   const L = {
-    bookDate: labels.bookDate ?? labels.book,
+    ...card.L,
     scroll: labels.scrollHint ?? 'Гортайте',
-    menu: labels.menu ?? 'Меню',
-    process: labels.process ?? 'Як ми працюємо',
     selected: labels.selectedWork ?? labels.portfolio,
-    series: labels.series ?? labels.portfolio,
-    testimonials: labels.testimonials ?? 'Відгуки',
-    popular: labels.popular ?? 'Найчастіше обирають',
-    choose: labels.choosePack ?? labels.book,
-    madeOn: labels.madeOn ?? 'Сайт на проЯв',
-    all: labels.allPortfolio ?? labels.portfolio,
+    choose: card.L.choosePack,
   }
-
-  // Where «Забронювати дату» leads: the form when it is on, else the booking
-  // section/page, else the contacts.
-  const bookHref = leadForm ? '#contact' : contact.bookingUrl || bookingNav?.href || '#contact'
-
-  const navLinks: NavLink[] = [
-    ...(photos.length > 0 ? [{ href: '#portfolio', label: labels.portfolio }] : []),
-    ...(content.about.text ? [{ href: '#about', label: labels.about }] : []),
-    ...(packs.length > 0 ? [{ href: '#pricing', label: labels.pricing }] : []),
-    { href: '#contact', label: labels.contacts },
-    ...(bookingNav ? [bookingNav] : []),
-  ]
-  const contactLinks: NavLink[] = [
-    ...(contact.phone ? [{ href: `tel:${contact.phone.replace(/[^\d+]/g, '')}`, label: contact.phone }] : []),
-    ...(contact.email ? [{ href: `mailto:${contact.email}`, label: contact.email }] : []),
-    ...(instagram ? [{ href: `https://instagram.com/${instagram}`, label: `@${instagram}` }] : []),
-  ]
+  const navLinks: NavLink[] = card.navLinks
+  const contactLinks: NavLink[] = card.contactLinks
 
   let sectionNo = 0
   const head = (label: string, heading: string, extra?: React.ReactNode) => {
@@ -184,7 +131,7 @@ export function ThemeTysha({
   // hydration wait); screen readers and crawlers get the plain string.
   let letter = 0
   const heroName = (
-    <h1 className={t.heroTitle} aria-label={title}>
+    <h1 className={t.heroTitle} aria-label={title} data-card="name">
       {title.split(/\s+/).filter(Boolean).map((word, wi) => (
         <span key={wi} aria-hidden="true">
           {wi > 0 && ' '}
@@ -242,13 +189,16 @@ export function ThemeTysha({
           <div className={`${t.wrap} ${t.heroInner}`}>
             <div className={t.heroCopy}>
               {heroName}
+              <div className={t.heroFade} style={afterName}>
+                <HeroFacts card={card} s={t} />
+              </div>
               <div className={t.heroRow}>
                 {content.hero.subtitle && (
                   <p className={`${t.heroSub} ${t.heroFade}`} style={afterName}>
                     {content.hero.subtitle}
                   </p>
                 )}
-                <div className={t.heroFade} style={afterName}>
+                <div className={t.heroFade} style={afterName} data-card="book">
                   <MagneticButton href={bookHref} className={t.ctaLight}>
                     {L.bookDate} <span className={t.arrow}>→</span>
                   </MagneticButton>
@@ -271,8 +221,9 @@ export function ThemeTysha({
         {/* ---- portfolio: dense editorial spread, ≤ 9 frames ---- */}
         {spread.length > 0 && (
           <section id="portfolio" className={`${t.section} ${t.wrap}`}>
-            {head(labels.portfolio, L.selected, <span className={t.label}>{pad2(photos.length)}</span>)}
-            <div className={t.grid}>
+            {head(labels.portfolio, L.selected, <span className={t.label}>{pad2(gridItems.length)}</span>)}
+            <FilterBar card={{ ...card, filters }} gridId="tysha-grid" s={t} />
+            <div className={t.grid} id="tysha-grid">
               {spread.map(({ item, desk, mobile }, i) => (
                 <Reveal
                   key={item.id}
@@ -280,6 +231,7 @@ export function ThemeTysha({
                   className={t.work}
                   delay={desk.second ? 0.12 : 0}
                   y={32}
+                  cat={item.category ?? ''}
                   style={
                     {
                       '--col': desk.col,
@@ -308,36 +260,46 @@ export function ThemeTysha({
                 </Reveal>
               ))}
             </div>
-            {photos.length > gridItems.length && (
-              <div className={t.allRow}>
-                <AllPortfolio
-                  items={photos.map(lean)}
-                  label={L.all}
-                  labels={{ portfolio: L.all, photos: labels.photos, close: labels.close }}
-                />
-              </div>
-            )}
           </section>
         )}
 
-        {/* ---- signature moment: a frame that opens up to the full screen ---- */}
-        {momentPhoto && (
-          <section className={t.moment} aria-label={content.moment.text || undefined}>
-            <div className={t.momentStage}>
-              <div className={t.momentFrame}>
-                <Picture
-                  src={momentPhoto.previewUrl}
-                  srcSet={momentPhoto.srcSet}
-                  avifSrcSet={momentPhoto.avifSrcSet}
-                  sizes={`${PHONE_FULL}, 100vw`}
-                  alt={content.moment.text ? '' : momentPhoto.caption || title}
-                  className={t.momentImg}
-                />
-              </div>
-              {content.moment.text && <p className={t.momentText}>{content.moment.text}</p>}
+        {/* ---- pricing ---- */}
+        {packs.length > 0 && (
+          <section id="pricing" className={`${t.section} ${t.wrap}`}>
+            {head(labels.pricing, labels.pricing)}
+            <div className={t.packs}>
+              {packs.map((pack, i) => (
+                <Reveal key={pack.name} delay={i * 0.1}>
+                  <article className={`${t.pack} ${pack.featured ? t.packFeatured : ''}`} data-pack={pack.name}>
+                    {pack.featured && <span className={t.packBadge}>{L.popular}</span>}
+                    <h3 className={t.packName}>{pack.name}</h3>
+                    {pack.price && <p className={t.packPrice}>{pack.price}</p>}
+                    {pack.includes.length > 0 && (
+                      <ul className={t.packList}>
+                        {pack.includes.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className={t.packCta}>
+                      <PackCta pack={pack.name} href={bookHref} className={pack.featured ? t.ctaDark : t.ctaLine}>
+                        {L.choose} <span className={t.arrow}>→</span>
+                      </PackCta>
+                    </div>
+                  </article>
+                </Reveal>
+              ))}
             </div>
+            <TermsBlock card={card} s={t} />
           </section>
         )}
+
+        {/* ---- gifts & prints (optional) ---- */}
+        <GiftsBlock
+          card={card}
+          s={{ ...t, gifts: `${t.section} ${t.wrap} ${t.gifts}` }}
+          heading={head(L.giftsTitle, L.giftsTitle)}
+        />
 
         {/* ---- about: scroll-lit quote beside a parallax portrait ---- */}
         {content.about.text && (
@@ -363,48 +325,13 @@ export function ThemeTysha({
           </section>
         )}
 
-        {/* ---- series (albums) ---- */}
-        {hasSeries && (
-          <section id="series" className={`${t.section} ${t.wrap}`}>
-            {head(L.series, L.series, <span className={t.label}>{pad2(groups.length)}</span>)}
-            <TyshaAlbums
-              groups={leanGroups}
-              covers={covers}
-              labels={{
-                portfolio: labels.portfolio,
-                photos: labels.photos,
-                viewSeries: labels.viewSeries,
-                close: labels.close,
-              }}
-            />
-          </section>
-        )}
-
-        {/* ---- how we work ---- */}
-        {steps.length > 0 && (
-          <section id="process" className={`${t.section} ${t.wrap}`}>
-            {head(L.process, L.process)}
-            <ol className={t.steps}>
-              {steps.map((step, i) => (
-                <Reveal key={i} as="li" className={t.step} delay={i * 0.1}>
-                  <span className={t.stepNo} aria-hidden="true">
-                    {pad2(i + 1)}
-                  </span>
-                  {step.title && <h3 className={t.stepTitle}>{step.title}</h3>}
-                  {step.text && <p className={t.stepText}>{step.text}</p>}
-                </Reveal>
-              ))}
-            </ol>
-          </section>
-        )}
-
         {/* ---- testimonials ---- */}
         {reviews.length > 0 && (
           <section id="reviews" className={`${t.section} ${t.wrap}`}>
             {head(L.testimonials, L.testimonials)}
             <div className={t.reviews}>
               {reviews.map((review, i) => {
-                const photo = byId(review.photoId)
+                const photo = review.photo
                 return (
                   <Reveal key={i} as="figure" className={t.review}>
                     <span className={t.reviewMark} aria-hidden="true">
@@ -430,36 +357,6 @@ export function ThemeTysha({
           </section>
         )}
 
-        {/* ---- pricing ---- */}
-        {packs.length > 0 && (
-          <section id="pricing" className={`${t.section} ${t.wrap}`}>
-            {head(labels.pricing, labels.pricing)}
-            <div className={t.packs}>
-              {packs.map((pack, i) => (
-                <Reveal key={pack.name} delay={i * 0.1}>
-                  <article className={`${t.pack} ${pack.featured ? t.packFeatured : ''}`}>
-                    {pack.featured && <span className={t.packBadge}>{L.popular}</span>}
-                    <h3 className={t.packName}>{pack.name}</h3>
-                    {pack.price && <p className={t.packPrice}>{pack.price}</p>}
-                    {pack.includes.length > 0 && (
-                      <ul className={t.packList}>
-                        {pack.includes.map((line) => (
-                          <li key={line}>{line}</li>
-                        ))}
-                      </ul>
-                    )}
-                    <div className={t.packCta}>
-                      <PackCta pack={pack.name} href={bookHref} className={pack.featured ? t.ctaDark : t.ctaLine}>
-                        {L.choose} <span className={t.arrow}>→</span>
-                      </PackCta>
-                    </div>
-                  </article>
-                </Reveal>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* ---- contact + enquiry form ---- */}
         <section id="contact" className={`${t.section} ${t.wrap}`}>
           <div className={t.contact}>
@@ -470,39 +367,10 @@ export function ThemeTysha({
                 text={leadForm ? leadForm.labels.title : labels.contacts}
                 className={t.contactTitle}
               />
-              {(contact.email || contact.phone || instagram) && (
-                <dl className={t.contactList}>
-                  {contact.phone && (
-                    <div>
-                      <dt className={t.label}>{leadForm?.labels.phone ?? 'Телефон'}</dt>
-                      <dd>
-                        <a href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`}>{contact.phone}</a>
-                      </dd>
-                    </div>
-                  )}
-                  {contact.email && (
-                    <div>
-                      <dt className={t.label}>Email</dt>
-                      <dd>
-                        <a href={`mailto:${contact.email}`}>{contact.email}</a>
-                      </dd>
-                    </div>
-                  )}
-                  {instagram && (
-                    <div>
-                      <dt className={t.label}>Instagram</dt>
-                      <dd>
-                        <a href={`https://instagram.com/${instagram}`} target="_blank" rel="noopener noreferrer">
-                          @{instagram}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              )}
-              {contact.bookingUrl && (
+              <ContactLinks card={card} s={t} />
+              {content.contact.bookingUrl && (
                 <div className={t.contactBook}>
-                  <a href={contact.bookingUrl} className={t.ctaLine}>
+                  <a href={content.contact.bookingUrl} className={t.ctaLine}>
                     {labels.book} <span className={t.arrow}>→</span>
                   </a>
                 </div>
@@ -510,7 +378,12 @@ export function ThemeTysha({
             </div>
             {leadForm && (
               <div className={t.contactForm}>
-                <TyshaLeadForm handle={leadForm.handle} labels={leadForm.labels} shootTypes={packs.map((p) => p.name)} />
+                <TyshaLeadForm
+                  handle={leadForm.handle}
+                  labels={leadForm.labels}
+                  shootTypes={card.topics}
+                  certificateTopic={card.certificateTopic}
+                />
               </div>
             )}
           </div>

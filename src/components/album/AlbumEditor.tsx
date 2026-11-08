@@ -21,6 +21,8 @@ import { spreadLabel } from '@/lib/album/export/run'
 import type { AlbumPhoto, AlbumSlot, AlbumSpread, AlbumText, PrintSpec } from '@/lib/album/types'
 import { Uploader } from '@/components/Uploader'
 import { ExportDialog } from './ExportDialog'
+import { MagicDialog, type MagicOutcome } from './MagicDialog'
+import { MAGIC_STYLES, type MagicResult, type MagicStyle } from '@/lib/album/magic'
 import { SlotInspector } from './SlotInspector'
 import { DND_PHOTO, DND_PHOTOS, DND_SLOT, SpreadView, type Selection, type SpreadViewHandlers } from './SpreadView'
 import { TextInspector } from './TextInspector'
@@ -94,8 +96,12 @@ const STATUS_TEXT: Record<SaveStatus, string> = {
 function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' | 'local'; basePath: string; loaded: LoadedProject }) {
   const backend = backendFor(backendKind)
   const { project: initial } = loaded
-  const spec = initial.spec
-  const normalize = useCallback((all: AlbumSpread[]) => normalizeCovers(all, spec), [spec])
+  // The print profile can change only before anything is placed («Магічна збірка» → профіль).
+  const [spec, setSpec] = useState<PrintSpec>(initial.spec)
+  // Read at call time: a profile change and the new spreads land in one commit.
+  const specRef = useRef(spec)
+  specRef.current = spec
+  const normalize = useCallback((all: AlbumSpread[]) => normalizeCovers(all, specRef.current), [])
   const doc = useAlbumDoc(backend, initial.id, initial.spreads, normalize)
   const { spreads, commit } = doc
   const [photos, setPhotos] = useState<AlbumPhoto[]>(loaded.photos)
@@ -115,6 +121,8 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
   const [uploading, setUploading] = useState(false)
   const [stripFilter, setStripFilter] = useState<'all' | 'unused'>('all')
   const [rightTab, setRightTab] = useState<'templates' | 'frame'>('templates')
+  const [magicOpen, setMagicOpen] = useState<null | { spreads?: number; style?: MagicStyle; autoStart?: boolean }>(null)
+  const [magic, setMagic] = useState<{ results: MagicResult[]; index: number; key: string; ms: number; measured: number; faced: number } | null>(null)
   const isPhone = useIsPhone()
 
   const current = spreads.find((s) => s.id === spreadId) ?? spreads[0] ?? null
@@ -301,6 +309,43 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
     if (created[0]) setSpreadId(created[0].id)
   }
 
+  // ---- «Магічна збірка» ---------------------------------------------------
+
+  /** The whole album is replaced by one style; switching styles stays one undo step. */
+  const showMagic = (results: MagicResult[], index: number, key: string) => {
+    const chosen = results[index]!
+    commit(() => chosen.spreads, key)
+    setSpreadId(chosen.spreads[1]?.id ?? chosen.spreads[0]?.id ?? null)
+    setSelection(null)
+    setVariants(null)
+  }
+  const applyMagic = (outcome: MagicOutcome) => {
+    setMagicOpen(null)
+    setSpec(outcome.spec)
+    specRef.current = outcome.spec
+    const key = `magic-${uuid()}`
+    showMagic(outcome.results, outcome.index, key)
+    setMagic({ results: outcome.results, index: outcome.index, key, ms: outcome.ms, measured: outcome.measured, faced: outcome.faced })
+    setPicked([])
+  }
+  const stepMagic = (dir: 1 | -1) => {
+    if (!magic) return
+    const index = (magic.index + dir + magic.results.length) % magic.results.length
+    showMagic(magic.results, index, magic.key)
+    setMagic({ ...magic, index })
+  }
+  const undoMagic = () => {
+    if (!magic) return
+    doc.undo()
+    setMagic(null)
+  }
+  // Any other edit (or Ctrl+Z) ends the style switcher: «Скасувати збірку» must undo the build, not that edit.
+  useEffect(() => {
+    if (magic && spreads !== magic.results[magic.index]!.spreads) setMagic(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spreads])
+  const nothingPlaced = spreads.every((s) => s.slots.every((x) => !x.assetId))
+
   const handlers: SpreadViewHandlers = useMemo(
     () => ({
       onSelect: (sel) => {
@@ -406,6 +451,12 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
         stepVariant(e.key === 'ArrowRight' ? 1 : -1)
       } else if (e.key === 'Escape' && variants) {
         setVariants(null)
+      } else if (magic && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        // After «Магічна збірка»: arrows flip through the three styles.
+        e.preventDefault()
+        stepMagic(e.key === 'ArrowRight' ? 1 : -1)
+      } else if (e.key === 'Escape' && magic) {
+        setMagic(null)
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'PageDown' || e.key === 'PageUp') {
         const next = spreads[currentIndex + (e.key === 'ArrowRight' || e.key === 'PageDown' ? 1 : -1)]
         if (next) {
@@ -417,7 +468,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, current, slotId, textId, spreads, currentIndex, updateSlot, variants])
+  }, [doc, current, slotId, textId, spreads, currentIndex, updateSlot, variants, magic])
 
   const [stageRef, stage] = useElementSize<HTMLDivElement>()
   const sheet = current ? sheetSizeMm(formatFor(spec, current)) : null
@@ -437,6 +488,19 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
     if (autoDone.current) return
     autoDone.current = true
     const url = new URL(window.location.href)
+    if (url.searchParams.get('magic') === '1') {
+      const spreadsParam = Number(url.searchParams.get('spreads'))
+      const styleParam = url.searchParams.get('style') as MagicStyle | null
+      for (const k of ['magic', 'spreads', 'style']) url.searchParams.delete(k)
+      window.history.replaceState(null, '', url.toString())
+      if (spreads.length === 0 && photos.length > 0)
+        setMagicOpen({
+          spreads: Number.isFinite(spreadsParam) && spreadsParam > 0 ? spreadsParam : undefined,
+          style: MAGIC_STYLES.some((x) => x.id === styleParam) ? styleParam! : undefined,
+          autoStart: true,
+        })
+      return
+    }
     if (url.searchParams.get('auto') !== '1') return
     url.searchParams.delete('auto')
     window.history.replaceState(null, '', url.toString())
@@ -444,7 +508,7 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const projectForExport = useMemo(() => ({ ...initial, title, spreads }), [initial, title, spreads])
+  const projectForExport = useMemo(() => ({ ...initial, spec, title, spreads }), [initial, spec, title, spreads])
 
   if (isPhone) return <PhoneViewer title={title} spec={spec} spreads={spreads} photos={photosById} basePath={basePath} />
 
@@ -519,6 +583,9 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
         </button>
         <button className={btnGhost} onClick={doc.redo} disabled={!doc.canRedo} aria-label="Повторити" title="Повторити (Ctrl+Shift+Z)">
           ↷
+        </button>
+        <button className={btn} onClick={() => setMagicOpen({})} disabled={!photos.length} data-testid="magic-open" title="Увесь альбом одним кліком">
+          ✨ Магічна збірка
         </button>
         <button className={btnGhost} onClick={addText} disabled={!current} title="Додати текст на розворот">
           + Текст
@@ -617,6 +684,9 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
                 <button className={btn} onClick={autofillAlbum} disabled={!photos.length}>
                   Автодизайн альбому
                 </button>
+                <button className={btn} onClick={() => setMagicOpen({})} disabled={!photos.length}>
+                  ✨ Магічна збірка
+                </button>
               </div>
             </div>
           )}
@@ -624,6 +694,39 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
             <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-sm text-muted">
               Оберіть шаблон праворуч, перетягніть фото на розворот (можна кілька позначених одразу) або натисніть «Автозаповнити».
             </p>
+          )}
+          {magic && (
+            <div
+              className="absolute inset-x-0 top-3 mx-auto flex w-max max-w-[95%] flex-wrap items-center justify-center gap-2 rounded-full bg-fg px-2 py-1.5 text-sm font-semibold text-white shadow-lg"
+              data-testid="magic-bar"
+              data-ms={Math.round(magic.ms)}
+              data-measured={magic.measured}
+              data-faced={magic.faced}
+              role="toolbar"
+              aria-label="Стилі магічної збірки"
+            >
+              <button className="rounded-full px-3 py-1 hover:bg-white/15" onClick={() => stepMagic(-1)} aria-label="Попередній стиль">
+                ‹
+              </button>
+              <span data-testid="magic-style" data-style={magic.results[magic.index]!.report.style}>
+                ✨ {MAGIC_STYLES[magic.index]!.name} · {magic.index + 1} з {magic.results.length}
+              </span>
+              <button className="rounded-full px-3 py-1 hover:bg-white/15" onClick={() => stepMagic(1)} aria-label="Наступний стиль">
+                ›
+              </button>
+              <span className="hidden text-xs font-normal text-white/70 lg:inline" data-testid="magic-report">
+                {(() => {
+                  const r = magic.results[magic.index]!.report
+                  return `${r.chosen} кадрів · розділів ${r.chapters} · героїв ${r.heroes} · ${(magic.ms / 1000).toFixed(1)} с`
+                })()}
+              </span>
+              <button className="rounded-full px-3 py-1 hover:bg-white/15" onClick={undoMagic} data-testid="magic-undo">
+                Скасувати збірку
+              </button>
+              <button className="rounded-full px-3 py-1 hover:bg-white/15" onClick={() => setMagic(null)} aria-label="Залишити цей стиль">
+                ✓
+              </button>
+            </div>
           )}
           {variants && variants.spreadId === current?.id && (
             <div
@@ -798,6 +901,22 @@ function EditorInner({ backendKind, basePath, loaded }: { backendKind: 'server' 
           })}
         </div>
       </footer>
+
+      {magicOpen && (
+        <MagicDialog
+          backend={backend}
+          projectId={initial.id}
+          photos={photos}
+          picked={picked}
+          spec={spec}
+          canChangeProfile={nothingPlaced}
+          galleryKey={initial.galleryId ?? `album:${initial.id}`}
+          defaultTitle={loaded.galleryTitle?.replace(/^Альбом:\s*/, '') || title}
+          initial={magicOpen}
+          onDone={applyMagic}
+          onClose={() => setMagicOpen(null)}
+        />
+      )}
 
       {exporting && (
         <ExportDialog

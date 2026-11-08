@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { waitUntil } from '@vercel/functions'
@@ -5,11 +6,21 @@ import { galleryAssetsClient, isGalleryUnlocked } from '@/lib/gallery-access'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
+import { notifyFirstView } from '@/lib/push/events'
+import { getVapidConfig } from '@/lib/push/send'
 import { resolveGalleryTheme } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { parseGalleryStyle } from '@/lib/gallery/style'
-import { galleryLabels } from '@/lib/gallery/labels'
+import { deliveryLabels, galleryLabels } from '@/lib/gallery/labels'
+import {
+  countVisibleAssets,
+  deliveryCoverKey,
+  deliveryView,
+  formatDeliveryEta,
+  parseDeliveryStatus,
+} from '@/lib/gallery/delivery'
+import { DeliveryStatusScreen } from '@/components/gallery/DeliveryStatusScreen'
 import { GalleryExperience, type GalleryItem } from '@/components/gallery/GalleryExperience'
 import { LangPicker } from '@/components/LangPicker'
 import type { Asset } from '@/lib/types'
@@ -49,11 +60,12 @@ export default async function PublicGalleryPage({
     supabase
       .from('galleries')
       .select(
-        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style'
+        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style, view_count, delivery_status, delivery_eta'
       )
       .eq('slug', params.slug)
       .single<{
         id: string
+        view_count: number
         slug: string
         title: string
         description: string | null
@@ -63,6 +75,8 @@ export default async function PublicGalleryPage({
         cover_asset_id: string | null
         theme: string | null
         style: unknown
+        delivery_status: string | null
+        delivery_eta: string | null
       }>(),
   ])
 
@@ -138,6 +152,17 @@ export default async function PublicGalleryPage({
     )
   )
 
+  // «Галерею вперше переглянули» (photographer's phone app). Only while the
+  // gallery is fresh: a gallery viewed 20+ times has had its first visitor.
+  if (gallery.view_count < 20 && getVapidConfig()) {
+    waitUntil(
+      notifyFirstView(gallery.id, async () => {
+        const { data } = await supabase.auth.getUser()
+        return data.user?.id ?? null
+      }).catch(() => null)
+    )
+  }
+
   // This client's current favorites (scoped by the middleware-minted token).
   const clientToken = cookies().get('ct')?.value
 
@@ -184,7 +209,7 @@ export default async function PublicGalleryPage({
   // English-locale galleries show the Latin-script name when the photographer
   // set one — «Діана Гоголь» reads wrong under an English UI.
   const brandName =
-    (locale === 'en' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
+    (locale !== 'uk' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
   // Honour the grace window: once a canceled plan's grace expires, the public
   // gallery must fall back to free (badge returns, custom logo drops) instead of
   // keeping paid perks forever. grace_until comes from get_gallery_branding
@@ -201,6 +226,38 @@ export default async function PublicGalleryPage({
     branding?.logo_key && ownerPlan.features.photographerLogo
       ? await storage.getSignedReadUrl(branding.logo_key, { expiresInSeconds: 60 * 60 })
       : null
+
+  // «Статус зйомки» (0055) — only after the closed / password checks above.
+  // null or 'ready' → the gallery exactly as before; 'shot'/'editing' with no
+  // visible photos → the status screen; with some previews → a small strip.
+  const deliveryStatus = parseDeliveryStatus(gallery.delivery_status)
+  const view = deliveryView(deliveryStatus, countVisibleAssets(assets))
+  const etaText = formatDeliveryEta(gallery.delivery_eta, locale)
+  const dLabels = deliveryLabels(dict)
+  const galleryStyle = parseGalleryStyle(gallery.style)
+  if (view === 'screen' && deliveryStatus) {
+    const backdropKey = deliveryCoverKey(assets, gallery.cover_asset_id)
+    const backdropUrl = backdropKey
+      ? await storage.getSignedReadUrl(backdropKey, { expiresInSeconds: 60 * 60 }).catch(() => null)
+      : null
+    return (
+      <DeliveryStatusScreen
+        locale={locale}
+        title={gallery.title}
+        brandName={brandName}
+        logoUrl={logoUrl}
+        coverUrl={backdropUrl}
+        status={deliveryStatus}
+        etaText={etaText}
+        contactUrl={branding?.contact_url ?? null}
+        showBadge={!ownerPlan.features.brandingRemoval}
+        theme={theme}
+        mode={mode}
+        style={galleryStyle}
+        labels={dLabels}
+      />
+    )
+  }
 
   const items: GalleryItem[] = await Promise.all(
     (assets ?? []).map(async (asset) => ({
@@ -254,7 +311,7 @@ export default async function PublicGalleryPage({
 
   const eventLine = [
     gallery.event_date
-      ? new Date(gallery.event_date).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+      ? new Date(gallery.event_date).toLocaleDateString(intlLocale(locale), {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
@@ -283,8 +340,13 @@ export default async function PublicGalleryPage({
       tipUrl={ownerPlan.features.tips ? (branding?.tip_link ?? null) : null}
       theme={theme}
       mode={mode}
-      style={parseGalleryStyle(gallery.style)}
+      style={galleryStyle}
       labels={galleryLabels(dict)}
+      deliveryNotice={
+        view === 'banner'
+          ? { text: dLabels.banner, etaText: etaText ? dLabels.bannerEta.replace('{date}', etaText) : null }
+          : null
+      }
     />
   )
 }

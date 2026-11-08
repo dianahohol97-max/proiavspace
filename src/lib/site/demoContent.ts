@@ -19,6 +19,24 @@ export interface ThemeDemo {
   displayName: string
   content: SiteContent
   portfolio: PortfolioItem[]
+  /** Sample free dates for themes with a calendar (real sites: booking slots). */
+  freeDates?: string[]
+}
+
+/** Pre-v2 demos: kept for the gallery-style demo, not offered as site themes. */
+export const LEGACY_DEMO_VALUES = new Set(['plivka', 'galereia', 'arkhiv', 'prodakshn'])
+
+/** A few weekend dates over the next six weeks, for calendar demos. */
+function sampleFreeDates(): string[] {
+  const out: string[] = []
+  const day = new Date()
+  day.setHours(12, 0, 0, 0)
+  for (let i = 3; i < 45 && out.length < 7; i++) {
+    const d = new Date(day.getTime() + i * 86_400_000)
+    const wd = d.getDay()
+    if ((wd === 5 && i % 2 === 0) || wd === 6 || (wd === 0 && i % 3 === 0)) out.push(d.toISOString().slice(0, 10))
+  }
+  return out
 }
 
 /** A /themes photo by number, or any other public path as-is. */
@@ -88,9 +106,134 @@ function phn(
   }
 }
 
+/** «Журнал» demo photos: WebP 828w copies in public/themes/zhurnal; the cover also AVIF/WebP 828/1280/1920. */
+function phj(id: string, n: number, category: string, caption: string, hero = false): PortfolioItem {
+  const small = `/themes/zhurnal/themes-${n}`
+  const width = n === 40 ? 1500 : 1333
+  return {
+    id,
+    previewUrl: `/themes/${n}.webp`,
+    visible: true,
+    category,
+    caption,
+    width,
+    height: 2000,
+    srcSet: hero
+      ? `${small}-828.webp 828w, ${small}-1280.webp 1280w, ${small}-1920.webp 1920w`
+      : `${small}-828.webp 828w, /themes/${n}.webp ${width}w`,
+    ...(hero ? { avifSrcSet: `${small}-828.avif 828w, ${small}-1280.avif 1280w, ${small}-1920.avif 1920w` } : {}),
+  }
+}
+
+/**
+ * «Повітря» demo photos (public/themes/povitria, Unsplash — see CREDITS.md):
+ * WebP 2000w as the preview, WebP 828w for phones; the hero also AVIF/WebP
+ * 828/1280/1920. Different families by different photographers — captions
+ * never pretend it is one family.
+ */
+function pha(id: string, n: string, category: string, caption: string, [width, height]: [number, number]): PortfolioItem {
+  const base = `/themes/povitria/web/${n}`
+  const hero = n === '01'
+  const w2000 = 2000
+  return {
+    id,
+    previewUrl: `${base}-2000.webp`,
+    visible: true,
+    category,
+    caption,
+    width,
+    height,
+    srcSet: hero
+      ? `${base}-828.webp 828w, ${base}-1280.webp 1280w, ${base}-1920.webp 1920w`
+      : `${base}-828.webp 828w, ${base}-2000.webp ${w2000}w`,
+    ...(hero ? { avifSrcSet: `${base}-828.avif 828w, ${base}-1280.avif 1280w, ${base}-1920.avif 1920w` } : {}),
+  }
+}
+
+/**
+ * A /public/themes frame as WebP with its 1080 px phone copy when there is one
+ * (01–24). Used by the v2 themes while their own demo photos are on the way.
+ */
+function pht(
+  id: string,
+  n: number,
+  category: string,
+  caption: string,
+  [width, height]: [number, number],
+  /** First-screen frame: 828/1280 WebP + AVIF copies; 'sheet': a 480 px copy in /themes/sheet. */
+  hero: boolean | 'sheet' = false
+): PortfolioItem {
+  const base = `/themes/${String(n).padStart(2, '0')}`
+  if (hero === 'sheet')
+    return {
+      id,
+      previewUrl: `${base}.webp`,
+      visible: true,
+      category,
+      caption,
+      width,
+      height,
+      srcSet: `/themes/sheet/${n}-480.webp 480w, ${base}.webp ${width}w`,
+    }
+  return {
+    id,
+    previewUrl: `${base}.webp`,
+    visible: true,
+    category,
+    caption,
+    width,
+    height,
+    srcSet: hero
+      ? `${base}-828.webp 828w, ${base}-1280.webp 1280w, ${base}.webp ${width}w`
+      : n <= 24
+        ? `${base}-1080.webp 1080w, ${base}.webp ${width}w`
+        : undefined,
+    ...(hero ? { avifSrcSet: `${base}-828.avif 828w, ${base}-1280.avif 1280w` } : {}),
+  }
+}
+
+/** A landing /public/showcase frame (WebP, no smaller copies). */
+function phs(
+  id: string,
+  n: string,
+  category: string,
+  caption: string,
+  [width, height]: [number, number],
+  /** First-screen frame: 828/1280 WebP + AVIF copies next to it ('small': 480/828). */
+  hero: boolean | 'small' = false
+): PortfolioItem {
+  const base = `/showcase/${n}`
+  return {
+    id,
+    previewUrl: `${base}.webp`,
+    visible: true,
+    category,
+    caption,
+    width,
+    height,
+    ...(hero === 'small'
+      ? {
+          srcSet: `${base}-480.webp 480w, ${base}-828.webp 828w`,
+          avifSrcSet: `${base}-480.avif 480w, ${base}-828.avif 828w`,
+        }
+      : hero
+        ? {
+            srcSet: `${base}-828.webp 828w, ${base}-1280.webp 1280w, ${base}.webp ${width}w`,
+            avifSrcSet: `${base}-828.avif 828w, ${base}-1280.avif 1280w`,
+          }
+        : {}),
+  }
+}
+
+type Hero = SiteContent['hero']
+type Contact = SiteContent['contact']
 function content(
-  partial: Omit<Partial<SiteContent>, 'about'> &
-    Pick<SiteContent, 'hero' | 'pricing' | 'contact'> & { about: { text: string; imageId?: string } }
+  partial: Omit<Partial<SiteContent>, 'about' | 'hero' | 'contact'> &
+    Pick<SiteContent, 'pricing'> & {
+      hero: Pick<Hero, 'title' | 'subtitle' | 'imageId'> & Partial<Hero>
+      about: { text: string; imageId?: string }
+      contact: Omit<Contact, 'telegram'> & Partial<Contact>
+    }
 ): SiteContent {
   return {
     albumCovers: {},
@@ -99,8 +242,12 @@ function content(
     moment: { text: '', imageId: '' },
     process: { steps: [] },
     testimonials: { items: [] },
+    terms: { prepayment: '', delivery: '', travel: '', bring: '' },
+    gifts: { enabled: false, items: [] },
     ...partial,
+    hero: { role: '', city: '', directions: [], ...partial.hero },
     about: { imageId: '', ...partial.about },
+    contact: { telegram: '', ...partial.contact },
   }
 }
 
@@ -113,32 +260,24 @@ export const THEME_DEMOS: ThemeDemo[] = [
     suits: 'Весільна та сімейна зйомка',
     displayName: 'Ольга Вишня',
     content: content({
-      hero: { title: 'Ольга Вишня', subtitle: 'Весільні історії у вашому темпі', imageId: '1' },
+      hero: {
+        title: 'Ольга Вишня',
+        subtitle: 'Весільні історії у вашому темпі',
+        imageId: '1',
+        city: 'Львів і Карпати',
+        directions: ['Весілля', 'Love story', 'Сімейні'],
+      },
+      terms: {
+        prepayment: '30% — і дата ваша',
+        delivery: 'перші кадри за 3 дні, уся галерея за 4 тижні',
+        travel: 'Львів і Карпати без доплат, далі — дорога за домовленістю',
+        bring: 'зручне взуття і все, що для вас важливе: листи, обручки, плед',
+      },
       about: {
         text: 'Я знімаю весілля такими, якими їх памʼятають самі наречені: світло крізь фіранку, мамині руки, що поправляють фату, тиша перед першим «так». Не ставлю в пози — спостерігаю й допомагаю почуватися вільно.',
         imageId: '17',
       },
       moment: { text: 'Найцінніше — між кадрами', imageId: '15' },
-      process: {
-        steps: [
-          {
-            title: 'Знайомство',
-            text: 'Зідзвонюємося або зустрічаємося на каву. Ви розповідаєте про свій день, я — про те, як працюю. Без поспіху й зобовʼязань.',
-          },
-          {
-            title: 'Підготовка',
-            text: 'Разом складаємо таймінг, обираємо локації та час із найкращим світлом. За тиждень до зйомки надсилаю короткий план дня.',
-          },
-          {
-            title: 'Зйомка',
-            text: 'Я поруч, але не заважаю: більше спостерігаю, ніж керую. Підказую лише там, де це справді допомагає.',
-          },
-          {
-            title: 'Галерея',
-            text: 'Спершу — кілька кадрів, щоб поділитися з рідними. Потім — повна онлайн-галерея з оригіналами, яку зручно переглядати й завантажувати.',
-          },
-        ],
-      },
       testimonials: {
         items: [
           {
@@ -178,7 +317,7 @@ export const THEME_DEMOS: ThemeDemo[] = [
           },
         ],
       },
-      contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', bookingUrl: '' },
+      contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', telegram: 'olga_vyshnia', bookingUrl: '' },
     }),
     portfolio: [
       // 1–4: landscape frames for the hero; then the grid's rhythm
@@ -188,11 +327,11 @@ export const THEME_DEMOS: ThemeDemo[] = [
       phw('3', '/themes/12', 'Весілля', 'Червоний дім на пагорбі', [2000, 1335]),
       phw('4', '/themes/04', 'Весілля', 'Дорога додому', [2000, 1335]),
       phw('5', '/themes/01', 'Весілля', 'Біля старого паркану', [2000, 1335]),
-      phw('6', '/themes/18', 'Пари', 'Тільки ми', [1335, 2000]),
-      phw('7', '/themes/13', 'Пари', 'Серед трав', [1335, 2000]),
+      phw('6', '/themes/18', 'Love story', 'Тільки ми', [1335, 2000]),
+      phw('7', '/themes/13', 'Love story', 'Серед трав', [1335, 2000]),
       phw('8', '/themes/16', 'Весілля', 'Перший погляд', [2000, 1335]),
       phw('9', '/themes/20', 'Весілля', 'Удвох', [2000, 1335]),
-      phw('10', '/showcase/01', 'Пари', 'Ліс після дощу', [1333, 2000]),
+      phw('10', '/showcase/01', 'Love story', 'Ліс після дощу', [1333, 2000]),
       phw('11', '/themes/05', 'Весілля', 'Під горами', [2000, 1335]),
       phw('12', '/themes/06', 'Весілля', 'Вітер з гір', [1335, 2000]),
       phw('13', '/showcase/09', 'Сімейні', 'Велика родина', [1333, 2000]),
@@ -200,10 +339,9 @@ export const THEME_DEMOS: ThemeDemo[] = [
       phw('15', '/showcase/16', 'Портрети', 'Золота година', [2000, 1333]),
       phw('16', '/showcase/14', 'Сімейні', 'На татових плечах', [1333, 2000]),
       phw('17', '/showcase/08', 'Портрети', 'Біля вікна', [1333, 2000]),
-      phw('18', '/showcase/03', 'Пари', 'Липневе світло', [1333, 2000]),
+      phw('18', '/showcase/03', 'Love story', 'Липневе світло', [1333, 2000]),
       phw('19', '/showcase/04', 'Сімейні', 'Неділя в полі', [1333, 2000]),
       phw('20', '/showcase/07', 'Сімейні', 'Перше літо', [1333, 2000]),
-      phw('21', '/showcase/06', 'Портрети', 'Вечірнє світло', [1333, 2000]),
     ],
   },
   {
@@ -214,32 +352,32 @@ export const THEME_DEMOS: ThemeDemo[] = [
     suits: 'Вечірні та мистецькі зйомки',
     displayName: 'Ольга Вишня',
     content: content({
-      hero: { title: 'Ольга Вишня', subtitle: 'Світло, що зʼявляється в темряві', imageId: '1' },
+      hero: {
+        title: 'Ольга Вишня',
+        subtitle: 'Світло, що зʼявляється в темряві',
+        imageId: '1',
+        city: 'Київ',
+        directions: ['Весілля', 'Портрети', 'Світло і тінь'],
+      },
+      terms: {
+        prepayment: '30% — і вечір ваш',
+        delivery: '10 кадрів наступного ранку, галерея за 3 тижні',
+        travel: 'Київ і область без доплат',
+        bring: 'бенгальські вогні беру я; вам — улюблений плед на вечір',
+      },
+      gifts: {
+        enabled: true,
+        items: [
+          { kind: 'certificate', enabled: true, title: 'Сертифікат на вечірню зйомку', text: 'На річницю чи весілля друзів: годину живого світла й 60 кадрів.', price: 'від 3 000 ₴', imageId: '19' },
+          { kind: 'book', enabled: false, title: '', text: '', price: '', imageId: '' },
+          { kind: 'prints', enabled: true, title: 'Принти на матовому папері', text: 'Глибокі тіні на бавовняному папері, 20×30 і 30×45.', price: 'від 450 ₴', imageId: '18' },
+        ],
+      },
       about: {
         text: 'Я люблю вечір: гірлянди, свічки, бенгальські вогні й обличчя, на які падає тепле світло. Там, де інші вимикають камеру, для мене починається найцікавіше — темрява робить кожен кадр тихішим і чеснішим.',
         imageId: '11',
       },
       moment: { text: 'Вогні гаснуть — кадри лишаються', imageId: '' },
-      process: {
-        steps: [
-          {
-            title: 'Розмова про вечір',
-            text: 'Дізнаюся, яким ви бачите свято після заходу сонця: гірлянди, свічки, перший танець, вогні наприкінці.',
-          },
-          {
-            title: 'План світла',
-            text: 'Разом із координатором продумуємо, де буде тепле світло і в який момент запалити бенгальські вогні.',
-          },
-          {
-            title: 'Вечірня зйомка',
-            text: 'Працюю з живим світлом і мінімумом спалахів, щоб зберегти атмосферу вечора такою, якою ви її відчували.',
-          },
-          {
-            title: 'Галерея',
-            text: 'Кольори доводжу вручну, щоб зберегти теплі тони і глибокі тіні. Готову онлайн-галерею з оригіналами зручно переглядати й завантажувати.',
-          },
-        ],
-      },
       testimonials: {
         items: [
           {
@@ -274,25 +412,24 @@ export const THEME_DEMOS: ThemeDemo[] = [
           },
         ],
       },
-      contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', bookingUrl: '' },
+      contact: { email: 'olga@example.com', phone: '+380 67 100 00 00', instagram: '@olga.vyshnia', telegram: 'olga_vyshnia', bookingUrl: '' },
     }),
     portfolio: [
-      // 1: hero; 2–10: the grid's rhythm (pair, trio, pause, trio); 11: the
-      // photographer's portrait; the rest feed the strip of lights.
-      phn('1', '/themes/25', 'Вечірні весілля', 'Коридор із вогнів', [2000, 1333], true),
-      phn('2', '/themes/26', 'Вечірні весілля', 'Перший танець під гірляндами', [2000, 1335]),
-      phn('3', '/themes/27', 'Вечірні весілля', 'Поцілунок під іскрами', [1333, 2000]),
-      phn('4', '/themes/29', 'Вечірні весілля', 'Сукня в іскрах', [1333, 2000]),
-      phn('5', '/themes/28', 'Вечірні весілля', 'Щасливі', [1333, 2000]),
-      phn('6', '/themes/38', 'Свічки й портрети', 'Тепло на обличчі', [1416, 2000]),
+      // 1: hero; 11: the photographer's portrait; the next nine form the grid
+      // (pair, trio, pause, trio); the rest feed the strip of lights.
+      // No frame is shared with «Тиша»'s demo.
+      phn('1', '/themes/25', 'Весілля', 'Коридор із вогнів', [2000, 1333], true),
+      phn('2', '/themes/26', 'Весілля', 'Перший танець під гірляндами', [2000, 1335]),
+      phn('3', '/themes/27', 'Весілля', 'Поцілунок під іскрами', [1333, 2000]),
+      phn('4', '/themes/29', 'Весілля', 'Сукня в іскрах', [1333, 2000]),
+      phn('5', '/themes/28', 'Весілля', 'Щасливі', [1333, 2000]),
+      phn('6', '/themes/38', 'Портрети', 'Тепло на обличчі', [1416, 2000]),
       phn('7', '/themes/30', 'Світло і тінь', 'Остання година сонця', [2000, 1374]),
-      phn('8', '/themes/39', 'Свічки й портрети', 'Вікно у вечір', [1600, 2000]),
-      phn('9', '/showcase/02', 'Свічки й портрети', 'Промінь', [1333, 2000]),
-      phn('10', '/showcase/08', 'Свічки й портрети', 'Біля вікна', [1333, 2000]),
+      phn('8', '/themes/39', 'Портрети', 'Вікно у вечір', [1600, 2000]),
+      phn('9', '/showcase/02', 'Портрети', 'Промінь', [1333, 2000]),
       phn('11', '/showcase/06', 'Світло і тінь', 'Портрет', [1333, 2000]),
-      phn('12', '/themes/37', 'Свічки й портрети', 'Червоне світло', [2000, 1333]),
-      phn('13', '/showcase/16', 'Світло і тінь', 'Крізь листя', [2000, 1333]),
-      phn('14', '/themes/35', 'Свічки й портрети', 'Вогні міста', [1333, 2000]),
+      phn('12', '/themes/37', 'Портрети', 'Червоне світло', [2000, 1333]),
+      phn('14', '/themes/35', 'Портрети', 'Вогні міста', [1333, 2000]),
       phn('15', '/showcase/10', 'Світло і тінь', 'Сутінки', [1333, 2000]),
       phn('16', '/themes/36', 'Світло і тінь', 'Боке', [1500, 2000]),
       phn('17', '/showcase/12', 'Світло і тінь', 'Високі вікна', [1333, 2000]),
@@ -308,19 +445,912 @@ export const THEME_DEMOS: ThemeDemo[] = [
     suits: 'Сімейні та lifestyle',
     displayName: 'Ірина Літо',
     content: content({
-      hero: { title: 'Ірина Літо', subtitle: 'Легкі сімейні історії', imageId: '' },
-      about: { text: 'Світлі, повітряні кадри про звичайне щастя: сімʼї, діти, ранки вдома.' },
-      pricing: {
+      hero: {
+        title: 'Ірина Літо',
+        subtitle: 'Легкі сімейні історії',
+        imageId: '1',
+        city: 'Одеса',
+        directions: ['Сімейні', 'Діти', 'Lifestyle вдома'],
+      },
+      terms: {
+        prepayment: '1 000 ₴ — і день за вами',
+        delivery: 'галерея за 2 тижні',
+        travel: 'Одеса й узбережжя — без доплат',
+        bring: 'одяг у спокійних кольорах, улюблену іграшку, воду й перекус для дітей',
+      },
+      about: {
+        text: 'Я знімаю сімʼї там, де їм добре: вдома за сніданком, у полі, на прогулянці до заходу сонця. Без позування годинами — граємо, розмовляємо, ловимо світло. А фото потім пахнуть тим самим днем.',
+        imageId: '21',
+      },
+      moment: { text: 'Від ранкового вікна до золотої години', imageId: '' },
+      testimonials: {
         items: [
-          { name: 'Прогулянка', price: 'від 4 500 ₴', includes: ['1 година', '40 кадрів'] },
-          { name: 'Lifestyle вдома', price: 'від 7 000 ₴', includes: ['2 години', '80 кадрів'] },
+          { names: 'Олена', text: 'Діти навіть не помітили, що це зйомка. А в нас тепер є фото, де ми всі справжні.', photoId: '9' },
+          { names: 'Андрій і Марія', text: 'Хотіли кілька кадрів у полі, а отримали цілу історію нашого вечора. Дуже тепло.', photoId: '15' },
+          { names: 'Наталія', text: 'Легко, спокійно і без «посміхнись у камеру». Саме так, як хотілося.', photoId: '13' },
         ],
       },
-      contact: { email: 'iryna@example.com', phone: '+380 63 200 00 00', instagram: '@iryna.lito', bookingUrl: '' },
+      pricing: {
+        items: [
+          { name: 'Прогулянка', price: 'від 4 500 ₴', includes: ['1 година', 'одна локація', '40 кадрів з обробкою'] },
+          {
+            name: 'День родини',
+            price: 'від 9 000 ₴',
+            includes: ['до 3 годин', 'вдома і надворі', '120 кадрів з обробкою', 'онлайн-галерея'],
+            featured: true,
+          },
+          { name: 'Lifestyle вдома', price: 'від 7 000 ₴', includes: ['2 години', 'ранок або вечір удома', '80 кадрів з обробкою'] },
+        ],
+      },
+      contact: { email: 'iryna@example.com', phone: '+380 63 200 00 00', instagram: '@iryna.lito', telegram: 'iryna_lito', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 31, 'Діти', 'Босоніж до сонця'),
-      ph('2', 30, 'Сімейні', 'Вечір біля озера'),
+      // 01 hero · 02–13 the collage (02–07 carry a time: «День у світлі»)
+      // · 14–20 spares (the floating hero prints) · 21 portrait.
+      pha('1', '01', 'Сімейні', 'Простір', [2400, 1602]),
+      pha('2', '02', 'Lifestyle вдома', '08:40 · Ранок біля вікна', [2400, 3600]),
+      pha('3', '03', 'Lifestyle вдома', '09:30 · Сніданок', [2400, 1600]),
+      pha('4', '04', 'Сімейні', '13:10 · Полудень у полі', [2400, 1600]),
+      pha('5', '05', 'Сімейні', '15:20 · Пікнік', [2400, 1600]),
+      pha('6', '06', 'Сімейні', '17:30 · Прогулянка', [2400, 1601]),
+      pha('7', '07', 'Сімейні', '19:40 · Золота година', [2400, 1600]),
+      pha('8', '08', 'Сімейні', 'Утрьох', [2400, 3307]),
+      pha('9', '09', 'Сімейні', 'Вище неба', [2400, 3596]),
+      pha('10', '10', 'Сімейні', 'Сонце в траві', [2400, 3600]),
+      pha('11', '11', 'Сімейні', 'Обійми', [2400, 3600]),
+      pha('12', '12', 'Діти', 'Старший брат', [2400, 3600]),
+      pha('13', '13', 'Діти', 'Літо', [2400, 3600]),
+      pha('14', '14', 'Сімейні', 'Тепло', [2400, 1600]),
+      pha('15', '15', 'Сімейні', 'Всі разом', [2400, 1600]),
+      pha('16', '16', 'Сімейні', 'У полі', [2400, 1600]),
+      pha('17', '17', 'Діти', 'Вітер', [2400, 3624]),
+      pha('18', '18', 'Діти', 'Стежка', [2400, 3360]),
+      pha('19', '19', 'Сімейні', 'Біля моря', [2400, 3600]),
+      pha('20', '20', 'Сімейні', 'Перед заходом', [2400, 1600]),
+      pha('21', '21', 'Сімейні', 'Ірина', [2400, 3609]),
+    ],
+  },
+  {
+    value: 'start',
+    theme: 'start',
+    mode: 'light',
+    name: 'Старт',
+    suits: 'Перше портфоліо, до 10 кадрів',
+    displayName: 'Марко Вереск',
+    content: content({
+      hero: {
+        title: 'Марко Вереск',
+        subtitle: 'Прості й чесні кадри — без пафосу і довгих поз',
+        imageId: '2',
+        city: 'Київ',
+        directions: ['Love story', 'Портрет', 'Сімейні'],
+      },
+      about: {
+        text: 'Я знімаю другий рік і досі радію кожній зйомці, як першій. Люблю природне світло, прогулянки і людей, які не вміють позувати, — разом ми впораємося. Беру небагато зйомок на місяць, щоб на кожну був час.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '500 ₴, решта — після зйомки',
+        delivery: 'усі фото за 7 днів',
+        travel: 'Київ — без доплат',
+        bring: 'дві зміни одягу й гарний настрій',
+      },
+      testimonials: {
+        items: [
+          { names: 'Аня і Тарас', text: 'Було легко й весело, а фото вийшли саме про нас. Дякуємо, що не мучив позами!', photoId: '3' },
+          { names: 'Олена', text: 'Отримала фото вже за п’ять днів — і всі як на підбір. Рекомендую подругам.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Портрет', price: '2 000 ₴', includes: ['1 година', 'одна локація', '30 фото з обробкою'] },
+          {
+            name: 'Love story',
+            price: '3 500 ₴',
+            includes: ['до 2 годин', 'дві локації', '60 фото з обробкою'],
+            featured: true,
+          },
+          { name: 'Сімейна', price: '3 000 ₴', includes: ['1.5 години', 'парк або дім', '50 фото з обробкою'] },
+        ],
+      },
+      contact: { email: 'marko@example.com', phone: '+380 93 500 00 00', instagram: '@marko.veresk', telegram: 'marko_veresk', bookingUrl: '' },
+    }),
+    // Exactly ten frames: «Старт» must look good with a small portfolio.
+    // TEMPORARY (until assets/start): 02–19 are the mountain couple of the
+    // «Тиша» set; 31 is Старт's own. See docs/THEMES_LOG.md.
+    portfolio: [
+      pht('1', 2, 'Love story', 'Вітер у горах', [2000, 1335]),
+      pht('2', 31, 'Сімейні', 'Захід сонця', [2000, 1333], true),
+      pht('3', 9, 'Портрет', 'Погляд', [1450, 2000]),
+      pht('4', 3, 'Love story', 'Удвох', [2000, 1335]),
+      pht('5', 10, 'Портрет', 'Тиша', [1335, 2000]),
+      pht('6', 8, 'Love story', 'Дорога', [2000, 1335]),
+      pht('7', 19, 'Портрет', 'Світло', [1335, 2000]),
+      pht('8', 11, 'Love story', 'Серед трав', [2000, 1335]),
+      pht('9', 14, 'Love story', 'Сміх', [2000, 1335]),
+      pht('10', 17, 'Love story', 'Вечір', [2000, 1335]),
+    ],
+  },
+  {
+    value: 'nizhnist',
+    theme: 'nizhnist',
+    mode: 'light',
+    name: 'Ніжність',
+    suits: 'Новонароджені, вагітність, рік малюка',
+    displayName: 'Соломія Тепла',
+    content: content({
+      hero: {
+        title: 'Соломія Тепла',
+        subtitle: 'Перший рік малюка — від перших днів до першої свічки на торті',
+        imageId: '1',
+        city: 'Львів',
+        directions: ['Рік малюка', 'Сімейні', 'Діти'],
+      },
+      about: {
+        text: 'Я мама двох дітей і вже шість років знімаю найменших. Теплу студію готую заздалегідь, працюю лише з денним світлом і ніколи не поспішаю: годування, сон і обійми — важливіші за кадр.',
+        imageId: '',
+      },
+      moment: {
+        text: 'Безпека на зйомці: студія прогріта до 26 °C, усі пози — лише з підстраховкою рук асистента, реквізит перевіряю перед кожною зйомкою, а перерви робимо стільки, скільки потрібно малюку.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '1 000 ₴ — і дата ваша',
+        delivery: 'превʼю за 3 дні, усі фото за 2 тижні',
+        travel: 'студія у Львові; виїзд додому — +600 ₴',
+        bring: 'улюблену ковдрочку, запасний одяг і все для годування',
+      },
+      gifts: {
+        enabled: true,
+        items: [
+          { kind: 'certificate', enabled: true, title: 'Подарунковий сертифікат', text: 'Для мами в декреті чи майбутніх батьків — на будь-яку зйомку або суму.', price: 'від 1 500 ₴', imageId: '' },
+          { kind: 'book', enabled: true, title: 'Фотокнига «Мій перший рік»', text: '20 розворотів, тверда льняна обкладинка, тиснення імені.', price: 'від 2 400 ₴', imageId: '' },
+          { kind: 'prints', enabled: true, title: 'Принти для дитячої', text: 'Мʼякий матовий папір, 20×30, у пастельних паспарту.', price: 'від 350 ₴', imageId: '' },
+        ],
+      },
+      testimonials: {
+        items: [
+          { names: 'Ірина, мама Марка', text: 'Я хвилювалася, як він витримає зйомку, а він проспав майже весь час у теплі. Кадри — найдорожче, що в нас є.', photoId: '' },
+          { names: 'Оля та Дмитро', text: 'Знімалися щоквартально весь перший рік — тепер у нас ціла книга про те, як Соня росла.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Новонароджений', price: 'від 4 500 ₴', includes: ['до 3 годин у теплій студії', 'реквізит і одяг', '25 фото з ретушшю'] },
+          {
+            name: 'Рік малюка',
+            price: 'від 14 000 ₴',
+            includes: ['4 зйомки: 1, 4, 8 і 12 місяців', '15 фото з кожної', 'фотокнига в подарунок'],
+            featured: true,
+          },
+          { name: 'Сімейна вдома', price: 'від 3 800 ₴', includes: ['1.5 години у вас удома', 'вся родина', '40 фото з обробкою'] },
+        ],
+      },
+      contact: { email: 'solomiia@example.com', phone: '+380 97 600 00 00', instagram: '@solomiia.tepla', telegram: 'solomiia_tepla', bookingUrl: '' },
+    }),
+    // TEMPORARY (until assets/nizhnist): family frames from the «Повітря» set
+    // that its page does not show (14–20) and four «Тиша» spares from
+    // /showcase. The «рік малюка» ribbon reads the «1 міс · …» captions.
+    portfolio: [
+      phs('1', '07', 'Сімейні', 'Перше літо', [1333, 2000], true),
+      pha('2', '20', 'Рік малюка', '1 міс · Перші тижні вдома', [2400, 1600]),
+      phs('3', '04', 'Рік малюка', '4 міс · На ковдрі в траві', [1333, 2000]),
+      pha('4', '14', 'Рік малюка', '8 міс · На татових руках', [2400, 1600]),
+      phs('5', '14', 'Рік малюка', '1 рік · Вище за всіх', [1333, 2000]),
+      pha('6', '15', 'Сімейні', 'Усі разом', [2400, 1600]),
+      pha('7', '17', 'Діти', 'Вітер', [2400, 3624]),
+      pha('8', '19', 'Сімейні', 'Біля моря', [2400, 3600]),
+      pha('9', '18', 'Діти', 'Стежка', [2400, 3360]),
+      pha('10', '16', 'Діти', 'У полі', [2400, 1600]),
+      phs('11', '16', 'Діти', 'Золота година', [2000, 1333]),
+      phs('12', '03', 'Сімейні', 'Липневе світло', [1333, 2000]),
+      phs('13', '08', 'Сімейні', 'Біля вікна', [1333, 2000]),
+    ],
+  },
+  {
+    value: 'kontent',
+    theme: 'kontent',
+    mode: 'light',
+    name: 'Контент',
+    suits: 'Контент для брендів і соцмереж',
+    displayName: 'Аліна Кадр',
+    content: content({
+      hero: {
+        title: 'Аліна Кадр',
+        subtitle: 'Фото й короткі відео для соцмереж бренду — за один знімальний день',
+        imageId: '1',
+        role: 'Контент-фотограф',
+        city: 'Київ і онлайн',
+        directions: ['Продукт', 'Майстри', 'Люди бренду'],
+      },
+      about: {
+        text: 'Я знімаю контент для малого бізнесу: кавʼярні, майстерні, бʼюті-бренди. Приїжджаю з планом публікацій на місяць, а йду з фото й вертикальними відео, які одразу можна викладати.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '50% після узгодження контент-плану',
+        delivery: 'перші 10 кадрів наступного дня, усе за 5 днів',
+        travel: 'Київ — включено; інші міста — дорога',
+        bring: 'продукт у кількох варіантах і людей, які з ним працюють',
+      },
+      testimonials: {
+        items: [
+          { names: 'Кавʼярня «Зерно»', text: 'Після зйомки нам вистачило контенту на півтора місяця. Охоплення в рілсах виросли вдвічі.', photoId: '' },
+          { names: 'Майстерня «Глина»', text: 'Аліна сама придумала сюжети для відео — нам лишилося тільки працювати, як завжди.', photoId: '' },
+          { names: 'Бренд догляду «Ліс»', text: 'Чіткий план, швидко, і кадри однаково гарні в профілі й на сайті.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Старт профілю', price: '6 000 ₴', includes: ['2 години зйомки', '30 фото', '3 вертикальні відео'] },
+          {
+            name: 'Місяць контенту',
+            price: '14 000 ₴',
+            includes: ['контент-план на місяць', '80 фото', '10 відео для reels', 'обкладинки для highlights'],
+            featured: true,
+          },
+          { name: 'Продуктова', price: '4 500 ₴', includes: ['до 10 позицій', 'фон і реквізит', '40 фото з ретушшю'] },
+        ],
+      },
+      contact: { email: 'alina@example.com', phone: '+380 50 700 00 00', instagram: '@alina.kadr', telegram: 'alina_kadr', bookingUrl: '' },
+    }),
+    // TEMPORARY (until assets/kontent): product frames of «Індекс» (55–59)
+    // and the painting-studio frames of «Паспарту» (32–34); no videos yet.
+    portfolio: [
+      pht('1', 55, 'Продукт', 'Сироватки на сонці', [1333, 2000], true),
+      pht('2', 58, 'Продукт', 'Крапля', [1333, 2000]),
+      pht('3', 32, 'Майстри', 'Перший мазок', [1333, 2000]),
+      pht('4', 33, 'Майстри', 'Палітра', [1333, 2000]),
+      pht('5', 56, 'Продукт', 'Набір', [2000, 1333]),
+      pht('6', 34, 'Майстри', 'Готова робота', [1126, 2000]),
+      pht('7', 57, 'Продукт', 'Лінійка', [2000, 1333]),
+      pht('8', 59, 'Продукт', 'Тюбики', [1333, 2000]),
+      pht('9', 41, 'Люди бренду', 'Деталі образу', [1333, 2000]),
+      pht('10', 47, 'Люди бренду', 'Лукбук', [1333, 2000]),
+    ],
+  },
+  {
+    value: 'lyst',
+    theme: 'lyst',
+    mode: 'light',
+    name: 'Лист',
+    suits: 'Love story, весілля, річниці',
+    displayName: 'Віра Ясень',
+    content: content({
+      hero: {
+        title: 'Віра Ясень',
+        subtitle: 'Знімаю історії, які хочеться перечитувати',
+        imageId: '1',
+        city: 'Чернівці',
+        directions: ['Love story', 'Весілля', 'Річниця'],
+      },
+      about: {
+        text: 'Я вірю, що найкращі кадри схожі на листи: їх пишуть повільно й для когось одного. Тому перед зйомкою ми довго говоримо, а на зйомці я просто дозволяю вам бути поруч.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '30% — і день записано за вами',
+        delivery: '20 кадрів за тиждень, уся історія за місяць',
+        travel: 'Буковина без доплат; інші міста — дорога',
+        bring: 'речі зі спільною історією: лист, плед, улюблену книжку',
+      },
+      testimonials: {
+        items: [
+          { names: 'Марта і Богдан', text: 'Ми перечитуємо ці фото, як старі листи. Кожного разу знаходимо щось нове.', photoId: '' },
+          { names: 'Ганна та Ігор, 25 років разом', text: 'Діти подарували нам зйомку на річницю. Ми знову почувалися як на першому побаченні.', photoId: '' },
+          { names: 'Олеся і Нік', text: 'Спокійно, тепло і зовсім без «а тепер поцілуйтеся». Дякуємо за нашу історію.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Love story', price: 'від 6 000 ₴', includes: ['2 години', 'одна-дві локації', '70 кадрів'] },
+          {
+            name: 'Весільний день',
+            price: 'від 22 000 ₴',
+            includes: ['до 10 годин', 'лист-історія вашого дня', '400+ кадрів', 'друкований конверт із 10 фото'],
+            featured: true,
+          },
+          { name: 'Річниця', price: 'від 5 000 ₴', includes: ['1.5 години', 'місце вашого знайомства', '50 кадрів'] },
+        ],
+      },
+      contact: { email: 'vira@example.com', phone: '+380 66 800 00 00', instagram: '@vira.yasen', telegram: 'vira_yasen', bookingUrl: '' },
+    }),
+    // Three frames fly out of the envelope: 1 (own), then the first two of
+    // the grid. TEMPORARY (until assets/lyst): 10, 19, 21, 22, 24, 03, 11, 14
+    // and /showcase/05 are the mountain couple of the «Тиша» set.
+    portfolio: [
+      phs('1', '11', 'Love story', 'Під яблунею', [1333, 2000], 'small'),
+      pht('2', 10, 'Love story', 'Тихо', [1335, 2000]),
+      pht('3', 22, 'Весілля', 'Удвох у горах', [2000, 1335]),
+      pht('4', 21, 'Весілля', 'Після церемонії', [2000, 1335]),
+      pht('5', 19, 'Річниця', 'Як уперше', [1335, 2000]),
+      pht('6', 24, 'Весілля', 'Червоні дахи', [2000, 1335]),
+      phs('7', '05', 'Love story', 'Простір', [2000, 1335]),
+      pht('8', 3, 'Річниця', 'Разом', [2000, 1335]),
+      pht('9', 11, 'Love story', 'Серед трав', [2000, 1335]),
+      pht('10', 14, 'Весілля', 'Сміх', [2000, 1335]),
+    ],
+  },
+  {
+    value: 'portret',
+    theme: 'portret',
+    mode: 'light',
+    name: 'Портрет',
+    suits: 'Бізнес-портрет і особистий бренд',
+    displayName: 'Остап Грань',
+    content: content({
+      hero: {
+        title: 'Остап Грань',
+        subtitle: 'Портрети, у яких вас впізнають і яким довіряють',
+        imageId: '1',
+        city: 'Київ, студія на Подолі',
+        directions: ['Бізнес-портрет', 'Особистий бренд', 'Творче портфоліо'],
+      },
+      about: {
+        text: 'Десять років знімаю людей, які не люблять фотографуватися: керівників, лікарів, юристів, акторів. Моє завдання — щоб за 40 хвилин ви розслабилися, а портрет говорив про вас без слів.',
+        imageId: '',
+      },
+      // «До / після ретуші»: the moment frame is the «до», the first-screen frame the «після».
+      moment: { text: 'Ретуш: шкіра, світло, колір — без «пластику»', imageId: '11' },
+      terms: {
+        prepayment: '50% при бронюванні',
+        delivery: 'вибір кадрів за 2 дні, ретуш — за 5 робочих днів',
+        travel: 'офіс у межах Києва — +1 500 ₴',
+        bring: '2–3 однотонні сорочки чи блузи; піджак; окуляри, якщо носите; гребінець і пудру без блиску',
+      },
+      testimonials: {
+        items: [
+          { names: 'Ірина, партнерка юрфірми', text: 'Нарешті портрет, який не соромно поставити на сайт фірми. І все за годину.', photoId: '' },
+          { names: 'Андрій, засновник студії', text: 'Остап підказав, що вдягти, і за кадром жартував так, що я забув про камеру.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Діловий портрет', price: '3 500 ₴', includes: ['40 хвилин у студії', '2 образи', '5 кадрів із ретушшю'] },
+          {
+            name: 'Особистий бренд',
+            price: '9 000 ₴',
+            includes: ['2 години: студія і робоче місце', 'до 4 образів', '25 кадрів із ретушшю', 'добірка для LinkedIn і сайту'],
+            featured: true,
+          },
+          { name: 'Команда', price: 'від 1 800 ₴ / особа', includes: ['виїзна студія в офіс', 'однакове світло для всіх', '3 кадри на людину'] },
+        ],
+      },
+      contact: { email: 'ostap@example.com', phone: '+380 67 900 00 00', instagram: '@ostap.gran', telegram: 'ostap_gran', bookingUrl: '' },
+    }),
+    // TEMPORARY (until assets/portret): fashion frames of «Журнал» (42–48)
+    // and portraits of «Опівніч» (/showcase); «до ретуші» (11) is a flat
+    // rendering of 48 made for the demo, not a real raw file.
+    portfolio: [
+      pht('1', 48, 'Особистий бренд', 'Червоний костюм', [1333, 2000], true),
+      pht('2', 42, 'Бізнес-портрет', 'Монохром', [1333, 2000]),
+      pht('3', 44, 'Бізнес-портрет', 'Вулиця', [1333, 2000]),
+      phs('4', '13', 'Творче портфоліо', 'Світло з вікна', [1333, 2000]),
+      pht('5', 46, 'Бізнес-портрет', 'Опора', [1333, 2000]),
+      phs('6', '12', 'Творче портфоліо', 'Лофт', [1333, 2000]),
+      phs('7', '15', 'Творче портфоліо', 'Контражур', [1333, 2000]),
+      pht('8', 40, 'Особистий бренд', 'На сходах', [1500, 2000]),
+      phs('9', '10', 'Творче портфоліо', 'Вікно потяга', [1333, 2000]),
+      phs('10', '06', 'Творче портфоліо', 'Тінь', [1333, 2000]),
+      {
+        id: '11',
+        previewUrl: '/themes/portret/48-before-1280.webp',
+        srcSet: '/themes/portret/48-before-828.webp 828w, /themes/portret/48-before-1280.webp 1280w',
+        visible: true,
+        category: null,
+        caption: 'До ретуші',
+        width: 1333,
+        height: 2000,
+      },
+    ],
+  },
+  {
+    value: 'sviato',
+    theme: 'sviato',
+    mode: 'light',
+    name: 'Свято',
+    suits: 'Дні народження, хрестини, корпоративи',
+    displayName: 'Тарас Іскра',
+    content: content({
+      hero: {
+        title: 'Тарас Іскра',
+        subtitle: 'Знімаю свята так, щоб гості потім шукали себе в кожному кадрі',
+        imageId: '1',
+        city: 'Дніпро',
+        directions: ['Дні народження', 'Хрестини', 'Корпоративи'],
+      },
+      about: {
+        text: 'Я той фотограф, якого не помічають на святі, доки не побачать фото. Працюю швидко, з живим світлом і фотобудкою, а найкращі кадри показую гостям ще до кінця вечора.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '1 000 ₴ — і дата за вами',
+        delivery: '30 кадрів наступного дня, решта за тиждень',
+        travel: 'Дніпро без доплат; область — 10 ₴/км',
+        bring: 'список важливих гостей і моментів — решту візьму на себе',
+      },
+      gifts: {
+        enabled: true,
+        items: [
+          { kind: 'certificate', enabled: true, title: 'Сертифікат на свято', text: 'Подаруйте друзям зйомку їхнього дня народження чи хрестин.', price: 'від 2 000 ₴', imageId: '' },
+          { kind: 'book', enabled: false, title: '', text: '', price: '', imageId: '' },
+          { kind: 'prints', enabled: true, title: 'Стрічки з фотобудки', text: 'Друкуємо на місці: кожен гість забирає свою стрічку.', price: 'від 1 500 ₴', imageId: '' },
+        ],
+      },
+      testimonials: {
+        items: [
+          { names: 'Наталя, 40 років', text: 'Фотобудка була хітом вечора, а кадри з танцполу — найкращі в моєму житті!', photoId: '' },
+          { names: 'Команда «Сокіл»', text: 'Корпоратив на 80 людей — і кожен знайшов себе в галереї. Дякуємо!', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'День народження', price: 'від 4 000 ₴', includes: ['до 3 годин', 'репортаж і портрети гостей', '150+ кадрів'] },
+          {
+            name: 'Свято + фотобудка',
+            price: 'від 7 500 ₴',
+            includes: ['до 4 годин', 'фотобудка з реквізитом', 'друк стрічок на місці', '250+ кадрів'],
+            featured: true,
+          },
+          { name: 'Хрестини', price: 'від 3 500 ₴', includes: ['церемонія і застілля', 'сімейні портрети', '120+ кадрів'] },
+        ],
+      },
+      contact: { email: 'taras@example.com', phone: '+380 68 100 20 30', instagram: '@taras.iskra', telegram: 'taras_iskra', bookingUrl: '' },
+    }),
+    get freeDates() {
+      return sampleFreeDates()
+    },
+    // The photo-booth strip: 1–4. TEMPORARY (until assets/sviato): evening
+    // frames of the «Опівніч» set.
+    portfolio: [
+      phn('1', '/themes/27', 'Дні народження', 'Іскри', [1333, 2000]),
+      phn('2', '/themes/28', 'Дні народження', 'Щасливі', [1333, 2000]),
+      phn('3', '/themes/29', 'Корпоративи', 'Вогні', [1333, 2000]),
+      phn('4', '/themes/26', 'Корпоративи', 'Танець', [2000, 1335]),
+      phn('5', '/themes/25', 'Корпоративи', 'Коридор із вогнів', [2000, 1333]),
+      phn('6', '/themes/30', 'Хрестини', 'Остання година сонця', [2000, 1374]),
+      phn('7', '/themes/38', 'Дні народження', 'Тепло на обличчі', [1416, 2000]),
+      phn('8', '/themes/37', 'Дні народження', 'Червоне світло', [2000, 1333]),
+      phn('9', '/themes/39', 'Хрестини', 'Вікно у вечір', [1600, 2000]),
+      phn('10', '/themes/35', 'Корпоративи', 'Вогні міста', [1333, 2000]),
+      phn('11', '/themes/36', 'Хрестини', 'Боке', [1500, 2000]),
+    ],
+  },
+  {
+    value: 'rozvorot',
+    theme: 'rozvorot',
+    mode: 'light',
+    name: 'Розворот',
+    suits: 'Весілля в маєтках, тихий люкс',
+    displayName: 'Ліана Мор',
+    content: content({
+      hero: {
+        title: 'Ліана Мор',
+        subtitle: 'Весілля й історії в тиші старих маєтків',
+        imageId: '1',
+        city: 'Київ · Львів · Європа',
+        directions: ['Весілля', 'Love story', 'Родинні портрети'],
+      },
+      about: {
+        text: 'Я знімаю повільно й уважно: світло у вікнах старих будинків, тканини, руки, погляди. Беру до дванадцяти весіль на рік, щоб кожному віддати стільки часу, скільки воно заслуговує.',
+        imageId: '',
+      },
+      moment: { text: 'Найкрасивіше трапляється, коли ніхто не позує', imageId: '' },
+      terms: {
+        prepayment: '40% під час підписання угоди',
+        delivery: 'превʼю за тиждень, повна історія за шість тижнів',
+        travel: 'Україна і Європа — дорога та проживання за домовленістю',
+        bring: 'запрошення, обручки, парфуми й листи — для деталей',
+      },
+      testimonials: {
+        items: [
+          { names: 'Софія та Антуан, маєток Тарновських', text: 'Кадри, які хочеться не гортати, а розглядати. Як дорогий альбом, який ми самі б не придумали.', photoId: '' },
+          { names: 'Олена й Марко', text: 'Ліана була поруч увесь день, але ми жодного разу не відчули камеру.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Камерне весілля', price: 'від 38 000 ₴', includes: ['до 6 годин', 'одна локація', 'альбом-розворот 30×30'] },
+          {
+            name: 'Весільний день',
+            price: 'від 64 000 ₴',
+            includes: ['до 12 годин', 'другий фотограф', 'льняний альбом на 40 розворотів', 'превʼю за тиждень'],
+            featured: true,
+          },
+          { name: 'Love story в маєтку', price: 'від 16 000 ₴', includes: ['3 години', 'оренда локації — окремо', '60 кадрів'] },
+        ],
+      },
+      contact: { email: 'liana@example.com', phone: '+380 67 300 40 50', instagram: '@liana.mor', telegram: 'liana_mor', bookingUrl: '' },
+    }),
+    // TEMPORARY (until assets/rozvorot): the mountain couple of the «Тиша»
+    // set and «Опівніч» portraits.
+    portfolio: [
+      pht('1', 22, 'Весілля', 'Удвох у горах', [2000, 1335], true),
+      phs('2', '13', 'Родинні портрети', 'Світло з вікна', [1333, 2000]),
+      pht('3', 21, 'Весілля', 'Після церемонії', [2000, 1335]),
+      pht('4', 9, 'Love story', 'Погляд', [1450, 2000]),
+      phs('5', '05', 'Love story', 'Простір', [2000, 1335]),
+      phs('6', '12', 'Родинні портрети', 'Лофт', [1333, 2000]),
+      pht('7', 24, 'Весілля', 'Червоні дахи', [2000, 1335]),
+      pht('8', 10, 'Love story', 'Тихо', [1335, 2000]),
+      pht('9', 17, 'Весілля', 'Вечір', [2000, 1335]),
+      phs('10', '15', 'Родинні портрети', 'Контражур', [1333, 2000]),
+      pht('11', 8, 'Love story', 'Дорога', [2000, 1335]),
+    ],
+  },
+  {
+    value: 'indeks',
+    theme: 'indeks',
+    mode: 'light',
+    name: 'Індекс',
+    suits: 'Комерційна зйомка, бренди, реклама',
+    displayName: 'Ярема Кант',
+    content: content({
+      hero: {
+        title: 'Ярема Кант',
+        subtitle: 'Кампанії, продукт і люди брендів — від брифу до файлів під друк',
+        imageId: '1',
+        role: 'Комерційний фотограф',
+        city: 'Київ / Варшава',
+        directions: ['Догляд і продукт', 'Кампанії одягу', 'Портрети для бренду'],
+      },
+      about: {
+        text: 'Працюю з брендами, яким потрібна не «гарна картинка», а кадри, що продають. Збираю команду під задачу, тримаю бриф і терміни, здаю файли під сайт, маркетплейси й друк.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '50% після підписання брифу',
+        delivery: 'превʼю наступного дня, фінал — за 7 робочих днів',
+        travel: 'Київ включено; виїзні зйомки — за кошторисом',
+        bring: 'продукт у 2–3 екземплярах, бренд-бук, референси',
+      },
+      testimonials: {
+        items: [
+          { names: 'Бренд косметики «Ліс»', text: 'Новий каталог зібрали за два знімальні дні. Конверсія карток на маркетплейсі виросла.', photoId: '' },
+          { names: 'Ательє «Шов»', text: 'Чітко, у бюджет і з ідеями, яких ми не просили, але залишили.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Предметна', price: 'від 900 ₴ / кадр', includes: ['білий фон або сет', 'ретуш під маркетплейси', 'від 10 позицій'] },
+          {
+            name: 'Кампанія',
+            price: 'від 45 000 ₴',
+            includes: ['концепція і кошторис', 'команда: стиліст, візажист, моделі', '30 кадрів під рекламу і друк'],
+            featured: true,
+          },
+          { name: 'Портрети команди', price: 'від 2 200 ₴ / особа', includes: ['виїзна студія', 'однакове світло', '3 кадри на людину'] },
+        ],
+      },
+      contact: { email: 'yarema@example.com', phone: '+380 50 222 33 44', instagram: '@yarema.kant', telegram: 'yarema_kant', bookingUrl: '' },
+    }),
+    // Own: 55–59 (product). TEMPORARY (until assets/indeks): «Журнал»
+    // fashion frames and «Опівніч» portraits stand in for the other projects.
+    portfolio: [
+      pht('1', 55, 'Догляд і продукт', 'Сироватки', [1333, 2000], true),
+      pht('2', 56, 'Догляд і продукт', 'Набір', [2000, 1333]),
+      phj('3', 41, 'Кампанії одягу', 'Деталі'),
+      pht('4', 57, 'Догляд і продукт', 'Лінійка', [2000, 1333]),
+      phj('5', 43, 'Кампанії одягу', 'Червоний костюм'),
+      phs('6', '10', 'Портрети для бренду', 'Вікно потяга', [1333, 2000]),
+      pht('7', 58, 'Догляд і продукт', 'Крапля', [1333, 2000]),
+      phj('8', 47, 'Кампанії одягу', 'Лукбук'),
+      phs('9', '12', 'Портрети для бренду', 'Лофт', [1333, 2000]),
+      pht('10', 59, 'Догляд і продукт', 'Тюбики', [1333, 2000]),
+      phj('11', 49, 'Кампанії одягу', 'Ліхтар'),
+      phs('12', '06', 'Портрети для бренду', 'Тінь', [1333, 2000]),
+      phj('13', 45, 'Кампанії одягу', 'Журнал у руках'),
+    ],
+  },
+  {
+    value: 'paspartu',
+    theme: 'paspartu',
+    mode: 'light',
+    name: 'Паспарту',
+    suits: 'Художній портрет, авторські серії',
+    displayName: 'Мирослава Тон',
+    content: content({
+      hero: {
+        title: 'Мирослава Тон',
+        subtitle: 'Кожен кадр — окрема робота в білому паспарту',
+        imageId: '1',
+        city: 'Львів',
+        directions: ['Портрет', 'Майстерня', 'Світло'],
+      },
+      about: {
+        text: 'Я вчилася живопису, тому досі складаю кадр як полотно: колір, світло, тиша. Знімаю портрети й авторські серії, а найкращі кадри друкую на бавовняному папері в паспарту.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '30% при бронюванні',
+        delivery: 'добірка за 10 днів, друк — ще тиждень',
+        travel: 'Львів — без доплат',
+        bring: 'одяг однотонних кольорів і річ, з якою ви себе впізнаєте',
+      },
+      testimonials: {
+        items: [
+          { names: 'Олена, художниця', text: 'Мої портрети висять у майстерні поруч із картинами — і це найвища похвала, яку я можу дати.', photoId: '' },
+          { names: 'Андрій', text: 'Мирослава бачить колір так, як я його ніколи не бачив. Тепер вибираю одяг під кадр.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Портрет', price: 'від 4 000 ₴', includes: ['1.5 години', '10 кадрів у художній обробці', '1 відбиток 30×40 у паспарту'] },
+          {
+            name: 'Авторська серія',
+            price: 'від 9 500 ₴',
+            includes: ['концепція і палітра', '3 години, дві локації', '20 кадрів', '3 відбитки в паспарту'],
+            featured: true,
+          },
+          { name: 'Друк і рами', price: 'від 900 ₴', includes: ['бавовняний папір', 'біле паспарту', 'дерев’яна рама на вибір'] },
+        ],
+      },
+      contact: { email: 'myroslava@example.com', phone: '+380 63 444 55 66', instagram: '@myroslava.ton', telegram: 'myroslava_ton', bookingUrl: '' },
+    }),
+    // Own: 32–34 (the painting studio). TEMPORARY (until assets/paspartu):
+    // portraits of «Опівніч» and a few product / city frames with strong colour.
+    portfolio: [
+      pht('1', 33, 'Майстерня', 'Троянда на полотні', [1333, 2000], true),
+      pht('2', 37, 'Світло', 'Червоне світло', [2000, 1333]),
+      pht('3', 32, 'Майстерня', 'Перший мазок', [1333, 2000]),
+      pht('4', 38, 'Портрет', 'Бурштин', [1416, 2000]),
+      phs('5', '13', 'Портрет', 'Тиша', [1333, 2000]),
+      pht('6', 56, 'Світло', 'Жовтий', [2000, 1333]),
+      pht('7', 34, 'Майстерня', 'Готова робота', [1126, 2000]),
+      phs('8', '16', 'Портрет', 'Золота година', [2000, 1333]),
+      pht('9', 39, 'Світло', 'Вікно у вечір', [1600, 2000]),
+      pht('10', 50, 'Портрет', 'Місто', [2000, 1334]),
+      phs('11', '15', 'Портрет', 'Контражур', [1333, 2000]),
+    ],
+  },
+  {
+    value: 'kontakt',
+    theme: 'kontakt',
+    mode: 'light',
+    name: 'Контакт',
+    suits: 'Репортаж, вулиця, документальні історії',
+    displayName: 'Нестор Глинка',
+    content: content({
+      hero: {
+        title: 'Нестор Глинка',
+        subtitle: 'Документую події й людей так, як вони є',
+        imageId: '1',
+        role: 'Фотограф-документаліст',
+        city: 'Харків',
+        directions: ['Вулиця', 'Репортаж', 'Портрет'],
+      },
+      about: {
+        text: 'Знімаю на плівку й на цифру, але думаю аркушами: серія кадрів, з якої обводжу один. Документую події, конференції, родинні історії й місто — без постановки і без ретуші, що змінює правду.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '30% при бронюванні',
+        delivery: 'контрольний аркуш за 2 дні, добірка за тиждень',
+        travel: 'Харків — без доплат; інші міста — дорога',
+        bring: 'нічого особливого — просто будьте собою',
+      },
+      testimonials: {
+        items: [
+          { names: 'Фестиваль «Дах»', text: 'Нестор помітив те, що ми самі пропустили за три дні фестивалю. Аркуш читається як історія.', photoId: '' },
+          { names: 'Родина Шевченків', text: 'Ми отримали не позовані кадри, а наше справжнє свято. Дякуємо!', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Репортаж', price: 'від 1 500 ₴ / год', includes: ['від 2 годин', 'контрольний аркуш', '40+ кадрів на годину'] },
+          {
+            name: 'Документальна історія',
+            price: 'від 12 000 ₴',
+            includes: ['день із вашою родиною чи командою', 'аркуш + добірка', '150+ кадрів', '10 відбитків'],
+            featured: true,
+          },
+          { name: 'Плівкова сесія', price: 'від 4 500 ₴', includes: ['2 плівки 36 кадрів', 'проявка і скани', 'контрольний аркуш на папері'] },
+        ],
+      },
+      contact: { email: 'nestor@example.com', phone: '+380 95 777 66 55', instagram: '@nestor.hlynka', telegram: 'nestor_hlynka', bookingUrl: '' },
+    }),
+    // Own: 50–54 (black-and-white street). TEMPORARY (until assets/kontakt):
+    // black-and-white frames of «Журнал» and evening portraits of «Опівніч».
+    portfolio: [
+      pht('1', 51, 'Вулиця', 'Трамвай', [2000, 1334], true),
+      pht('2', 50, 'Вулиця', 'Вікно', [2000, 1334], 'sheet'),
+      pht('3', 52, 'Вулиця', 'Погляд', [2000, 1334], 'sheet'),
+      pht('4', 53, 'Вулиця', 'Телефон', [2000, 1334], 'sheet'),
+      pht('5', 54, 'Вулиця', 'Рух', [2000, 1334], 'sheet'),
+      pht('6', 42, 'Портрет', 'Монохром', [1333, 2000], 'sheet'),
+      pht('7', 44, 'Портрет', 'Вузька вулиця', [1333, 2000], 'sheet'),
+      pht('8', 45, 'Портрет', 'Журнал у руках', [1333, 2000], 'sheet'),
+      pht('9', 37, 'Репортаж', 'Червоне світло', [2000, 1333], 'sheet'),
+      pht('10', 30, 'Репортаж', 'Остання година сонця', [2000, 1374], 'sheet'),
+      pht('11', 26, 'Репортаж', 'Перший танець', [2000, 1335], 'sheet'),
+      pht('12', 25, 'Репортаж', 'Коридор із вогнів', [2000, 1333], 'sheet'),
+      pht('13', 46, 'Портрет', 'Тінь і світло', [1333, 2000], 'sheet'),
+    ],
+  },
+  {
+    value: 'temna',
+    theme: 'temna',
+    mode: 'night',
+    name: 'Темна кімната',
+    suits: 'Класичний портрет, плівка, ч/б',
+    displayName: 'Артем Віск',
+    content: content({
+      hero: {
+        title: 'Артем Віск',
+        subtitle: 'Друкую найкращі кадри сам — у темній кімнаті, на баритовому папері',
+        imageId: '1',
+        city: 'Одеса',
+        directions: ['Портрет', 'Весілля', 'Вулиця'],
+      },
+      about: {
+        text: 'Я досі проявляю плівку й друкую в лабораторії: червоне світло, ванночки, мокрі відбитки на мотузці. Цифрові кадри обробляю так само повільно. Кожна зйомка закінчується кількома ручними відбитками.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '30% при бронюванні',
+        delivery: 'цифрова добірка за тиждень, ручні відбитки — за два',
+        travel: 'Одеса — без доплат',
+        bring: 'фактурний одяг без логотипів; для плівки — терпіння',
+      },
+      testimonials: {
+        items: [
+          { names: 'Ірина', text: 'Мій ч/б портрет на баритовому папері — найцінніша річ у домі. Пахне, як старі альбоми бабусі.', photoId: '' },
+          { names: 'Сергій і Наталя', text: 'Весілля на плівку — найкраще рішення. Кадри живі, а відбитки ми подарували батькам.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Портрет на плівку', price: 'від 5 500 ₴', includes: ['1 плівка, 36 кадрів', 'проявка і скани', '2 ручні відбитки 18×24'] },
+          {
+            name: 'Весілля: цифра + плівка',
+            price: 'від 32 000 ₴',
+            includes: ['до 10 годин', '3 плівки на найважливіше', '400+ цифрових кадрів', '10 ручних відбитків'],
+            featured: true,
+          },
+          { name: 'Ручний відбиток', price: 'від 700 ₴', includes: ['баритовий папір', 'з вашого негатива або файлу', 'вирівнювання і тонування'] },
+        ],
+      },
+      contact: { email: 'artem@example.com', phone: '+380 48 700 10 20', instagram: '@artem.visk', telegram: 'artem_visk', bookingUrl: '' },
+    }),
+    // TEMPORARY (until assets/temna): black-and-white frames of «Журнал»,
+    // «Контакт» and «Опівніч», plus two evening weddings.
+    portfolio: [
+      phs('1', '13', 'Портрет', 'Світло з вікна', [1333, 2000], true),
+      pht('2', 42, 'Портрет', 'Монохром', [1333, 2000], 'sheet'),
+      pht('3', 26, 'Весілля', 'Перший танець', [2000, 1335], 'sheet'),
+      pht('4', 52, 'Вулиця', 'Погляд', [2000, 1334], 'sheet'),
+      phs('5', '15', 'Портрет', 'Контражур', [1333, 2000]),
+      pht('6', 25, 'Весілля', 'Коридор із вогнів', [2000, 1333], 'sheet'),
+      pht('7', 44, 'Портрет', 'Вузька вулиця', [1333, 2000], 'sheet'),
+      pht('8', 54, 'Вулиця', 'Рух', [2000, 1334], 'sheet'),
+      pht('9', 30, 'Весілля', 'Остання година сонця', [2000, 1374], 'sheet'),
+      pht('10', 45, 'Портрет', 'Журнал у руках', [1333, 2000], 'sheet'),
+      pht('11', 53, 'Вулиця', 'Телефон', [2000, 1334], 'sheet'),
+    ],
+  },
+  {
+    value: 'vydoshukach',
+    theme: 'vydoshukach',
+    mode: 'night',
+    name: 'Видошукач',
+    suits: 'Репортаж, весілля, живі портрети',
+    displayName: 'Роман Діафрагма',
+    content: content({
+      hero: {
+        title: 'Роман Діафрагма',
+        subtitle: 'Ловлю момент, коли все складається в кадр',
+        imageId: '1',
+        city: 'Київ',
+        directions: ['Репортаж', 'Весілля', 'Портрет'],
+      },
+      about: {
+        text: 'Я репортажник: бачу кадр за секунду до того, як він трапиться. Знімаю на дві камери й фікси, без спалаху, і завжди показую, на що й як знято — для тих, хто цінує ремесло.',
+        imageId: '',
+      },
+      terms: {
+        prepayment: '30% при бронюванні',
+        delivery: '20 кадрів за 48 годин, решта — за 2 тижні',
+        travel: 'Київ і область — без доплат',
+        bring: 'нічого: я працюю з тим світлом, яке є',
+      },
+      testimonials: {
+        items: [
+          { names: 'Агенція «Подія»', text: 'Роман знімає конференції так, що кадри хочеться друкувати. І завжди вчасно.', photoId: '' },
+          { names: 'Іра і Влад', text: 'Він бачив усе: сльози тата, сміх друзів, танець бабусі. Жодного постановочного кадру.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Репортаж', price: 'від 2 000 ₴ / год', includes: ['від 2 годин', 'дві камери', '50+ кадрів на годину'] },
+          {
+            name: 'Весільний день',
+            price: 'від 26 000 ₴',
+            includes: ['до 10 годин', 'репортаж без постановок', '500+ кадрів', 'превʼю за 48 годин'],
+            featured: true,
+          },
+          { name: 'Живий портрет', price: 'від 3 500 ₴', includes: ['1 година в місті', 'природне світло', '30 кадрів'] },
+        ],
+      },
+      contact: { email: 'roman@example.com', phone: '+380 66 123 45 67', instagram: '@roman.diafragma', telegram: 'roman_diafragma', bookingUrl: '' },
+    }),
+    // TEMPORARY (until assets/vydoshukach, with real EXIF): the mountain couple
+    // of «Тиша», evening frames of «Опівніч» and portraits; the camera lines
+    // are sample values.
+    portfolio: [
+      { ...pht('1', 24, 'Весілля', 'Червоні дахи', [2000, 1335], true), exif: '35 мм · f/2 · 1/500 · ISO 100' },
+      { ...phn('2', '/themes/27', 'Весілля', 'Іскри', [1333, 2000]), exif: '50 мм · f/1.4 · 1/160 · ISO 3200' },
+      { ...pht('3', 21, 'Весілля', 'Після церемонії', [2000, 1335]), exif: '35 мм · f/2.8 · 1/640 · ISO 200' },
+      { ...pht('4', 53, 'Репортаж', 'Телефон', [2000, 1334], 'sheet'), exif: '28 мм · f/5.6 · 1/250 · ISO 800' },
+      { ...phs('5', '10', 'Портрет', 'Вікно потяга', [1333, 2000]), exif: '85 мм · f/1.8 · 1/200 · ISO 400' },
+      { ...phn('6', '/themes/28', 'Весілля', 'Щасливі', [1333, 2000]), exif: '35 мм · f/1.8 · 1/125 · ISO 2500' },
+      { ...pht('7', 50, 'Репортаж', 'Вікно', [2000, 1334], 'sheet'), exif: '28 мм · f/4 · 1/500 · ISO 1600' },
+      { ...phs('8', '12', 'Портрет', 'Лофт', [1333, 2000]), exif: '50 мм · f/2 · 1/250 · ISO 320' },
+      { ...pht('9', 54, 'Репортаж', 'Рух', [2000, 1334], 'sheet'), exif: '28 мм · f/8 · 1/30 · ISO 400' },
+      { ...phn('10', '/themes/29', 'Весілля', 'Вогні', [1333, 2000]), exif: '35 мм · f/1.4 · 1/200 · ISO 4000' },
+      { ...phs('11', '06', 'Портрет', 'Тінь', [1333, 2000]), exif: '85 мм · f/1.4 · 1/160 · ISO 1250' },
+    ],
+  },
+  {
+    value: 'marshrut',
+    theme: 'marshrut',
+    mode: 'light',
+    name: 'Маршрут',
+    suits: 'Виїзні зйомки, весілля в подорожі',
+    displayName: 'Ліза Шлях',
+    content: content({
+      hero: {
+        title: 'Ліза Шлях',
+        subtitle: 'Знімаю там, куди вас кличе: гори, море, старі міста',
+        imageId: '1',
+        role: 'Фотографка в дорозі',
+        city: 'База — Київ',
+        directions: ['Весілля', 'Love story', 'Сімейні'],
+      },
+      about: {
+        text: 'Половину року я в дорозі: Карпати, море, Львів, Європа. Плануйте зйомку, коли я буду поруч, — і дорога для вас безкоштовна. Люблю локації, де ще ніхто не знімав.',
+        imageId: '',
+      },
+      // «Де я буду наступного місяця»: stops separated by «;», each «місто дати».
+      moment: { text: 'Карпати 12–14; Львів 18–19; Одеса 25–27; Київ з 30', imageId: '' },
+      terms: {
+        prepayment: '30% при бронюванні',
+        delivery: 'превʼю за тиждень, уся зйомка за 3 тижні',
+        travel: 'у містах маршруту — без доплат; інші — дорога за домовленістю',
+        bring: 'зручне взуття: найкращі кадри — після прогулянки',
+      },
+      testimonials: {
+        items: [
+          { names: 'Оля і Тім, Карпати', text: 'Ліза знайшла поляну, про яку не знали навіть місцеві. Ми досі не віримо, що це наші фото.', photoId: '' },
+          { names: 'Родина Бойко, Одеса', text: 'Підлаштувалися під її маршрут — і отримали зйомку на морі без доплат за дорогу.', photoId: '' },
+        ],
+      },
+      pricing: {
+        items: [
+          { name: 'Прогулянка в місті маршруту', price: 'від 4 500 ₴', includes: ['1.5 години', 'дві локації', '60 кадрів'] },
+          {
+            name: 'Весілля в подорожі',
+            price: 'від 30 000 ₴',
+            includes: ['до 10 годин', 'вибір локацій разом', '450+ кадрів', 'дорога по Україні включена'],
+            featured: true,
+          },
+          { name: 'Love story в горах', price: 'від 8 000 ₴', includes: ['світанок або захід', '3 години', '100 кадрів'] },
+        ],
+      },
+      contact: { email: 'liza@example.com', phone: '+380 97 222 11 00', instagram: '@liza.shliakh', telegram: 'liza_shliakh', bookingUrl: '' },
+    }),
+    // TEMPORARY (until assets/marshrut): frames of other sets standing in for
+    // places on the route (mountains, sea, field, city).
+    portfolio: [
+      pht('1', 22, 'Весілля', 'Карпати', [2000, 1335], true),
+      pha('2', '19', 'Сімейні', 'Одеса, море', [2400, 3600]),
+      phs('3', '05', 'Love story', 'Карпати, полонина', [2000, 1335]),
+      pht('4', 50, 'Love story', 'Харків, трамвай', [2000, 1334], 'sheet'),
+      pha('5', '16', 'Сімейні', 'Поділля, поле', [2400, 1600]),
+      pht('6', 21, 'Весілля', 'Карпати, після церемонії', [2000, 1335]),
+      phs('7', '11', 'Love story', 'Буковина, сад', [1333, 2000]),
+      pht('8', 31, 'Сімейні', 'Захід над полем', [2000, 1333], true),
+      pht('9', 3, 'Весілля', 'Карпати, удвох', [2000, 1335]),
+      pha('10', '20', 'Сімейні', 'Перед заходом', [2400, 1600]),
     ],
   },
   {
@@ -354,27 +1384,65 @@ export const THEME_DEMOS: ThemeDemo[] = [
     suits: 'Фешн і бʼюті',
     displayName: 'Studio Nota',
     content: content({
-      hero: { title: 'Studio Nota', subtitle: 'Фешн, бʼюті, редакційна зйомка', imageId: '' },
-      about: { text: 'Редакційні та рекламні зйомки для брендів і моделей. Стиль, світло, характер.' },
-      pricing: {
+      hero: {
+        title: 'Studio Nota',
+        subtitle: 'Редакційна зйомка з характером',
+        imageId: '1',
+        role: 'Фотостудія',
+        city: 'Київ',
+        directions: ['Фешн-сторі', 'Лукбук', 'Портрет'],
+      },
+      terms: {
+        prepayment: '50% після узгодження мудборду',
+        delivery: 'превʼю за 2 дні, ретуш за 10 робочих днів',
+        travel: 'по Києву — включено; інші міста — дорога й проживання команди',
+        bring: '2–3 образи, взуття до кожного, нейтральна білизна',
+      },
+      about: {
+        text: 'Ми знімаємо одяг так, як його носять: на вулиці, в русі, з характером. Кожна зйомка починається з історії — кольору, міста, настрою, — а вже потім зі світла й образів.\n\nПрацюємо з брендами, дизайнерами та моделями: від камерних бʼюті-портретів до редакційних сторі й лукбуків. Нам важливо, щоб кадри говорили мовою бренду, а не мовою шаблону.',
+        imageId: '',
+      },
+      moment: { text: 'Червоне і чорне', imageId: '' },
+      testimonials: {
         items: [
-          { name: 'Бʼюті', price: 'від 8 000 ₴', includes: ['студія', 'візаж', '15 кадрів'] },
-          { name: 'Фешн-стори', price: 'від 18 000 ₴', includes: ['команда', 'локація', 'ретуш'] },
+          {
+            names: 'Дизайнерка одягу',
+            text: 'Лукбук вийшов саме таким, як ми бачили колекцію: живим, міським і дуже нашим.',
+            photoId: '6',
+          },
+          {
+            names: 'Модель',
+            text: 'Найспокійніша зйомка в моєму досвіді — чіткий план, і при цьому багато свободи.',
+            photoId: '3',
+          },
         ],
       },
-      contact: { email: 'hello@nota.example', phone: '+380 44 300 00 00', instagram: '@studio.nota', bookingUrl: '' },
+      pricing: {
+        items: [
+          { name: 'Бʼюті', price: 'від 8 000 ₴', includes: ['студія', 'візажист', '15 кадрів з ретушшю'] },
+          {
+            name: 'Фешн-сторі',
+            price: 'від 18 000 ₴',
+            includes: ['команда й локація', 'до 6 образів', '30 кадрів з ретушшю'],
+            featured: true,
+          },
+          { name: 'Лукбук', price: 'від 12 000 ₴', includes: ['студія або вулиця', 'до 15 образів', 'кадри під каталог'] },
+        ],
+      },
+      contact: { email: 'hello@nota.example', phone: '+380 44 300 00 00', instagram: '@studio.nota', telegram: 'studio_nota', bookingUrl: '' },
     }),
     portfolio: [
-      ph('1', 43, 'Фешн', 'Червоний костюм'),
-      ph('2', 42, 'Фешн', 'Monochrome'),
-      ph('3', 41, 'Деталі', 'Брошки'),
-      ph('4', 40, 'Фешн', 'На бордюрі'),
-      ph('5', 44, 'Фешн', 'Вузька вулиця'),
-      ph('6', 48, 'Портрети'),
-      ph('7', 45, 'Фешн'),
-      ph('8', 47, 'Фешн', 'Лукбук'),
-      ph('9', 46, 'Портрети'),
-      ph('10', 49, 'Фешн'),
+      // 1: the cover; 2–10: the magazine pages. No frame is shared with another theme's demo.
+      phj('1', 43, 'Фешн-сторі', 'Червоний костюм', true),
+      phj('2', 40, 'Фешн-сторі', 'На бордюрі'),
+      phj('3', 41, 'Лукбук', 'Брошки'),
+      phj('4', 47, 'Лукбук', 'Лукбук'),
+      phj('5', 48, 'Фешн-сторі', 'Після дощу'),
+      phj('6', 42, 'Портрет', 'Монохром'),
+      phj('7', 44, 'Фешн-сторі', 'Вузька вулиця'),
+      phj('8', 45, 'Портрет', 'Журнал у руках'),
+      phj('9', 46, 'Портрет', 'Тінь і світло'),
+      phj('10', 49, 'Лукбук', 'Ліхтар'),
     ],
   },
   {

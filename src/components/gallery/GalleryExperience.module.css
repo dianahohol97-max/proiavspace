@@ -214,6 +214,32 @@
   .ssrTablet, .ssrDesktop { display: none; }
   .ssrPhone { display: flex; }
 }
+/* «Рядки» (justified rows): every row one height, every photo whole.
+   --g-row-h must match rowTargetHeight() in gridLayout.ts: the head below
+   wraps with flexbox, the virtualized tail with justifyRows(), and both have
+   to break rows at the same photos. --g-row-h-d comes from «columns». */
+.gridRows { --g-row-h: var(--g-row-h-d, 240px); }
+.ssrRows {
+  display: flex; flex-wrap: wrap; align-items: flex-start;
+  gap: var(--g-gap, 14px);
+}
+/* basis = aspect × row height; the free space is shared in proportion to the
+   aspects, so every tile of a line ends up exactly the same height */
+.gridRows .shot {
+  margin: 0; min-width: 0;
+  flex: var(--r, 1) 1 calc(var(--r, 1) * var(--g-row-h));
+}
+/* a line that isn't complete yet (or the gallery's final row) keeps the
+   target height instead of stretching across the page */
+.ssrRows[data-open]::after { content: ''; flex: 1000000 1 0; }
+.vRow {
+  position: absolute; top: 0; left: 0; width: 100%;
+  display: flex; gap: var(--g-gap, 14px); will-change: transform;
+}
+.gridRows .vRow .shot { flex: var(--r, 1) 1 0; height: 100%; }
+.gridRows .vRow[data-last] .shot { flex: none; }
+@media (max-width: 900px) { .gridRows { --g-row-h: 200px; } }
+@media (max-width: 560px) { .gridRows { --g-row-h: 100px; } }
 /* masonry tile: the box has the photo's proportions, the media fills it */
 .shotFill { height: 100%; }
 .shotFill .shotMedia { height: 100%; object-fit: cover; }

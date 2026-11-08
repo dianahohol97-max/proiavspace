@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getDictionary, type Dictionary } from '@/lib/i18n'
@@ -105,6 +106,8 @@ export default async function BillingPage({ params }: { params: { locale: string
       profile.plan
     )
   )
+  // Everyone starts on 'site_trial'; only a paid site plan counts as having one.
+  const hasSitePlan = profile.site_plan === 'site_basic' || profile.site_plan === 'site_plus'
   const siteCards = (Object.keys(SITE_PLANS) as SitePlanId[]).map((id) =>
     buildSiteCard(SITE_PLANS[id], siteNames[id], siteNotes[id], profile.site_plan)
   )
@@ -195,16 +198,16 @@ export default async function BillingPage({ params }: { params: { locale: string
           }}
         />
       )}
-      <p className="mt-4 text-sm text-muted">
-        {dict.billing.currentSitePlan}: {currentSiteName}
-      </p>
+      {hasSitePlan && (
+        <p className="mt-4 text-sm text-muted">
+          {dict.billing.currentSitePlan}: {currentSiteName}
+        </p>
+      )}
       {promoGrant && promoRunning && (
         <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm">
           {(() => {
             const values: Record<string, string> = {
-              date: new Date(promoGrant.ends_at).toLocaleDateString(
-                locale === 'uk' ? 'uk-UA' : 'en-GB'
-              ),
+              date: new Date(promoGrant.ends_at).toLocaleDateString(intlLocale(locale)),
               price: String(IMPORT_PROMO.plan.priceUahMonth),
             }
             const fill = (template: string) =>
@@ -234,7 +237,7 @@ export default async function BillingPage({ params }: { params: { locale: string
         <p className="mt-2 text-sm text-accent">
           {dict.billing.creditNotice.replace(
             '{amount}',
-            (profile.credit_balance_kop / 100).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB')
+            (profile.credit_balance_kop / 100).toLocaleString(intlLocale(locale))
           )}
         </p>
       )}
@@ -244,7 +247,7 @@ export default async function BillingPage({ params }: { params: { locale: string
             '{date}',
             new Date(
               new Date(profile.gallery_closed_at).getTime() + RETENTION_DAYS * 24 * 3600 * 1000
-            ).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB')
+            ).toLocaleDateString(intlLocale(locale))
           )}
         </p>
       )}
@@ -252,7 +255,7 @@ export default async function BillingPage({ params }: { params: { locale: string
       {profile.grace_until && !promoRunning && !isPartner && !profile.gallery_closed_at && (
         <p className="mt-2 text-sm text-accent">
           {dict.billing.graceNotice}{' '}
-          {new Date(profile.grace_until).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB')}
+          {new Date(profile.grace_until).toLocaleDateString(intlLocale(locale))}
         </p>
       )}
 
@@ -261,11 +264,15 @@ export default async function BillingPage({ params }: { params: { locale: string
         <BillingPlans cards={galleryCards} locale={locale} labels={labels} columns={3} />
       </section>
 
-      <section className="mt-14">
-        <h2 className="mb-6 font-brand text-xl">{dict.billing.sitePlansTitle}</h2>
-        <BillingPlans cards={siteCards} locale={locale} labels={labels} columns={3} />
-        <p className="mt-4 text-xs text-muted">{dict.billing.bundleNote}</p>
-      </section>
+      {/* Sites are not sold for now: the section stays only for someone who
+          already has a site plan, so they can see and renew it. */}
+      {hasSitePlan && (
+        <section className="mt-14">
+          <h2 className="mb-6 font-brand text-xl">{dict.billing.sitePlansTitle}</h2>
+          <BillingPlans cards={siteCards} locale={locale} labels={labels} columns={3} />
+          <p className="mt-4 text-xs text-muted">{dict.billing.bundleNote}</p>
+        </section>
+      )}
 
       <BillingSubscriptions
         subscriptions={subscriptions.filter((sub) => sub.product === 'site')}
