@@ -6,6 +6,9 @@ import { isLocale } from '@/lib/i18n/config'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoUploader } from '@/components/LogoUploader'
+import { InstallAppCard } from '@/components/app/InstallAppCard'
+import { NotificationSettings } from '@/components/app/NotificationSettings'
+import { getVapidConfig } from '@/lib/push/send'
 import type { Profile } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -128,6 +131,12 @@ export default async function SettingsPage({
           />
         </div>
         <p className="mt-2 max-w-md text-xs text-muted">{dict.settings.logoHint}</p>
+      </section>
+
+      {/* Phone app: notifications (each type separately) and installation. */}
+      <section id="app" className="mt-14 flex scroll-mt-6 flex-col gap-4 border-t border-line pt-10">
+        <NotificationSettings t={dict.app} locale={locale} publicKey={getVapidConfig()?.publicKey ?? ''} />
+        <InstallAppCard t={dict.app} />
       </section>
     </main>
   )

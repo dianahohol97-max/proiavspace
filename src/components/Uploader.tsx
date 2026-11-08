@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -9,15 +9,25 @@ import {
   UploadRefusedError,
   uploadFileToGallery,
 } from '@/lib/upload/client'
+import { holdScreenAwake, isInterruption, waitForForeground } from '@/lib/upload/foreground'
 import { mimeFromName } from '@/lib/import/zip-plan'
 
 /**
  * Direct-to-storage uploader. The per-file pipeline (presign → PUT → in-browser
  * renditions → complete) lives in lib/upload/client, shared with the zip
  * import; this component runs up to CONCURRENCY of them in parallel.
+ *
+ * On a phone: a big «Вибрати фото з телефона» button (the photo library,
+ * HEIC included) above the drop zone; the screen is kept awake while files
+ * go up; a file cut off because the app was switched away or the network
+ * dropped waits («на паузі») and starts again once the app is back in front
+ * and online (lib/upload/foreground). Server refusals are not repeated.
  */
 
 const CONCURRENCY = 5
+
+/** How many times one file is restarted after the app was suspended / offline. */
+const MAX_RESUMES = 5
 
 type FileStatus = 'queued' | 'uploading' | 'done' | 'error'
 
@@ -30,6 +40,8 @@ interface UploadItem {
   videoPlan?: boolean
   /** Why it failed, in the photographer's words (see uploadErrorKey). */
   errorKey?: UploadErrorKey
+  /** Paused: the app is in the background or offline; continues when it is back. */
+  waiting?: boolean
 }
 
 export type UploadErrorKey = 'quota' | 'tooBig' | 'type' | 'closed' | 'duplicate' | 'generic'
@@ -65,8 +77,17 @@ export function Uploader({
   progressLabel,
   retryLabel,
   emphasis,
+  pickPhoneLabel,
+  backgroundHint,
+  pausedHint,
 }: {
   galleryId: string
+  /** Phone: the big button that opens the photo library. */
+  pickPhoneLabel?: string
+  /** Phone, while uploading: «можна згорнути застосунок». */
+  backgroundHint?: string
+  /** Shown while a file waits for the app to come back / the network. */
+  pausedHint?: string
   /** Plain-words reasons for a failed file. */
   errorLabels?: UploadErrorLabels
   /** «Завантажено {done} з {total}». */
@@ -93,25 +114,66 @@ export function Uploader({
 
   const uploadOne = useCallback(
     async (item: UploadItem) => {
-      updateItem(item.id, { status: 'uploading' })
-      try {
-        await uploadFileToGallery({
-          galleryId,
-          file: item.file,
-          watermarkText,
-          onProgress: (progress) => updateItem(item.id, { progress }),
-        })
-        updateItem(item.id, { status: 'done', progress: 100 })
-      } catch (error) {
-        updateItem(item.id, {
-          status: 'error',
-          videoPlan: error instanceof PlanVideoRequiredError,
-          errorKey: error instanceof PlanVideoRequiredError ? undefined : uploadErrorKey(error),
-        })
+      updateItem(item.id, { status: 'uploading', errorKey: undefined })
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await uploadFileToGallery({
+            galleryId,
+            file: item.file,
+            watermarkText,
+            onProgress: (progress) => updateItem(item.id, { progress, waiting: false }),
+          })
+          updateItem(item.id, { status: 'done', progress: 100, waiting: false })
+          return
+        } catch (error) {
+          // A retry after a cut-off: the first try may have landed after all.
+          if (attempt > 0 && error instanceof DuplicateAssetError) {
+            updateItem(item.id, { status: 'done', progress: 100, waiting: false })
+            return
+          }
+          const final =
+            error instanceof PlanVideoRequiredError ||
+            error instanceof DuplicateAssetError ||
+            error instanceof UploadRefusedError ||
+            attempt >= MAX_RESUMES ||
+            !isInterruption(error)
+          if (final) {
+            updateItem(item.id, {
+              status: 'error',
+              waiting: false,
+              videoPlan: error instanceof PlanVideoRequiredError,
+              errorKey: error instanceof PlanVideoRequiredError ? undefined : uploadErrorKey(error),
+            })
+            return
+          }
+          // Suspended in the background / offline / a dropped request: wait
+          // until the app is in front and online, then send the file again.
+          updateItem(item.id, { waiting: true })
+          await waitForForeground()
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
+          await waitForForeground()
+          updateItem(item.id, { progress: 0 })
+        }
       }
     },
     [galleryId, updateItem, watermarkText]
   )
+
+  // While files go up: keep the phone screen on, and warn before closing the tab.
+  const active = items.some((item) => item.status === 'uploading' || item.status === 'queued')
+  useEffect(() => {
+    if (!active) return
+    const release = holdScreenAwake()
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      release()
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
+  }, [active])
 
   const startUploads = useCallback(
     async (files: File[]) => {
@@ -152,6 +214,16 @@ export function Uploader({
 
   return (
     <div>
+      {pickPhoneLabel && (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="mb-3 flex min-h-[60px] w-full items-center justify-center gap-2 rounded-3xl bg-accent px-6 text-[17px] font-extrabold text-white lg:hidden"
+          data-testid="upload-pick-phone"
+        >
+          <span aria-hidden="true" className="text-2xl leading-none">+</span> {pickPhoneLabel}
+        </button>
+      )}
       <div
         role="button"
         tabIndex={0}
@@ -188,6 +260,17 @@ export function Uploader({
         }}
       />
 
+      {active && backgroundHint && !items.some((item) => item.waiting) && (
+        <p className="mt-4 text-sm text-muted lg:hidden" data-testid="upload-background-hint">
+          {backgroundHint}
+        </p>
+      )}
+      {pausedHint && items.some((item) => item.waiting && item.status === 'uploading') && (
+        <p className="mt-4 text-sm text-accent" role="status" data-testid="upload-paused">
+          {pausedHint}
+        </p>
+      )}
+
       {items.some((item) => item.videoPlan) && (
         <p className="mt-6 text-sm text-accent">
           {videoPlanNotice} <Link href={billingHref}>{videoPlanLink}</Link>
@@ -219,7 +302,13 @@ export function Uploader({
                   </span>
                 </span>
                 <span className="w-10 flex-none text-right text-xs font-bold text-muted">
-                  {item.status === 'done' ? '✓' : item.status === 'error' ? '✕' : `${item.progress}%`}
+                  {item.status === 'done'
+                    ? '✓'
+                    : item.status === 'error'
+                      ? '✕'
+                      : item.waiting
+                        ? '…'
+                        : `${item.progress}%`}
                 </span>
               </span>
               {item.status === 'error' && item.errorKey && (
