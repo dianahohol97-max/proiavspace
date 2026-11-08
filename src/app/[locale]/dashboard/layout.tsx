@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { signOut } from '@/lib/actions/galleries'
 import { isAdminEmail } from '@/lib/admin'
+import { dashboardNavItems } from '@/lib/dashboard/nav'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
 import {
@@ -74,24 +75,9 @@ export default async function DashboardLayout({
         )
       : null
 
-  const items: NavItem[] = [
-    { href: `/${locale}/dashboard`, label: dict.billing.galleryPlansTitle, prefix: true },
-    { href: `/${locale}/dashboard/site`, label: dict.site.navLink },
-    { href: `/${locale}/dashboard/booking`, label: dict.booking.navLink },
-    { href: `/${locale}/dashboard/offline`, label: dict.app.offlineTitle },
-    { href: `/${locale}/dashboard/billing`, label: dict.dashboard.billingLink },
-    { href: `/${locale}/dashboard/referrals`, label: dict.referrals.navLink },
-    { href: `/${locale}/dashboard/settings`, label: dict.dashboard.settingsLink },
-  ]
-  // Founder-only links (each page re-checks the allowlist).
-  if (isAdminEmail(user.email)) {
-    items.push({ href: `/${locale}/dashboard/stats`, label: dict.dashboard.statsLink })
-    items.push({ href: `/${locale}/dashboard/blog`, label: 'Блог' })
-    items.push({ href: `/${locale}/dashboard/hub`, label: 'Хаб' })
-    items.push({ href: `/${locale}/dashboard/content`, label: 'Контент' })
-    items.push({ href: `/${locale}/dashboard/stories`, label: 'Сторіс' })
-    items.push({ href: `/${locale}/dashboard/threads`, label: 'Threads' })
-  }
+  // Blog / Hub / Content / Stories / Threads / Stats — owner only (each page
+  // re-checks the allowlist too): see src/lib/dashboard/nav.ts.
+  const items: NavItem[] = dashboardNavItems(locale, dict, isAdminEmail(user.email))
 
   const planName =
     profile && isGalleryPlanId(profile.plan)

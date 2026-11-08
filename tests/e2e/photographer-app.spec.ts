@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import path from 'node:path'
+import { insertRow, resetDb, signIn } from './support/session'
 
 /**
  * Photographer's phone app (dashboard PWA) on the database-free test page
@@ -368,5 +369,66 @@ test.describe('застосунок фотографа на телефоні', (
     await expect(uploader.locator('li').filter({ hasText: '✓' })).toHaveCount(2, { timeout: 60_000 })
     expect(completes).toBe(2)
     expect(puts.some((url) => url.includes('iphone.heic'))).toBe(true)
+  })
+})
+
+test.describe('справжній кабінет на телефоні (фейковий Supabase)', () => {
+  test.beforeEach(async ({ context, baseURL }, testInfo) => {
+    test.skip(!phoneOnly(testInfo.project.name), 'мобільні сценарії — iPhone і Android')
+    await resetDb('full')
+    await signIn(context, baseURL!)
+  })
+
+  test('головний екран: швидкі дії, події від клієнтів, встановлення; head застосунку', async ({ page }) => {
+    const now = Date.now()
+    const g1 = '11111111-1111-4111-8111-111111111111'
+    for (let i = 0; i < 3; i++) {
+      await insertRow('selections', {
+        gallery_id: g1,
+        asset_id: `e2e-asset-${i}`,
+        kind: 'retouch',
+        client_token: 'c9',
+        created_at: new Date(now - (10 + i) * 60_000).toISOString(),
+      })
+    }
+    await insertRow('booking_slots', {
+      owner_id: '00000000-0000-4000-8000-0000000000e2',
+      status: 'booked',
+      client_name: 'Ірина',
+      starts_at: '2026-12-05T10:00:00',
+      booked_at: new Date(now - 2 * 60 * 60_000).toISOString(),
+    })
+    await page.goto('/uk/dashboard')
+    const home = page.getByTestId('phone-home')
+    await expect(home.getByTestId('quick-new')).toBeVisible()
+    // The newest published gallery (the studio portrait is a draft).
+    await expect(home.getByTestId('quick-share')).toContainText('Сімейна прогулянка в Карпатах')
+    const events = home.getByTestId('client-event')
+    await expect(events.first()).toContainText('«Марта і Богдан · весілля»: 3 фото на ретуш')
+    await expect(home.getByTestId('client-events')).toContainText('Заявка: Ірина, 05.12, 10:00')
+    await expect(home.getByTestId('install-card')).toBeVisible()
+    // One «Нова галерея» on the phone: the header button is for desktop.
+    await expect(page.getByTestId('new-gallery')).toBeHidden()
+    await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/dashboard.webmanifest?lang=uk')
+    await expect
+      .poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistration('/'))?.active?.scriptURL ?? ''))
+      .toContain('/dashboard-sw.js')
+    const [scrollWidth, innerWidth] = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth])
+    expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+  })
+
+  test('налаштування: блок сповіщень і встановлення; «Портфоліо офлайн» у кабінеті', async ({ page }) => {
+    await page.goto('/uk/dashboard/settings')
+    const block = page.getByTestId('notify-settings')
+    await expect(block).toContainText('Сповіщення на телефон')
+    // No VAPID keys on the e2e server: says so instead of breaking.
+    await expect(block).toContainText('Сповіщення ще не налаштовані на сервері.')
+    await expect(page.getByTestId('install-card')).toBeVisible()
+
+    await page.goto('/uk/dashboard/offline')
+    await expect(page.getByRole('heading', { name: 'Портфоліо офлайн' })).toBeVisible()
+    // Galleries with photos only (the studio portrait has none).
+    await expect(page.getByTestId('offline-item')).toHaveCount(3)
+    await expect(page.getByTestId('offline-count')).toHaveText('0 / 3')
   })
 })

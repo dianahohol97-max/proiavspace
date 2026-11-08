@@ -20,6 +20,11 @@ export const THEME_IDS = [
   'prodakshn',
   // v2 one-page «візитка» themes (sites only; migration 0064)
   'start',
+  'nizhnist',
+  'kontent',
+  'lyst',
+  'portret',
+  'sviato',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -145,6 +150,55 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Start Sans", "Start Sans Fallback", Arial, sans-serif',
     },
   },
+  nizhnist: {
+    id: 'nizhnist',
+    tokens: {
+      ...base,
+      // «Ніжність»: milk white, warm ink, a dusty mauve that stays ≥ 4.5:1 on
+      // every pastel of the theme (blush, mint, butter).
+      bg: '#fbf6f3', fg: '#2e2629', muted: '#6d6266', accent: '#7d5160', line: '#ecdfdb',
+      fontDisplay: '"Tender Round", "Tender Round Fallback", Arial, sans-serif',
+    },
+  },
+  kontent: {
+    id: 'kontent',
+    tokens: {
+      ...base,
+      // «Контент»: app-white, ink, an electric indigo (7.4:1) and a lime
+      // highlight used only behind dark text (16.7:1).
+      bg: '#f3f3f0', fg: '#0f0f10', muted: '#5c5c63', accent: '#3a2fd6', line: '#e2e2dc',
+      fontDisplay: '"Feed Sans", "Feed Sans Fallback", Arial, sans-serif',
+    },
+  },
+  lyst: {
+    id: 'lyst',
+    tokens: {
+      ...base,
+      // «Лист»: letter paper, brown-black ink, blue fountain-pen ink (7.9:1);
+      // no pinks, no hearts.
+      bg: '#f4eee4', fg: '#2b2420', muted: '#6a5e55', accent: '#2e4a6b', line: '#e2d8ca',
+      fontDisplay: '"Letter Hand", "Letter Hand Fallback", Georgia, serif',
+    },
+  },
+  portret: {
+    id: 'portret',
+    tokens: {
+      ...base,
+      // «Портрет»: studio grey-white, graphite, a deep bottle green (7.2:1).
+      bg: '#f6f6f4', fg: '#16191d', muted: '#596068', accent: '#1f5c4a', line: '#dfe1e0',
+      fontDisplay: '"Studio Sans", "Studio Sans Fallback", Arial, sans-serif',
+    },
+  },
+  sviato: {
+    id: 'sviato',
+    tokens: {
+      ...base,
+      // «Свято»: party cream, deep violet ink, tomato (5:1) and confetti
+      // colours used behind dark text only.
+      bg: '#fff8ef', fg: '#1d1a2b', muted: '#5f5a6e', accent: '#c23a26', line: '#efe3d2',
+      fontDisplay: '"Party Sans", "Party Sans Fallback", Arial, sans-serif',
+    },
+  },
 }
 
 /**
@@ -153,6 +207,11 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
  */
 export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: SiteMode }>> = {
   start: { theme: 'tysha', mode: 'light' },
+  nizhnist: { theme: 'povitria', mode: 'light' },
+  kontent: { theme: 'galereia', mode: 'light' },
+  lyst: { theme: 'tysha', mode: 'light' },
+  portret: { theme: 'galereia', mode: 'light' },
+  sviato: { theme: 'tysha', mode: 'night' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -234,4 +293,9 @@ export const GALLERY_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[
 export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
   ...GALLERY_CATALOG,
   { value: 'start', theme: 'start', mode: 'light' },
+  { value: 'nizhnist', theme: 'nizhnist', mode: 'light' },
+  { value: 'kontent', theme: 'kontent', mode: 'light' },
+  { value: 'lyst', theme: 'lyst', mode: 'light' },
+  { value: 'portret', theme: 'portret', mode: 'light' },
+  { value: 'sviato', theme: 'sviato', mode: 'light' },
 ]

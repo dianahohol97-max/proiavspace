@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { getDictionary } from '@/lib/i18n'
+import { getDictionary, type Dictionary } from '@/lib/i18n'
+import { setGalleryDelivery } from '@/lib/actions/galleries'
+import { parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
+import { GalleryList, type GalleryCardData } from '@/components/dashboard/GalleryList'
 import { isLocale } from '@/lib/i18n/config'
 import { daysLeft } from '@/lib/free-expiry'
 import { effectiveGalleryPlan } from '@/lib/plans'
@@ -34,7 +37,7 @@ export default async function DashboardPage({ params }: { params: { locale: stri
     supabase
       .from('galleries')
       .select(
-        'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme'
+        'id, owner_id, slug, title, description, event_date, cover_asset_id, has_password, expires_at, free_expires_at, free_expired_at, free_purged_at, is_published, view_count, created_at, updated_at, theme, delivery_status, delivery_eta'
       )
       // Required: RLS alone is not enough here. "galleries: public read when
       // published" lets every role — signed-in photographers included — read
@@ -85,46 +88,71 @@ export default async function DashboardPage({ params }: { params: { locale: stri
     })
   )
 
-  // Phone home screen: «Поділитися останньою» + the latest client events.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const d = dict.dashboard
+  const m = dict.galleryManage
+  const cardData: GalleryCardData[] = cards.map(({ gallery, coverUrl, photoCount }) => ({
+    id: gallery.id,
+    title: gallery.title,
+    slug: gallery.slug,
+    is_published: gallery.is_published,
+    has_password: gallery.has_password,
+    event_date: gallery.event_date,
+    created_at: gallery.created_at,
+    updated_at: gallery.updated_at,
+    delivery_status: parseDeliveryStatus(gallery.delivery_status),
+    delivery_eta: parseDeliveryEta(gallery.delivery_eta),
+    coverUrl,
+    photoCount,
+    views: ownerPlan.features.stats ? gallery.view_count : null,
+    freeBadge: freeBadge(gallery, dict),
+  }))
+
+  // Phone home screen: «Поділитися останньою» + the latest client events.
   const lastPublishedGallery = (galleries ?? []).find((gallery) => gallery.is_published)
   const lastPublished = lastPublishedGallery
     ? { title: lastPublishedGallery.title, url: `${appUrl}/${locale}/g/${lastPublishedGallery.slug}` }
     : null
-  const events = await recentClientEvents(supabase, user.id, galleries ?? [])
+  const events = cards.length > 0 ? await recentClientEvents(supabase, user.id, galleries ?? []) : []
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6 lg:px-6 lg:py-12">
-      <div className="mb-8 flex flex-col gap-4 lg:hidden">
-        <QuickActions t={dict.app} locale={locale} lastPublished={lastPublished} events={events} />
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-12">
+      <div className="mb-6 flex flex-col gap-4 lg:hidden" data-testid="phone-home">
+        {cards.length > 0 && <QuickActions t={dict.app} locale={locale} lastPublished={lastPublished} events={events} />}
         <InstallAppCard t={dict.app} dismissible />
       </div>
-      <header className="mb-8 flex flex-wrap items-center gap-4">
-        <h1 className="font-brand text-3xl">{dict.dashboard.title}</h1>
-        <Link
-          href={`/${locale}/dashboard/import`}
-          className="ml-auto rounded-full border border-line px-6 py-3 text-sm font-bold text-fg no-underline transition-colors hover:border-fg"
-        >
-          {dict.dashboard.importLink}
-        </Link>
-        <Link
-          href={`/${locale}/dashboard/galleries/new`}
-          className="hidden rounded-full bg-accent px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-accent-deep lg:inline-block"
-        >
-          + {dict.dashboard.newGallery}
-        </Link>
+      <header className="mb-6 flex flex-wrap items-center gap-3 sm:mb-8 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="font-brand text-2xl sm:text-3xl">{d.title}</h1>
+          {cards.length > 0 && (
+            <p className="mt-1 text-sm font-semibold text-muted">{d.galleriesCount.replace('{n}', String(cards.length))}</p>
+          )}
+        </div>
+        {cards.length > 0 && (
+          <Link
+            href={`/${locale}/dashboard/import`}
+            className="hidden rounded-full border border-line px-5 py-3 text-sm font-bold text-fg no-underline transition-colors hover:border-fg sm:inline-block"
+          >
+            {d.importLink}
+          </Link>
+        )}
+        {cards.length > 0 && (
+          <Link
+            href={`/${locale}/dashboard/galleries/new`}
+            data-testid="new-gallery"
+            className="hidden w-full rounded-full bg-accent px-6 py-3 text-center text-sm font-bold text-white no-underline transition-colors hover:bg-accent-deep sm:w-auto lg:inline-block"
+          >
+            + {d.newGallery}
+          </Link>
+        )}
       </header>
 
       {cards.length === 0 ? (
-        <div className="mt-6 max-w-2xl rounded-2xl border border-line bg-white p-8 shadow-sm">
-          <h2 className="font-brand text-2xl">{dict.dashboard.onboardTitle}</h2>
-          <p className="mt-3 leading-relaxed text-muted">{dict.dashboard.onboardLede}</p>
+        <div className="max-w-2xl rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8" data-testid="empty-state">
+          <h2 className="font-brand text-2xl">{d.onboardTitle}</h2>
+          <p className="mt-3 leading-relaxed text-muted">{d.onboardLede}</p>
           <ol className="mt-6 flex flex-col gap-4">
-            {[
-              dict.dashboard.onboardStep1,
-              dict.dashboard.onboardStep2,
-              dict.dashboard.onboardStep3,
-            ].map((step, index) => (
+            {[d.onboardStep1, d.onboardStep2, d.onboardStep3].map((step, index) => (
               <li key={index} className="flex items-start gap-3">
                 <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-accent text-sm font-bold text-white">
                   {index + 1}
@@ -135,66 +163,54 @@ export default async function DashboardPage({ params }: { params: { locale: stri
           </ol>
           <Link
             href={`/${locale}/dashboard/galleries/new`}
-            className="mt-8 inline-block rounded-full bg-accent px-7 py-3 text-sm font-bold text-white no-underline transition-colors hover:bg-accent-deep"
+            data-testid="new-gallery"
+            className="mt-8 block rounded-full bg-accent px-7 py-3.5 text-center text-sm font-bold text-white no-underline transition-colors hover:bg-accent-deep sm:inline-block"
           >
-            {dict.dashboard.onboardCta}
+            {d.onboardCta} →
           </Link>
-          <Link
-            href={`/${locale}/dashboard/import`}
-            className="mt-4 block text-sm text-muted"
-          >
-            {dict.dashboard.importLink}
+          <Link href={`/${locale}/dashboard/import`} className="mt-4 block text-sm text-muted">
+            {d.importLink}
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {cards.map(({ gallery, coverUrl, photoCount }) => (
-            <Link
-              key={gallery.id}
-              href={`/${locale}/dashboard/galleries/${gallery.id}`}
-              className="group rounded-2xl bg-white p-3 no-underline shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
-            >
-              <span
-                className="block aspect-[4/2.6] rounded-xl bg-line bg-cover bg-center"
-                style={coverUrl ? { backgroundImage: `url("${coverUrl}")` } : undefined}
-              />
-              <span className="mt-3 block px-1 pb-1">
-                <span className="block truncate text-[15px] font-extrabold text-fg">
-                  {gallery.title}
-                </span>
-                <span className="mt-1.5 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 font-extrabold ${
-                      gallery.is_published
-                        ? 'bg-emerald-600/10 text-emerald-700'
-                        : 'bg-bg text-muted'
-                    }`}
-                  >
-                    {gallery.is_published ? dict.dashboard.published : dict.dashboard.draft}
-                  </span>
-                  <span>
-                    {photoCount} {dict.dashboard.photosCount.toLowerCase()}
-                  </span>
-                  <FreeDeadline gallery={gallery} dict={dict} />
-                  {ownerPlan.features.stats && (
-                    <span>
-                      · {gallery.view_count} {dict.dashboard.views.toLowerCase()}
-                    </span>
-                  )}
-                </span>
-              </span>
-            </Link>
-          ))}
-        </div>
+        <GalleryList
+          galleries={cardData}
+          locale={locale}
+          appUrl={appUrl}
+          saveDelivery={setGalleryDelivery.bind(null, locale)}
+          labels={{
+            searchPlaceholder: d.searchPlaceholder,
+            sortLabel: d.sortLabel,
+            sorts: { newest: d.sortNewest, shoot: d.sortShootDate, updated: d.sortUpdated, title: d.sortTitle },
+            nothingFound: d.nothingFound,
+            published: d.published,
+            draft: d.draft,
+            photos: d.photosCount,
+            views: d.views,
+            noPhotosYet: d.noPhotosYet,
+            copyLink: d.actionCopyLink,
+            copied: d.actionCopied,
+            upload: d.actionUpload,
+            share: d.actionShare,
+            draftHint: d.actionDraftHint,
+            deliveryLabel: d.deliveryLabel,
+            deliveryNone: m.deliveryNone,
+            deliveryShot: m.deliveryShot,
+            deliveryEditing: m.deliveryEditing,
+            deliveryReady: m.deliveryReady,
+            deliverySaveError: d.deliverySaveError,
+            galleriesCount: d.galleriesCount,
+          }}
+        />
       )}
       {cards.some(({ gallery }) => gallery.free_expires_at || gallery.free_expired_at) && (
         <div className="mt-8 max-w-2xl rounded-2xl border border-line bg-white p-5 text-sm leading-relaxed text-muted">
-          <p>{dict.dashboard.freeExplain}</p>
+          <p>{d.freeExplain}</p>
           <Link
             href={`/${locale}/dashboard/billing`}
             className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-sm font-bold text-white no-underline hover:bg-accent-deep"
           >
-            {dict.dashboard.freeExtend}
+            {d.freeExtend}
           </Link>
         </div>
       )}
@@ -203,26 +219,15 @@ export default async function DashboardPage({ params }: { params: { locale: stri
 }
 
 /** «До закриття N дн.» / «Закрита для клієнтів» — the Free plan's 30 days (0049). */
-function FreeDeadline({
-  gallery,
-  dict,
-}: {
-  gallery: Gallery
-  dict: Awaited<ReturnType<typeof getDictionary>>
-}) {
-  if (gallery.free_purged_at) {
-    return <span className="rounded-full bg-red-600/10 px-2.5 py-0.5 font-extrabold text-red-700">{dict.dashboard.freePurged}</span>
-  }
-  if (gallery.free_expired_at) {
-    return <span className="rounded-full bg-red-600/10 px-2.5 py-0.5 font-extrabold text-red-700">{dict.dashboard.freeClosed}</span>
-  }
+function freeBadge(gallery: Gallery, dict: Dictionary): GalleryCardData['freeBadge'] {
+  if (gallery.free_purged_at) return { text: dict.dashboard.freePurged, tone: 'red' }
+  if (gallery.free_expired_at) return { text: dict.dashboard.freeClosed, tone: 'red' }
   if (!gallery.free_expires_at) return null
   const days = daysLeft(gallery.free_expires_at)
-  return (
-    <span className={`rounded-full px-2.5 py-0.5 font-extrabold ${days <= 7 ? 'bg-amber-500/15 text-amber-800' : 'bg-bg text-muted'}`}>
-      {days === 0 ? dict.dashboard.freeClosesToday : dict.dashboard.freeClosesIn.replace('{n}', String(days))}
-    </span>
-  )
+  return {
+    text: days === 0 ? dict.dashboard.freeClosesToday : dict.dashboard.freeClosesIn.replace('{n}', String(days)),
+    tone: days <= 7 ? 'amber' : 'muted',
+  }
 }
 
 /**
