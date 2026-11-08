@@ -36,7 +36,14 @@ const E2E_GALLERIES = [
   { id: '44444444-4444-4444-8444-444444444444', title: 'Хрестини', photoCount: 2, coverUrl: '/themes/04-1080.webp' },
 ]
 
-export default async function E2EPhotographerApp({ params }: { params: { locale: string } }) {
+export default async function E2EPhotographerApp({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  /** ?booking=1 — as with NEXT_PUBLIC_SITES_ENABLED=1: the «Нова заявка» switch is there. */
+  searchParams: { booking?: string }
+}) {
   if (process.env.E2E_THEME_PREVIEW !== '1' || !isLocale(params.locale)) notFound()
   const locale = params.locale
   const dict = await getDictionary(locale)
@@ -57,7 +64,12 @@ export default async function E2EPhotographerApp({ params }: { params: { locale:
         events={events}
       />
       <InstallAppCard t={dict.app} />
-      <NotificationSettings t={dict.app} locale={locale} publicKey={E2E_VAPID_PUBLIC_KEY} />
+      <NotificationSettings
+        t={dict.app}
+        locale={locale}
+        publicKey={E2E_VAPID_PUBLIC_KEY}
+        showBooking={searchParams.booking === '1'}
+      />
       <section>
         <h2 className="mb-3 font-brand text-2xl">{dict.app.offlineTitle}</h2>
         <OfflinePortfolio t={dict.app} locale={locale} galleries={E2E_GALLERIES} />

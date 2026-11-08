@@ -39,6 +39,20 @@ export function parsePreferencesPatch(value: unknown): Partial<PushPreferences> 
   return Object.keys(out).length > 0 ? out : null
 }
 
+/**
+ * «Нова заявка» rides on the sites & booking flag (NEXT_PUBLIC_SITES_ENABLED,
+ * the same switch that hides «Сайт» and «Бронювання»): while it is off there
+ * is no switch for it in the settings and nothing is sent.
+ */
+export function bookingPushEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_SITES_ENABLED === '1'
+}
+
+/** The types the photographer can switch on right now. */
+export function availablePushKinds(showBooking = bookingPushEnabled()): PushKind[] {
+  return PUSH_KINDS.filter((kind) => kind !== 'booking' || showBooking)
+}
+
 /** Storage share (0..1) from which «місце закінчується» is sent. */
 export const STORAGE_LOW_THRESHOLD = 0.9
 
