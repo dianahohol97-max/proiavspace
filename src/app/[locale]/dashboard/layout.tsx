@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { signOut } from '@/lib/actions/galleries'
@@ -5,6 +6,7 @@ import { isAdminEmail } from '@/lib/admin'
 import { dashboardNavItems } from '@/lib/dashboard/nav'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
+import { LangPicker } from '@/components/LangPicker'
 import {
   effectiveGalleryPlan,
   isGalleryPlanId,
@@ -58,7 +60,7 @@ export default async function DashboardLayout({
     typeof partnerUntil === 'string'
       ? dict.dashboard.partnerUntil.replace(
           '{date}',
-          new Date(partnerUntil).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+          new Date(partnerUntil).toLocaleDateString(intlLocale(locale), {
             timeZone: 'Europe/Kyiv',
             day: '2-digit',
             month: '2-digit',
@@ -126,6 +128,9 @@ export default async function DashboardLayout({
               )}
             </div>
           )}
+          <div className="px-3 text-xs font-semibold text-muted">
+            <LangPicker current={locale} full up label={dict.studio.language} />
+          </div>
           <form action={signOutAction} className="px-3 pb-1">
             <p className="truncate text-xs font-semibold text-muted">{user.email}</p>
             <button type="submit" className="text-xs font-bold text-muted underline hover:text-fg">
@@ -162,6 +167,9 @@ export default async function DashboardLayout({
                   )}
                 </div>
               )}
+              <div className="px-2 text-sm font-semibold text-muted">
+                <LangPicker current={locale} full up label={dict.studio.language} />
+              </div>
               <form action={signOutAction} className="px-2 pb-1">
                 <p className="truncate text-xs font-semibold text-muted">{user.email}</p>
                 <button type="submit" className="mt-1 text-sm font-bold text-accent underline">

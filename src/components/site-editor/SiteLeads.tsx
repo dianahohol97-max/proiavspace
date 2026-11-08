@@ -1,5 +1,6 @@
 'use client'
 
+import { intlLocale } from '@/lib/i18n/format'
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteSiteLead } from '@/lib/actions/site'
@@ -51,7 +52,7 @@ export function SiteLeads({
                   <p className="mt-1 whitespace-pre-line text-sm text-muted">{lead.message}</p>
                 )}
                 <p className="mt-1 text-xs text-muted">
-                  {new Date(lead.created_at).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB')}
+                  {new Date(lead.created_at).toLocaleString(intlLocale(locale))}
                 </p>
               </div>
               <button

@@ -1,7 +1,7 @@
-// Ukrainian and English are fully translated (platform + client pages).
-// The rest are CLIENT-facing languages: their dictionaries translate only the
-// public gallery / booking / site strings and fall back to English elsewhere
-// (see getDictionary). Adding a language = one dictionary file + a code here.
+// All 9 languages are fully translated: dashboard, landing, pricing, legal
+// texts (translations, the Ukrainian edition is binding), client pages, AI
+// culling. tests/audit-storage/i18n-parity.test.ts keeps them in sync — a new
+// string goes into every language. Glossary: docs/i18n/GLOSSARY.md.
 export const locales = ['uk', 'en', 'pl', 'de', 'es', 'fr', 'it', 'ro', 'pt'] as const
 export type Locale = (typeof locales)[number]
 export const defaultLocale: Locale = 'uk'

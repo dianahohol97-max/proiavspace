@@ -313,6 +313,17 @@ describe('кабінет, тексти, міграція', () => {
     assert.match(body, /isMissingDownloadsColumn\(error\)\) return \{ ok: false, error: 'migration' \}/)
   })
 
+  test('підписи перемикача є в усіх 9 мовах (кабінет перекладено повністю)', async () => {
+    for (const locale of locales) {
+      const m = (await getDictionary(locale)).galleryManage
+      for (const key of ['downloadsToggle', 'downloadsOnHint', 'downloadsOffHint', 'downloadsUnavailable'] as const) {
+        assert.ok(m[key], `${locale}.${key}`)
+        if (locale !== 'en') assert.notEqual(m[key], en.galleryManage[key], `${locale}.${key} ще англійською`)
+      }
+      assert.match(m.downloadsUnavailable, /0068/, locale)
+    }
+  })
+
   test('текст 403 є в усіх 9 мовах і відрізняється від англійського', async () => {
     for (const locale of locales) {
       const text = (await getDictionary(locale)).publicGallery.downloadsDisabled

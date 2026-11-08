@@ -62,6 +62,9 @@
 .filterChip:hover {
   border-color: var(--card-fg, currentColor);
 }
+.filterChipOn sup {
+  opacity: 1;
+}
 .filterChipOn {
   background: var(--card-fg, #111);
   border-color: var(--card-fg, #111);

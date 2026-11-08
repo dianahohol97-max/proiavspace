@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { getLandingCopy } from '@/lib/landing/copy'
+import { getDictionary } from '@/lib/i18n'
+import { formatDate, formatNumber, formatUah } from '@/lib/i18n/format'
 import { GALLERY_PLANS, type GalleryPlanId } from '@/lib/plans'
 import { preloadBrandFonts } from '@/lib/seo/fonts'
 import { buildMetadata } from '@/lib/seo/metadata'
@@ -14,29 +16,26 @@ import { Logo } from '@/components/Logo'
 import { AuthNav } from '@/components/landing/AuthNav'
 import { primaryNav } from '@/lib/seo/nav'
 import { GalleryShowcase } from '@/components/landing/GalleryShowcase'
+import { showcaseLabels } from '@/lib/landing/showcase-labels'
 import { Reveal } from '@/components/landing/Reveal'
 import s from './landing.module.css'
 
 /** Screenshot per «new in galleries» card, in the order of t.products.features. */
 const FEATURE_SHOTS = ['culling', 'status', 'upload'] as const
 
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale = isLocale(params.locale) ? params.locale : 'uk'
-  const uk = locale === 'uk'
+  const { pages } = await getDictionary(locale)
   return buildMetadata({
     locale,
     path: '',
     languages: ['uk', 'en'],
     absoluteTitle: true,
-    title: uk
-      ? 'Онлайн-галерея для фотографа: передати фото клієнту — проЯв'
-      : 'Online client gallery for photographers — proiav',
-    description: uk
-      ? 'Онлайн-галерея для фотографа: передайте зйомку клієнту красивим посиланням — з відбором фото, паролем, оригіналами без стискання й zip. 3 ГБ безкоштовно.'
-      : 'Deliver shoots to clients in a beautiful online gallery: favourites, a password and expiry, uncompressed originals and one-click zip. 3 GB free.',
+    title: pages.homeTitle,
+    description: pages.homeDescription,
     image: {
       url: brandOgImage(locale),
-      alt: uk ? 'проЯв — усе, що стається після зйомки' : 'proiav — everything after the shutter clicks',
+      alt: pages.ogAlt,
     },
   })
 }
@@ -58,10 +57,12 @@ function buildJsonLd(locale: Locale, t: ReturnType<typeof getLandingCopy>) {
   )
 }
 
-export default function LandingPage({ params }: { params: { locale: string } }) {
+export default async function LandingPage({ params }: { params: { locale: string } }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
   const t = getLandingCopy(locale)
+  const dict = await getDictionary(locale)
+  const { pages } = dict
   const login = `/${locale}/login`
   const jsonLd = buildJsonLd(locale, t)
   preloadBrandFonts(locale)
@@ -248,21 +249,19 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
         <section id="galleries" className={s.products} style={{ scrollMarginTop: 90 }}>
           <Reveal>
             <div className={s.secHead}>
-              <span className={s.lbl}>{locale === 'uk' ? 'Дизайн-студія' : 'Design studio'}</span>
+              <span className={s.lbl}>{pages.studioLabel}</span>
               <h2 className={s.h2}>
-                {locale === 'uk' ? 'Онлайн-галерея, яку клієнт захоче ' : 'A gallery clients love '}
+                {pages.studioTitleBefore}
                 <span className={s.accentWord}>
-                  {locale === 'uk' ? 'переслати друзям' : 'to share'}
+                  {pages.studioTitleAccent}
                 </span>
               </h2>
               <p>
-                {locale === 'uk'
-                  ? 'Розкладка, тема, шрифти, відступи й обкладинка — усе налаштовується, і зміни видно одразу. Спробуй просто тут:'
-                  : 'Layout, theme, fonts, spacing and cover — all adjustable with a live preview. Try it right here:'}
+                {pages.studioLede}
               </p>
             </div>
           </Reveal>
-          <GalleryShowcase locale={locale} ctaPrimary={s.pillHot} ctaGhost={s.pillGhost} />
+          <GalleryShowcase locale={locale} labels={showcaseLabels(pages, dict.publicGallery, dict.designer)} ctaPrimary={s.pillHot} ctaGhost={s.pillGhost} />
         </section>
 
         {/* ---------- bento ---------- */}
@@ -392,13 +391,13 @@ export default function LandingPage({ params }: { params: { locale: string } }) 
                   <h3>{copy.name}</h3>
                   <p className={s.gb}>{t.pricing.storage(plan.storageGb)}</p>
                   <p className={s.price}>
-                    {plan.priceUahMonth} ₴
+                    {formatUah(plan.priceUahMonth, locale)}
                     <small> {plan.priceUahMonth === 0 ? t.pricing.freeLabel : t.pricing.perMonth}</small>
                   </p>
                   <p className={s.yr}>
                     {plan.priceUahMonth === 0
                       ? copy.note
-                      : t.pricing.yearHint(String(plan.priceUahYear))}
+                      : t.pricing.yearHint(formatNumber(plan.priceUahYear, locale))}
                   </p>
                   <ul>
                     {copy.bullets.map((item) => (

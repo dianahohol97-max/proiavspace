@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getDictionary, type Dictionary } from '@/lib/i18n'
+import { formatMessage } from '@/lib/i18n/format'
 import { setGalleryDelivery } from '@/lib/actions/galleries'
 import { parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import { GalleryList, type GalleryCardData } from '@/components/dashboard/GalleryList'
@@ -102,7 +103,7 @@ export default async function DashboardPage({ params }: { params: { locale: stri
     coverUrl,
     photoCount,
     views: ownerPlan.features.stats ? gallery.view_count : null,
-    freeBadge: freeBadge(gallery, dict),
+    freeBadge: freeBadge(gallery, dict, locale),
   }))
 
   return (
@@ -111,7 +112,7 @@ export default async function DashboardPage({ params }: { params: { locale: stri
         <div className="min-w-0 flex-1">
           <h1 className="font-brand text-2xl sm:text-3xl">{d.title}</h1>
           {cards.length > 0 && (
-            <p className="mt-1 text-sm font-semibold text-muted">{d.galleriesCount.replace('{n}', String(cards.length))}</p>
+            <p className="mt-1 text-sm font-semibold text-muted">{formatMessage(d.galleriesCount, { n: cards.length }, locale)}</p>
           )}
         </div>
         {cards.length > 0 && (
@@ -205,13 +206,13 @@ export default async function DashboardPage({ params }: { params: { locale: stri
 }
 
 /** «До закриття N дн.» / «Закрита для клієнтів» — the Free plan's 30 days (0049). */
-function freeBadge(gallery: Gallery, dict: Dictionary): GalleryCardData['freeBadge'] {
+function freeBadge(gallery: Gallery, dict: Dictionary, locale: string): GalleryCardData['freeBadge'] {
   if (gallery.free_purged_at) return { text: dict.dashboard.freePurged, tone: 'red' }
   if (gallery.free_expired_at) return { text: dict.dashboard.freeClosed, tone: 'red' }
   if (!gallery.free_expires_at) return null
   const days = daysLeft(gallery.free_expires_at)
   return {
-    text: days === 0 ? dict.dashboard.freeClosesToday : dict.dashboard.freeClosesIn.replace('{n}', String(days)),
+    text: days === 0 ? dict.dashboard.freeClosesToday : formatMessage(dict.dashboard.freeClosesIn, { n: days }, locale),
     tone: days <= 7 ? 'amber' : 'muted',
   }
 }

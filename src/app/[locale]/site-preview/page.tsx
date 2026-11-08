@@ -97,9 +97,10 @@ export default async function SitePreviewPage({ params }: { params: { locale: st
         pricing: dict.publicSite.pricing,
         contacts: dict.publicSite.contacts,
         book: dict.publicSite.book,
-        photos: locale === 'uk' ? 'фото' : 'photos',
-        viewSeries: locale === 'uk' ? 'Дивитись серію' : 'View series',
-        close: locale === 'uk' ? 'Закрити' : 'Close',
+        photos: dict.pages.sitePhotosCount,
+        locale,
+        viewSeries: dict.pages.viewSeries,
+        close: dict.pages.close,
       }}
       leadForm={
         raw.settings.leadForm

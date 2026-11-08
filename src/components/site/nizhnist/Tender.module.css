@@ -476,7 +476,7 @@
 .workImg {
   position: relative;
   aspect-ratio: var(--r, 4 / 5);
-  overflow: hidden;
+  overflow: clip; /* not hidden: a scroll container would capture view() */
   border-radius: 22px;
   background: var(--n-blush);
 }
