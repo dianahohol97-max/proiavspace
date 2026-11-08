@@ -113,7 +113,17 @@ describe('життєвий цикл тарифу (effectiveGalleryPlan)', () => 
 
 describe('залишки старої логіки й тексти, що розходяться з кодом', () => {
   test('назви «Старт»/«Start» як тарифу ніде немає', () => {
-    const hits = srcFiles.filter((f) => /['"«]Старт['"»]|plan[^\n]{0,20}['"]start['"]/.test(readFileSync(f, 'utf8')))
+    // «Старт» is also a site THEME (v2): its dictionary key, demo name and
+    // code comments are allowed; any other «Старт» (a plan, a price) fails.
+    const themeName = /^\s*(themeStart:|name:)\s*['"]Старт['"],?\s*$/
+    const hits = srcFiles.filter((f) =>
+      /['"«]Старт['"»]|plan[^\n]{0,20}['"]start['"]/.test(
+        readFileSync(f, 'utf8')
+          .split('\n')
+          .filter((line) => !themeName.test(line) && !/^\s*(\/\/|\*|\/\*)/.test(line))
+          .join('\n')
+      )
+    )
     assert.deepEqual(hits.map((f) => relative(ROOT, f)), [])
   })
 

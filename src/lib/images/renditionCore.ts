@@ -95,31 +95,129 @@ function stampWatermark(context: Context2D, width: number, height: number, text:
   context.fillText(text, width - size, height - size)
 }
 
+/** What the upload already knows about the photo (EXIF read once, upload/client.ts). */
+export interface SourceHints {
+  /** EXIF orientation 1–8. */
+  orientation?: number | null
+  /** Pixel size as stored, before orientation (EXIF PixelX/YDimension). */
+  rawWidth?: number | null
+  rawHeight?: number | null
+}
+
+/**
+ * HEIC/HEIF by MIME type, extension or the ISO-BMFF brand («ftypheic»…):
+ * Chrome on Windows/Android hands HEIC files over with an empty type.
+ */
+export function looksLikeHeic(type: string, name: string, head?: Uint8Array): boolean {
+  if (/^image\/hei[cf](-sequence)?$/i.test(type)) return true
+  if (/\.(heic|heif)$/i.test(name)) return true
+  if (head && head.length >= 12) {
+    const box = String.fromCharCode(...head.slice(4, 12))
+    return /^ftyp(heic|heix|hevc|hevx|heim|heis|mif1|msf1)$/.test(box)
+  }
+  return false
+}
+
+/** Formats every browser shows in <img>: anything else needs a rendition. */
+export function isWebDisplayable(type: string): boolean {
+  return /^image\/(jpeg|png|webp|gif|avif)$/i.test(type)
+}
+
+/**
+ * HEIC/TIFF originals can't be shown by most browsers: they always get a
+ * preview and a grid tile, whatever their size — never an empty tile.
+ */
+export function needsRendition(type: string, name: string): boolean {
+  return looksLikeHeic(type, name) || !isWebDisplayable(type)
+}
+
+/**
+ * The orientation the browser did NOT apply and we must (1 = none). The
+ * browser applies EXIF orientation itself (`imageOrientation: 'from-image'`);
+ * some older engines ignore it for blobs, and that is caught here: if the EXIF
+ * says «turned by 90°» but the bitmap still has the stored (unturned) size,
+ * we turn it while drawing.
+ */
+export function pendingOrientation(bitmap: { width: number; height: number }, hints: SourceHints): number {
+  const { orientation, rawWidth, rawHeight } = hints
+  const swaps = !!orientation && orientation >= 5 && orientation <= 8
+  const notApplied =
+    swaps &&
+    !!rawWidth &&
+    !!rawHeight &&
+    rawWidth !== rawHeight &&
+    bitmap.width === rawWidth &&
+    bitmap.height === rawHeight
+  return notApplied ? (orientation as number) : 1
+}
+
+/**
+ * Canvas transform (a, b, c, d, e, f) that turns a stored image into its
+ * upright w×h picture for EXIF orientation 1–8 (x′ = a·x + c·y + e,
+ * y′ = b·x + d·y + f).
+ */
+export function orientationTransform(
+  orientation: number,
+  width: number,
+  height: number
+): [number, number, number, number, number, number] {
+  switch (orientation) {
+    case 2: return [-1, 0, 0, 1, width, 0]
+    case 3: return [-1, 0, 0, -1, width, height]
+    case 4: return [1, 0, 0, -1, 0, height]
+    case 5: return [0, 1, 1, 0, 0, 0]
+    case 6: return [0, 1, -1, 0, width, 0]
+    case 7: return [0, -1, -1, 0, width, height]
+    case 8: return [0, -1, 1, 0, 0, height]
+    default: return [1, 0, 0, 1, 0, 0]
+  }
+}
+
+/** Draws the bitmap upright into a w×h canvas, applying an orientation the browser left undone. */
+function drawOriented(context: Context2D, bitmap: ImageBitmap, orientation: number, width: number, height: number) {
+  context.setTransform(...orientationTransform(orientation, width, height))
+  const swaps = orientation >= 5 && orientation <= 8
+  context.drawImage(bitmap, 0, 0, swaps ? height : width, swaps ? width : height)
+  context.setTransform(1, 0, 0, 1, 0, 0)
+}
+
+export interface RenderOptions {
+  mobile?: boolean
+  /** Orientation still to apply (pendingOrientation); 1 or absent = none. */
+  orientation?: number
+  /** Always render preview + grid tile (HEIC/TIFF: the browser can't show the original). */
+  needsRendition?: boolean
+}
+
 /** Every rendition of one decoded image. The caller owns (and closes) the bitmap. */
 export async function renderFromBitmap(
   bitmap: ImageBitmap,
   makeCanvas: (width: number, height: number) => RenderCanvas,
   encode: Encoder,
   watermarkText?: string,
-  options: { mobile?: boolean } = {}
+  options: RenderOptions = {}
 ): Promise<GeneratedRenditions> {
+  const pending = options.orientation ?? 1
+  const swaps = pending >= 5 && pending <= 8
+  // Upright size (after orientation).
+  const width = swaps ? bitmap.height : bitmap.width
+  const height = swaps ? bitmap.width : bitmap.height
   const variants: GeneratedVariant[] = []
   const targets = options.mobile ? [...TARGETS, MOBILE_TARGET] : TARGETS
   for (const target of targets) {
-    const scale = target.maxDim / Math.max(bitmap.width, bitmap.height)
+    const scale = target.maxDim / Math.max(width, height)
     // A watermarked preview must exist even for small originals, otherwise
     // the viewer would fall back to the clean original.
-    const mustRender = target.name === 'preview' && !!watermarkText
+    const mustRender =
+      (target.name === 'preview' && (!!watermarkText || !!options.needsRendition)) ||
+      (target.name === 'mobile' && !!options.needsRendition)
     if (scale >= 1 && !mustRender) continue
 
     const effective = Math.min(scale, 1)
-    const canvas = makeCanvas(
-      Math.round(bitmap.width * effective),
-      Math.round(bitmap.height * effective)
-    )
+    const canvas = makeCanvas(Math.round(width * effective), Math.round(height * effective))
     const context = canvas.getContext('2d')
     if (!context) continue
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    drawOriented(context, bitmap, pending, canvas.width, canvas.height)
     if (target.watermark && watermarkText) {
       stampWatermark(context, canvas.width, canvas.height, watermarkText)
     }
@@ -130,5 +228,5 @@ export async function renderFromBitmap(
     canvas.width = 0
     canvas.height = 0
   }
-  return { variants, width: bitmap.width, height: bitmap.height }
+  return { variants, width, height }
 }

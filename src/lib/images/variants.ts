@@ -18,16 +18,22 @@
  */
 
 import {
+  looksLikeHeic,
+  needsRendition,
+  pendingOrientation,
   renderFromBitmap,
   type GeneratedRenditions,
   type RenderCanvas,
+  type SourceHints,
 } from './renditionCore'
 
 export type {
   GeneratedRenditions,
   GeneratedVariant,
   RenditionName,
+  SourceHints,
 } from './renditionCore'
+export { isWebDisplayable, looksLikeHeic, orientationTransform } from './renditionCore'
 
 function makeCanvas(width: number, height: number): RenderCanvas {
   const canvas = document.createElement('canvas')
@@ -40,24 +46,61 @@ function encode(canvas: RenderCanvas, type: string, quality: number): Promise<Bl
   return new Promise((resolve) => (canvas as HTMLCanvasElement).toBlob(resolve, type, quality))
 }
 
+interface Decoded {
+  bitmap: ImageBitmap
+  /** Orientation the browser did NOT apply and we must (1 = none). */
+  pending: number
+}
+
+/**
+ * Decodes the photo. Orientation: see pendingOrientation (renditionCore).
+ *
+ * HEIC: Safari decodes it natively; elsewhere libheif is loaded on demand from
+ * heic-to (LGPL-3.0) — kept an unmodified, separately loaded module
+ * (dynamic import, its own chunk; see docs/THIRD_PARTY_NOTICES.md). libheif
+ * applies the HEIF rotation (irot) itself. The rendition Web Worker can't use
+ * it, so a HEIC the worker can't decode comes back here (renditionPool.ts).
+ */
+async function decodeUpright(file: File, hints: SourceHints): Promise<Decoded | null> {
+  let bitmap: ImageBitmap | null = null
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  } catch {
+    bitmap = null
+  }
+  if (!bitmap) {
+    const head = new Uint8Array(await file.slice(0, 16).arrayBuffer().catch(() => new ArrayBuffer(0)))
+    if (!looksLikeHeic(file.type, file.name, head)) return null
+    try {
+      const { heicTo } = await import('heic-to/next')
+      bitmap = await heicTo({ blob: file, type: 'bitmap', options: { imageOrientation: 'from-image' } })
+    } catch {
+      return null
+    }
+    return { bitmap, pending: 1 }
+  }
+  return { bitmap, pending: pendingOrientation(bitmap, hints) }
+}
+
 export async function generateImageVariants(
   file: File,
   watermarkText?: string,
-  options: { mobile?: boolean } = {}
+  options: { mobile?: boolean; hints?: SourceHints } = {}
 ): Promise<GeneratedRenditions> {
-  if (!file.type.startsWith('image/')) return { variants: [] }
+  const heic = looksLikeHeic(file.type, file.name)
+  if (!file.type.startsWith('image/') && !heic) return { variants: [] }
 
-  let bitmap: ImageBitmap
-  try {
-    // 'from-image' bakes EXIF orientation in, so variants are always upright.
-    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  } catch {
-    // Unsupported format (e.g. some HEICs) — viewer falls back to the original.
-    return { variants: [] }
-  }
+  const decoded = await decodeUpright(file, options.hints ?? {})
+  // Unsupported format — the viewer falls back to the original.
+  if (!decoded) return { variants: [] }
+  const { bitmap, pending } = decoded
 
   try {
-    return await renderFromBitmap(bitmap, makeCanvas, encode, watermarkText, options)
+    return await renderFromBitmap(bitmap, makeCanvas, encode, watermarkText, {
+      mobile: options.mobile,
+      orientation: pending,
+      needsRendition: needsRendition(file.type, file.name),
+    })
   } finally {
     bitmap.close()
   }

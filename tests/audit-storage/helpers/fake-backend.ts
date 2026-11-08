@@ -35,10 +35,13 @@ export interface FakeDb {
 export const db: FakeDb = { profiles: [], galleries: [], assets: [], gallery_imports: [] }
 
 /** key → what "B2" holds. */
+/** Columns of assets that exist (a migration not applied → the column is missing). */
+export const schema = { assetsTakenAt: true }
 export const bucket = new Map<string, { sizeBytes: number; contentType: string }>()
 export const deletedKeys: string[] = []
 
 export function resetBackend(): void {
+  schema.assetsTakenAt = true
   db.profiles.length = 0
   db.galleries.length = 0
   db.assets.length = 0
@@ -109,6 +112,12 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   if (url.pathname === '/rest/v1/assets' && method === 'POST') {
     const body = JSON.parse(String(init?.body)) as Row | Row[]
     const row = Array.isArray(body) ? body[0] : body
+    if (!schema.assetsTakenAt && 'taken_at' in row) {
+      return new Response(
+        JSON.stringify({ code: 'PGRST204', message: "Could not find the 'taken_at' column of 'assets' in the schema cache" }),
+        { status: 400, headers: { 'content-type': 'application/json' } }
+      )
+    }
     const clash =
       row.import_id &&
       db.assets.some((a) => a.gallery_id === row.gallery_id && a.original_name === row.original_name)

@@ -20,6 +20,15 @@ export async function scrollThrough(page: Page) {
   }
 }
 
+/** Dev server hydrates lazily; clicks before that are lost. */
+export async function waitHydrated(page: Page, selector: string) {
+  await expect
+    .poll(() => page.locator(selector).first().evaluate((el) => Object.keys(el).some((k) => k.startsWith('__reactProps'))), {
+      timeout: 30_000,
+    })
+    .toBe(true)
+}
+
 export function cardSuite(
   id: string,
   opts: { gifts?: boolean; filters?: boolean; maxHeight?: number } = {}
@@ -49,7 +58,7 @@ export function cardSuite(
       for (const sel of ['#portfolio', '#pricing', '#about', '#contact']) {
         await expect(page.locator(sel).first(), sel).toBeAttached()
       }
-      const frames = await page.locator('#portfolio img').count()
+      const frames = await page.locator('#portfolio img:visible').count()
       expect(frames).toBeGreaterThanOrEqual(6)
       expect(frames).toBeLessThanOrEqual(15)
       const packs = await page.locator('#pricing [data-pack]').count()
@@ -68,7 +77,7 @@ export function cardSuite(
         await page.waitForTimeout(3000)
         const vh = page.viewportSize()!.height
         for (const key of ['name', 'role', 'directions', 'city', 'book']) {
-          const el = page.locator(`[data-card=${key}]`).first()
+          const el = page.locator(`[data-card=${key}]:visible`).first()
           await expect(el, key).toBeVisible()
           const box = await el.boundingBox()
           expect(box, key).not.toBeNull()
@@ -89,6 +98,7 @@ export function cardSuite(
         await page.goto(URL)
         const chips = page.locator('#portfolio [aria-pressed]')
         await expect(chips.first()).toBeVisible()
+        await waitHydrated(page, '#portfolio [aria-pressed]')
         const n = await chips.count()
         expect(n).toBeGreaterThanOrEqual(3)
         const all = await page.locator('#portfolio [data-cat]:visible').count()
@@ -113,6 +123,8 @@ export function cardSuite(
           .map((el) => (el as HTMLInputElement).name)
       })
       expect(unlabeled).toEqual([])
+      await waitHydrated(page, '#contact form')
+      await waitHydrated(page, '#pricing [data-pack] a[href="#contact"]')
       const cta = page.locator('#pricing [data-pack] a[href="#contact"]').first()
       const pack = await page.locator('#pricing [data-pack]').first().getAttribute('data-pack')
       await cta.click()
@@ -122,6 +134,10 @@ export function cardSuite(
     if (opts.gifts) {
       test('подарунки: «Замовити» сертифікат відкриває форму з номіналом/кому/від кого', async ({ page }) => {
         await page.goto(URL)
+        // A click before hydration is a plain #contact jump: the certificate
+        // fields never open. Wait for both the link and the form, as above.
+        await waitHydrated(page, '#contact form')
+        await waitHydrated(page, '#gifts [data-gift=certificate] a')
         const cert = page.locator('#gifts [data-gift=certificate]')
         await cert.locator('a').click()
         await expect(page.locator('#contact [name=cert_to]')).toBeVisible()

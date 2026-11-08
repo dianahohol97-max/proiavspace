@@ -1,6 +1,6 @@
 'use client'
 
-import type { GeneratedRenditions, GeneratedVariant } from './renditionCore'
+import { looksLikeHeic, type GeneratedRenditions, type GeneratedVariant, type SourceHints } from './renditionCore'
 import { createRenditionWorker } from './renditionWorker'
 import type { RenditionJob, RenditionReply } from './renditions.worker'
 import { generateImageVariants } from './variants'
@@ -57,9 +57,10 @@ let mainThreadChain: Promise<unknown> = Promise.resolve()
 function onMainThread(
   file: File,
   watermarkText: string | undefined,
-  mobile: boolean
+  mobile: boolean,
+  hints: SourceHints | undefined
 ): Promise<GeneratedRenditions> {
-  const run = mainThreadChain.then(() => generateImageVariants(file, watermarkText, { mobile }))
+  const run = mainThreadChain.then(() => generateImageVariants(file, watermarkText, { mobile, hints }))
   mainThreadChain = run.catch(() => undefined)
   return run
 }
@@ -99,14 +100,16 @@ function runInWorker(slot: Slot, job: RenditionJob): Promise<RenditionReply> {
 export async function generateRenditions(
   file: File,
   watermarkText?: string,
-  options: { mobile?: boolean } = {}
+  options: { mobile?: boolean; hints?: SourceHints } = {}
 ): Promise<GeneratedRenditions> {
-  if (!file.type.startsWith('image/')) return { variants: [] }
+  // HEIC can arrive with an empty type (Chrome on Windows/Android).
+  if (!file.type.startsWith('image/') && !looksLikeHeic(file.type, file.name)) return { variants: [] }
   const mobile = !!options.mobile
+  const { hints } = options
   const slot = await acquire()
   try {
     if (!workersUnavailable) {
-      const reply = await runInWorker(slot, { id: nextJobId++, file, watermarkText, mobile })
+      const reply = await runInWorker(slot, { id: nextJobId++, file, watermarkText, mobile, hints })
       if (reply.ok) {
         return {
           variants: reply.variants as GeneratedVariant[],
@@ -116,7 +119,7 @@ export async function generateRenditions(
       }
       if (reply.unsupported) workersUnavailable = true
     }
-    return await onMainThread(file, watermarkText, mobile)
+    return await onMainThread(file, watermarkText, mobile, hints)
   } finally {
     release(slot)
   }

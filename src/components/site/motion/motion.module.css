@@ -64,7 +64,7 @@
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .litWord {
-      opacity: 0.2;
+      opacity: 0.62; /* unlit words stay ≥ 4.5:1 on the paper */
       animation: kitLit linear both;
       animation-timeline: --kit-lit;
       animation-range: cover var(--lit-a) cover var(--lit-b);
@@ -85,7 +85,7 @@
 }
 @keyframes kitLitWarm {
   from {
-    opacity: 0.16;
+    opacity: 0.55;
     filter: drop-shadow(0 0 0 rgba(255, 168, 84, 0));
   }
   60% {
@@ -99,7 +99,7 @@
 }
 @keyframes kitLit {
   from {
-    opacity: 0.2;
+    opacity: 0.62;
   }
   to {
     opacity: 1;

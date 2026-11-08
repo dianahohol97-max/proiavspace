@@ -1,0 +1,750 @@
+@font-face {
+  font-family: 'Letter Hand';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/lyst/marck-script-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Letter Hand Fallback';
+  src: local('Times New Roman Italic'), local('TimesNewRomanPS-ItalicMT'), local('Liberation Serif Italic'), local('Tinos Italic');
+  font-style: normal;
+  ascent-override: 88.3%;
+  descent-override: 39.4%;
+  line-gap-override: 0%;
+  size-adjust: 97.8%;
+}
+
+/* ===========================================================================
+   «Лист» — told like a letter: letter paper, brown-black ink, blue pen ink,
+   kraft envelope, handwriting. No pinks, no hearts. Effects: the envelope
+   opens and three photos slide out (CSS, first paint); prints lying at an
+   angle straighten on hover; the signature writes itself on scroll
+   (scroll-driven); postcards with stamps and postmarks. Reduced motion: the
+   envelope is shown open, nothing moves.
+=========================================================================== */
+
+.root {
+  --l-bg: var(--site-bg);
+  --l-fg: var(--site-fg);
+  --l-muted: var(--site-muted);
+  --l-ink: var(--site-accent);
+  --l-line: var(--site-line);
+  --l-kraft: #d8c4a3;
+  --l-kraft-deep: #c4ab84;
+  --l-kraft-dark: #a98f68;
+  --l-paper: #fffdf8;
+  --l-rust: #8a3b24;
+  --l-hand: 'Letter Hand', 'Letter Hand Fallback', Georgia, serif;
+  --l-sans: Manrope, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --l-pad: clamp(18px, 4.5vw, 64px);
+  --l-max: 1200px;
+  --l-section: clamp(64px, 9vw, 120px);
+  --l-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-nav-h: 66px;
+
+  --card-bg: var(--l-bg);
+  --card-fg: var(--l-fg);
+  --card-muted: var(--l-muted);
+  --card-line: var(--l-line);
+  --card-accent: var(--l-ink);
+  --card-display: var(--l-hand);
+  --card-label: var(--l-sans);
+  --card-pad: var(--l-pad);
+  --card-ease: var(--l-ease);
+  --card-radius: 6px;
+  --card-field-radius: 6px;
+  --card-btn-radius: 6px;
+  --card-input-bg: var(--l-paper);
+  --card-menu-bg: var(--l-paper);
+
+  background: var(--l-bg);
+  color: var(--l-fg);
+  font-family: var(--l-sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+.root *,
+.root *::before,
+.root *::after {
+  box-sizing: border-box;
+}
+:where(.root) a {
+  color: inherit;
+}
+@media (max-width: 760px) {
+  .root {
+    --t-nav-h: 60px;
+    --l-section: 56px;
+  }
+}
+.wrap {
+  max-width: var(--l-max);
+  margin: 0 auto;
+  padding: 0 var(--l-pad);
+}
+.section {
+  padding-block: var(--l-section) 0;
+}
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--l-muted);
+}
+.sectionHead {
+  margin-bottom: clamp(20px, 3vw, 36px);
+}
+.sectionTitle {
+  margin: 0;
+  font-family: var(--l-hand);
+  font-weight: 400;
+  font-size: clamp(40px, 5.4vw, 72px);
+  line-height: 1.05;
+  color: var(--l-ink);
+}
+.wordmark {
+  font-family: var(--l-hand);
+  font-size: 26px;
+  color: var(--l-ink);
+}
+.menuItem a {
+  font-family: var(--l-hand);
+}
+
+/* ------------------------------------------------------------- buttons --- */
+.btn,
+.btnLine {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 13px 26px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition:
+    transform 0.4s var(--l-ease),
+    background-color 0.3s,
+    color 0.3s;
+}
+.btn {
+  background: var(--l-ink);
+  color: #fff;
+}
+.btnLine {
+  border: 1.5px solid var(--l-ink);
+  color: var(--l-ink);
+}
+@media (hover: hover) {
+  .btn:hover,
+  .btnLine:hover {
+    transform: translateY(-2px);
+  }
+  .btnLine:hover {
+    background: var(--l-ink);
+    color: #fff;
+  }
+}
+
+/* --------------------------------------------------------------- hero --- */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 80px);
+  min-height: calc(100svh - var(--t-nav-h));
+  padding-block: clamp(16px, 3vw, 40px);
+}
+.heroTo {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--l-muted);
+}
+.heroTitle {
+  margin: 0;
+  font-family: var(--l-hand);
+  font-weight: 400;
+  font-size: clamp(56px, 8vw, 120px);
+  line-height: 1;
+  color: var(--l-ink);
+}
+.heroDirections {
+  margin: 14px 0 0;
+  font-size: clamp(17px, 1.6vw, 20px);
+  font-weight: 600;
+}
+.heroSub {
+  margin: 12px 0 0;
+  max-width: 34ch;
+  color: var(--l-muted);
+}
+.heroCopy > .btn {
+  margin-top: 24px;
+}
+
+/* the envelope: back, three photos, the front pocket and the flap */
+.envelope {
+  position: relative;
+  justify-self: center;
+  width: min(100%, 460px);
+  aspect-ratio: 1 / 1;
+  perspective: 900px;
+}
+.back,
+.front {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56%;
+  border-radius: 6px;
+}
+.back {
+  background: var(--l-kraft-deep);
+  box-shadow: 0 24px 40px rgba(43, 36, 32, 0.18);
+}
+.front {
+  z-index: 3;
+  background: var(--l-kraft);
+  clip-path: polygon(0 0, 50% 52%, 100% 0, 100% 100%, 0 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 7%;
+}
+.address {
+  display: grid;
+  justify-items: center;
+  font-family: var(--l-hand);
+  font-size: clamp(20px, 2.4vw, 30px);
+  line-height: 1.1;
+  color: #3a3028;
+}
+.address small {
+  font-family: var(--l-sans);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.flap {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 56%;
+  height: 30%;
+  background: var(--l-kraft-dark);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+  transform-origin: bottom center;
+}
+.letter {
+  position: absolute;
+  z-index: 2;
+  bottom: 14%;
+  width: 40%;
+  aspect-ratio: var(--r, 4 / 5);
+  background: var(--l-paper);
+  padding: 3.5%;
+  box-shadow: 0 6px 18px rgba(43, 36, 32, 0.2);
+}
+.letter img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.letter[data-i='0'] {
+  left: 30%;
+  bottom: 22%;
+  transform: rotate(-1.5deg);
+}
+.letter[data-i='1'] {
+  left: 6%;
+  width: 34%;
+  transform: rotate(-8deg);
+}
+.letter[data-i='2'] {
+  left: 46%;
+  width: 50%;
+  bottom: 18%;
+  transform: rotate(7deg);
+}
+.envelope[data-count='1'] .letter[data-i='0'] {
+  left: 25%;
+  width: 50%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flap {
+    animation: letterFlap 0.7s var(--l-ease) 0.15s both;
+  }
+  .letter {
+    animation: letterOut 1s var(--l-ease) both;
+  }
+  .letter[data-i='0'] {
+    --rest: rotate(-1.5deg);
+    animation-delay: 0.45s;
+  }
+  .letter[data-i='1'] {
+    --rest: rotate(-8deg);
+    animation-delay: 0.6s;
+  }
+  .letter[data-i='2'] {
+    --rest: rotate(7deg);
+    animation-delay: 0.75s;
+  }
+}
+@keyframes letterFlap {
+  from {
+    transform: rotateX(180deg);
+    z-index: 4;
+  }
+  to {
+    transform: none;
+    z-index: 1;
+  }
+}
+@keyframes letterOut {
+  from {
+    transform: translateY(55%) rotate(0deg);
+  }
+  to {
+    transform: var(--rest, none);
+  }
+}
+@media (max-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 6px;
+    padding-top: 4px;
+  }
+  .envelope {
+    order: -1;
+    width: min(76%, 280px);
+  }
+  .heroTitle {
+    font-size: clamp(52px, 15vw, 72px);
+  }
+  .heroDirections {
+    margin-top: 8px;
+    font-size: 16px;
+  }
+  .heroSub {
+    display: none;
+  }
+  .heroCopy > .btn {
+    margin-top: 16px;
+  }
+  .address small {
+    font-size: 9px;
+  }
+}
+
+/* ---------------------------------------------------------- portfolio --- */
+.filterChip {
+  border-radius: 6px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  background: var(--l-paper);
+}
+.filterChipOn {
+  background: var(--l-ink);
+  border-color: var(--l-ink);
+  color: #fff;
+}
+.prints {
+  columns: 3;
+  column-gap: clamp(16px, 2.6vw, 36px);
+}
+.print {
+  break-inside: avoid;
+  margin: 0 0 clamp(18px, 3vw, 40px);
+  padding: 10px 10px 14px;
+  background: var(--l-paper);
+  box-shadow: 0 8px 22px rgba(43, 36, 32, 0.12);
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.6s var(--l-ease);
+}
+.printImg {
+  position: relative;
+  aspect-ratio: var(--r, 4 / 5);
+  overflow: hidden;
+  background: var(--l-line);
+}
+.printImg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.printCap {
+  margin-top: 8px;
+  font-family: var(--l-hand);
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--l-ink);
+}
+@media (hover: hover) {
+  .print:hover {
+    transform: rotate(0deg) translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .print {
+    transform: none;
+  }
+}
+@media (max-width: 760px) {
+  .prints {
+    columns: 2;
+    column-gap: 12px;
+  }
+  .print {
+    padding: 6px 6px 8px;
+    margin-bottom: 14px;
+  }
+  .printCap {
+    font-size: 17px;
+  }
+}
+
+/* -------------------------------------------------------------- packs --- */
+.packs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: clamp(14px, 2vw, 24px);
+}
+.packs > * {
+  height: 100%;
+}
+.pack {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 26px 24px 24px;
+  background: var(--l-paper);
+  border: 1px solid var(--l-line);
+  background-image: repeating-linear-gradient(transparent 0 31px, var(--l-line) 31px 32px);
+  background-position: 0 14px;
+}
+.packFeatured {
+  border: 2px solid var(--l-ink);
+}
+.packName {
+  margin: 0;
+  font-family: var(--l-hand);
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 1.1;
+  color: var(--l-ink);
+}
+.packBadge {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--l-rust);
+}
+.packPrice {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.packList {
+  list-style: none;
+  margin: 6px 0 20px;
+  padding: 0;
+  line-height: 2;
+  color: var(--l-muted);
+}
+.packList li::before {
+  content: '— ';
+  color: var(--l-ink);
+}
+.pack > a {
+  margin-top: auto;
+}
+.terms {
+  border-top: 1px dashed var(--l-muted);
+}
+.termsLabel {
+  font-size: 26px;
+  color: var(--l-ink);
+}
+
+/* -------------------------------------------------------------- gifts --- */
+.gift {
+  border-radius: 4px;
+  background: var(--l-paper);
+}
+.giftTitle {
+  font-size: 28px;
+  color: var(--l-ink);
+}
+.giftCta {
+  color: var(--l-ink);
+}
+
+/* -------------------------------------------------------------- about --- */
+.sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 56px);
+  align-items: start;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 52px);
+  background: var(--l-paper);
+  box-shadow: 0 10px 30px rgba(43, 36, 32, 0.1);
+  background-image: repeating-linear-gradient(transparent 0 33px, var(--l-line) 33px 34px);
+  background-position: 0 clamp(24px, 4vw, 52px);
+}
+.sheetSolo {
+  grid-template-columns: 1fr;
+}
+.sheetPhoto {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  padding: 8px;
+  background: #fff;
+  transform: rotate(-2deg);
+}
+.sheetPhoto img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sheetText {
+  margin: 8px 0 0;
+  font-size: clamp(17px, 1.7vw, 20px);
+  line-height: 34px;
+}
+/* the signature writes itself, left to right, as it scrolls into view */
+.signature {
+  margin: 14px 0 0;
+  font-family: var(--l-hand);
+  font-size: clamp(40px, 5vw, 60px);
+  line-height: 1;
+  color: var(--l-ink);
+}
+.signature span {
+  display: inline-block;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .signature span {
+      animation: letterSign linear both;
+      animation-timeline: view();
+      animation-range: entry 40% cover 45%;
+    }
+  }
+}
+@keyframes letterSign {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@media (max-width: 560px) {
+  .sheet {
+    grid-template-columns: 110px 1fr;
+  }
+  .sheetSolo {
+    grid-template-columns: 1fr;
+  }
+  .sheetText {
+    font-size: 16px;
+    line-height: 30px;
+  }
+}
+
+/* ------------------------------------------------------------ reviews --- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: clamp(16px, 2.6vw, 32px);
+}
+.postcard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 16px;
+  margin: 0;
+  padding: 22px;
+  background: var(--l-paper);
+  box-shadow: 0 8px 22px rgba(43, 36, 32, 0.12);
+  transform: rotate(var(--tilt, 0deg));
+}
+.postText {
+  margin: 0;
+  padding-right: 16px;
+  border-right: 1px solid var(--l-line);
+  font-family: var(--l-hand);
+  font-size: 23px;
+  line-height: 1.25;
+  color: var(--l-ink);
+}
+.postSide {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  gap: 8px;
+}
+.stamp {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 76px;
+  padding: 5px;
+  background: #fff;
+  outline: 2px dotted var(--l-line);
+  outline-offset: -2px;
+  font-family: var(--l-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--l-rust);
+}
+.stamp img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.postmark {
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  margin-top: -40px;
+  margin-right: 30px;
+  border: 2px solid color-mix(in srgb, var(--l-rust) 70%, transparent);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--l-rust);
+  transform: rotate(-14deg);
+}
+.postFrom {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+@media (prefers-reduced-motion: reduce) {
+  .postcard {
+    transform: none;
+  }
+}
+@media (max-width: 760px) {
+  .cards {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 88%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    margin-inline: calc(-1 * var(--l-pad));
+    padding: 10px var(--l-pad) 16px;
+    scroll-padding-inline: var(--l-pad);
+    scrollbar-width: none;
+  }
+  .cards::-webkit-scrollbar {
+    display: none;
+  }
+  .postcard {
+    scroll-snap-align: start;
+    grid-template-columns: minmax(0, 1fr) 76px;
+    padding: 16px;
+  }
+  .postText {
+    font-size: 20px;
+  }
+  .stamp {
+    width: 52px;
+    height: 62px;
+  }
+  .postmark {
+    width: 58px;
+    height: 58px;
+    margin-right: 18px;
+  }
+}
+
+/* ------------------------------------------------------------ contact --- */
+.contact {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(24px, 5vw, 64px);
+  align-items: start;
+}
+.contactList {
+  margin: 20px 0 22px;
+}
+.contactItem a {
+  font-family: var(--l-sans);
+  font-weight: 600;
+  font-size: 18px;
+}
+.formCard {
+  padding: clamp(18px, 3vw, 34px);
+  background: var(--l-paper);
+  box-shadow: 0 10px 30px rgba(43, 36, 32, 0.1);
+}
+.submit {
+  border-radius: 6px;
+}
+@media (max-width: 860px) {
+  .contact {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ------------------------------------------------------------- footer --- */
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px 30px;
+  margin-top: var(--l-section);
+  padding-block: 28px 40px;
+  border-top: 1px solid var(--l-line);
+}
+.footName {
+  font-family: var(--l-hand);
+  font-size: 30px;
+  color: var(--l-ink);
+  text-decoration: none;
+}
+.footLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 14px;
+  color: var(--l-muted);
+}
+.footLinks a {
+  text-decoration: none;
+}
+.footLinks a:hover {
+  color: var(--l-fg);
+}

@@ -55,6 +55,7 @@ export interface CardData {
   navLinks: { href: string; label: string }[]
   L: Required<Pick<SiteLabels,
     'photographer' | 'termsTitle' | 'giftsTitle' | 'order' | 'filterAll' | 'testimonials' | 'popular' | 'choosePack' | 'madeOn' | 'menu' | 'bookDate' | 'allPortfolio'
+    | 'before' | 'after' | 'howToPrepare' | 'compareRetouch' | 'freeDates' | 'freeShort' | 'projectWord' | 'framesWord'
   >>
 }
 
@@ -114,6 +115,14 @@ export function buildCard({
     menu: labels.menu ?? 'Меню',
     bookDate: labels.bookDate ?? labels.book,
     allPortfolio: labels.allPortfolio ?? labels.portfolio,
+    before: labels.before ?? 'До',
+    after: labels.after ?? 'Після',
+    howToPrepare: labels.howToPrepare ?? 'Як підготуватися',
+    compareRetouch: labels.compareRetouch ?? 'Порівняти до і після ретуші',
+    freeDates: labels.freeDates ?? 'Вільні дати',
+    freeShort: labels.freeShort ?? 'вільно',
+    projectWord: labels.projectWord ?? 'проєкт',
+    framesWord: labels.framesWord ?? 'кадрів',
   }
 
   const t = content.terms
@@ -204,4 +213,15 @@ export function filtersFor(items: PortfolioItem[], directions: string[]): CardFi
   }
   const order = [...directions.filter((d) => counts.has(d)), ...[...counts.keys()].filter((c) => !directions.includes(c))]
   return order.length >= 2 ? order.map((label) => ({ label, count: counts.get(label)! })) : []
+}
+
+/**
+ * Skin for the shared client components (TyshaNav, TyshaLeadForm): the chrome
+ * base classes followed by the theme's classes of the same name. A plain
+ * object, so it can cross into client components.
+ */
+export function mergeSkin(base: Record<string, string>, theme: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = { ...theme }
+  for (const [k, v] of Object.entries(base)) out[k] = theme[k] ? `${v} ${theme[k]}` : v
+  return out
 }

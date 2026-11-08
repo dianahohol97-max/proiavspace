@@ -18,6 +18,15 @@ export const THEME_IDS = [
   'galereia',
   'arkhiv',
   'prodakshn',
+  // v2 one-page «візитка» themes (sites only; migration 0064)
+  'start',
+  'nizhnist',
+  'kontent',
+  'lyst',
+  'portret',
+  'sviato',
+  'rozvorot',
+  'indeks',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -133,6 +142,98 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       displayTransform: 'uppercase', displayWeight: 700, displayTracking: '-0.01em',
     },
   },
+  start: {
+    id: 'start',
+    tokens: {
+      ...base,
+      // «Старт»: warm white, graphite, a brick-orange accent. On the paper:
+      // fg ≈ 17:1, muted ≈ 6:1, accent ≈ 5:1 (AA).
+      bg: '#f7f6f2', fg: '#17181b', muted: '#5b5f66', accent: '#b8461f', line: '#e3e1da',
+      fontDisplay: '"Start Sans", "Start Sans Fallback", Arial, sans-serif',
+    },
+  },
+  nizhnist: {
+    id: 'nizhnist',
+    tokens: {
+      ...base,
+      // «Ніжність»: milk white, warm ink, a dusty mauve that stays ≥ 4.5:1 on
+      // every pastel of the theme (blush, mint, butter).
+      bg: '#fbf6f3', fg: '#2e2629', muted: '#6d6266', accent: '#7d5160', line: '#ecdfdb',
+      fontDisplay: '"Tender Round", "Tender Round Fallback", Arial, sans-serif',
+    },
+  },
+  kontent: {
+    id: 'kontent',
+    tokens: {
+      ...base,
+      // «Контент»: app-white, ink, an electric indigo (7.4:1) and a lime
+      // highlight used only behind dark text (16.7:1).
+      bg: '#f3f3f0', fg: '#0f0f10', muted: '#5c5c63', accent: '#3a2fd6', line: '#e2e2dc',
+      fontDisplay: '"Feed Sans", "Feed Sans Fallback", Arial, sans-serif',
+    },
+  },
+  lyst: {
+    id: 'lyst',
+    tokens: {
+      ...base,
+      // «Лист»: letter paper, brown-black ink, blue fountain-pen ink (7.9:1);
+      // no pinks, no hearts.
+      bg: '#f4eee4', fg: '#2b2420', muted: '#6a5e55', accent: '#2e4a6b', line: '#e2d8ca',
+      fontDisplay: '"Letter Hand", "Letter Hand Fallback", Georgia, serif',
+    },
+  },
+  portret: {
+    id: 'portret',
+    tokens: {
+      ...base,
+      // «Портрет»: studio grey-white, graphite, a deep bottle green (7.2:1).
+      bg: '#f6f6f4', fg: '#16191d', muted: '#596068', accent: '#1f5c4a', line: '#dfe1e0',
+      fontDisplay: '"Studio Sans", "Studio Sans Fallback", Arial, sans-serif',
+    },
+  },
+  sviato: {
+    id: 'sviato',
+    tokens: {
+      ...base,
+      // «Свято»: party cream, deep violet ink, tomato (5:1) and confetti
+      // colours used behind dark text only.
+      bg: '#fff8ef', fg: '#1d1a2b', muted: '#5f5a6e', accent: '#c23a26', line: '#efe3d2',
+      fontDisplay: '"Party Sans", "Party Sans Fallback", Arial, sans-serif',
+    },
+  },
+  rozvorot: {
+    id: 'rozvorot',
+    tokens: {
+      ...base,
+      // «Розворот»: quiet luxury — stone paper, warm black, bronze (5.5:1).
+      bg: '#efebe4', fg: '#1e1c19', muted: '#665f55', accent: '#6f5b3e', line: '#ddd6cb',
+      fontDisplay: '"Spread Serif", "Spread Serif Fallback", Georgia, serif',
+    },
+  },
+  indeks: {
+    id: 'indeks',
+    tokens: {
+      ...base,
+      // «Індекс»: paper grey, near-black, signal red (5:1).
+      bg: '#f1f1ee', fg: '#0b0b0b', muted: '#55555a', accent: '#c42d12', line: '#d9d9d4',
+      fontDisplay: '"Index Grotesk", "Index Grotesk Fallback", Arial, sans-serif',
+    },
+  },
+}
+
+/**
+ * v2 site themes are site styles only: a gallery of a photographer on one of
+ * them keeps one of the existing gallery styles («Стилі галерей не змінюємо»).
+ */
+export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: SiteMode }>> = {
+  start: { theme: 'tysha', mode: 'light' },
+  nizhnist: { theme: 'povitria', mode: 'light' },
+  kontent: { theme: 'galereia', mode: 'light' },
+  lyst: { theme: 'tysha', mode: 'light' },
+  portret: { theme: 'galereia', mode: 'light' },
+  sviato: { theme: 'tysha', mode: 'night' },
+  rozvorot: { theme: 'tysha', mode: 'light' },
+  indeks: { theme: 'prodakshn', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -187,17 +288,19 @@ export function resolveGalleryTheme(
   siteMode: string | null | undefined
 ): { theme: ThemeId; mode: SiteMode } {
   if (galleryTheme) {
-    const entry = THEME_CATALOG.find((item) => item.value === galleryTheme)
+    const entry = GALLERY_CATALOG.find((item) => item.value === galleryTheme)
     if (entry) return { theme: entry.theme, mode: entry.mode }
   }
   if (siteTheme && isThemeId(siteTheme)) {
+    const mapped = GALLERY_STYLE_OF[siteTheme]
+    if (mapped) return mapped
     return { theme: siteTheme, mode: siteMode === 'night' ? 'night' : 'light' }
   }
   return { theme: 'tysha', mode: 'light' }
 }
 
-/** Catalog entries shown in the editor: 8 items, «Опівніч» = tysha+night. */
-export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
+/** Gallery styles (galleries.theme, CHECK in 0008): the original 8, «Опівніч» = tysha+night. */
+export const GALLERY_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
   { value: 'tysha', theme: 'tysha', mode: 'light' },
   { value: 'opivnich', theme: 'tysha', mode: 'night' },
   { value: 'povitria', theme: 'povitria', mode: 'light' },
@@ -206,4 +309,17 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'galereia', theme: 'galereia', mode: 'light' },
   { value: 'arkhiv', theme: 'arkhiv', mode: 'light' },
   { value: 'prodakshn', theme: 'prodakshn', mode: 'light' },
+]
+
+/** Site themes in the editor: the gallery styles plus the v2 «візитка» themes. */
+export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
+  ...GALLERY_CATALOG,
+  { value: 'start', theme: 'start', mode: 'light' },
+  { value: 'nizhnist', theme: 'nizhnist', mode: 'light' },
+  { value: 'kontent', theme: 'kontent', mode: 'light' },
+  { value: 'lyst', theme: 'lyst', mode: 'light' },
+  { value: 'portret', theme: 'portret', mode: 'light' },
+  { value: 'sviato', theme: 'sviato', mode: 'light' },
+  { value: 'rozvorot', theme: 'rozvorot', mode: 'light' },
+  { value: 'indeks', theme: 'indeks', mode: 'light' },
 ]

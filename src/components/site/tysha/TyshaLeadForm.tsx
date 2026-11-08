@@ -5,12 +5,12 @@ import { AnimatePresence, m } from 'motion/react'
 import { useLeadSubmit, type LeadFormLabels, type LeadStatus } from '../LeadForm'
 import { EASE_OUT, useStill } from '../motion/useStill'
 import tysha from './Tysha.module.css'
+import { DATE_EVENT, DATE_PENDING, PACK_EVENT, PACK_PENDING } from './packEvent'
 
 /** A theme's CSS-module class map with the same class names (default: «Тиша»). */
 export type Skin = Record<string, string>
 
-/** Event a pricing card fires so its «Обрати» pre-selects the shoot type. */
-export const PACK_EVENT = 'tysha:pack'
+export { PACK_EVENT }
 
 /**
  * Form controls carry suppressHydrationWarning: password managers and
@@ -65,9 +65,23 @@ export function TyshaLeadForm({
       const name = (event as CustomEvent<string>).detail
       if (typeof name === 'string' && shootTypes.includes(name)) setShootType(name)
     }
+    const pending = (window as unknown as Record<string, unknown>)[PACK_PENDING]
+    if (typeof pending === 'string' && shootTypes.includes(pending)) setShootType(pending)
     window.addEventListener(PACK_EVENT, onPack)
     return () => window.removeEventListener(PACK_EVENT, onPack)
   }, [shootTypes])
+
+  // A free date picked on a theme's calendar («Свято») → the date field.
+  useEffect(() => {
+    const setDate = (value: unknown) => {
+      const input = formRef.current?.elements.namedItem('date')
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && input instanceof HTMLInputElement) input.value = value
+    }
+    const onDate = (event: Event) => setDate((event as CustomEvent<string>).detail)
+    setDate((window as unknown as Record<string, unknown>)[DATE_PENDING])
+    window.addEventListener(DATE_EVENT, onDate)
+    return () => window.removeEventListener(DATE_EVENT, onDate)
+  }, [])
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()

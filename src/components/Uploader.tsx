@@ -3,8 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { PlanVideoRequiredError, uploadFileToGallery } from '@/lib/upload/client'
+import {
+  DuplicateAssetError,
+  PlanVideoRequiredError,
+  UploadRefusedError,
+  uploadFileToGallery,
+} from '@/lib/upload/client'
 import { listResumes } from '@/lib/upload/resumeStore'
+import { mimeFromName } from '@/lib/import/zip-plan'
 
 /**
  * Direct-to-storage uploader. The per-file pipeline (presign → PUT → in-browser
@@ -30,6 +36,30 @@ interface UploadItem {
   videoPlan?: boolean
   /** Paused: the network is gone, the upload continues when it is back. */
   waiting?: boolean
+  /** Why it failed, in the photographer's words (see uploadErrorKey). */
+  errorKey?: UploadErrorKey
+}
+
+export type UploadErrorKey = 'quota' | 'tooBig' | 'type' | 'closed' | 'duplicate' | 'generic'
+export type UploadErrorLabels = Record<UploadErrorKey, string>
+
+/** API refusal codes (src/lib/uploads.ts) → one of a few plain explanations. */
+export function uploadErrorKey(error: unknown): UploadErrorKey {
+  if (error instanceof DuplicateAssetError) return 'duplicate'
+  if (!(error instanceof UploadRefusedError)) return 'generic'
+  switch (error.code) {
+    case 'storage_quota_exceeded':
+      return 'quota'
+    case 'file_too_large':
+    case 'invalid_variant':
+      return 'tooBig'
+    case 'unsupported_type':
+      return 'type'
+    case 'gallery_free_expired':
+      return 'closed'
+    default:
+      return 'generic'
+  }
 }
 
 export function Uploader({
@@ -41,8 +71,19 @@ export function Uploader({
   billingHref,
   resumeHint,
   networkWait,
+  errorLabels,
+  progressLabel,
+  retryLabel,
+  emphasis,
 }: {
   galleryId: string
+  /** Plain-words reasons for a failed file. */
+  errorLabels?: UploadErrorLabels
+  /** «Завантажено {done} з {total}». */
+  progressLabel?: string
+  retryLabel?: string
+  /** Empty gallery: a big, inviting drop zone. */
+  emphasis?: boolean
   dropHint: string
   /** «{count} unfinished uploads: choose the same files to continue.» */
   resumeHint: string
@@ -94,6 +135,7 @@ export function Uploader({
           status: 'error',
           waiting: false,
           videoPlan: error instanceof PlanVideoRequiredError,
+          errorKey: error instanceof PlanVideoRequiredError ? undefined : uploadErrorKey(error),
         })
       }
     },
@@ -127,9 +169,11 @@ export function Uploader({
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault()
       setDragOver(false)
-      const files = Array.from(event.dataTransfer.files).filter(
-        (file) => file.type.startsWith('image/') || file.type.startsWith('video/')
-      )
+      // HEIC from Windows/Android comes with an empty type: go by the extension.
+      const files = Array.from(event.dataTransfer.files).filter((file) => {
+        const type = file.type || mimeFromName(file.name) || ''
+        return type.startsWith('image/') || type.startsWith('video/')
+      })
       if (files.length > 0) void startUploads(files)
     },
     [startUploads]
@@ -150,17 +194,21 @@ export function Uploader({
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
-        className={`cursor-pointer border border-dashed px-8 py-12 text-center text-sm leading-relaxed text-muted transition-colors ${
-          dragOver ? 'border-fg bg-fg/5' : 'border-line hover:border-fg'
-        }`}
+        data-testid="upload-drop"
+        className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 text-center text-sm leading-relaxed text-muted transition-colors ${
+          emphasis ? 'min-h-[220px] py-12 sm:min-h-[260px]' : 'py-8'
+        } ${dragOver ? 'border-accent bg-[#eef1ff]' : 'border-line bg-white hover:border-fg'}`}
       >
-        {dropHint}
+        <span aria-hidden className={`grid place-items-center rounded-full bg-[#eef1ff] text-accent ${emphasis ? 'h-14 w-14 text-2xl' : 'h-10 w-10 text-lg'}`}>
+          ↑
+        </span>
+        <span className="max-w-md">{dropHint}</span>
       </div>
       <input
         ref={inputRef}
         type="file"
         multiple
-        accept="image/*,video/*"
+        accept="image/*,video/*,.heic,.heif"
         className="hidden"
         onChange={(event) => {
           const files = Array.from(event.target.files ?? [])
@@ -192,32 +240,61 @@ export function Uploader({
       )}
 
       {items.length > 0 && (
-        <ul className="mt-6 flex flex-col gap-2">
+        <p className="mt-5 text-sm font-bold text-fg" role="status" data-testid="upload-progress">
+          {(progressLabel ?? '{done} / {total}')
+            .replace('{done}', String(items.filter((item) => item.status === 'done').length))
+            .replace('{total}', String(items.length))}
+        </p>
+      )}
+
+      {items.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-2">
           {items.map((item) => (
-            <li key={item.id} className="flex items-center gap-4 text-sm">
-              <span className="min-w-0 flex-1 truncate text-muted">{item.file.name}</span>
-              <span className="w-40">
-                <span className="block h-1 w-full bg-line">
-                  <span
-                    className={`block h-1 transition-all ${
-                      item.status === 'error' ? 'bg-accent' : 'bg-fg'
-                    }`}
-                    style={{ width: `${item.status === 'error' ? 100 : item.progress}%` }}
-                  />
+            <li key={item.id} className="flex flex-col gap-1 text-sm">
+              <span className="flex items-center gap-3">
+                <span className="min-w-0 flex-1 truncate text-muted">{item.file.name}</span>
+                <span className="w-24 flex-none sm:w-40">
+                  <span className="block h-1 w-full overflow-hidden rounded-full bg-line">
+                    <span
+                      className={`block h-1 transition-all ${
+                        item.status === 'error' ? 'bg-red-600' : item.status === 'done' ? 'bg-emerald-600' : 'bg-fg'
+                      }`}
+                      style={{ width: `${item.status === 'error' ? 100 : item.progress}%` }}
+                    />
+                  </span>
+                </span>
+                <span
+                  className="w-10 flex-none text-right text-xs font-bold text-muted"
+                  title={item.waiting ? networkWait : undefined}
+                >
+                  {item.status === 'done'
+                    ? '✓'
+                    : item.status === 'error'
+                      ? '✕'
+                      : item.waiting
+                        ? '…'
+                        : `${item.progress}%`}
                 </span>
               </span>
-              <span
-                className="w-16 text-right text-xs uppercase tracking-widest text-muted"
-                title={item.waiting ? networkWait : undefined}
-              >
-                {item.status === 'done'
-                  ? '✓'
-                  : item.status === 'error'
-                    ? '✕'
-                    : item.waiting
-                      ? '…'
-                      : `${item.progress}%`}
-              </span>
+              {item.status === 'error' && item.errorKey && (
+                <span className="flex flex-wrap items-center gap-x-3 text-xs font-semibold text-red-700" role="alert">
+                  {errorLabels?.[item.errorKey] ?? item.errorKey}
+                  {item.errorKey === 'generic' && retryLabel && (
+                    <button
+                      type="button"
+                      onClick={() => void uploadOne(item).then(() => router.refresh())}
+                      className="font-bold text-fg underline"
+                    >
+                      {retryLabel}
+                    </button>
+                  )}
+                  {item.errorKey === 'quota' && (
+                    <Link href={billingHref} className="font-bold text-fg underline">
+                      {videoPlanLink}
+                    </Link>
+                  )}
+                </span>
+              )}
             </li>
           ))}
         </ul>

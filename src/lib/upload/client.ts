@@ -1,8 +1,10 @@
 'use client'
 
-import type { GeneratedRenditions } from '@/lib/images/renditionCore'
+import { readPhotoExif, type PhotoExif } from '@/lib/images/exif'
+import { looksLikeHeic, type GeneratedRenditions } from '@/lib/images/renditionCore'
 import { generateRenditions } from '@/lib/images/renditionPool'
 import { generateVideoPoster } from '@/lib/images/videoPoster'
+import { mimeFromName } from '@/lib/import/zip-plan'
 import {
   choosePartSize,
   missingParts,
@@ -22,6 +24,19 @@ import {
   withRetries,
   type RetryHooks,
 } from './transfer'
+
+/**
+ * The file's MIME type. Chrome on Windows/Android reports HEIC (and some
+ * other formats) with an empty type: fall back to the extension, or to the
+ * HEIC brand in the first bytes, so the server accepts it as a photo.
+ */
+export async function resolveContentType(file: File): Promise<string> {
+  if (file.type) return file.type
+  const byName = mimeFromName(file.name)
+  if (byName) return byName
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer().catch(() => new ArrayBuffer(0)))
+  return looksLikeHeic('', file.name, head) ? 'image/heic' : 'application/octet-stream'
+}
 
 /**
  * Browser-side upload of ONE file into a gallery, shared by the gallery
@@ -61,11 +76,20 @@ export class ApiError extends HttpError {
   }
 }
 
+/**
+ * The server refused the file (quota, size, type, closed gallery…). Every
+ * refusal from our API is an ApiError; this name is what the uploader checks,
+ * and `code` (the API's error string) tells it why in plain words.
+ */
+export { ApiError as UploadRefusedError }
+
 /** Extra fields the zip import attaches to the asset row (see registerAsset). */
 export interface RegisterExtra {
   originalName?: string
   importId?: string
   position?: number
+  /** Capture time from EXIF (exif.ts: wall clock as UTC); sorts the gallery «by shot time». */
+  takenAt?: string
 }
 
 let etagWarningShown = false
@@ -369,9 +393,13 @@ export async function uploadFileToGallery(options: {
   extra?: RegisterExtra
 }): Promise<void> {
   const { galleryId, file, watermarkText, onProgress, onNetworkWait } = options
-  const extra = options.extra ?? {}
-  const contentType = file.type || 'application/octet-stream'
+  const contentType = await resolveContentType(file)
   const isVideo = contentType.startsWith('video/')
+  // EXIF (capture time, orientation) is read once, from the first ~64 KB.
+  const exif: PhotoExif = isVideo
+    ? { takenAt: null, orientation: null }
+    : await readPhotoExif(file)
+  const extra: RegisterExtra = { ...(options.extra ?? {}), ...(exif.takenAt ? { takenAt: exif.takenAt } : {}) }
 
   let waiting = false
   const hooks: RetryHooks = {
@@ -397,7 +425,10 @@ export async function uploadFileToGallery(options: {
     height?: number
   }> = isVideo
     ? videoPosterVariant(galleryId, file, hooks)
-    : generateRenditions(file, watermarkText, { mobile: true })
+    : generateRenditions(file, watermarkText, {
+        mobile: true,
+        hints: { orientation: exif.orientation, rawWidth: exif.rawWidth, rawHeight: exif.rawHeight },
+      })
         .catch((): GeneratedRenditions => ({ variants: [] }))
         .then(async (rendered) => ({
           variants: await uploadRenditions(galleryId, rendered, hooks),
@@ -431,6 +462,8 @@ export async function uploadFileToGallery(options: {
           variants: renditions.variants,
           width: renditions.width,
           height: renditions.height,
+          // Verbatim name for the Lightroom list (assets.source_file_name, 0066).
+          sourceFileName: file.name,
           ...extra,
         },
         hooks
@@ -470,6 +503,8 @@ export async function uploadFileToGallery(options: {
       variants: renditions.variants,
       width: renditions.width,
       height: renditions.height,
+      // Verbatim name for the Lightroom list (assets.source_file_name, 0066).
+      sourceFileName: file.name,
       ...extra,
     },
     hooks

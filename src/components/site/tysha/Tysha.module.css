@@ -27,7 +27,9 @@
 .root {
   --t-bg: var(--site-bg);
   --t-fg: var(--site-fg);
-  --t-muted: var(--site-muted);
+  /* the token (#8a8781) is 3.2:1 on the paper — galleries keep it; the site
+     uses a deeper warm grey for small text (5.2:1) */
+  --t-muted: #67645f;
   --t-line: var(--site-line);
   --t-serif: 'Tysha Serif', 'Tysha Serif Fallback', Georgia, serif;
   /* muted text that still passes WCAG AA (≈ 6:1 on the light background) */

@@ -3,6 +3,7 @@ import { effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
 import { galleryPrefix, getStorage, isVariantName } from '@/lib/storage'
 import { MAX_FILE_BYTES } from '@/lib/upload/limits'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isValidTakenAt } from '@/lib/images/exif'
 
 /**
  * Shared server-side upload logic for the single-PUT (/api/uploads/*) and
@@ -87,12 +88,20 @@ export interface RegisterAssetInput {
   width?: number
   height?: number
   variants?: Record<string, string>
+  /**
+   * The file's name exactly as on the photographer's disk (File.name), kept in
+   * assets.source_file_name (0066) for the Lightroom list of client picks —
+   * the storage key holds only a sanitized copy.
+   */
+  sourceFileName?: string
   /** Zip import only: the file's name inside the zip (duplicate guard). */
   originalName?: string
   /** Zip import only: the gallery_imports row this file belongs to. */
   importId?: string
   /** Zip import only: sort position, so the gallery keeps the zip's name order. */
   position?: number
+  /** Capture time from the photo's EXIF (ISO; wall clock as UTC, see images/exif.ts). */
+  takenAt?: string
 }
 
 export function parseRegisterAssetInput(value: unknown): RegisterAssetInput | null {
@@ -112,12 +121,37 @@ export function parseRegisterAssetInput(value: unknown): RegisterAssetInput | nu
     typeof v.sizeBytes === 'number' &&
     (v.width === undefined || typeof v.width === 'number') &&
     (v.height === undefined || typeof v.height === 'number') &&
+    (v.sourceFileName === undefined ||
+      (typeof v.sourceFileName === 'string' && v.sourceFileName.length <= 1024)) &&
     (v.originalName === undefined ||
       (typeof v.originalName === 'string' && v.originalName.length <= 512)) &&
     (v.importId === undefined || typeof v.importId === 'string') &&
     (v.position === undefined || (Number.isInteger(v.position) && (v.position as number) >= 0)) &&
+    (v.takenAt === undefined || isValidTakenAt(v.takenAt)) &&
     variantsOk
   return ok ? (v as unknown as RegisterAssetInput) : null
+}
+
+/**
+ * A file name fit for assets.source_file_name: no folders (some browsers or a
+ * folder drop hand over «a/b/IMG.jpg»), no control characters, NFC (macOS
+ * hands over decomposed Cyrillic «й»), at most 255 characters; '' → null.
+ */
+export function cleanSourceFileName(value: string | undefined | null): string | null {
+  if (typeof value !== 'string') return null
+  const base = value.split(/[\\/]/).pop() ?? ''
+  // eslint-disable-next-line no-control-regex
+  const clean = base.normalize('NFC').replace(/[\u0000-\u001f\u007f]/g, '').trim()
+  return clean ? Array.from(clean).slice(0, 255).join('') : null
+}
+
+/** PostgREST: the column is not in the schema (migration not applied yet). */
+function isUnknownColumn(error: { code?: string; message?: string } | null, column: string): boolean {
+  return (
+    !!error &&
+    (error.code === 'PGRST204' || error.code === '42703') &&
+    (error.message ?? '').includes(column)
+  )
 }
 
 export type RegisterResult =
@@ -203,30 +237,41 @@ export async function registerAsset(
 
   const kind = contentType.startsWith('video/') ? 'video' : 'photo'
 
-  const { data, error } = await admin
-    .from('assets')
-    .insert({
-      gallery_id: input.galleryId,
-      owner_id: userId,
-      r2_key: input.key,
-      kind,
-      content_type: contentType,
-      width: input.width ?? null,
-      height: input.height ?? null,
-      // Original size only; variant overhead (~5-10%) is deliberately not
-      // counted against the quota to keep accounting simple for now.
-      size_bytes: stored.sizeBytes,
-      variants: input.variants ?? {},
-      ...(input.importId
-        ? {
-            original_name: input.originalName ?? null,
-            import_id: input.importId,
-            position: input.position ?? 0,
-          }
-        : {}),
-    })
-    .select('id')
-    .single()
+  const sourceFileName = cleanSourceFileName(input.sourceFileName ?? input.originalName)
+  const row: Record<string, unknown> = {
+    gallery_id: input.galleryId,
+    owner_id: userId,
+    r2_key: input.key,
+    kind,
+    content_type: contentType,
+    width: input.width ?? null,
+    height: input.height ?? null,
+    // Original size only; variant overhead (~5-10%) is deliberately not
+    // counted against the quota to keep accounting simple for now.
+    size_bytes: stored.sizeBytes,
+    variants: input.variants ?? {},
+    ...(input.importId
+      ? {
+          original_name: input.originalName ?? null,
+          import_id: input.importId,
+          position: input.position ?? 0,
+        }
+      : {}),
+    ...(sourceFileName ? { source_file_name: sourceFileName } : {}),
+    ...(input.takenAt ? { taken_at: input.takenAt } : {}),
+  }
+  const insert = (values: Record<string, unknown>) =>
+    admin.from('assets').insert(values).select('id').single<{ id: string }>()
+  let { data, error } = await insert(row)
+  // Migrations not applied yet (0066 source_file_name, 0067 taken_at):
+  // register the photo without that column rather than fail the upload —
+  // the list falls back to the storage key's name, the order to upload time.
+  for (const column of ['source_file_name', 'taken_at']) {
+    if (error && column in row && (isUnknownColumn(error, column) || isMissingColumn(error, column))) {
+      delete row[column]
+      ;({ data, error } = await insert(row))
+    }
+  }
 
   if (error?.code === '23505' && input.importId) {
     // Same file name already in this gallery (two tabs importing one zip):
@@ -240,10 +285,17 @@ export async function registerAsset(
     await discard()
     return { ok: false, status: 403, error: 'storage_quota_exceeded' }
   }
-  if (error) {
-    return { ok: false, status: 500, error: error.message }
+  if (error || !data) {
+    return { ok: false, status: 500, error: error?.message ?? 'insert_failed' }
   }
-  return { ok: true, assetId: data.id }
+  return { ok: true, assetId: (data as { id: string }).id }
+}
+
+/** PostgREST / Postgres «no such column» (a migration not applied yet). */
+export function isMissingColumn(error: { code?: string; message?: string } | null | undefined, column: string): boolean {
+  if (!error) return false
+  const mentions = !!error.message?.includes(column)
+  return mentions && (error.code === 'PGRST204' || error.code === '42703' || /column/i.test(error.message ?? ''))
 }
 
 /** The enforce_storage_quota trigger (0045) refused the insert. */

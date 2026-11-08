@@ -5,13 +5,22 @@
  * to decode and the tab must stay responsive meanwhile. Same rules as the
  * main-thread path (./renditionCore.ts). Driven by ./renditionPool.ts.
  */
-import { renderFromBitmap, type RenderCanvas } from './renditionCore'
+import {
+  looksLikeHeic,
+  needsRendition,
+  pendingOrientation,
+  renderFromBitmap,
+  type RenderCanvas,
+  type SourceHints,
+} from './renditionCore'
 
 export interface RenditionJob {
   id: number
   file: File
   watermarkText?: string
   mobile?: boolean
+  /** EXIF read once by the upload (orientation, stored size). */
+  hints?: SourceHints
 }
 
 export type RenditionReply =
@@ -39,7 +48,7 @@ function encode(canvas: RenderCanvas, type: string, quality: number): Promise<Bl
 }
 
 scope.onmessage = async (event) => {
-  const { id, file, watermarkText, mobile } = event.data
+  const { id, file, watermarkText, mobile, hints } = event.data
   if (typeof OffscreenCanvas === 'undefined' || !new OffscreenCanvas(1, 1).getContext('2d')) {
     scope.postMessage({ id, ok: false, unsupported: true, message: 'no OffscreenCanvas 2d' })
     return
@@ -48,12 +57,21 @@ scope.onmessage = async (event) => {
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
   } catch {
-    // Undecodable here (e.g. some HEICs): no renditions, like the main thread.
-    scope.postMessage({ id, ok: true, variants: [] })
+    if (looksLikeHeic(file.type, file.name)) {
+      // HEIC outside Safari: the main thread decodes it with heic-to.
+      scope.postMessage({ id, ok: false, unsupported: false, message: 'heic: decode on main thread' })
+    } else {
+      // Undecodable: no renditions, like the main thread.
+      scope.postMessage({ id, ok: true, variants: [] })
+    }
     return
   }
   try {
-    const result = await renderFromBitmap(bitmap, makeCanvas, encode, watermarkText, { mobile })
+    const result = await renderFromBitmap(bitmap, makeCanvas, encode, watermarkText, {
+      mobile,
+      orientation: pendingOrientation(bitmap, hints ?? {}),
+      needsRendition: needsRendition(file.type, file.name),
+    })
     scope.postMessage({ id, ok: true, ...result })
   } catch (cause) {
     scope.postMessage({ id, ok: false, unsupported: false, message: String(cause) })

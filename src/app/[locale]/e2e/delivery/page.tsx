@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
-import { THEME_CATALOG } from '@/lib/site/themes'
+import { GALLERY_CATALOG as THEME_CATALOG } from '@/lib/site/themes'
 import { deliveryLabels, galleryLabels } from '@/lib/gallery/labels'
 import {
   countVisibleAssets,

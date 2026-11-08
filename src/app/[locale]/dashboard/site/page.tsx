@@ -120,6 +120,14 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
     galereia: dict.site.themeGalereia,
     arkhiv: dict.site.themeArkhiv,
     prodakshn: dict.site.themeProdakshn,
+    start: dict.site.themeStart,
+    nizhnist: dict.site.themeNizhnist,
+    kontent: dict.site.themeKontent,
+    lyst: dict.site.themeLyst,
+    portret: dict.site.themePortret,
+    sviato: dict.site.themeSviato,
+    rozvorot: dict.site.themeRozvorot,
+    indeks: dict.site.themeIndeks,
   }
 
   return (

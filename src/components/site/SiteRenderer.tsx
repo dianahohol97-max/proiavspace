@@ -12,6 +12,22 @@ import { ThemePovitria } from './air/ThemePovitria'
 import { JOURNAL_FONT_VARS } from './journal/fonts'
 import { ThemeZhurnal } from './journal/ThemeZhurnal'
 import { MIDNIGHT_FONT_VARS } from './midnight/fonts'
+import { START_FONT_VARS } from './start/fonts'
+import { ThemeStart } from './start/ThemeStart'
+import { TENDER_FONT_VARS } from './nizhnist/fonts'
+import { ThemeNizhnist } from './nizhnist/ThemeNizhnist'
+import { FEED_FONT_VARS } from './kontent/fonts'
+import { ThemeKontent } from './kontent/ThemeKontent'
+import { LETTER_FONT_VARS } from './lyst/fonts'
+import { ThemeLyst } from './lyst/ThemeLyst'
+import { STUDIO_FONT_VARS } from './portret/fonts'
+import { ThemePortret } from './portret/ThemePortret'
+import { PARTY_FONT_VARS } from './sviato/fonts'
+import { ThemeSviato } from './sviato/ThemeSviato'
+import { SPREAD_FONT_VARS } from './rozvorot/fonts'
+import { ThemeRozvorot } from './rozvorot/ThemeRozvorot'
+import { INDEX_FONT_VARS } from './indeks/fonts'
+import { ThemeIndeks } from './indeks/ThemeIndeks'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -62,6 +78,9 @@ export interface PortfolioItem {
    *  `srcSet` in WebP/JPEG, `avifSrcSet` in AVIF, both «url 828w, …». */
   srcSet?: string
   avifSrcSet?: string
+  /** Optional short vertical clip (MP4, muted) — themes that play video
+   *  («Контент») show it, with previewUrl as the poster; others ignore it. */
+  videoUrl?: string
 }
 
 /** Portfolio grouped into labeled collections, preserving first-seen order. */
@@ -136,6 +155,14 @@ export interface SiteLabels {
   giftPrints?: string
   giftPrintsText?: string
   order?: string
+  before?: string
+  after?: string
+  howToPrepare?: string
+  compareRetouch?: string
+  freeDates?: string
+  freeShort?: string
+  projectWord?: string
+  framesWord?: string
   filterAll?: string
 }
 
@@ -173,6 +200,7 @@ export function SiteRenderer({
   booking,
   footer,
   platformCredit = false,
+  freeDates: demoFreeDates,
 }: {
   theme: ThemeId
   mode: SiteMode
@@ -191,8 +219,16 @@ export function SiteRenderer({
   footer?: { brand: string; year: number; links: { href: string; label: string }[] }
   /** Free site plan only: «Тиша» shows a small «Сайт на проЯв» credit. */
   platformCredit?: boolean
+  /** Theme demos only: sample free dates (real sites take them from booking). */
+  freeDates?: string[]
 }) {
   const vars = siteCssVars(theme, mode)
+  // Free dates (yyyy-mm-dd, Kyiv time) for themes that show a calendar.
+  const freeDates = booking
+    ? Array.from(
+        new Set(booking.slots.map((slot) => new Date(slot.starts_at).toLocaleDateString('sv-SE', { timeZone: 'Europe/Kyiv' })))
+      ).sort()
+    : (demoFreeDates ?? [])
   const bookingNav: BookingNav | undefined = booking
     ? { href: '#booking', label: booking.navLabel }
     : undefined
@@ -338,6 +374,40 @@ export function SiteRenderer({
           leadForm={leadForm}
           bookingNav={bookingNav}
           platformCredit={platformCredit}
+        />
+        {bookingSectionEl}
+        {footerEl}
+      </div>
+    )
+  }
+  // v2 one-page «візитка» themes: same props, own layout and type.
+  type CardThemeProps = Parameters<typeof ThemeStart>[0] & { freeDates?: string[] }
+  const cardThemes: Partial<Record<ThemeId, { Component: (p: CardThemeProps) => React.ReactElement; fonts: object }>> = {
+    start: { Component: ThemeStart, fonts: START_FONT_VARS },
+    nizhnist: { Component: ThemeNizhnist, fonts: TENDER_FONT_VARS },
+    kontent: { Component: ThemeKontent, fonts: FEED_FONT_VARS },
+    lyst: { Component: ThemeLyst, fonts: LETTER_FONT_VARS },
+    portret: { Component: ThemePortret, fonts: STUDIO_FONT_VARS },
+    sviato: { Component: ThemeSviato, fonts: PARTY_FONT_VARS },
+    rozvorot: { Component: ThemeRozvorot, fonts: SPREAD_FONT_VARS },
+    indeks: { Component: ThemeIndeks, fonts: INDEX_FONT_VARS },
+  }
+  const cardTheme = cardThemes[theme]
+  if (cardTheme) {
+    const { Component, fonts } = cardTheme
+    return (
+      <div style={{ ...vars, ...fonts } as CSSProperties}>
+        <Component
+          content={content}
+          displayName={displayName}
+          logoUrl={logoUrl}
+          portfolio={portfolio}
+          labels={labels}
+          langSwitch={langSwitch}
+          leadForm={leadForm}
+          bookingNav={bookingNav}
+          platformCredit={platformCredit}
+          freeDates={freeDates}
         />
         {bookingSectionEl}
         {footerEl}

@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test'
  */
 const N = 1500
 
-for (const layout of ['masonry', 'collage'] as const) {
+for (const layout of ['masonry', 'collage', 'rows'] as const) {
   test(`галерея з ${N} фото (${layout}): у DOM не всі фото, прокрутка без зависань`, async ({ page }) => {
     await page.goto(`/uk/gallery-demo?n=${N}&layout=${layout}`)
     const main = page.locator('main[data-count]')

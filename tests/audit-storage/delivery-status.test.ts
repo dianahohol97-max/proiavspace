@@ -24,7 +24,7 @@ import {
   parseDeliveryEta,
   parseDeliveryStatus,
 } from '@/lib/gallery/delivery'
-import { THEME_CATALOG, resolveTokens } from '@/lib/site/themes'
+import { GALLERY_CATALOG as THEME_CATALOG, resolveGalleryTokens } from '@/lib/site/themes'
 import { uk } from '@/lib/i18n/dictionaries/uk'
 import { en } from '@/lib/i18n/dictionaries/en'
 
@@ -147,7 +147,7 @@ describe('контраст ≥ 4.5:1 у всіх стилях галерей', (
 
   for (const entry of THEME_CATALOG) {
     test(`${entry.value} (${entry.mode})`, () => {
-      const tokens = resolveTokens(entry.theme, entry.mode)
+      const tokens = resolveGalleryTokens(entry.theme, entry.mode)
       for (const accent of accents(tokens.accent)) {
         const p = deliveryPalette({ ...tokens, accent })
         for (const ground of [p.bg, p.surface]) {
@@ -163,7 +163,7 @@ describe('контраст ≥ 4.5:1 у всіх стилях галерей', (
   }
 
   test('«Опівніч» зберігає свій нічний фон, світлий текст і золотий акцент теми', () => {
-    const tokens = resolveTokens('tysha', 'night')
+    const tokens = resolveGalleryTokens('tysha', 'night')
     const p = deliveryPalette(tokens)
     assert.equal(p.bg, '#0d0b09')
     assert.equal(p.fg, '#efe6d6')

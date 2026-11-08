@@ -10,7 +10,7 @@ import { isLocale, type Locale } from '@/lib/i18n/config'
 import { LangPicker } from '@/components/LangPicker'
 import { GalleryGrid, type GridTileInfo } from './GalleryGrid'
 import { DeliveryBanner, deliveryVars } from './DeliveryStatusScreen'
-import { gridSrc, gridSrcSet } from './gridLayout'
+import { gridSrc, gridSrcSet, rowDesktopHeight } from './gridLayout'
 import type { GalleryLightboxProps } from './GalleryLightbox'
 import s from './GalleryExperience.module.css'
 
@@ -346,6 +346,8 @@ export function GalleryExperience({
     '--g-radius': `${style?.radius ?? 10}px`,
     '--g-gap': `${style?.gap ?? 14}px`,
     '--g-tile': style?.layout === 'portrait' ? '3 / 4' : '1 / 1',
+    // «Рядки»: desktop row height from the columns pick (phones/tablets: CSS).
+    '--g-row-h-d': `${rowDesktopHeight(style?.columns ?? 3)}px`,
   } as React.CSSProperties
 
   // Cover treatment + title size come straight from the designer.
@@ -355,15 +357,18 @@ export function GalleryExperience({
   // Everything except masonry crops to a uniform wall: collage adds 2×2
   // accents on squares, editorial alternates wide hero rows with squares.
   const layout = style?.layout ?? 'masonry'
-  // Per-photo crop focus only matters where tiles crop (uniform layouts).
+  // Per-photo crop focus only matters where tiles crop (uniform layouts);
+  // masonry and «Рядки» show every photo whole.
   const tileFocus = (item: GalleryItem): React.CSSProperties | undefined =>
-    layout !== 'masonry' && item.focalX != null
+    layout !== 'masonry' && layout !== 'rows' && item.focalX != null
       ? { objectPosition: `${item.focalX}% ${item.focalY ?? 50}%` }
       : undefined
   const gridClass =
     layout === 'masonry'
       ? s.grid
-      : `${s.grid} ${s.gridUniform}${
+      : layout === 'rows'
+        ? `${s.grid} ${s.gridRows}`
+        : `${s.grid} ${s.gridUniform}${
           layout === 'collage' ? ` ${s.gridCollage}` : layout === 'editorial' ? ` ${s.gridEditorial}` : ''
         }`
 
@@ -432,7 +437,15 @@ export function GalleryExperience({
       className={`${s.shot}${tile.fill ? ` ${s.shotFill}` : ''}${tile.contain ? ` ${s.shotContain}` : ''}`}
       // The proportions are known before the photo loads: the server-rendered
       // grid has its final layout, with a placeholder background, at once.
-      style={tile.aspect ? { aspectRatio: tile.aspect } : undefined}
+      style={
+        tile.aspect
+          ? ({
+              aspectRatio: tile.aspect,
+              // «Рядки»: the tile's share of its row (flex-grow ∝ width÷height).
+              ...(tile.grow ? { '--r': String(tile.grow) } : {}),
+            } as React.CSSProperties)
+          : undefined
+      }
       onClick={() => openAt(index)}
     >
       {

@@ -113,7 +113,7 @@
 .statNum { font-family: var(--font-brand); font-weight: 600; font-size: clamp(22px, 2.6vw, 32px); line-height: 1; }
 .statNum i { font-style: normal; color: var(--color-accent); }
 .statCard p { margin: 10px 0 0; font-size: 12px; color: var(--color-muted); line-height: 1.5; font-weight: 600; }
-.mockBooking { composes: card; width: 47%; right: 4%; bottom: 13%; z-index: 4; padding: 12px; animation-delay: -6s; }
+.mockStatus { composes: card; width: 47%; right: 4%; bottom: 13%; z-index: 4; padding: 12px; animation-delay: -6s; }
 .slot {
   background: var(--color-bg); border-radius: 10px; padding: 8px 11px; font-size: 10.5px; font-weight: 700;
   display: flex; justify-content: space-between; color: var(--color-muted); margin-bottom: 6px;
@@ -163,28 +163,19 @@
 .prod > p { margin: 0; font-size: 13.5px; color: var(--color-muted); }
 .tag { margin-top: 14px; font-size: 12px; font-weight: 700; }
 .tag b { color: var(--color-accent); font-weight: 800; }
-.pGal { composes: pic; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.pGal .ph:nth-child(1) { aspect-ratio: 4/5; }
-.pGal .ph:nth-child(2) { aspect-ratio: 4/3.2; align-self: end; }
-.pGal .ph:nth-child(3) { aspect-ratio: 4/3.2; }
-.pGal .ph:nth-child(4) { aspect-ratio: 4/5; }
+/* Same 3:2 frame as the screenshots in the neighbouring cards (.pShot), so
+   the 2×2 grid rows line up. */
+.pGal { composes: pic; aspect-ratio: 3/2; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; }
+.pGal .ph { aspect-ratio: auto; height: 100%; min-height: 0; }
 .pSite { composes: pic; padding: 16px; }
 .pSite .ph { aspect-ratio: 3/4; }
-.pBook { composes: pic; }
-.ok {
-  background: var(--color-accent); color: #fff; border-radius: 10px; text-align: center;
-  padding: 9px; font-size: 9.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
-}
-.pBook .slot { background: #fff; }
-/* Both product cards share the row height: the booking mock grows and centres
-   instead of leaving an empty block under the shorter card. */
+.pShot { composes: pic; padding: 0; overflow: hidden; aspect-ratio: 3/2; box-shadow: inset 0 0 0 1px rgba(13,12,10,.06); }
+.pShot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+/* Cards in a row share its height; the tag line sits at the bottom so the
+   rows line up whatever the picture's height. */
 .prodGrid > * { display: flex; }
 .prodGrid > * > .prod { flex: 1; }
-.pBook { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.pBook > div { padding: 14px 16px; font-size: 13px; margin-bottom: 10px; border-radius: 12px; }
-.pBook > div:last-child { margin-bottom: 0; font-size: 12px; }
-.pBook .slotOn { background: var(--color-fg); }
-.slotTaken { composes: slot; background: transparent !important; color: var(--color-muted); text-decoration: line-through; opacity: .6; }
+.prod > .tag { margin-top: auto; padding-top: 14px; }
 
 /* bento */
 .bento { padding: clamp(40px, 7vw, 80px) 0 clamp(64px, 10vw, 110px); }
@@ -361,9 +352,9 @@
   .statCard { padding: 10px 11px; width: 44%; }
   .statNum { font-size: 17px; }
   .statCard p { font-size: 9.5px; }
-  .mockBooking { width: 52%; right: 0; padding: 8px; }
-  .mockBooking .slot, .mockBooking .slotOn { font-size: 9px; padding: 6px 8px; white-space: nowrap; }
-  .mockBooking .pay { font-size: 8.5px; padding: 7px; }
+  .mockStatus { width: 52%; right: 0; padding: 8px; }
+  .mockStatus .slot, .mockStatus .slotOn { font-size: 9px; padding: 6px 8px; white-space: nowrap; }
+  .mockStatus .pay { font-size: 8.5px; padding: 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
