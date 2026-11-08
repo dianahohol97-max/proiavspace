@@ -26,6 +26,10 @@ const PORT = Number(process.env.FAKE_SUPABASE_PORT || 54321)
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 export const E2E_TOKEN = 'e2e-photographer-token'
 export const E2E_USER = { id: '00000000-0000-4000-8000-0000000000e2', email: 'olha@e2e.test' }
+// The platform owner (src/lib/admin.ts DEFAULT_ADMINS): sees sections hidden
+// from photographers (tests/e2e/hide-sites.spec.ts). Owns no galleries here.
+export const E2E_OWNER_TOKEN = 'e2e-owner-token'
+export const E2E_OWNER = { id: '00000000-0000-4000-8000-0000000000e3', email: 'dianahohol97@gmail.com' }
 
 const now = () => new Date().toISOString()
 const daysAgo = (n) => new Date(Date.now() - n * 86400_000).toISOString()
@@ -354,19 +358,21 @@ const server = createServer(async (req, res) => {
     return res.end(readFileSync(mediaFile(url.pathname)))
   }
 
-  // Everyone but the e2e photographer: behave as if nothing listened here.
+  // Everyone but the e2e photographer (and owner): behave as if nothing listened here.
   const auth = req.headers.authorization ?? ''
-  if (auth !== `Bearer ${E2E_TOKEN}`) {
+  const asOwner = auth === `Bearer ${E2E_OWNER_TOKEN}`
+  if (auth !== `Bearer ${E2E_TOKEN}` && !asOwner) {
     req.socket.destroy()
     return
   }
 
   if (url.pathname === '/auth/v1/user') {
+    const who = asOwner ? E2E_OWNER : E2E_USER
     return send(res, 200, {
-      id: E2E_USER.id,
+      id: who.id,
       aud: 'authenticated',
       role: 'authenticated',
-      email: E2E_USER.email,
+      email: who.email,
       app_metadata: { provider: 'email' },
       user_metadata: {},
       created_at: daysAgo(90),

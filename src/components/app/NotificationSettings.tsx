@@ -23,11 +23,14 @@ export function NotificationSettings({
   t,
   locale,
   publicKey,
+  showBooking = true,
 }: {
   t: Dictionary['app']
   locale: string
   /** VAPID public key; empty until the keys are set on the server. */
   publicKey: string
+  /** «Нове бронювання» switch — off while booking is shelved (src/lib/features/sites.ts). */
+  showBooking?: boolean
 }) {
   const [support, setSupport] = useState<Support>('checking')
   const [subscribed, setSubscribed] = useState(false)
@@ -192,7 +195,7 @@ export function NotificationSettings({
       <fieldset className="mt-5" disabled={migration}>
         <legend className="text-[11px] font-extrabold uppercase tracking-widest text-muted">{t.notifyTypesTitle}</legend>
         <div className="mt-2 divide-y divide-line">
-          {PUSH_KINDS.map((kind) => (
+          {PUSH_KINDS.filter((kind) => showBooking || kind !== 'booking').map((kind) => (
             <label key={kind} className="flex min-h-[56px] cursor-pointer items-center gap-3 py-2">
               <span className="flex-1 text-[15px] leading-snug">{labels[kind]}</span>
               <input

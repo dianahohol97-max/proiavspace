@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { canSeeSites } from '@/lib/features/sites'
 import { notFound, redirect } from 'next/navigation'
 import { updateDisplayName } from '@/lib/actions/profile'
 import { getDictionary } from '@/lib/i18n'
@@ -135,7 +136,12 @@ export default async function SettingsPage({
 
       {/* Phone app: notifications (each type separately) and installation. */}
       <section id="app" className="mt-14 flex scroll-mt-6 flex-col gap-4 border-t border-line pt-10">
-        <NotificationSettings t={dict.app} locale={locale} publicKey={getVapidConfig()?.publicKey ?? ''} />
+        <NotificationSettings
+          t={dict.app}
+          locale={locale}
+          publicKey={getVapidConfig()?.publicKey ?? ''}
+          showBooking={canSeeSites(user.email)}
+        />
         <InstallAppCard t={dict.app} />
       </section>
     </main>

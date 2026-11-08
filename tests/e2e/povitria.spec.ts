@@ -1,5 +1,10 @@
 import { devices, expect, test } from '@playwright/test'
 import { cardSuite, scrollThrough } from './card-checks'
+import { SITES_ON_URL } from './sites-flag'
+
+// Sites are shelved by default (src/lib/features/sites.ts): themes run on the
+// e2e server with NEXT_PUBLIC_SITES_ENABLED=1.
+test.use({ baseURL: SITES_ON_URL })
 
 /**
  * «Повітря» theme demo, through the test-only route /uk/e2e/themes/povitria

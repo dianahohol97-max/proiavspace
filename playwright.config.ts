@@ -9,6 +9,30 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const PORT = Number(process.env.E2E_PORT || 3100)
 const baseURL = `http://localhost:${PORT}`
+/** Second dev server with sites on — keep in sync with tests/e2e/sites-flag.ts. */
+const SITES_PORT = PORT + 1
+const SITES_URL = `http://localhost:${SITES_PORT}`
+
+const E2E_ENV: Record<string, string> = {
+  // Placeholders: pages render without a database, nothing real is called.
+  NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key',
+  SUPABASE_SERVICE_ROLE_KEY: 'e2e-placeholder-service-key',
+  NEXT_PUBLIC_APP_URL: baseURL,
+  NEXT_TELEMETRY_DISABLED: '1',
+  // Sentry must stay off in tests.
+  NEXT_PUBLIC_SENTRY_DSN: '',
+  // Opens /[locale]/e2e/themes/[value] — the theme demos, which the
+  // public /themes routes redirect away from (tests/e2e/tysha.spec.ts).
+  E2E_THEME_PREVIEW: '1',
+  // Dashboard e2e: thumbnails are «CDN» URLs served by the fake Supabase;
+  // the R2 values only let getStorage() start, nothing reaches R2.
+  MEDIA_CDN_URL: 'http://127.0.0.1:54321/media',
+  R2_ACCOUNT_ID: 'e2e',
+  R2_ACCESS_KEY_ID: 'e2e',
+  R2_SECRET_ACCESS_KEY: 'e2e',
+  R2_BUCKET: 'e2e',
+}
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -41,32 +65,26 @@ export default defineConfig({
       stderr: 'pipe',
     },
     {
+      // Sites and booking switched OFF (the default, as in production).
       command: `npx next dev -p ${PORT}`,
       url: `${baseURL}/uk/login`,
       timeout: 240_000,
       reuseExistingServer: !process.env.CI,
       stdout: 'ignore',
       stderr: 'pipe',
-      env: {
-        // Placeholders: pages render without a database, nothing real is called.
-        NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key',
-        SUPABASE_SERVICE_ROLE_KEY: 'e2e-placeholder-service-key',
-        NEXT_PUBLIC_APP_URL: baseURL,
-        NEXT_TELEMETRY_DISABLED: '1',
-        // Sentry must stay off in tests.
-        NEXT_PUBLIC_SENTRY_DSN: '',
-        // Opens /[locale]/e2e/themes/[value] — the theme demos, which the
-        // public /themes routes redirect away from (tests/e2e/tysha.spec.ts).
-        E2E_THEME_PREVIEW: '1',
-        // Dashboard e2e: thumbnails are «CDN» URLs served by the fake Supabase;
-        // the R2 values only let getStorage() start, nothing reaches R2.
-        MEDIA_CDN_URL: 'http://127.0.0.1:54321/media',
-        R2_ACCOUNT_ID: 'e2e',
-        R2_ACCESS_KEY_ID: 'e2e',
-        R2_SECRET_ACCESS_KEY: 'e2e',
-        R2_BUCKET: 'e2e',
-      },
+      env: E2E_ENV,
+    },
+    {
+      // Sites switched ON (NEXT_PUBLIC_SITES_ENABLED=1) in its own build folder:
+      // the theme suites run here, and so do the «the flag brings it back»
+      // checks (tests/e2e/sites-flag.ts, tests/e2e/hide-sites.spec.ts).
+      command: `npx next dev -p ${SITES_PORT}`,
+      url: `${SITES_URL}/uk/login`,
+      timeout: 240_000,
+      reuseExistingServer: !process.env.CI,
+      stdout: 'ignore',
+      stderr: 'pipe',
+      env: { ...E2E_ENV, NEXT_PUBLIC_APP_URL: SITES_URL, NEXT_PUBLIC_SITES_ENABLED: '1', NEXT_DIST_DIR: '.next-sites' },
     },
   ],
 })

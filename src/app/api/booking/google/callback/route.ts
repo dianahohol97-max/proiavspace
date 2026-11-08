@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { viewerCanSeeSites } from '@/lib/features/sites-server'
 import { defaultLocale, isLocale } from '@/lib/i18n/config'
 import { exchangeCode, getUserEmail } from '@/lib/booking/googleCalendar'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -12,6 +13,8 @@ export const runtime = 'nodejs'
  * token is persisted; each push mints a fresh one.
  */
 export async function GET(request: NextRequest) {
+  // Shelved (src/lib/features/sites.ts): 404 unless sites are on or it is the owner.
+  if (!(await viewerCanSeeSites())) return new NextResponse('Not found', { status: 404 })
   const url = request.nextUrl
   const localeCookie = request.cookies.get('g_oauth_locale')?.value ?? ''
   const locale = isLocale(localeCookie) ? localeCookie : defaultLocale

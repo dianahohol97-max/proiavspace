@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale, localeLabels, type Locale } from '@/lib/i18n/config'
+import { sitesEnabled } from '@/lib/features/sites'
 import { jsonLdScript } from '@/lib/jsonld'
 import { localizedSiteContent, parseSiteContent } from '@/lib/site/content'
 import { mobilePreviewSrcSet } from '@/lib/images/srcset'
@@ -56,6 +57,8 @@ export async function generateMetadata({
 }: {
   params: { locale: string; handle: string }
 }): Promise<Metadata> {
+  // Shelved (src/lib/features/sites.ts): never indexed while sites are off.
+  if (!sitesEnabled()) return { robots: { index: false, follow: false } }
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.rpc('get_site', { p_handle: params.handle })
   const site = (data as SiteRow[] | null)?.[0]

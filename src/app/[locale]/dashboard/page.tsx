@@ -11,6 +11,7 @@ import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Gallery } from '@/lib/types'
+import { canSeeSites } from '@/lib/features/sites'
 import { buildRecentEvents, type BookingRow, type SelectionRow } from '@/lib/app/events'
 import { InstallAppCard } from '@/components/app/InstallAppCard'
 import { QuickActions } from '@/components/app/QuickActions'
@@ -114,7 +115,7 @@ export default async function DashboardPage({ params }: { params: { locale: stri
   const lastPublished = lastPublishedGallery
     ? { title: lastPublishedGallery.title, url: `${appUrl}/${locale}/g/${lastPublishedGallery.slug}` }
     : null
-  const events = cards.length > 0 ? await recentClientEvents(supabase, user.id, galleries ?? []) : []
+  const events = cards.length > 0 ? await recentClientEvents(supabase, user.id, galleries ?? [], canSeeSites(user.email)) : []
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-12">
@@ -239,7 +240,9 @@ function freeBadge(gallery: Gallery, dict: Dictionary, locale: string): GalleryC
 async function recentClientEvents(
   supabase: ReturnType<typeof createSupabaseServerClient>,
   userId: string,
-  galleries: Pick<Gallery, 'id' | 'title'>[]
+  galleries: Pick<Gallery, 'id' | 'title'>[],
+  /** Booking events only while booking is visible (src/lib/features/sites.ts). */
+  withBookings: boolean
 ) {
   const titles = new Map(galleries.map((gallery) => [gallery.id, gallery.title]))
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
@@ -255,7 +258,9 @@ async function recentClientEvents(
           .limit(500)
           .returns<SelectionRow[]>()
       : Promise.resolve({ data: [] as SelectionRow[] }),
-    supabase
+    !withBookings
+      ? Promise.resolve({ data: [] as BookingRow[] })
+      : supabase
       .from('booking_slots')
       .select('id, client_name, starts_at, booked_at')
       .eq('owner_id', userId)
