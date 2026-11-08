@@ -53,6 +53,7 @@ const SAME_AS_EN_ALLOWED = new Set<string>([
   'common.appName',
   'booking.googleTitle', // «Google Calendar» — product name
   'fr:pages.sitePhotosCount', // «# photo / # photos» — same in French
+  'fr:app.offlinePhotos', // «# photo / # photos» — same in French
   'it:pages.homeAria', // «proiav — home»: «home» is the usual Italian word here
   'importer.gb',
   'importer.mb',
@@ -60,6 +61,7 @@ const SAME_AS_EN_ALLOWED = new Set<string>([
   'site.contactEmail',
   'site.contactInstagram',
   'site.contactTelegram',
+  'site.themeTemna', // «Temna kimnata» — a theme name (transliteration), same in every language
   'settings.title',
   'publicSite.portfolio',
   'publicGallery.viewerSlideOf',
@@ -71,6 +73,7 @@ const SAME_AS_EN_ALLOWED = new Set<string>([
   'pages.demoCouple',
   'designer.sampleTitle',
   'studio.saved',
+  'app.pushBookingBody', // «{name} · {date}» — only placeholders, nothing to translate
 ])
 
 const allowed = (set: Set<string>, locale: string, path: string) => set.has(path) || set.has(`${locale}:${path}`)

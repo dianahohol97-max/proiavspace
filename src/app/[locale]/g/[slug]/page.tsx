@@ -6,6 +6,8 @@ import { galleryAssetsClient, isGalleryUnlocked } from '@/lib/gallery-access'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
+import { notifyFirstView } from '@/lib/push/events'
+import { getVapidConfig } from '@/lib/push/send'
 import { resolveGalleryTheme } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -58,11 +60,12 @@ export default async function PublicGalleryPage({
     supabase
       .from('galleries')
       .select(
-        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style, delivery_status, delivery_eta'
+        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style, view_count, delivery_status, delivery_eta'
       )
       .eq('slug', params.slug)
       .single<{
         id: string
+        view_count: number
         slug: string
         title: string
         description: string | null
@@ -148,6 +151,17 @@ export default async function PublicGalleryPage({
       (cause) => console.error('record_gallery_view failed', gallery.slug, cause)
     )
   )
+
+  // «Галерею вперше переглянули» (photographer's phone app). Only while the
+  // gallery is fresh: a gallery viewed 20+ times has had its first visitor.
+  if (gallery.view_count < 20 && getVapidConfig()) {
+    waitUntil(
+      notifyFirstView(gallery.id, async () => {
+        const { data } = await supabase.auth.getUser()
+        return data.user?.id ?? null
+      }).catch(() => null)
+    )
+  }
 
   // This client's current favorites (scoped by the middleware-minted token).
   const clientToken = cookies().get('ct')?.value

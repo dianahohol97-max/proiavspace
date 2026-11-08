@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
+import { resolveSiteTheme, siteCssVars, type SiteMode, type ThemeId } from '@/lib/site/themes'
 import type { SiteContent } from '@/lib/site/content'
 import type { Locale } from '@/lib/i18n/config'
 import { BookingWidget, type PublicSlot } from '@/components/BookingWidget'
@@ -204,8 +204,8 @@ export interface LangSwitch {
  * in their footer (`platformCredit`). Paid sites never show it.
  */
 export function SiteRenderer({
-  theme,
-  mode,
+  theme: storedTheme,
+  mode: storedMode,
   content,
   displayName,
   logoUrl,
@@ -238,6 +238,9 @@ export function SiteRenderer({
   /** Theme demos only: sample free dates (real sites take them from booking). */
   freeDates?: string[]
 }) {
+  // Pre-v2 themes («Плівка», «Галерея», «Архів», «Продакшн») render with the
+  // nearest v2 theme; galleries keep their old styles separately.
+  const { theme, mode } = resolveSiteTheme(storedTheme, storedMode)
   const vars = siteCssVars(theme, mode)
   // Free dates (yyyy-mm-dd, Kyiv time) for themes that show a calendar.
   const freeDates = booking

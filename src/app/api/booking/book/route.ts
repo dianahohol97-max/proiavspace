@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { sendEmail } from '@/lib/email'
 import { formatSlot } from '@/lib/booking/types'
 import { insertCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCalendar'
+import { notifyBooking } from '@/lib/push/events'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -62,6 +64,10 @@ export async function POST(request: NextRequest) {
       .eq('id', body.slotId)
       .single()
     if (slot) {
+      // «Нова заявка» on the photographer's phone (if they turned it on).
+      waitUntil(
+        notifyBooking({ id: body.slotId, owner_id: slot.owner_id, starts_at: slot.starts_at }, body.name).catch(() => null)
+      )
       const { data: settings } = await admin
         .from('booking_settings')
         .select('notify_email, google_refresh_token, google_calendar_id')

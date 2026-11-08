@@ -376,9 +376,35 @@ export const GALLERY_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[
   { value: 'prodakshn', theme: 'prodakshn', mode: 'light' },
 ]
 
-/** Site themes in the editor: the gallery styles plus the v2 «візитка» themes. */
+/**
+ * Pre-v2 site themes that are no longer offered for sites. A site that still
+ * has one renders with the nearest v2 theme, and the editor shows (and saves)
+ * that theme. Their gallery styles stay as they were (GALLERY_CATALOG).
+ */
+export const LEGACY_SITE_THEME: Partial<Record<ThemeId, { theme: ThemeId; mode: SiteMode; value: string }>> = {
+  plivka: { theme: 'kontakt', mode: 'light', value: 'kontakt' },
+  arkhiv: { theme: 'kontakt', mode: 'light', value: 'kontakt' },
+  galereia: { theme: 'paspartu', mode: 'light', value: 'paspartu' },
+  prodakshn: { theme: 'indeks', mode: 'light', value: 'indeks' },
+}
+
+/** The theme a site actually renders with (legacy values → nearest v2 theme). */
+export function resolveSiteTheme(theme: ThemeId, mode: SiteMode): { theme: ThemeId; mode: SiteMode } {
+  const mapped = LEGACY_SITE_THEME[theme]
+  return mapped ? { theme: mapped.theme, mode: mapped.mode } : { theme, mode }
+}
+
+/** Editor catalog value for a stored site theme (legacy → its replacement). */
+export function siteCatalogValue(theme: string | null | undefined, mode: string | null | undefined): string {
+  if (!theme) return 'tysha'
+  if (theme === 'tysha' && mode === 'night') return 'opivnich'
+  const mapped = isThemeId(theme) ? LEGACY_SITE_THEME[theme] : undefined
+  return mapped ? mapped.value : theme
+}
+
+/** Site themes in the editor: the four kept originals plus the v2 «візитка» themes. */
 export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] = [
-  ...GALLERY_CATALOG,
+  ...GALLERY_CATALOG.filter((entry) => !LEGACY_SITE_THEME[entry.theme]),
   { value: 'start', theme: 'start', mode: 'light' },
   { value: 'nizhnist', theme: 'nizhnist', mode: 'light' },
   { value: 'kontent', theme: 'kontent', mode: 'light' },
