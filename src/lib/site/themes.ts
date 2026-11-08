@@ -27,6 +27,7 @@ export const THEME_IDS = [
   'sviato',
   'rozvorot',
   'indeks',
+  'paspartu',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -219,6 +220,15 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Index Grotesk", "Index Grotesk Fallback", Arial, sans-serif',
     },
   },
+  paspartu: {
+    id: 'paspartu',
+    tokens: {
+      ...base,
+      // «Паспарту»: gallery wall white, ink, a muted museum blue (6.5:1).
+      bg: '#f4f3f0', fg: '#1a1a1c', muted: '#5d5d63', accent: '#3b4f6b', line: '#dedcd6',
+      fontDisplay: '"Mat Caps", "Mat Caps Fallback", Georgia, serif',
+    },
+  },
 }
 
 /**
@@ -234,6 +244,7 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   sviato: { theme: 'tysha', mode: 'night' },
   rozvorot: { theme: 'tysha', mode: 'light' },
   indeks: { theme: 'prodakshn', mode: 'light' },
+  paspartu: { theme: 'galereia', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -322,4 +333,5 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'sviato', theme: 'sviato', mode: 'light' },
   { value: 'rozvorot', theme: 'rozvorot', mode: 'light' },
   { value: 'indeks', theme: 'indeks', mode: 'light' },
+  { value: 'paspartu', theme: 'paspartu', mode: 'light' },
 ]
