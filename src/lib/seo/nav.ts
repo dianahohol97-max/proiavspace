@@ -55,6 +55,7 @@ export const FOOTER_UK: { title: string; links: NavLink[] }[] = [
       { label: 'Як передати фото клієнту', href: '/uk/blog/yak-peredaty-foto-kliientu' },
       { label: 'Публічна оферта', href: '/uk/oferta' },
       { label: 'Політика конфіденційності', href: '/uk/privacy' },
+      { label: 'Підтримка', href: '/uk/contact' },
     ],
   },
 ]

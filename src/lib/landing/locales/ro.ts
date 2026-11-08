@@ -206,5 +206,6 @@ export const ro: LandingCopy = {
     blog: 'Blog',
     terms: 'Ofertă publică',
     privacy: 'Politica de confidențialitate',
+    support: 'Asistență',
   },
 }
