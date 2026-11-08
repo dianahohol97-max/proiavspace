@@ -11,6 +11,10 @@ export const pl: PartialDictionary = {
     delete: 'Usuń',
     loading: 'Ładowanie…',
   },
+  galleryManage: {
+    uploadResumeHint: "Niedokończone przesyłanie: {count}. Wystarczy wybrać te same pliki — przesyłanie wznowi się od miejsca przerwania:",
+    uploadNetworkWait: "Brak połączenia — przesyłanie wznowi się, gdy tylko sieć wróci.",
+  },
   publicGallery: {
     passwordTitle: 'Ta galeria jest chroniona hasłem',
     passwordLabel: 'Hasło',

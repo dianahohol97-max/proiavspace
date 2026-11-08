@@ -11,6 +11,10 @@ export const ro: PartialDictionary = {
     delete: 'Șterge',
     loading: 'Se încarcă…',
   },
+  galleryManage: {
+    uploadResumeHint: "Încărcări neterminate: {count}. Alegeți aceleași fișiere — vor continua de unde s-au oprit:",
+    uploadNetworkWait: "Fără conexiune — încărcarea va continua imediat ce revine rețeaua.",
+  },
   publicGallery: {
     passwordTitle: 'Această galerie este protejată cu parolă',
     passwordLabel: 'Parolă',

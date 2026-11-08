@@ -11,6 +11,10 @@ export const de: PartialDictionary = {
     delete: 'Löschen',
     loading: 'Wird geladen…',
   },
+  galleryManage: {
+    uploadResumeHint: "Unvollständige Uploads: {count}. Wählen Sie dieselben Dateien erneut aus — sie werden dort fortgesetzt, wo sie unterbrochen wurden:",
+    uploadNetworkWait: "Keine Verbindung — das Hochladen geht weiter, sobald das Netz wieder da ist.",
+  },
   publicGallery: {
     passwordTitle: 'Diese Galerie ist passwortgeschützt',
     passwordLabel: 'Passwort',

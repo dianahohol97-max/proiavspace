@@ -11,6 +11,10 @@ export const pt: PartialDictionary = {
     delete: 'Eliminar',
     loading: 'A carregar…',
   },
+  galleryManage: {
+    uploadResumeHint: "Carregamentos por concluir: {count}. Escolha os mesmos ficheiros — continuarão a partir do ponto onde pararam:",
+    uploadNetworkWait: "Sem ligação — o carregamento continuará assim que a rede voltar.",
+  },
   publicGallery: {
     passwordTitle: 'Esta galeria está protegida por palavra-passe',
     passwordLabel: 'Palavra-passe',
