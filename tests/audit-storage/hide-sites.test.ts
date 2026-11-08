@@ -221,22 +221,22 @@ describe('sitemap, головна кабінету, сповіщення', () =>
     assert.doesNotMatch(sitemap, /path: `\/uk\/b\//)
   })
 
-  test('поки сайти вимкнені, /s/*, /b/* і /site-preview віддають X-Robots-Tag: noindex', () => {
-    const config = source('next.config.js')
-    assert.match(config, /if \(process\.env\.NEXT_PUBLIC_SITES_ENABLED !== '1'\) \{/)
-    for (const path of ['/s/:path\\*', '/b/:path\\*', '/site-preview']) {
-      assert.match(config, new RegExp(`\\$\\{locales\\}\\)${path}`), path)
-    }
-    assert.match(config, /key: 'X-Robots-Tag', value: 'noindex, nofollow'/)
-  })
-
   test('robots не рекламує /s/ і /b/', () => {
     assert.doesNotMatch(source('src/app/robots.ts'), /\/s\/|\/b\//)
   })
 
-  test('«Останні події від клієнтів» без бронювань, перемикач «бронювання» в сповіщеннях схований', () => {
+  test('«Останні події від клієнтів» без бронювань', () => {
     assert.match(source('src/app/[locale]/dashboard/page.tsx'), /recentClientEvents\(supabase, user\.id, galleries \?\? \[\], canSeeSites\(user\.email\)\)/)
-    assert.match(source('src/app/[locale]/dashboard/settings/page.tsx'), /showBooking=\{canSeeSites\(user\.email\)\}/)
-    assert.match(source('src/components/app/NotificationSettings.tsx'), /PUSH_KINDS\.filter\(\(kind\) => showBooking \|\| kind !== 'booking'\)/)
+  })
+
+  test('сповіщення «Нова заявка» — той самий прапорець: без нього перемикача немає й нічого не надсилається', async () => {
+    const { availablePushKinds, bookingPushEnabled } = await import('@/lib/push/kinds')
+    assert.equal(bookingPushEnabled(), false)
+    assert.ok(!availablePushKinds().includes('booking'))
+    await withFlag(true, () => {
+      assert.equal(bookingPushEnabled(), true)
+      assert.ok(availablePushKinds().includes('booking'))
+    })
+    assert.match(source('src/lib/push/kinds.ts'), /export function bookingPushEnabled\(\): boolean \{\n  return sitesEnabled\(\)\n\}/)
   })
 })

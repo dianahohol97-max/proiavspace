@@ -29,6 +29,16 @@ const PAGES = [
   '/privacy',
   '/e2e/delivery?status=editing&eta=2026-12-14',
   '/e2e/delivery?status=shot&photos=1',
+  // Theme demos (/[locale]/themes/[value]) through their test-only door —
+  // /themes redirects away while the site builder is shelved, the e2e route
+  // (E2E_THEME_PREVIEW=1 in playwright.config) renders the very same page.
+  // The demo photographers' own texts are Ukrainian sample content; the demo
+  // bar, labels and the form must be in the page language.
+  ...[
+    'tysha', 'opivnich', 'povitria', 'zhurnal',
+    'start', 'nizhnist', 'kontent', 'lyst', 'portret', 'sviato', 'rozvorot',
+    'indeks', 'paspartu', 'kontakt', 'temna', 'vydoshukach', 'marshrut',
+  ].map((theme) => `/e2e/themes/${theme}`),
 ]
 
 /** English function words that never occur in the other 7 languages' UI. */

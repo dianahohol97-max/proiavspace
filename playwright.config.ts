@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
 
 /**
@@ -9,33 +11,24 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const PORT = Number(process.env.E2E_PORT || 3100)
 const baseURL = `http://localhost:${PORT}`
-/** Second dev server with sites on — keep in sync with tests/e2e/sites-flag.ts. */
-const SITES_PORT = PORT + 1
-const SITES_URL = `http://localhost:${SITES_PORT}`
 
-const E2E_ENV: Record<string, string> = {
-  // Placeholders: pages render without a database, nothing real is called.
-  NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key',
-  SUPABASE_SERVICE_ROLE_KEY: 'e2e-placeholder-service-key',
-  NEXT_PUBLIC_APP_URL: baseURL,
-  NEXT_TELEMETRY_DISABLED: '1',
-  // Sentry must stay off in tests.
-  NEXT_PUBLIC_SENTRY_DSN: '',
-  // Opens /[locale]/e2e/themes/[value] — the theme demos, which the
-  // public /themes routes redirect away from (tests/e2e/tysha.spec.ts).
-  E2E_THEME_PREVIEW: '1',
-  // Dashboard e2e: thumbnails are «CDN» URLs served by the fake Supabase;
-  // the R2 values only let getStorage() start, nothing reaches R2.
-  MEDIA_CDN_URL: 'http://127.0.0.1:54321/media',
-  R2_ACCOUNT_ID: 'e2e',
-  R2_ACCESS_KEY_ID: 'e2e',
-  R2_SECRET_ACCESS_KEY: 'e2e',
-  R2_BUCKET: 'e2e',
-}
+/**
+ * Sites and booking are shelved by default (src/lib/features/sites.ts), so
+ * `npm run test:e2e` runs twice: first as production (flag off) — everything
+ * but the theme suites; then with E2E_SITES=1 (NEXT_PUBLIC_SITES_ENABLED=1) —
+ * the theme suites and the «the flag brings it back» checks
+ * (tests/e2e/hide-sites.spec.ts). A theme suite is any spec that opens the
+ * theme demos (/e2e/themes) or uses cardSuite.
+ */
+const SITES = process.env.E2E_SITES === '1'
+const E2E_DIR = join(__dirname, 'tests', 'e2e')
+const THEME_SPECS = readdirSync(E2E_DIR).filter(
+  (file) => file.endsWith('.spec.ts') && /e2e\/themes|cardSuite/.test(readFileSync(join(E2E_DIR, file), 'utf8'))
+)
 
 export default defineConfig({
   testDir: './tests/e2e',
+  ...(SITES ? { testMatch: [...THEME_SPECS, 'hide-sites.spec.ts'] } : { testIgnore: THEME_SPECS }),
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
@@ -65,26 +58,34 @@ export default defineConfig({
       stderr: 'pipe',
     },
     {
-      // Sites and booking switched OFF (the default, as in production).
       command: `npx next dev -p ${PORT}`,
       url: `${baseURL}/uk/login`,
       timeout: 240_000,
       reuseExistingServer: !process.env.CI,
       stdout: 'ignore',
       stderr: 'pipe',
-      env: E2E_ENV,
-    },
-    {
-      // Sites switched ON (NEXT_PUBLIC_SITES_ENABLED=1) in its own build folder:
-      // the theme suites run here, and so do the «the flag brings it back»
-      // checks (tests/e2e/sites-flag.ts, tests/e2e/hide-sites.spec.ts).
-      command: `npx next dev -p ${SITES_PORT}`,
-      url: `${SITES_URL}/uk/login`,
-      timeout: 240_000,
-      reuseExistingServer: !process.env.CI,
-      stdout: 'ignore',
-      stderr: 'pipe',
-      env: { ...E2E_ENV, NEXT_PUBLIC_APP_URL: SITES_URL, NEXT_PUBLIC_SITES_ENABLED: '1', NEXT_DIST_DIR: '.next-sites' },
+      env: {
+        // Placeholders: pages render without a database, nothing real is called.
+        NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY: 'e2e-placeholder-service-key',
+        NEXT_PUBLIC_APP_URL: baseURL,
+        NEXT_TELEMETRY_DISABLED: '1',
+        // Sentry must stay off in tests.
+        NEXT_PUBLIC_SENTRY_DSN: '',
+        // Opens /[locale]/e2e/themes/[value] — the theme demos, which the
+        // public /themes routes redirect away from (tests/e2e/tysha.spec.ts).
+        E2E_THEME_PREVIEW: '1',
+        // Sites and booking: off as in production, on for the second run (see above).
+        NEXT_PUBLIC_SITES_ENABLED: SITES ? '1' : '',
+        // Dashboard e2e: thumbnails are «CDN» URLs served by the fake Supabase;
+        // the R2 values only let getStorage() start, nothing reaches R2.
+        MEDIA_CDN_URL: 'http://127.0.0.1:54321/media',
+        R2_ACCOUNT_ID: 'e2e',
+        R2_ACCESS_KEY_ID: 'e2e',
+        R2_SECRET_ACCESS_KEY: 'e2e',
+        R2_BUCKET: 'e2e',
+      },
     },
   ],
 })

@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { canSeeSites } from '@/lib/features/sites'
 import { notFound, redirect } from 'next/navigation'
 import { updateDisplayName } from '@/lib/actions/profile'
 import { getDictionary } from '@/lib/i18n'
@@ -9,6 +8,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoUploader } from '@/components/LogoUploader'
 import { InstallAppCard } from '@/components/app/InstallAppCard'
 import { NotificationSettings } from '@/components/app/NotificationSettings'
+import { bookingPushEnabled } from '@/lib/push/kinds'
 import { getVapidConfig } from '@/lib/push/send'
 import type { Profile } from '@/lib/types'
 
@@ -140,7 +140,7 @@ export default async function SettingsPage({
           t={dict.app}
           locale={locale}
           publicKey={getVapidConfig()?.publicKey ?? ''}
-          showBooking={canSeeSites(user.email)}
+          showBooking={bookingPushEnabled()}
         />
         <InstallAppCard t={dict.app} />
       </section>

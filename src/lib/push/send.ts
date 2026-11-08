@@ -3,7 +3,7 @@ import webpush from 'web-push'
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import { getDictionary, type Dictionary } from '@/lib/i18n'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { isMissingTableError, type PushKind } from './kinds'
+import { bookingPushEnabled, isMissingTableError, type PushKind } from './kinds'
 
 /**
  * Server side of the photographer's notifications (Web Push, VAPID).
@@ -121,6 +121,9 @@ async function notifyOwnerUnsafe(input: NotifyInput, deps: NotifyDeps): Promise<
   const store = deps.store === undefined ? defaultStore() : deps.store
   if (!store) return { status: 'skipped', reason: 'not_configured' }
   const sender = deps.sender ?? defaultSender
+
+  // Booking is shelved behind its flag: no «Нова заявка» at all.
+  if (input.kind === 'booking' && !bookingPushEnabled()) return { status: 'skipped', reason: 'disabled' }
 
   if (input.kind !== 'test') {
     const enabled = await store.isEnabled(input.ownerId, input.kind)

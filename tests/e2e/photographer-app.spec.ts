@@ -243,8 +243,22 @@ test.describe('застосунок фотографа на телефоні', (
     await expect(block.getByTestId('notify-message')).toHaveText('Збережено')
     await block.getByText('Галерея скоро закриється').click()
     await expect(block.getByTestId('notify-pref-gallery_expiring')).not.toBeChecked()
-    await expect(block.getByTestId('notify-pref-booking')).toBeChecked()
+    await expect(block.getByTestId('notify-pref-booking')).toHaveCount(0)
+    await expect(block.getByTestId('notify-pref-first_view')).toBeChecked()
     expect(puts).toEqual([{ client_picks: false }, { gallery_expiring: false }])
+  })
+
+  test('«Нова заявка» — лише з прапорцем сайтів і бронювання', async ({ page }) => {
+    // Default (NEXT_PUBLIC_SITES_ENABLED off): four switches, no «Нова заявка».
+    await page.goto(PAGE)
+    const block = page.getByTestId('notify-settings')
+    await expect(block.locator('[data-testid^="notify-pref-"]')).toHaveCount(4)
+    await expect(block.getByTestId('notify-pref-booking')).toHaveCount(0)
+    await expect(block).not.toContainText('Нова заявка на зйомку')
+    // Flag on: the switch is there.
+    await page.goto(`${PAGE}?booking=1`)
+    await expect(block.getByTestId('notify-pref-booking')).toBeChecked()
+    await expect(block.locator('[data-testid^="notify-pref-"]')).toHaveCount(5)
   })
 
   test('сповіщення без дозволу / без бази: нічого не ламається', async ({ page, context, baseURL }, testInfo) => {
@@ -270,7 +284,7 @@ test.describe('застосунок фотографа на телефоні', (
       await expect(block.getByTestId('notify-enable')).toBeDisabled()
       await expect(block).toContainText('Браузер заборонив сповіщення')
     }
-    await expect(block.getByTestId('notify-pref-booking')).toBeDisabled()
+    await expect(block.getByTestId('notify-pref-storage_low')).toBeDisabled()
     // The rest of the page still works.
     await expect(page.getByTestId('quick-new')).toBeVisible()
     void baseURL

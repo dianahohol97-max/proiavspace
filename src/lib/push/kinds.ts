@@ -3,6 +3,8 @@
  * Shared by the server (send.ts, API) and the settings UI. The column names
  * of push_preferences (migration 0068) are exactly these ids.
  */
+import { sitesEnabled } from '@/lib/features/sites'
+
 export const PUSH_KINDS = [
   'client_picks',
   'first_view',
@@ -37,6 +39,20 @@ export function parsePreferencesPatch(value: unknown): Partial<PushPreferences> 
     if (typeof v === 'boolean') out[kind] = v
   }
   return Object.keys(out).length > 0 ? out : null
+}
+
+/**
+ * «Нова заявка» rides on the sites & booking flag (NEXT_PUBLIC_SITES_ENABLED,
+ * the same switch that hides «Сайт» and «Бронювання»): while it is off there
+ * is no switch for it in the settings and nothing is sent.
+ */
+export function bookingPushEnabled(): boolean {
+  return sitesEnabled()
+}
+
+/** The types the photographer can switch on right now. */
+export function availablePushKinds(showBooking = bookingPushEnabled()): PushKind[] {
+  return PUSH_KINDS.filter((kind) => kind !== 'booking' || showBooking)
 }
 
 /** Storage share (0..1) from which «місце закінчується» is sent. */
