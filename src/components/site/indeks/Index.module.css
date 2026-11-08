@@ -426,7 +426,7 @@
 .workImg {
   position: relative;
   aspect-ratio: 4 / 5;
-  overflow: hidden;
+  overflow: clip; /* not hidden: a scroll container would capture view() */
   background: var(--i-line);
 }
 .workImg img {
