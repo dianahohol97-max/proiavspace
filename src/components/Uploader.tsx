@@ -80,8 +80,11 @@ export function Uploader({
   pickPhoneLabel,
   backgroundHint,
   pausedHint,
+  onBatchDone,
 }: {
   galleryId: string
+  /** Called once a batch has finished (server action: re-sort in shot order). */
+  onBatchDone?: () => Promise<unknown>
   /** Phone: the big button that opens the photo library. */
   pickPhoneLabel?: string
   /** Phone, while uploading: «можна згорнути застосунок». */
@@ -193,9 +196,11 @@ export function Uploader({
         }
       })
       await Promise.all(workers)
+      // Shot order: the new frames take their places among the others.
+      if (onBatchDone) await onBatchDone().catch(() => undefined)
       router.refresh()
     },
-    [router, uploadOne]
+    [router, uploadOne, onBatchDone]
   )
 
   const onDrop = useCallback(
@@ -317,7 +322,11 @@ export function Uploader({
                   {item.errorKey === 'generic' && retryLabel && (
                     <button
                       type="button"
-                      onClick={() => void uploadOne(item).then(() => router.refresh())}
+                      onClick={() =>
+                        void uploadOne(item)
+                          .then(() => onBatchDone?.().catch(() => undefined))
+                          .then(() => router.refresh())
+                      }
                       className="font-bold text-fg underline"
                     >
                       {retryLabel}

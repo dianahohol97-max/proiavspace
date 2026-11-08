@@ -1,3 +1,4 @@
+import { resortAfterUpload } from '@/lib/gallery/sortMode'
 import { NextResponse, type NextRequest } from 'next/server'
 import { planStorageBytes } from '@/lib/plans'
 import { IMPORT_PROMO } from '@/lib/promo'
@@ -73,6 +74,17 @@ export async function POST(request: NextRequest) {
     }>()
   if (error || !row) {
     return NextResponse.json({ error: 'import_not_running' }, { status: 400 })
+  }
+
+  // Galleries in shot order: the imported frames take their places by
+  // capture time (sortMode.ts). One zip can fill several galleries.
+  const { data: touched } = await supabase
+    .from('assets')
+    .select('gallery_id')
+    .eq('import_id', body.importId)
+    .returns<{ gallery_id: string }[]>()
+  for (const galleryId of new Set((touched ?? []).map((a) => a.gallery_id))) {
+    await resortAfterUpload(supabase, galleryId)
   }
 
   const report: ImportReport = {

@@ -7,6 +7,7 @@ import { slugify } from '@/lib/slug'
 import { galleryPrefix, getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
+import { readGallerySortMode, resortAfterUpload, type GallerySortMode } from '@/lib/gallery/sortMode'
 
 async function requireUser() {
   const supabase = createSupabaseServerClient()
@@ -371,13 +372,18 @@ export async function signOut(locale: Locale): Promise<void> {
 }
 
 export type SortMode = 'taken' | 'uploaded'
-export type SortResult = { ok: true; changed: number } | { ok: false; error: 'not_ready' | 'failed' }
+export type SortResult =
+  | { ok: true; changed: number; mode: GallerySortMode; modeStored: boolean }
+  | { ok: false; error: 'not_ready' | 'failed' }
 
 /**
  * «Впорядкувати за часом зйомки» / «за часом завантаження»: rewrites the
  * gallery's order (assets.position) in one call to sort_gallery_assets
  * (migration 0067), which checks ownership itself. Photos from several
  * cameras end up interleaved by capture time; ones without EXIF time go last.
+ * With 0071 the call also switches the gallery's mode: «за часом зйомки» →
+ * 'taken_at' (later uploads take their places), «за часом завантаження» →
+ * 'manual'. Any future manual reorder (drag and drop) must set 'manual' too.
  */
 export async function sortGalleryAssets(locale: Locale, galleryId: string, mode: SortMode): Promise<SortResult> {
   if (mode !== 'taken' && mode !== 'uploaded') return { ok: false, error: 'failed' }
@@ -390,5 +396,17 @@ export async function sortGalleryAssets(locale: Locale, galleryId: string, mode:
     return { ok: false, error: missing ? 'not_ready' : 'failed' }
   }
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
-  return { ok: true, changed: typeof data === 'number' ? data : 0 }
+  const state = await readGallerySortMode(supabase, galleryId)
+  return { ok: true, changed: typeof data === 'number' ? data : 0, mode: state.mode, modeStored: state.stored }
+}
+
+/**
+ * The Uploader calls this when a batch of uploads has finished: in shot order
+ * the gallery is sorted again, so the new frames stand among their neighbours.
+ */
+export async function afterUploadBatch(locale: Locale, galleryId: string): Promise<{ resorted: boolean }> {
+  const { supabase } = await requireUser()
+  const { resorted } = await resortAfterUpload(supabase, galleryId)
+  if (resorted) revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  return { resorted }
 }

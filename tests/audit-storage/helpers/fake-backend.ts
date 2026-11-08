@@ -36,12 +36,13 @@ export const db: FakeDb = { profiles: [], galleries: [], assets: [], gallery_imp
 
 /** key → what "B2" holds. */
 /** Columns of assets that exist (a migration not applied → the column is missing). */
-export const schema = { assetsTakenAt: true }
+export const schema = { assetsTakenAt: true, assetsReadFails: false }
 export const bucket = new Map<string, { sizeBytes: number; contentType: string }>()
 export const deletedKeys: string[] = []
 
 export function resetBackend(): void {
   schema.assetsTakenAt = true
+  schema.assetsReadFails = false
   db.profiles.length = 0
   db.galleries.length = 0
   db.assets.length = 0
@@ -109,6 +110,27 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   if (url.origin !== FAKE_SUPABASE_URL) return realFetch(input, init)
   await tick()
   const method = (init?.method ?? 'GET').toUpperCase()
+  if (url.pathname === '/rest/v1/assets' && method === 'GET') {
+    // nextPosition (uploads.ts): gallery_id=eq.X [&or=(import_id.is.null,import_id.neq.Y)]
+    // &order=position.desc&limit=1
+    if (schema.assetsReadFails) {
+      return new Response(JSON.stringify({ code: 'XX000', message: 'fake read failure' }), {
+        status: 500,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    const galleryId = url.searchParams.get('gallery_id')?.replace(/^eq\./, '')
+    const notImport = /import_id\.neq\.([^,)]+)/.exec(url.searchParams.get('or') ?? '')?.[1]
+    let rows = db.assets.filter((a) => a.gallery_id === galleryId)
+    if (notImport) rows = rows.filter((a) => a.import_id == null || a.import_id !== notImport)
+    const order = url.searchParams.get('order')
+    if (order === 'position.desc') rows = [...rows].sort((a, b) => Number(b.position ?? 0) - Number(a.position ?? 0))
+    const limit = Number(url.searchParams.get('limit') ?? rows.length)
+    return new Response(JSON.stringify(rows.slice(0, limit).map((a) => ({ position: a.position ?? 0 }))), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
   if (url.pathname === '/rest/v1/assets' && method === 'POST') {
     const body = JSON.parse(String(init?.body)) as Row | Row[]
     const row = Array.isArray(body) ? body[0] : body
