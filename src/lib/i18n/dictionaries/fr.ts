@@ -254,7 +254,6 @@ export const fr: PartialDictionary = {
     saveError: 'Échec de l’enregistrement. Vérifiez votre connexion et réessayez.',
     titleRequired: 'Le nom ne peut pas être vide.',
     accessDownloadsTitle: 'Téléchargements',
-    accessDownloadsText: 'Le client peut enregistrer n’importe quelle photo en pleine qualité, ou toute la galerie en une seule archive.',
     accessDownloadsCount: '{n, plural, one {# téléchargement jusqu’ici} other {# téléchargements jusqu’ici}}',
     dangerTitle: 'Supprimer la galerie',
     deleteAsk: 'Supprimer la galerie « {title} » avec toutes ses photos ? Cette action est irréversible.',
@@ -300,6 +299,10 @@ export const fr: PartialDictionary = {
     clientEmailSent: 'E-mail envoyé.',
     clientEmailTooSoon: 'L’e-mail vient de partir — réessayez dans une minute.',
     clientEmailSendFailed: 'Impossible d’envoyer l’e-mail. Réessayez plus tard.',
+    downloadsToggle: 'Le client peut télécharger les photos',
+    downloadsOnHint: 'Activé : le client peut enregistrer chaque photo en qualité maximale ou toute la galerie en une seule archive.',
+    downloadsOffHint: 'Désactivé : le client peut seulement consulter les photos — aucun bouton de téléchargement dans la galerie. En tant que propriétaire, vous pouvez toujours télécharger.',
+    downloadsUnavailable: 'Ce réglage fonctionnera après la mise à jour de la base de données (migration 0070). D’ici là, les téléchargements restent autorisés.',
   },
   booking: {
     title: 'Réservation de séances',
@@ -781,6 +784,7 @@ export const fr: PartialDictionary = {
     shareInProgress: "Bonjour ! Voici le lien vers votre galerie « {title} » :\n{url}\nLes photos sont en cours de retouche — la galerie complète apparaîtra à ce même lien.",
     sharePassword: "La galerie est protégée par un mot de passe — je vous l’envoie dans un message séparé.",
     shareSubject: "Votre galerie « {title} »",
+    downloadsDisabled: 'Le photographe a désactivé les téléchargements pour cette galerie. Vous pouvez consulter les photos ; pour les originaux, contactez le photographe.',
   },
   pages: {
     siteTitle: 'proiav — galeries client en ligne pour photographes',

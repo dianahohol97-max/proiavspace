@@ -53,3 +53,13 @@ export async function insertRow(table: string, row: Record<string, unknown>) {
   })
   return (await res.json()) as Record<string, unknown>
 }
+
+/** Pretend migration 0070 is not applied (no galleries.downloads_enabled). Reset by resetDb(). */
+export async function setDownloadsColumn(present: boolean) {
+  const res = await fetch(`${FAKE_SUPABASE}/__e2e/schema`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ downloadsColumn: present }),
+  })
+  if (!res.ok) throw new Error(`fake supabase schema failed: ${res.status}`)
+}

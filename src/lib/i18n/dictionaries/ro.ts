@@ -259,7 +259,6 @@ export const ro: PartialDictionary = {
     saveError: 'Nu am putut salva. Verificați conexiunea și încercați din nou.',
     titleRequired: 'Numele nu poate fi gol.',
     accessDownloadsTitle: 'Descărcări',
-    accessDownloadsText: 'Clientul poate salva orice fotografie la calitate maximă sau întreaga galerie într-o singură arhivă.',
     accessDownloadsCount: 'Descărcări până acum: {n}',
     dangerTitle: 'Ștergerea galeriei',
     deleteAsk: 'Ștergeți galeria „{title}” cu toate fotografiile? Acțiunea nu poate fi anulată.',
@@ -305,6 +304,10 @@ export const ro: PartialDictionary = {
     clientEmailSent: 'E-mail trimis.',
     clientEmailTooSoon: 'E-mailul tocmai a plecat — încercați din nou peste un minut.',
     clientEmailSendFailed: 'Nu am putut trimite e-mailul. Vă rugăm să încercați mai târziu.',
+    downloadsToggle: 'Clientul poate descărca fotografiile',
+    downloadsOnHint: 'Activat: clientul poate salva orice fotografie la calitate maximă sau întreaga galerie într-o singură arhivă.',
+    downloadsOffHint: 'Dezactivat: clientul doar vede fotografiile — galeria nu are butoane de descărcare. Tu, ca proprietar, poți descărca în continuare.',
+    downloadsUnavailable: 'Comutatorul va funcționa după actualizarea bazei de date (migrarea 0070). Până atunci, descărcările rămân permise.',
   },
   booking: {
     title: 'Rezervarea ședințelor',
@@ -791,6 +794,7 @@ export const ro: PartialDictionary = {
       'Bună ziua! Iată linkul către galeria dumneavoastră „{title}”:\n{url}\nFotografiile sunt chiar acum în editare — galeria finală va apărea la același link.',
     sharePassword: 'Galeria este protejată cu parolă — vă trimit parola într-un mesaj separat.',
     shareSubject: 'Galeria dumneavoastră „{title}”',
+    downloadsDisabled: 'Fotograful a dezactivat descărcarea pentru această galerie. Poți vedea fotografiile; pentru originale, scrie-i fotografului.',
   },
   pages: {
     siteTitle: 'proiav — galerii online pentru clienții fotografilor',

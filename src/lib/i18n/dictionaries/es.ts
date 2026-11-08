@@ -250,7 +250,6 @@ export const es: PartialDictionary = {
     saveError: 'No se ha podido guardar. Revisa tu conexión e inténtalo de nuevo.',
     titleRequired: 'El nombre no puede estar vacío.',
     accessDownloadsTitle: 'Descargas',
-    accessDownloadsText: 'El cliente puede guardar cualquier foto en máxima calidad o toda la galería en un solo ZIP.',
     accessDownloadsCount: 'Descargas hasta ahora: {n}',
     dangerTitle: 'Eliminar galería',
     deleteAsk: '¿Eliminar la galería «{title}» con todas sus fotos? Esta acción no se puede deshacer.',
@@ -293,6 +292,10 @@ export const es: PartialDictionary = {
     clientEmailSent: 'Correo enviado.',
     clientEmailTooSoon: 'El correo se acaba de enviar: inténtalo de nuevo en un minuto.',
     clientEmailSendFailed: 'No se ha podido enviar el correo. Inténtalo más tarde.',
+    downloadsToggle: 'El cliente puede descargar las fotos',
+    downloadsOnHint: 'Activado: el cliente puede guardar cualquier foto en máxima calidad o toda la galería en un solo ZIP.',
+    downloadsOffHint: 'Desactivado: el cliente solo puede ver las fotos; la galería no muestra botones de descarga. Como propietario, tú sigues pudiendo descargar.',
+    downloadsUnavailable: 'El interruptor funcionará tras actualizar la base de datos (migración 0070). Hasta entonces, las descargas siguen permitidas.',
   },
   booking: {
     title: 'Reserva de sesiones',
@@ -743,6 +746,7 @@ export const es: PartialDictionary = {
     shareInProgress: '¡Hola! Aquí tienes el enlace a tu galería «{title}»:\n{url}\nAhora mismo estoy editando las fotos; la galería completa aparecerá en este mismo enlace.',
     sharePassword: 'La galería tiene contraseña; te la envío en un mensaje aparte.',
     shareSubject: 'Tu galería «{title}»',
+    downloadsDisabled: 'El fotógrafo ha desactivado las descargas en esta galería. Puedes ver las fotos; para los originales, escribe al fotógrafo.',
   },
   pages: {
     siteTitle: 'proiav — galerías online para clientes de fotógrafos',
