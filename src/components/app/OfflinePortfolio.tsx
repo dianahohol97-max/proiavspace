@@ -14,6 +14,7 @@ import {
   type OfflinePack,
 } from '@/lib/app/portfolio'
 import type { Dictionary } from '@/lib/i18n'
+import { formatMessage } from '@/lib/i18n/format'
 
 export interface PortfolioCandidate {
   id: string
@@ -111,10 +112,10 @@ export function OfflinePortfolio({
                   <span className="block truncate text-[15px] font-extrabold">{gallery.title}</span>
                   <span className="mt-0.5 block text-xs font-semibold text-muted" data-testid="offline-state">
                     {kept
-                      ? t.offlineSaved.replace('{n}', String(kept.photos.length)).replace('{size}', formatMb(kept.bytes))
+                      ? formatMessage(t.offlineSaved, { n: kept.photos.length, size: formatMb(kept.bytes) }, locale)
                       : busy && progress
-                        ? t.offlineSaving.replace('{done}', String(progress.done)).replace('{total}', String(progress.total))
-                        : t.offlinePhotos.replace('{n}', String(gallery.photoCount))}
+                        ? formatMessage(t.offlineSaving, { done: progress.done, total: progress.total }, locale)
+                        : formatMessage(t.offlinePhotos, { n: gallery.photoCount }, locale)}
                   </span>
                 </span>
               </div>

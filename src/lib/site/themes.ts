@@ -25,6 +25,10 @@ export const THEME_IDS = [
   'lyst',
   'portret',
   'sviato',
+  'rozvorot',
+  'indeks',
+  'paspartu',
+  'kontakt',
 ] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 export type SiteMode = 'light' | 'night'
@@ -199,6 +203,42 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
       fontDisplay: '"Party Sans", "Party Sans Fallback", Arial, sans-serif',
     },
   },
+  rozvorot: {
+    id: 'rozvorot',
+    tokens: {
+      ...base,
+      // «Розворот»: quiet luxury — stone paper, warm black, bronze (5.5:1).
+      bg: '#efebe4', fg: '#1e1c19', muted: '#665f55', accent: '#6f5b3e', line: '#ddd6cb',
+      fontDisplay: '"Spread Serif", "Spread Serif Fallback", Georgia, serif',
+    },
+  },
+  indeks: {
+    id: 'indeks',
+    tokens: {
+      ...base,
+      // «Індекс»: paper grey, near-black, signal red (5:1).
+      bg: '#f1f1ee', fg: '#0b0b0b', muted: '#55555a', accent: '#c42d12', line: '#d9d9d4',
+      fontDisplay: '"Index Grotesk", "Index Grotesk Fallback", Arial, sans-serif',
+    },
+  },
+  paspartu: {
+    id: 'paspartu',
+    tokens: {
+      ...base,
+      // «Паспарту»: gallery wall white, ink, a muted museum blue (6.5:1).
+      bg: '#f4f3f0', fg: '#1a1a1c', muted: '#5d5d63', accent: '#3b4f6b', line: '#dedcd6',
+      fontDisplay: '"Mat Caps", "Mat Caps Fallback", Georgia, serif',
+    },
+  },
+  kontakt: {
+    id: 'kontakt',
+    tokens: {
+      ...base,
+      // «Контакт»: photo paper, black, grease-pencil red (5:1).
+      bg: '#efeee9', fg: '#121212', muted: '#56565a', accent: '#c4261a', line: '#d6d5cf',
+      fontDisplay: '"Sheet Mono", "Sheet Mono Fallback", ui-monospace, monospace',
+    },
+  },
 }
 
 /**
@@ -212,6 +252,10 @@ export const GALLERY_STYLE_OF: Partial<Record<ThemeId, { theme: ThemeId; mode: S
   lyst: { theme: 'tysha', mode: 'light' },
   portret: { theme: 'galereia', mode: 'light' },
   sviato: { theme: 'tysha', mode: 'night' },
+  rozvorot: { theme: 'tysha', mode: 'light' },
+  indeks: { theme: 'prodakshn', mode: 'light' },
+  paspartu: { theme: 'galereia', mode: 'light' },
+  kontakt: { theme: 'arkhiv', mode: 'light' },
 }
 
 export function resolveTokens(theme: ThemeId, mode: SiteMode): ThemeTokens {
@@ -298,4 +342,8 @@ export const THEME_CATALOG: { value: string; theme: ThemeId; mode: SiteMode }[] 
   { value: 'lyst', theme: 'lyst', mode: 'light' },
   { value: 'portret', theme: 'portret', mode: 'light' },
   { value: 'sviato', theme: 'sviato', mode: 'light' },
+  { value: 'rozvorot', theme: 'rozvorot', mode: 'light' },
+  { value: 'indeks', theme: 'indeks', mode: 'light' },
+  { value: 'paspartu', theme: 'paspartu', mode: 'light' },
+  { value: 'kontakt', theme: 'kontakt', mode: 'light' },
 ]

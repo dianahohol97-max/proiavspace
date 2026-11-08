@@ -25,3 +25,9 @@
     - `0068` — застосунок фотографа на телефоні (`feat/photographer-app` → `release/4`, `0068_push_notifications.sql`): `push_subscriptions`, `push_preferences` (RLS лише власник), `push_deliveries` (лише service role); не застосована; без неї кабінет працює, блок «Сповіщення» пише «після оновлення бази», сповіщення не надсилаються
     - **наступний вільний номер — `0069`**
   - Нова міграція має бути безпечною для коду, що зараз на проді (нові колонки з дефолтами, `create or replace` з тими самими сигнатурами). Якщо код без міграції падає, написати це в PR явно.
+
+## Мови (9: uk, en, pl, de, es, fr, it, ro, pt)
+
+- **Новий рядок інтерфейсу — одразу в усі 9 мов**: словники `src/lib/i18n/dictionaries/*.ts`, лендинг `src/lib/landing/locales/`, юридичні тексти `src/lib/legal/locales/`, політики клієнтів `src/lib/legal/client-policies/`, AI-відбір `src/lib/culling/locales/`, довідка «Як це працює» `src/lib/gallery/help-locales/`. Тест `tests/audit-storage/i18n-parity.test.ts` (у `test:audit`) падає, якщо чогось бракує, а `tests/e2e/i18n.spec.ts` ловить англійські фолбеки на сторінках.
+- Терміни — за `docs/i18n/GLOSSARY.md`. Не пишіть `locale === 'uk' ? '…' : 'English'` у компонентах — рядок у словник.
+- Числа, дати, гривні, множина — через `src/lib/i18n/format.ts` (`formatMessage` з `{n, plural, …}`, `formatDate`, `formatUah`, `intlLocale`).

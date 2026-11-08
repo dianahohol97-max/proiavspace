@@ -1,9 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-import { en } from '@/lib/i18n/dictionaries/en'
-import { uk } from '@/lib/i18n/dictionaries/uk'
-import { isLocale } from '@/lib/i18n/config'
-import type { Dictionary } from '@/lib/i18n'
+import { isLocale, type Locale } from '@/lib/i18n/config'
+import { getDictionary, type Dictionary } from '@/lib/i18n'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isMissingTableError, type PushKind } from './kinds'
 
@@ -80,7 +78,8 @@ export interface NotifyInput {
   kind: PushKind | 'test'
   /** One event = one key: the same key is never sent twice for this kind. */
   dedupeKey: string
-  message: (dict: AppDict, locale: 'uk' | 'en') => PushMessage
+  /** Built per device, in that device's dashboard language. */
+  message: (dict: AppDict, locale: Locale) => PushMessage
   /**
    * Last check, run only after the event was claimed (so a costly check —
    * «is the viewer the owner?» — runs once per event, not on every trigger).
@@ -102,9 +101,9 @@ export interface NotifyDeps {
   sender?: PushSender
 }
 
-/** Ukrainian for 'uk', English for every other dashboard language (as getDictionary). */
-export function pushLocale(locale: string | null | undefined): 'uk' | 'en' {
-  return locale === 'uk' ? 'uk' : 'en'
+/** The device's dashboard language; Ukrainian when unknown. */
+export function pushLocale(locale: string | null | undefined): Locale {
+  return locale && isLocale(locale) ? locale : 'uk'
 }
 
 export async function notifyOwner(input: NotifyInput, deps: NotifyDeps = {}): Promise<NotifyResult> {
@@ -146,12 +145,11 @@ async function notifyOwnerUnsafe(input: NotifyInput, deps: NotifyDeps): Promise<
   await Promise.all(
     subscriptions.map(async (subscription) => {
       const locale = pushLocale(subscription.locale)
-      const message = input.message(locale === 'uk' ? uk.app : en.app, locale)
-      const urlLocale = isLocale(subscription.locale) ? subscription.locale : locale
+      const message = input.message((await getDictionary(locale)).app, locale)
       const payload = JSON.stringify({
         title: message.title,
         body: message.body,
-        url: `/${urlLocale}${message.path}`,
+        url: `/${locale}${message.path}`,
         // Same tag = the newer notification replaces the older one on the phone.
         tag: `${input.kind}:${input.dedupeKey}`.slice(0, 120),
         kind: input.kind,

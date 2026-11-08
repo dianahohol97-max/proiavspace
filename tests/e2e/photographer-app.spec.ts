@@ -322,6 +322,12 @@ test.describe('застосунок фотографа на телефоні', (
     // Swipe to the next photo.
     await viewer.locator('#strip').evaluate((strip) => strip.scrollTo({ left: strip.clientWidth, behavior: 'instant' as ScrollBehavior }))
     await expect(page.getByTestId('offline-counter')).toHaveText('2 / 4')
+    // The offline screen speaks the dashboard's language (all 9).
+    await page.goto('/de/dashboard')
+    await expect(page.getByTestId('offline-status')).toContainText('Keine Internetverbindung')
+    await expect(page.getByTestId('offline-gallery').first()).toContainText('4 Fotos')
+    await page.goto('/pl/dashboard')
+    await expect(page.getByTestId('offline-gallery').nth(1)).toContainText('3 zdjęcia')
     await context.setOffline(false)
   })
 

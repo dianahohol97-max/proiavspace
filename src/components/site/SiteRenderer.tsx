@@ -24,6 +24,14 @@ import { STUDIO_FONT_VARS } from './portret/fonts'
 import { ThemePortret } from './portret/ThemePortret'
 import { PARTY_FONT_VARS } from './sviato/fonts'
 import { ThemeSviato } from './sviato/ThemeSviato'
+import { SPREAD_FONT_VARS } from './rozvorot/fonts'
+import { ThemeRozvorot } from './rozvorot/ThemeRozvorot'
+import { INDEX_FONT_VARS } from './indeks/fonts'
+import { ThemeIndeks } from './indeks/ThemeIndeks'
+import { MAT_FONT_VARS } from './paspartu/fonts'
+import { ThemePaspartu } from './paspartu/ThemePaspartu'
+import { SHEET_FONT_VARS } from './kontakt/fonts'
+import { ThemeKontakt } from './kontakt/ThemeKontakt'
 import { TYSHA_FONT_VARS } from './tysha/fonts'
 import {
   ThemeArchive,
@@ -107,8 +115,10 @@ export interface SiteLabels {
   pricing: string
   contacts: string
   book: string
-  /** Album lightbox: count word (e.g. «фото») and the close action. */
+  /** Album photo count: a {n} template, plural-aware (e.g. «{n} фото»), and the close action. */
   photos: string
+  /** Page language (plural rules, dates). */
+  locale?: string
   close: string
   /** «Дивитись серію» — opens an album. */
   viewSeries: string
@@ -157,6 +167,8 @@ export interface SiteLabels {
   compareRetouch?: string
   freeDates?: string
   freeShort?: string
+  projectWord?: string
+  framesWord?: string
   filterAll?: string
 }
 
@@ -383,6 +395,10 @@ export function SiteRenderer({
     lyst: { Component: ThemeLyst, fonts: LETTER_FONT_VARS },
     portret: { Component: ThemePortret, fonts: STUDIO_FONT_VARS },
     sviato: { Component: ThemeSviato, fonts: PARTY_FONT_VARS },
+    rozvorot: { Component: ThemeRozvorot, fonts: SPREAD_FONT_VARS },
+    indeks: { Component: ThemeIndeks, fonts: INDEX_FONT_VARS },
+    paspartu: { Component: ThemePaspartu, fonts: MAT_FONT_VARS },
+    kontakt: { Component: ThemeKontakt, fonts: SHEET_FONT_VARS },
   }
   const cardTheme = cardThemes[theme]
   if (cardTheme) {

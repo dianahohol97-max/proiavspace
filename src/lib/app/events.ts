@@ -1,3 +1,5 @@
+import { formatMessage } from '@/lib/i18n/format'
+
 /**
  * «Останні події від клієнтів» on the dashboard home: client picks
  * (favorites / retouch, grouped per gallery) and bookings, newest first.
@@ -67,12 +69,13 @@ export function buildRecentEvents(
 export function timeAgo(
   at: string,
   now: Date,
-  t: { agoNow: string; agoMinutes: string; agoHours: string; agoDays: string }
+  t: { agoNow: string; agoMinutes: string; agoHours: string; agoDays: string },
+  locale = 'uk'
 ): string {
   const minutes = Math.max(0, Math.floor((now.getTime() - new Date(at).getTime()) / 60_000))
   if (minutes < 1) return t.agoNow
-  if (minutes < 60) return t.agoMinutes.replace('{n}', String(minutes))
+  if (minutes < 60) return formatMessage(t.agoMinutes, { n: minutes }, locale)
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return t.agoHours.replace('{n}', String(hours))
-  return t.agoDays.replace('{n}', String(Math.floor(hours / 24)))
+  if (hours < 24) return formatMessage(t.agoHours, { n: hours }, locale)
+  return formatMessage(t.agoDays, { n: Math.floor(hours / 24) }, locale)
 }

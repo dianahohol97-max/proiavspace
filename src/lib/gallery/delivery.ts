@@ -1,3 +1,4 @@
+import { intlLocale } from '@/lib/i18n/format'
 import type { GalleryDeliveryStatus } from '@/lib/types'
 
 /**
@@ -82,9 +83,7 @@ export function deliveryStep(status: GalleryDeliveryStatus): 0 | 1 | 2 {
   return status === 'shot' ? 0 : status === 'editing' ? 1 : 2
 }
 
-function intlLocale(locale: string): string {
-  return locale === 'uk' ? 'uk-UA' : locale === 'en' ? 'en-GB' : locale
-}
+
 
 /**
  * «14 грудня 2026» / «14 December 2026». The ETA is a calendar date with no

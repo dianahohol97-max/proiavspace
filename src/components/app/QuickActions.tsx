@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { timeAgo, type AppEvent } from '@/lib/app/events'
 import { formatSlotShort } from '@/lib/app/format'
 import type { Dictionary } from '@/lib/i18n'
+import { formatMessage } from '@/lib/i18n/format'
 
 /**
  * Phone home screen of the dashboard: big one-thumb buttons at the bottom of
@@ -87,12 +88,16 @@ export function QuickActions({
             {events.map((event, index) => {
               const text =
                 event.kind === 'booking'
-                  ? t.eventBooking
-                      .replace('{name}', event.clientName ?? '')
-                      .replace('{date}', formatSlotShort(event.startsAt ?? ''))
-                  : (event.kind === 'retouch' ? t.eventRetouch : t.eventFavorite)
-                      .replace('{gallery}', event.galleryTitle ?? '')
-                      .replace('{n}', String(event.count ?? 0))
+                  ? formatMessage(
+                      t.eventBooking,
+                      { name: event.clientName ?? '', date: formatSlotShort(event.startsAt ?? '') },
+                      locale
+                    )
+                  : formatMessage(
+                      event.kind === 'retouch' ? t.eventRetouch : t.eventFavorite,
+                      { gallery: event.galleryTitle ?? '', n: event.count ?? 0 },
+                      locale
+                    )
               const href =
                 event.kind === 'booking'
                   ? `/${locale}/dashboard/booking`
@@ -107,7 +112,7 @@ export function QuickActions({
                       }`}
                     />
                     <span className="min-w-0 flex-1 text-[15px] font-semibold leading-snug">{text}</span>
-                    <span className="flex-none text-xs font-semibold text-muted">{now ? timeAgo(event.at, now, t) : ''}</span>
+                    <span className="flex-none text-xs font-semibold text-muted">{now ? timeAgo(event.at, now, t, locale) : ''}</span>
                   </Link>
                 </li>
               )

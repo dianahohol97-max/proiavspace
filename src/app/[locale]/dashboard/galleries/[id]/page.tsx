@@ -12,6 +12,7 @@ import {
   updateGalleryDetails,
 } from '@/lib/actions/galleries'
 import { getDictionary } from '@/lib/i18n'
+import { formatMessage, intlLocale } from '@/lib/i18n/format'
 import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
@@ -27,7 +28,7 @@ import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
 import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
 import { sendClientReadyEmailAgain, setClientEmail } from '@/lib/actions/client-email'
 import {
-  PICK_LABELS,
+  pickLabels as buildPickLabels,
   assetOriginalName,
   buildClientPicks,
   lightroomFilterLine,
@@ -129,7 +130,7 @@ export default async function ManageGalleryPage({
   const pickClients = new Set((selections ?? []).map((s) => s.client_token))
   const retouchCount = picks.filter((p) => p.retouch > 0).length
   const lightroom = lightroomFilterLine(picks)
-  const pickLabels = PICK_LABELS[locale === 'uk' ? 'uk' : 'en']
+  const pickLabels = buildPickLabels(dict.designer)
 
   // Per-photo engagement (a «Плюс»+ stat): download and view events carry the
   // asset id in meta, so we can show views + downloads on each individual photo.
@@ -237,9 +238,9 @@ export default async function ManageGalleryPage({
   // studio, so the picker is reduced to three clearly distinct moods. Legacy
   // stored themes stay valid and are normalized to the nearest mood below.
   const themeOptions: { value: string; label: string }[] = [
-    { value: 'tysha', label: locale === 'uk' ? 'Світла' : 'Light' },
-    { value: 'opivnich', label: locale === 'uk' ? 'Темна' : 'Dark' },
-    { value: 'plivka', label: locale === 'uk' ? 'Крем' : 'Cream' },
+    { value: 'tysha', label: dict.designer.themeLight },
+    { value: 'opivnich', label: dict.designer.themeDark },
+    { value: 'plivka', label: dict.designer.themeCream },
   ]
   const themeMood: Record<string, string> = {
     tysha: 'tysha',
@@ -252,7 +253,7 @@ export default async function ManageGalleryPage({
     arkhiv: 'plivka',
   }
 
-  const dateLocale = locale === 'uk' ? 'uk-UA' : 'en-GB'
+  const dateLocale = intlLocale(locale)
   const freeNotice = (gallery.free_expires_at || gallery.free_expired_at) && (
     <section className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-50 p-5 text-sm leading-relaxed">
       <p className="font-extrabold text-fg">
@@ -265,7 +266,7 @@ export default async function ManageGalleryPage({
               )}`
             : daysLeft(gallery.free_expires_at!) === 0
               ? dict.dashboard.freeClosesToday
-              : dict.dashboard.freeClosesIn.replace('{n}', String(daysLeft(gallery.free_expires_at!)))}
+              : formatMessage(dict.dashboard.freeClosesIn, { n: daysLeft(gallery.free_expires_at!) }, locale)}
       </p>
       <p className="mt-2 text-muted">{dict.dashboard.freeExplain}</p>
       <Link
@@ -449,7 +450,7 @@ export default async function ManageGalleryPage({
                     initialX={asset.focal_x ?? null}
                     initialY={asset.focal_y ?? null}
                     action={setAssetFocal.bind(null, locale, asset.id)}
-                    title={locale === 'uk' ? 'Клацни, щоб задати фокус кадру' : 'Click to set crop focus'}
+                    title={dict.designer.focalHint}
                   />
                   {(favoritedBy > 0 ||
                     (downloadCounts.get(asset.id) ?? 0) > 0 ||
@@ -474,13 +475,13 @@ export default async function ManageGalleryPage({
                       className="absolute left-2 top-2 flex flex-col items-start gap-1"
                     >
                       <span className="rounded-full bg-neutral-900/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                        {locale === 'uk' ? 'Сховано від клієнта' : 'Hidden from client'}
+                        {dict.designer.hiddenFromClient}
                       </span>
                       <button
                         type="submit"
                         className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-900 hover:text-accent"
                       >
-                        {locale === 'uk' ? 'Повернути клієнту' : 'Show to client'}
+                        {dict.designer.showToClient}
                       </button>
                     </form>
                   )}
@@ -550,15 +551,10 @@ export default async function ManageGalleryPage({
         galleryTitle={gallery.title}
         locale={locale}
         labels={{
+          ...dict.designer,
           styleLabel: m.styleLabel,
           styleSave: m.styleSave,
           styleSaved: m.styleSaved,
-          accent: locale === 'uk' ? 'Акцент' : 'Accent',
-          columns: locale === 'uk' ? 'Колонки' : 'Columns',
-          radius: locale === 'uk' ? 'Кути' : 'Corners',
-          font: locale === 'uk' ? 'Шрифт' : 'Font',
-          preview: locale === 'uk' ? 'Превʼю' : 'Preview',
-          focal: locale === 'uk' ? 'Фокус обкладинки' : 'Cover focus',
         }}
       />
     </>
@@ -614,7 +610,7 @@ export default async function ManageGalleryPage({
         <p className="mt-2 text-sm leading-relaxed text-muted">{m.accessDownloadsText}</p>
         {statsOn && (
           <p className="mt-2 text-sm font-bold text-fg">
-            {m.accessDownloadsCount.replace('{n}', String(downloadCount ?? 0))}
+            {formatMessage(m.accessDownloadsCount, { n: downloadCount ?? 0 }, locale)}
           </p>
         )}
       </section>
@@ -666,7 +662,7 @@ export default async function ManageGalleryPage({
         initialEmail={clientEmail.email}
         sentAtText={
           clientEmail.sentAt
-            ? new Date(clientEmail.sentAt).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+            ? new Date(clientEmail.sentAt).toLocaleString(intlLocale(locale), {
                 timeZone: 'Europe/Kyiv',
                 day: '2-digit',
                 month: '2-digit',
@@ -764,7 +760,7 @@ export default async function ManageGalleryPage({
                         )}
                         {pick.retouch > 0 && (
                           <span className="rounded-full bg-white/90 px-2 py-0.5 text-xs text-fg">
-                            {locale === 'uk' ? 'ретуш' : 'retouch'}
+                            {dict.designer.picksRetouch}
                             {pick.retouch > 1 ? ` ×${pick.retouch}` : ''}
                           </span>
                         )}

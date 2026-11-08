@@ -1,3 +1,6 @@
+import { getLandingCopy } from '@/lib/landing/copy'
+import { isLocale } from '@/lib/i18n/config'
+
 /**
  * Public navigation. Ukrainian points at the dedicated product pages (each a
  * real, indexable URL instead of a #anchor); English has no product pages
@@ -16,11 +19,12 @@ export function primaryNav(locale: string): NavLink[] {
       { label: 'Блог', href: '/uk/blog' },
     ]
   }
+  const nav = getLandingCopy(isLocale(locale) ? locale : 'en').nav
   return [
-    { label: 'Galleries', href: `/${locale}#galleries` },
-    { label: 'Pricing', href: `/${locale}#pricing` },
+    { label: nav.galleries, href: `/${locale}#galleries` },
+    { label: nav.pricing, href: `/${locale}#pricing` },
     // The blog is Ukrainian-only; /en/blog redirects there anyway.
-    { label: 'Blog', href: '/uk/blog' },
+    { label: nav.blog, href: '/uk/blog' },
   ]
 }
 

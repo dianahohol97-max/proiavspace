@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { effectiveGalleryPlan, planStorageBytes } from '@/lib/plans'
 import { formatSlotShort } from '@/lib/app/format'
+import { formatMessage } from '@/lib/i18n/format'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { EXPIRING_WITHIN_DAYS, STORAGE_LOW_THRESHOLD } from './kinds'
 import { notifyOwner, type NotifyDeps, type NotifyResult } from './send'
@@ -18,8 +19,9 @@ import { notifyOwner, type NotifyDeps, type NotifyResult } from './send'
  *   gallery_expiring  gallery + closing date — once per deadline
  */
 
-const replace = (template: string, values: Record<string, string | number>) =>
-  template.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match))
+/** Template → text in the device's language (plural rules included). */
+const fill = (locale: string, template: string, values: Record<string, string | number>) =>
+  formatMessage(template, values, locale)
 
 /** Kyiv wall-clock hour: «2026-11-07T14». */
 function hourBucket(now: Date): string {
@@ -65,9 +67,9 @@ export async function notifyClientPick(galleryId: string, pick: 'favorite' | 're
       ownerId: gallery.owner_id,
       kind: 'client_picks',
       dedupeKey: `${gallery.id}:${pick}:${hourBucket(deps.now ?? new Date())}`,
-      message: (t) => ({
+      message: (t, locale) => ({
         title: pick === 'retouch' ? t.pushRetouchTitle : t.pushPicksTitle,
-        body: replace(pick === 'retouch' ? t.pushRetouchBody : t.pushPicksBody, { gallery: gallery.title }),
+        body: fill(locale, pick === 'retouch' ? t.pushRetouchBody : t.pushPicksBody, { gallery: gallery.title }),
         path: `/dashboard/galleries/${gallery.id}`,
       }),
     },
@@ -94,9 +96,9 @@ export async function notifyFirstView(
       ownerId: gallery.owner_id,
       kind: 'first_view',
       dedupeKey: `gallery:${gallery.id}`,
-      message: (t) => ({
+      message: (t, locale) => ({
         title: t.pushFirstViewTitle,
-        body: replace(t.pushFirstViewBody, { gallery: gallery.title }),
+        body: fill(locale, t.pushFirstViewBody, { gallery: gallery.title }),
         path: `/dashboard/galleries/${gallery.id}`,
       }),
       // The photographer previewing their own gallery is not «a client opened it».
@@ -116,9 +118,9 @@ export async function notifyBooking(
       ownerId: slot.owner_id,
       kind: 'booking',
       dedupeKey: `slot:${slot.id}`,
-      message: (t) => ({
+      message: (t, locale) => ({
         title: t.pushBookingTitle,
-        body: replace(t.pushBookingBody, { name: clientName.trim().slice(0, 60), date: formatSlotShort(slot.starts_at) }),
+        body: fill(locale, t.pushBookingBody, { name: clientName.trim().slice(0, 60), date: formatSlotShort(slot.starts_at) }),
         path: '/dashboard/booking',
       }),
     },
@@ -157,9 +159,9 @@ export async function notifyStorageIfLow(profile: StorageProfile, deps: Deps = {
       ownerId: profile.user_id,
       kind: 'storage_low',
       dedupeKey: `month:${month}`,
-      message: (t) => ({
+      message: (t, locale) => ({
         title: t.pushStorageTitle,
-        body: replace(t.pushStorageBody, {
+        body: fill(locale, t.pushStorageBody, {
           pct: Math.min(Math.round(share * 100), 100),
           used: formatBytesShort(profile.storage_used_bytes),
           limit: formatBytesShort(limit),
@@ -193,9 +195,9 @@ export async function notifyGalleryExpiring(gallery: ExpiringGallery, deps: Deps
       ownerId: gallery.owner_id,
       kind: 'gallery_expiring',
       dedupeKey: `${gallery.id}:${gallery.closes_at.slice(0, 10)}`,
-      message: (t) => ({
+      message: (t, locale) => ({
         title: t.pushExpiringTitle,
-        body: replace(t.pushExpiringBody, { gallery: gallery.title, n: days }),
+        body: fill(locale, t.pushExpiringBody, { gallery: gallery.title, n: days }),
         path: `/dashboard/galleries/${gallery.id}`,
       }),
     },

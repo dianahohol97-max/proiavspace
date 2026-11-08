@@ -9,16 +9,16 @@ import type { Metadata } from 'next'
 export const APP_MANIFEST_PATH = '/dashboard.webmanifest'
 export const APP_THEME_COLOR = '#f4f4f1'
 
-export function dashboardManifest(lang: 'uk' | 'en') {
-  const uk = lang === 'uk'
+export function dashboardManifest(
+  locale: string,
+  t: { manifestDescription: string; quickNewGallery: string; quickOffline: string }
+) {
   return {
     id: '/dashboard',
     name: 'проЯв',
     short_name: 'проЯв',
-    description: uk
-      ? 'Кабінет фотографа: галереї, клієнти, сповіщення й портфоліо без інтернету.'
-      : 'Photographer’s dashboard: galleries, clients, notifications and an offline portfolio.',
-    lang: uk ? 'uk' : 'en',
+    description: t.manifestDescription,
+    lang: locale,
     start_url: '/dashboard',
     scope: '/',
     display: 'standalone',
@@ -33,12 +33,12 @@ export function dashboardManifest(lang: 'uk' | 'en') {
     ],
     shortcuts: [
       {
-        name: uk ? 'Нова галерея' : 'New gallery',
+        name: t.quickNewGallery,
         url: '/dashboard/galleries/new',
         icons: [{ src: '/app/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
       {
-        name: uk ? 'Портфоліо офлайн' : 'Offline portfolio',
+        name: t.quickOffline,
         url: '/dashboard/offline',
         icons: [{ src: '/app/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
@@ -49,7 +49,7 @@ export function dashboardManifest(lang: 'uk' | 'en') {
 /** <head> of every dashboard page: the app manifest, iPhone home-screen icon/title. */
 export function appMetadata(locale: string): Metadata {
   return {
-    manifest: `${APP_MANIFEST_PATH}?lang=${locale === 'uk' ? 'uk' : 'en'}`,
+    manifest: `${APP_MANIFEST_PATH}?lang=${locale}`,
     appleWebApp: { capable: true, title: 'проЯв', statusBarStyle: 'default' },
     icons: { icon: '/icon.svg', apple: '/app/apple-touch-icon.png' },
   }

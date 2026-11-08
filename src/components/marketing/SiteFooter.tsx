@@ -1,10 +1,13 @@
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { FOOTER_UK } from '@/lib/seo/nav'
+import { getLandingCopy } from '@/lib/landing/copy'
+import { isLocale } from '@/lib/i18n/config'
 
 /** Footer for inner marketing pages: the internal-link hub to every product page. */
 export function SiteFooter({ locale }: { locale: string }) {
   const uk = locale === 'uk'
+  const t = getLandingCopy(isLocale(locale) ? locale : 'uk').footer
   const year = new Date().getFullYear()
   return (
     <footer className="border-t border-line">
@@ -12,7 +15,7 @@ export function SiteFooter({ locale }: { locale: string }) {
         <div>
           <Logo size={19} textSize={14} />
           <p className="mt-4 text-sm leading-6 text-muted">
-            {uk ? 'Онлайн-галереї для фотографів України' : 'Online client galleries for photographers'}
+            {t.tagline}
           </p>
         </div>
         {uk ? (
@@ -28,9 +31,9 @@ export function SiteFooter({ locale }: { locale: string }) {
           ))
         ) : (
           <nav className="flex flex-col gap-3 text-sm sm:col-span-3">
-            <Link href="/uk/blog" className="text-muted no-underline hover:text-fg">Blog</Link>
-            <Link href={`/${locale}/oferta`} className="text-muted no-underline hover:text-fg">Terms</Link>
-            <Link href={`/${locale}/privacy`} className="text-muted no-underline hover:text-fg">Privacy</Link>
+            <Link href="/uk/blog" className="text-muted no-underline hover:text-fg">{t.blog}</Link>
+            <Link href={`/${locale}/oferta`} className="text-muted no-underline hover:text-fg">{t.terms}</Link>
+            <Link href={`/${locale}/privacy`} className="text-muted no-underline hover:text-fg">{t.privacy}</Link>
           </nav>
         )}
       </div>

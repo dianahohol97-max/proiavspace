@@ -80,35 +80,27 @@
   var CACHE = 'proiav-portfolio-v1';
   var INDEX = '/__portfolio/index.json';
   var match = /^\/([a-z]{2})\//.exec(location.pathname);
-  var lang = (match && match[1]) || new URLSearchParams(location.search).get('lang') || ((navigator.language || '').slice(0, 2) === 'uk' ? 'uk' : 'en');
+  var lang = (match && match[1]) || new URLSearchParams(location.search).get('lang') || (navigator.language || 'uk').slice(0, 2);
+  // Every dashboard language. photos: plural forms by Intl.PluralRules category.
   var T = {
-    uk: {
-      offTitle: 'Немає інтернету',
-      offText: 'Кабінет відкриється, щойно зʼявиться звʼязок. Збережене на телефоні — нижче, його можна показувати й без мережі.',
-      onTitle: 'Портфоліо на телефоні',
-      onText: 'Ці галереї збережені на телефоні й відкриваються без інтернету.',
-      retry: 'Спробувати знову',
-      back: '← До кабінету',
-      saved: 'Збережено на телефоні',
-      empty: 'Тут поки нічого. Збережіть до 3 галерей у кабінеті: «Портфоліо офлайн».',
-      photos: ' фото',
-      close: 'Закрити'
-    },
-    en: {
-      offTitle: 'No internet connection',
-      offText: 'The dashboard opens as soon as you are back online. What is saved on this phone is below — it works without a network.',
-      onTitle: 'Portfolio on this phone',
-      onText: 'These galleries are saved on the phone and open without internet.',
-      retry: 'Try again',
-      back: '← Back to dashboard',
-      saved: 'Saved on this phone',
-      empty: 'Nothing here yet. Save up to 3 galleries in the dashboard: “Offline portfolio”.',
-      photos: ' photos',
-      close: 'Close'
-    }
+    uk: { offTitle: 'Немає інтернету', offText: 'Кабінет відкриється, щойно зʼявиться звʼязок. Збережене на телефоні — нижче, його можна показувати й без мережі.', onTitle: 'Портфоліо на телефоні', onText: 'Ці галереї збережені на телефоні й відкриваються без інтернету.', retry: 'Спробувати знову', back: '← До кабінету', saved: 'Збережено на телефоні', empty: 'Тут поки нічого. Збережіть до 3 галерей у кабінеті: «Портфоліо офлайн».', photos: { other: 'фото' }, close: 'Закрити' },
+    en: { offTitle: 'No internet connection', offText: 'The dashboard opens as soon as you are back online. What is saved on this phone is below — it works without a network.', onTitle: 'Portfolio on this phone', onText: 'These galleries are saved on the phone and open without internet.', retry: 'Try again', back: '← Back to dashboard', saved: 'Saved on this phone', empty: 'Nothing here yet. Save up to 3 galleries in the dashboard: “Offline portfolio”.', photos: { one: 'photo', other: 'photos' }, close: 'Close' },
+    pl: { offTitle: 'Brak internetu', offText: 'Panel otworzy się, gdy wróci połączenie. Poniżej to, co zapisano na telefonie — można to pokazać bez sieci.', onTitle: 'Portfolio na telefonie', onText: 'Te galerie są zapisane na telefonie i otwierają się bez internetu.', retry: 'Spróbuj ponownie', back: '← Do panelu', saved: 'Zapisane na telefonie', empty: 'Na razie nic tu nie ma. Do 3 galerii można zapisać w panelu: „Portfolio offline”.', photos: { one: 'zdjęcie', few: 'zdjęcia', many: 'zdjęć', other: 'zdjęcia' }, close: 'Zamknij' },
+    de: { offTitle: 'Keine Internetverbindung', offText: 'Das Dashboard öffnet sich, sobald Sie wieder online sind. Was auf diesem Smartphone gespeichert ist, sehen Sie unten — auch ohne Netz.', onTitle: 'Portfolio auf diesem Smartphone', onText: 'Diese Galerien sind auf dem Smartphone gespeichert und öffnen sich ohne Internet.', retry: 'Erneut versuchen', back: '← Zum Dashboard', saved: 'Auf dem Smartphone gespeichert', empty: 'Noch nichts hier. Speichern Sie bis zu 3 Galerien im Dashboard: „Offline-Portfolio“.', photos: { one: 'Foto', other: 'Fotos' }, close: 'Schließen' },
+    es: { offTitle: 'Sin conexión a internet', offText: 'Tu panel se abrirá en cuanto vuelva la conexión. Abajo tienes lo guardado en el móvil: puedes enseñarlo sin red.', onTitle: 'Porfolio en el móvil', onText: 'Estas galerías están guardadas en el móvil y se abren sin internet.', retry: 'Reintentar', back: '← Volver al panel', saved: 'Guardado en el móvil', empty: 'Aquí aún no hay nada. Guarda hasta 3 galerías en tu panel: «Porfolio sin conexión».', photos: { one: 'foto', other: 'fotos' }, close: 'Cerrar' },
+    fr: { offTitle: 'Pas de connexion internet', offText: 'Votre espace s’ouvrira dès le retour de la connexion. Ce qui est enregistré sur le téléphone est ci-dessous — consultable sans réseau.', onTitle: 'Portfolio sur ce téléphone', onText: 'Ces galeries sont enregistrées sur le téléphone et s’ouvrent sans internet.', retry: 'Réessayer', back: '← Retour à votre espace', saved: 'Enregistré sur le téléphone', empty: 'Rien pour l’instant. Enregistrez jusqu’à 3 galeries depuis votre espace : « Portfolio hors ligne ».', photos: { one: 'photo', other: 'photos' }, close: 'Fermer' },
+    it: { offTitle: 'Nessuna connessione', offText: 'La dashboard si aprirà appena torna la connessione. Qui sotto trovi ciò che è salvato sul telefono: puoi mostrarlo anche senza rete.', onTitle: 'Portfolio sul telefono', onText: 'Queste gallerie sono salvate sul telefono e si aprono senza internet.', retry: 'Riprova', back: '← Torna alla dashboard', saved: 'Salvato sul telefono', empty: 'Ancora niente qui. Salva fino a 3 gallerie dalla dashboard: «Portfolio offline».', photos: { other: 'foto' }, close: 'Chiudi' },
+    ro: { offTitle: 'Nu există conexiune la internet', offText: 'Panoul se deschide imediat ce revine conexiunea. Mai jos este ce ați salvat pe telefon — îl puteți arăta și fără rețea.', onTitle: 'Portofoliu pe telefon', onText: 'Aceste galerii sunt salvate pe telefon și se deschid fără internet.', retry: 'Încearcă din nou', back: '← Înapoi la panou', saved: 'Salvat pe telefon', empty: 'Încă nu este nimic aici. Salvați până la 3 galerii din panou: „Portofoliu offline”.', photos: { one: 'fotografie', few: 'fotografii', other: 'de fotografii' }, close: 'Închide' },
+    pt: { offTitle: 'Sem ligação à internet', offText: 'O painel abre assim que a ligação voltar. Em baixo está o que foi guardado no telemóvel — pode mostrá-lo sem rede.', onTitle: 'Portefólio no telemóvel', onText: 'Estas galerias estão guardadas no telemóvel e abrem sem internet.', retry: 'Tentar novamente', back: '← Voltar ao painel', saved: 'Guardado no telemóvel', empty: 'Ainda não há nada aqui. Guarde até 3 galerias no painel: «Portefólio offline».', photos: { one: 'foto', other: 'fotos' }, close: 'Fechar' }
   };
-  var t = lang === 'uk' ? T.uk : T.en;
-  document.documentElement.lang = lang === 'uk' ? 'uk' : 'en';
+  if (!T[lang]) lang = 'en';
+  var t = T[lang];
+  document.documentElement.lang = lang;
+  var plural = (window.Intl && Intl.PluralRules) ? new Intl.PluralRules(lang) : null;
+  function photosLabel(n) {
+    var form = plural ? plural.select(n) : (n === 1 ? 'one' : 'other');
+    return n + ' ' + (t.photos[form] || t.photos.other);
+  }
   var $ = function (id) { return document.getElementById(id); };
 
   function renderStatus() {
@@ -195,7 +187,7 @@
         var title = document.createElement('b');
         title.textContent = gallery.title;
         var meta = document.createElement('small');
-        meta.textContent = gallery.photos.length + t.photos;
+        meta.textContent = photosLabel(gallery.photos.length);
         text.appendChild(title);
         text.appendChild(meta);
         button.appendChild(cover);

@@ -65,7 +65,7 @@ export default async function SettingsPage({
         <p className="mt-2 text-xs text-muted">{dict.settings.displayNameHint}</p>
 
         <label className="mt-6 text-sm text-muted" htmlFor="display_name_en">
-          {locale === 'uk' ? 'Імʼя латиницею' : 'Name in Latin script'}
+          {dict.studio.nameEn}
         </label>
         <input
           id="display_name_en"
@@ -75,13 +75,11 @@ export default async function SettingsPage({
           className="mt-2 border border-line bg-transparent px-4 py-3 outline-none focus:border-fg"
         />
         <p className="mt-2 text-xs text-muted">
-          {locale === 'uk'
-            ? 'Показується замість основного імені, коли клієнт відкриває галерею англійською.'
-            : 'Shown instead of the main name when a client views the gallery in English.'}
+          {dict.studio.nameEnHint}
         </p>
 
         <label className="mt-6 text-sm text-muted" htmlFor="contact_url">
-          {locale === 'uk' ? 'Контакт для клієнтів' : 'Client contact link'}
+          {dict.studio.contactUrl}
         </label>
         <input
           id="contact_url"
@@ -91,9 +89,7 @@ export default async function SettingsPage({
           className="mt-2 border border-line bg-transparent px-4 py-3 outline-none focus:border-fg"
         />
         <p className="mt-2 text-xs text-muted">
-          {locale === 'uk'
-            ? 'Одне посилання — Instagram, сайт, mailto: чи tel:. У галереї зʼявиться кнопка «Звʼязатися з фотографом».'
-            : 'One link — Instagram, site, mailto: or tel:. The gallery gets a “Contact the photographer” button.'}
+          {dict.studio.contactUrlHint}
         </p>
 
         <label className="mt-6 flex items-center gap-3 text-sm">
@@ -115,7 +111,7 @@ export default async function SettingsPage({
           </button>
           {justSaved && (
             <span className="text-sm font-medium text-emerald-700">
-              {locale === 'uk' ? '✓ Збережено' : '✓ Saved'}
+              {dict.studio.saved}
             </span>
           )}
         </div>

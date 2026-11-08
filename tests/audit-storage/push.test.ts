@@ -137,8 +137,8 @@ describe('відправка (notifyOwner)', () => {
     })
     assert.equal(byEndpoint.b.payload.title, 'New booking request')
     assert.equal(byEndpoint.b.payload.url, '/en/dashboard/booking')
-    // Polish dashboard falls back to English text, keeps its own URL.
-    assert.equal(byEndpoint.c.payload.title, 'New booking request')
+    // Every dashboard language has its own text (full translations).
+    assert.equal(byEndpoint.c.payload.title, 'Nowe zapytanie o sesję')
     assert.equal(byEndpoint.c.payload.url, '/pl/dashboard/booking')
     assert.equal(byEndpoint.a.options.urgency, 'high')
     assert.equal(byEndpoint.a.options.TTL, 86400)
@@ -288,7 +288,7 @@ describe('події', () => {
     await notifyGalleryExpiring(g, { vapid, store, sender, now })
     await notifyGalleryExpiring(g, { vapid, store, sender, now: new Date('2026-11-08T10:00:00Z') })
     assert.equal(sent.length, 1)
-    assert.equal(sent[0].payload.body, '«Весілля» закриється для клієнтів через 2 дн.')
+    assert.equal(sent[0].payload.body, '«Весілля» закриється для клієнтів через 2 дні')
   })
 
   test('«місце закінчується»: від 90% ефективного ліміту, не частіше разу на місяць', async () => {
@@ -475,12 +475,23 @@ describe('кабінет на телефоні', () => {
     )
   })
 
+  test('множина в подіях і сповіщеннях: 1 photo / 2 photos, 1 dzień / 5 dni', async () => {
+    const { formatMessage } = await import('@/lib/i18n/format')
+    const { pl } = await import('@/lib/i18n/dictionaries/pl')
+    assert.equal(formatMessage(en.app.offlinePhotos, { n: 1 }, 'en'), '1 photo')
+    assert.equal(formatMessage(en.app.offlinePhotos, { n: 12 }, 'en'), '12 photos')
+    assert.equal(formatMessage(pl.app!.offlinePhotos!, { n: 22 }, 'pl'), '22 zdjęcia')
+    assert.equal(formatMessage(pl.app!.offlinePhotos!, { n: 25 }, 'pl'), '25 zdjęć')
+    assert.equal(formatMessage(uk.app.pushExpiringBody, { gallery: 'Г', n: 1 }, 'uk'), '«Г» закриється для клієнтів через 1 день')
+    assert.equal(formatMessage(uk.app.pushExpiringBody, { gallery: 'Г', n: 5 }, 'uk'), '«Г» закриється для клієнтів через 5 днів')
+  })
+
   test('час подій: щойно / хв / год / дн.', () => {
     const now = new Date('2026-11-07T12:00:00Z')
     assert.equal(timeAgo('2026-11-07T11:59:40Z', now, uk.app), 'щойно')
     assert.equal(timeAgo('2026-11-07T11:57:00Z', now, uk.app), '3 хв тому')
     assert.equal(timeAgo('2026-11-07T07:00:00Z', now, uk.app), '5 год тому')
-    assert.equal(timeAgo('2026-11-05T12:00:00Z', now, en.app), '2 d ago')
+    assert.equal(timeAgo('2026-11-05T12:00:00Z', now, en.app, 'en'), '2 d ago')
   })
 
   test('офлайн-портфоліо бере лише мобільне прев’ю (або прев’ю), не оригінал', () => {
@@ -491,15 +502,16 @@ describe('кабінет на телефоні', () => {
   })
 
   test('manifest: start_url /dashboard, standalone, іконки 192/512/maskable', () => {
-    const m = dashboardManifest('uk')
+    const m = dashboardManifest('uk', uk.app)
     assert.equal(m.start_url, '/dashboard')
     assert.equal(m.name, 'проЯв')
     assert.equal(m.display, 'standalone')
     assert.deepEqual(m.icons.map((i) => `${i.sizes}:${i.purpose}`), ['192x192:any', '512x512:any', '512x512:maskable', 'any:any'])
-    assert.equal(dashboardManifest('en').shortcuts[1].url, '/dashboard/offline')
+    assert.equal(dashboardManifest('de', en.app).shortcuts[1].url, '/dashboard/offline')
+    assert.equal(dashboardManifest('uk', uk.app).shortcuts[0].name, 'Нова галерея')
   })
 
-  test('нові рядки є в uk і en (решта мов кабінету — англійські)', () => {
+  test('нові рядки є в uk і en (інші 7 мов — i18n-parity.test.ts)', () => {
     assert.deepEqual(Object.keys(uk.app).sort(), Object.keys(en.app).sort())
     for (const [key, value] of Object.entries(en.app)) assert.ok(value.trim().length > 0, key)
   })

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { resolveGalleryTokens, GALLERY_CATALOG as THEME_CATALOG } from '@/lib/site/themes'
+import type { Dictionary } from '@/lib/i18n'
+import { formatMessage } from '@/lib/i18n/format'
 import {
   ACCENT_PRESETS,
   COLUMN_CHOICES,
@@ -13,16 +15,41 @@ import {
   type GalleryStyle,
 } from '@/lib/gallery/style'
 
-interface DesignerLabels {
+type DesignerLabels = Dictionary['designer'] & {
   styleLabel: string
   styleSave: string
   styleSaved: string
-  accent: string
-  columns: string
-  radius: string
-  font: string
-  preview: string
-  focal: string
+}
+
+/** Option key → dictionary key (the option lists live in lib/gallery/style). */
+const LAYOUT_LABEL = {
+  masonry: 'layoutMasonry',
+  square: 'layoutSquare',
+  portrait: 'layoutPortrait',
+  collage: 'layoutCollage',
+  editorial: 'layoutEditorial',
+  rows: 'layoutRows',
+} as const
+const COVER_LABEL = { classic: 'coverClassic', left: 'coverLeft', minimal: 'coverMinimal' } as const
+const RADIUS_LABEL: Record<number, keyof Dictionary['designer']> = { 0: 'radiusSharp', 10: 'radiusSoft', 22: 'radiusRound' }
+const FONT_LABEL: Record<string, keyof Dictionary['designer']> = {
+  '': 'fontTheme',
+  serif: 'fontSerif',
+  didone: 'fontDidone',
+  palatino: 'fontPalatino',
+  sans: 'fontSans',
+  condensed: 'fontCondensed',
+  rounded: 'fontRounded',
+  mono: 'fontMono',
+}
+const ACCENT_LABEL: Record<string, keyof Dictionary['designer']> = {
+  '': 'accentTheme',
+  '#2f55ff': 'accentBlue',
+  '#c8331f': 'accentRed',
+  '#b8860b': 'accentGold',
+  '#3f6f4f': 'accentGreen',
+  '#6b3f6b': 'accentPlum',
+  '#26242a': 'accentGraphite',
 }
 
 /**
@@ -56,7 +83,6 @@ export function GalleryDesigner({
   locale?: string
   labels: DesignerLabels
 }) {
-  const uk = locale === 'uk'
   const [pending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [theme, setTheme] = useState(initialTheme)
@@ -101,9 +127,7 @@ export function GalleryDesigner({
   const sampleTitle =
     galleryTitle && galleryTitle.trim().length >= 5
       ? galleryTitle.trim()
-      : uk
-        ? 'Марта і Богдан'
-        : 'Marta & Bohdan'
+      : labels.sampleTitle
 
   // Live preview photos: real shots, falling back to soft gradients pre-upload.
   const tiles = photos.length > 0 ? photos.slice(0, Math.max(columns * 2, 4)) : []
@@ -138,17 +162,7 @@ export function GalleryDesigner({
       : layout === 'editorial' && editorialWide(i)
         ? { gridColumn: 'span 2' }
         : {}
-  const layoutLabel = (v: (typeof LAYOUT_CHOICES)[number]['value']) =>
-    uk
-      ? LAYOUT_CHOICES.find((l) => l.value === v)?.label ?? v
-      : {
-          masonry: 'Masonry',
-          square: 'Squares',
-          portrait: 'Portrait 3:4',
-          collage: 'Collage',
-          editorial: 'Editorial',
-          rows: 'Rows',
-        }[v]
+  const layoutLabel = (v: (typeof LAYOUT_CHOICES)[number]['value']) => labels[LAYOUT_LABEL[v]]
   // Editorial is a fixed 3-column pattern — the columns pick doesn't apply.
   const columnsLocked = layout === 'editorial'
   const previewCols =
@@ -194,12 +208,10 @@ export function GalleryDesigner({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-4 sm:px-6">
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-            {uk ? 'Дизайн-студія' : 'Design studio'}
+            {labels.title}
           </p>
           <p className="text-sm text-muted">
-            {uk
-              ? 'Зміни видно одразу — збережи, коли сподобається.'
-              : 'Changes preview instantly — save when it feels right.'}
+            {labels.lede}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -222,7 +234,7 @@ export function GalleryDesigner({
           {/* theme moods: three clearly distinct looks */}
           <section>
             <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-              {uk ? 'Тема' : 'Theme'}
+              {labels.theme}
             </p>
             <div className="grid grid-cols-3 gap-2.5">
               {themeOptions.map((option) => {
@@ -279,7 +291,7 @@ export function GalleryDesigner({
                   <button
                     key={a.value || 'theme'}
                     type="button"
-                    title={a.label}
+                    title={labels[ACCENT_LABEL[a.value] ?? 'accentTheme']}
                     onClick={() => {
                       setAccent(a.value)
                       dirty()
@@ -298,7 +310,7 @@ export function GalleryDesigner({
               {/* free color: anything the presets don't cover */}
               <label
                 className="relative h-8 w-8 cursor-pointer overflow-hidden rounded-full border-2 border-line transition-transform hover:scale-110"
-                title={uk ? 'Свій колір' : 'Custom color'}
+                title={labels.customColor}
                 style={{
                   background:
                     'conic-gradient(#f44,#fa0,#ff4,#4f4,#4ff,#44f,#f4f,#f44)',
@@ -320,12 +332,10 @@ export function GalleryDesigner({
           {/* layout: real proportions vs uniform crops */}
           <section>
             <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-              {uk ? 'Розкладка' : 'Layout'}
+              {labels.layout}
             </p>
             <p className="mb-3 text-xs leading-relaxed text-muted">
-              {uk
-                ? 'Мозаїка зберігає реальні пропорції фото; квадрати та портрет кадрують у рівні плитки; колаж додає великі акцентні фото; едіторіал чергує широке фото з квадратами; рядки вишиковують фото в рядки однакової висоти без обрізання.'
-                : 'Masonry keeps real proportions; squares and portrait crop into even tiles; collage adds big accent photos; editorial alternates a wide hero with squares; rows line photos up in even-height rows, uncropped.'}
+              {labels.layoutHint}
             </p>
             <div className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full border border-line p-1">
               {LAYOUT_CHOICES.map((l) => (
@@ -354,25 +364,25 @@ export function GalleryDesigner({
                 className={`flex w-fit items-center gap-1 rounded-full border border-line p-1 ${
                   columnsLocked ? 'pointer-events-none opacity-40' : ''
                 }`}
-                title={columnsLocked ? (uk ? 'Едіторіал завжди 3 колонки' : 'Editorial is always 3 columns') : undefined}
+                title={columnsLocked ? labels.columnsLocked : undefined}
               >
                 {COLUMN_CHOICES.map((c) => (
                   <button key={c} type="button" disabled={columnsLocked} className={seg(columns === c)} onClick={() => { setColumns(c); dirty() }}>
-                    {c} {uk ? 'кол.' : 'col'}
+                    {formatMessage(labels.columnsShort, { n: c }, locale)}
                   </button>
                 ))}
               </div>
               <div className="flex w-fit items-center gap-1 rounded-full border border-line p-1">
                 {RADIUS_CHOICES.map((r) => (
                   <button key={r.value} type="button" className={seg(radius === r.value)} onClick={() => { setRadius(r.value); dirty() }}>
-                    {r.label}
+                    {labels[RADIUS_LABEL[r.value] ?? 'radiusSoft']}
                   </button>
                 ))}
               </div>
               {/* breathing room between photos, Gallera-style */}
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold text-muted">
-                  <span>{uk ? 'Відступ між фото' : 'Photo spacing'}</span>
+                  <span>{labels.gap}</span>
                   <span>{gap}px</span>
                 </div>
                 <input
@@ -395,7 +405,7 @@ export function GalleryDesigner({
           {/* typography */}
           <section>
             <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-              {uk ? 'Шрифт заголовків' : 'Heading font'}
+              {labels.headingFont}
             </p>
             <div className="flex flex-col gap-1.5">
               {FONT_PRESETS.map((f) => {
@@ -418,14 +428,14 @@ export function GalleryDesigner({
                     >
                       {sampleTitle}
                     </span>
-                    <span className="text-xs text-muted">{f.label}</span>
+                    <span className="text-xs text-muted">{labels[FONT_LABEL[f.value] ?? 'fontTheme']}</span>
                   </button>
                 )
               })}
             </div>
             {/* the «system» font: hints, buttons, caps labels */}
             <p className="mb-2 mt-5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-              {uk ? 'Основний текст' : 'Body text'}
+              {labels.bodyFont}
             </p>
             <div className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full border border-line p-1">
               {FONT_PRESETS.map((f) => (
@@ -439,7 +449,7 @@ export function GalleryDesigner({
                     dirty()
                   }}
                 >
-                  {f.label}
+                  {labels[FONT_LABEL[f.value] ?? 'fontTheme']}
                 </button>
               ))}
             </div>
@@ -448,7 +458,7 @@ export function GalleryDesigner({
           {/* cover: treatment, title size, focal point */}
           <section>
             <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted">
-              {uk ? 'Обкладинка' : 'Cover'}
+              {labels.cover}
             </p>
             <div className="mb-3 flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full border border-line p-1">
               {COVER_CHOICES.map((c) => (
@@ -461,15 +471,13 @@ export function GalleryDesigner({
                     dirty()
                   }}
                 >
-                  {uk
-                    ? c.label
-                    : { classic: 'Classic', left: 'Left', minimal: 'Minimal' }[c.value]}
+                  {labels[COVER_LABEL[c.value]]}
                 </button>
               ))}
             </div>
             <div className="mb-4">
               <div className="flex items-center justify-between text-xs font-semibold text-muted">
-                <span>{uk ? 'Розмір заголовку' : 'Title size'}</span>
+                <span>{labels.titleSize}</span>
                 <span>{titleScale}%</span>
               </div>
               <input
@@ -489,9 +497,7 @@ export function GalleryDesigner({
             {cover !== 'minimal' && (
               <>
                 <p className="mb-3 text-xs leading-relaxed text-muted">
-                  {uk
-                    ? 'Клацни по фото — куди цілитись кадруванню обкладинки.'
-                    : 'Click the photo to aim the cover crop.'}
+                  {labels.focalAim}
                 </p>
                 <button
                   type="button"
@@ -527,10 +533,10 @@ export function GalleryDesigner({
             </p>
             <div className="flex items-center gap-1 rounded-full border border-line bg-white p-1">
               <button type="button" className={seg(device === 'desktop')} onClick={() => setDevice('desktop')}>
-                {uk ? 'Комп’ютер' : 'Desktop'}
+                {labels.desktop}
               </button>
               <button type="button" className={seg(device === 'phone')} onClick={() => setDevice('phone')}>
-                {uk ? 'Телефон' : 'Phone'}
+                {labels.phone}
               </button>
             </div>
           </div>
@@ -596,18 +602,18 @@ export function GalleryDesigner({
                 className="flex items-center gap-2 px-4 py-2.5 text-[11px]"
                 style={{ borderBottom: `1px solid ${tokens.line}`, fontFamily: previewLabelFont }}
               >
-                <span style={{ color: previewAccent }}>♥ 3 {uk ? 'обрано' : 'picked'}</span>
+                <span style={{ color: previewAccent }}>♥ 3 {labels.picked}</span>
                 <span
                   className="text-[10px] uppercase tracking-wider"
                   style={{ color: tokens.muted }}
                 >
-                  ▶ {uk ? 'Слайд-шоу' : 'Slideshow'}
+                  ▶ {labels.slideshow}
                 </span>
                 <span
                   className="ml-auto rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
                   style={{ background: tokens.fg, color: tokens.bg }}
                 >
-                  {uk ? 'Завантажити все' : 'Download all'}
+                  {labels.downloadAll}
                 </span>
               </div>
 
@@ -689,7 +695,7 @@ export function GalleryDesigner({
                 className="pb-4 text-center text-[13px]"
                 style={{ color: tokens.muted, fontFamily: previewFont }}
               >
-                {uk ? 'ваш бренд · фотографія' : 'your brand · photography'}
+                {labels.brandLine}
               </p>
             </div>
           </div>
