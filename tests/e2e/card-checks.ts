@@ -139,6 +139,8 @@ export function cardSuite(
         await waitHydrated(page, '#contact form')
         await waitHydrated(page, '#gifts [data-gift=certificate] a')
         const cert = page.locator('#gifts [data-gift=certificate]')
+        // Як у сусідніх тестах: клік до гідрації не відкриває форму.
+        await waitHydrated(page, '#contact form')
         await cert.locator('a').click()
         await expect(page.locator('#contact [name=cert_to]')).toBeVisible()
         await expect(page.locator('#contact [name=cert_from]')).toBeVisible()

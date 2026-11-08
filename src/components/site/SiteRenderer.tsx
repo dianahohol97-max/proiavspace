@@ -109,8 +109,10 @@ export interface SiteLabels {
   pricing: string
   contacts: string
   book: string
-  /** Album lightbox: count word (e.g. «фото») and the close action. */
+  /** Album photo count: a {n} template, plural-aware (e.g. «{n} фото»), and the close action. */
   photos: string
+  /** Page language (plural rules, dates). */
+  locale?: string
   close: string
   /** «Дивитись серію» — opens an album. */
   viewSeries: string

@@ -280,11 +280,11 @@ export default async function PublicSitePage({
           links: [
             {
               href: `/${locale}/s/${params.handle}/legal/privacy`,
-              label: locale === 'uk' ? 'Конфіденційність' : 'Privacy',
+              label: dict.pages.sitePrivacy,
             },
             {
               href: `/${locale}/s/${params.handle}/legal/refund`,
-              label: locale === 'uk' ? 'Оплата та повернення' : 'Payment & refunds',
+              label: dict.pages.siteRefund,
             },
           ],
         }}

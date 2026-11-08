@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import { after, before, beforeEach, describe, test } from 'node:test'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  PICK_LABELS,
+  pickLabels,
   assetOriginalName,
   buildClientPicks,
   lightroomFilterLine,
@@ -22,6 +22,8 @@ import {
   stripExtension,
   type PickAsset,
 } from '@/lib/gallery/client-picks'
+import { uk as ukDict } from '@/lib/i18n/dictionaries/uk'
+import { en as enDict } from '@/lib/i18n/dictionaries/en'
 import {
   SEND_AGAIN_GAP_MS,
   parseClientEmail,
@@ -36,6 +38,9 @@ import { cleanSourceFileName, registerAsset } from '@/lib/uploads'
 import { galleryPrefix } from '@/lib/storage'
 import { GB, db, putObject, resetBackend, seedAccount, userClient } from './helpers/fake-backend'
 import { startLocalPg, type LocalPg } from './helpers/local-pg'
+
+const PICK_LABELS_UK = pickLabels(ukDict.designer)
+const PICK_LABELS_EN = pickLabels(enDict.designer)
 
 const ROOT = join(__dirname, '..', '..')
 const source = (path: string) => readFileSync(join(ROOT, path), 'utf8')
@@ -86,8 +91,8 @@ describe('рядок для Lightroom Classic (Library → Text → Filename →
     const picks = buildClientPicks([asset('a', 'IMG_1.jpg')], [])
     assert.deepEqual(picks, [])
     assert.deepEqual(lightroomFilterLine(picks), { text: '', count: 0, skipped: [] })
-    assert.equal(picksTxt(picks, PICK_LABELS.uk), '')
-    assert.equal(picksCsv(picks, PICK_LABELS.uk), '﻿Файл,Позначка,Коментар\r\n')
+    assert.equal(picksTxt(picks, PICK_LABELS_UK), '')
+    assert.equal(picksCsv(picks, PICK_LABELS_UK), '﻿Файл,Позначка,Коментар\r\n')
     assert.deepEqual(lightroomFilterLine([]), { text: '', count: 0, skipped: [] })
   })
 
@@ -139,10 +144,10 @@ describe('обране: що потрапляє у список', () => {
       { assetId: 'c', name: 'a,b.jpg', favorites: 0, retouch: 1, comments: [] },
     ]
     assert.equal(
-      picksTxt(picks, PICK_LABELS.uk),
+      picksTxt(picks, PICK_LABELS_UK),
       'IMG_1.jpg — сердечко\nIMG_2.jpg — сердечко ×2 + ретуш — світліше, будь ласка | прибрати "пляму"\na,b.jpg — ретуш\n'
     )
-    const csv = picksCsv(picks, PICK_LABELS.uk)
+    const csv = picksCsv(picks, PICK_LABELS_UK)
     assert.ok(csv.startsWith('﻿'))
     assert.deepEqual(csv.slice(1).split('\r\n'), [
       'Файл,Позначка,Коментар',
@@ -151,7 +156,7 @@ describe('обране: що потрапляє у список', () => {
       '"a,b.jpg",ретуш,',
       '',
     ])
-    assert.match(picksCsv(picks, PICK_LABELS.en), /^﻿File,Mark,Comment\r\nIMG_1\.jpg,heart,/)
+    assert.match(picksCsv(picks, PICK_LABELS_EN), /^﻿File,Mark,Comment\r\nIMG_1\.jpg,heart,/)
   })
 
   test('кабінет: блок обраного показує ретуш теж і бере назви з client-picks', () => {

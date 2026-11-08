@@ -139,12 +139,10 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
 
       <div className="mb-6 flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 text-sm">
         <span className="mt-0.5 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-          {locale === 'uk' ? 'В розробці' : 'In progress'}
+          {dict.studio.inProgress}
         </span>
         <p className="text-muted">
-          {locale === 'uk'
-            ? 'Конструктор сайтів ще в розробці — можете гратися й готувати контент, але поки не радимо давати адресу сайту клієнтам. Про повноцінний запуск повідомимо. А серце сервісу зараз — клієнтські галереї.'
-            : 'The site builder is still in development — feel free to experiment and prep content, but we don’t recommend sharing the site address with clients yet. We’ll announce the full launch. For now, client galleries are the core of the service.'}
+          {dict.studio.inProgressText}
         </p>
       </div>
 
@@ -154,7 +152,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
         rel="noopener noreferrer"
         className="mb-6 inline-flex items-center gap-2 rounded-full border border-fg px-5 py-2 text-sm font-semibold no-underline transition-colors hover:bg-fg hover:text-bg"
       >
-        {locale === 'uk' ? 'Повне превʼю сайту ↗' : 'Full site preview ↗'}
+        {dict.studio.fullPreview}
       </a>
       {publicUrl && (
         <p className="mb-6 break-all text-sm text-muted">
@@ -187,6 +185,7 @@ export default async function SiteEditorPage({ params }: { params: { locale: str
 
       <SiteEditor
         locale={locale}
+        studio={dict.studio}
         action={saveSite.bind(null, locale)}
         initialHandle={site?.handle ?? ''}
         initialCatalogValue={currentCatalogValue}

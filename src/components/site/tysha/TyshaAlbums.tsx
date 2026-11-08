@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { AlbumLightbox, type AlbumLabels } from '../PortfolioAlbums'
+import { AlbumLightbox, photoCount, type AlbumLabels } from '../PortfolioAlbums'
 import type { PortfolioGroup, PortfolioItem } from '../SiteRenderer'
 import { DevelopImage } from '../motion/DevelopImage'
 import { Reveal } from '../motion/Reveal'
@@ -69,7 +69,7 @@ export function TyshaAlbums({
                 <h3 className={t.seriesName}>{title}</h3>
                 <span className={t.seriesCount}>
                   <span className={t.label}>
-                    {group.items.length} {labels.photos}
+                    {photoCount(group.items.length, labels)}
                   </span>
                   <button type="button" className={t.textLink} onClick={() => setOpen(i)}>
                     {labels.viewSeries}
@@ -94,7 +94,7 @@ export function AllPortfolio({
 }: {
   items: PortfolioItem[]
   label: string
-  labels: Pick<AlbumLabels, 'portfolio' | 'photos' | 'close'>
+  labels: Pick<AlbumLabels, 'portfolio' | 'photos' | 'close' | 'locale'>
   /** Class names of another theme (e.g. «Опівніч»); defaults to «Тиша». */
   skin?: Skin
 }) {

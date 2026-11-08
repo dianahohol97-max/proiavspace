@@ -1,5 +1,6 @@
 'use client'
 
+import type { Dictionary } from '@/lib/i18n'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -202,6 +203,7 @@ export function SiteEditor({
   siteLabels,
   leadFormLabels,
   labels,
+  studio,
   platformCredit = false,
 }: {
   locale: Locale
@@ -218,6 +220,8 @@ export function SiteEditor({
   siteLabels: SiteLabels
   leadFormLabels: LeadFormLabels
   labels: EditorLabels
+  /** Editor wording outside EditorLabels (domain, hero, packages…). */
+  studio: Dictionary['studio']
   /** Free site plan → preview shows the «Сайт на проЯв» credit like the site. */
   platformCredit?: boolean
 }) {
@@ -468,16 +472,16 @@ export function SiteEditor({
           <div className="flex flex-col gap-2 rounded-lg border border-line bg-bg/60 p-4">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-semibold" htmlFor="se-domain">
-                {locale === 'uk' ? 'Власний домен' : 'Custom domain'}
+                {studio.customDomain}
               </label>
               {initialDomain &&
                 (initialDomainStatus === 'active' ? (
                   <span className="rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                    {locale === 'uk' ? '● Підключено' : '● Connected'}
+                    {studio.domainConnected}
                   </span>
                 ) : (
                   <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                    {locale === 'uk' ? '● Очікує підключення' : '● Pending'}
+                    {studio.domainPending}
                   </span>
                 ))}
             </div>
@@ -489,9 +493,7 @@ export function SiteEditor({
               className={inputClass}
             />
             <p className="text-xs leading-relaxed text-muted">
-              {locale === 'uk'
-                ? 'Щоб сайт відкривався на вашому домені, додайте в панелі свого реєстратора домену такі DNS-записи:'
-                : 'To serve your site on your own domain, add these DNS records in your registrar:'}
+              {studio.domainDnsHint}
             </p>
             <div className="rounded-md bg-fg/[0.04] p-3 font-mono text-xs leading-relaxed">
               <div>
@@ -502,9 +504,7 @@ export function SiteEditor({
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted">
-              {locale === 'uk'
-                ? 'Далі впишіть домен вище й збережіть. Ми підключимо його до 24 годин — SSL-сертифікат випуститься автоматично. Статус зміниться на «Підключено».'
-                : 'Then enter the domain above and save. We connect it within 24 hours — the SSL certificate is issued automatically. The status flips to “Connected”.'}
+              {studio.domainAfterHint}
             </p>
           </div>
           <div className="flex flex-col gap-1">
@@ -570,13 +570,11 @@ export function SiteEditor({
           {/* Album covers map {category: assetId}, set via ★ on portfolio photos. */}
           <input type="hidden" name="album_covers" value={JSON.stringify(albumCovers)} />
           <p className="text-xs text-muted">
-            {locale === 'uk' ? 'Фото для головного екрана' : 'Hero photo'}
+            {studio.heroPhoto}
           </p>
           {visiblePortfolio.length === 0 ? (
             <p className="text-xs text-muted">
-              {locale === 'uk'
-                ? 'Спершу завантажте фото в портфоліо нижче.'
-                : 'Upload portfolio photos below first.'}
+              {studio.heroEmpty}
             </p>
           ) : (
             <div className="grid grid-cols-4 gap-2">
@@ -587,14 +585,14 @@ export function SiteEditor({
                   heroImageId === '' ? 'border-accent text-accent' : 'border-line text-muted'
                 }`}
               >
-                {locale === 'uk' ? 'Авто (перше)' : 'Auto (first)'}
+                {studio.heroAuto}
               </button>
               {visiblePortfolio.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setHeroImageId(item.id)}
-                  aria-label={locale === 'uk' ? 'Обрати для hero' : 'Use as hero'}
+                  aria-label={studio.heroPick}
                   className={`aspect-[4/5] rounded border-2 transition-colors ${
                     heroImageId === item.id ? 'border-accent' : 'border-transparent hover:border-line'
                   }`}
@@ -705,15 +703,11 @@ export function SiteEditor({
                                 return (
                                   <button
                                     type="button"
-                                    aria-label={locale === 'uk' ? 'Зробити обкладинкою' : 'Set as cover'}
+                                    aria-label={studio.setCover}
                                     title={
                                       isCover
-                                        ? locale === 'uk'
-                                          ? 'Обкладинка альбому'
-                                          : 'Album cover'
-                                        : locale === 'uk'
-                                          ? 'Зробити обкладинкою'
-                                          : 'Set as cover'
+                                        ? studio.albumCover
+                                        : studio.setCover
                                     }
                                     onClick={() => setAlbumCover(item.category, item.id)}
                                     className={`absolute left-1 top-8 h-6 w-6 place-items-center rounded-full bg-white text-xs shadow ${
@@ -902,12 +896,10 @@ export function SiteEditor({
                 checked={booking}
                 onChange={(event) => setBooking(event.target.checked)}
               />
-              {locale === 'uk' ? 'Бронювання на сайті' : 'Booking on the site'}
+              {studio.bookingOnSite}
             </label>
             <p className="pl-7 text-xs text-muted">
-              {locale === 'uk'
-                ? 'Показати секцію бронювання, зв’язану з вашою сторінкою бронювання (вільні дати, оплата напряму). Керуйте датами у вкладці «Бронювання».'
-                : 'Show a booking section wired to your own booking page (open dates, direct payment). Manage dates in the “Booking” tab.'}
+              {studio.bookingOnSiteHint}
             </p>
           </div>
         </fieldset>
@@ -994,8 +986,8 @@ export function SiteEditor({
               {packs.length > 1 && (
                 <button
                   type="button"
-                  aria-label={locale === 'uk' ? 'Видалити пакет' : 'Remove package'}
-                  title={locale === 'uk' ? 'Видалити пакет' : 'Remove package'}
+                  aria-label={studio.removePackage}
+                  title={studio.removePackage}
                   onClick={() => removePack(index)}
                   className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full border border-line bg-bg text-xs hover:border-fg"
                 >
@@ -1041,7 +1033,7 @@ export function SiteEditor({
             onClick={addPack}
             className="self-start rounded-full border border-line px-4 py-2 text-sm transition-colors hover:border-fg"
           >
-            + {locale === 'uk' ? 'Додати пакет' : 'Add package'}
+            + {studio.addPackage}
           </button>
         </fieldset>
 
