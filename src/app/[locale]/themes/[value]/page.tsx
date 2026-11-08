@@ -5,22 +5,27 @@ import { isLocale } from '@/lib/i18n/config'
 import { THEME_DEMOS } from '@/lib/site/demoContent'
 import { SiteRenderer, type SiteLabels } from '@/components/site/SiteRenderer'
 import { getDictionary } from '@/lib/i18n'
+import { formatMessage } from '@/lib/i18n/format'
 import { leadFormLabelsFromDict, siteLabelsFromDict } from '@/lib/site/labels'
 
 export const dynamic = 'force-dynamic'
 
-export function generateMetadata({
+/** The theme's name in this language (transliterated outside Ukrainian — GLOSSARY). */
+function themeName(dict: Awaited<ReturnType<typeof getDictionary>>, value: string, fallback: string): string {
+  const key = `theme${value.charAt(0).toUpperCase()}${value.slice(1)}` as keyof typeof dict.site
+  const name = dict.site[key]
+  return typeof name === 'string' ? name : fallback
+}
+
+export async function generateMetadata({
   params,
 }: {
   params: { locale: string; value: string }
-}): Metadata {
+}): Promise<Metadata> {
   const demo = THEME_DEMOS.find((d) => d.value === params.value)
-  const uk = params.locale === 'uk'
-  const title = demo
-    ? uk
-      ? `Превʼю теми «${demo.name}» — проЯв`
-      : `Theme preview «${demo.name}» — proiav`
-    : 'проЯв'
+  if (!demo || !isLocale(params.locale)) return { robots: { index: false, follow: true } }
+  const dict = await getDictionary(params.locale)
+  const title = formatMessage(dict.pages.themeDemoTitle, { name: themeName(dict, demo.value, demo.name) }, params.locale)
   return { title, robots: { index: false, follow: true } }
 }
 
@@ -32,34 +37,15 @@ export default async function ThemePreviewPage({
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
-  const uk = locale === 'uk'
   const demo = THEME_DEMOS.find((d) => d.value === params.value)
   if (!demo) notFound()
 
-  // Theme-specific extras («Тиша»: hero CTA, process, reviews…) come from the
-  // dictionary; the base demo wording below stays as it was for every theme.
+  // Every wording — site labels, the form and the demo bar — comes from the
+  // dictionary of this locale.
   const dict = await getDictionary(locale)
-  const labels: SiteLabels = {
-    ...siteLabelsFromDict(dict, locale),
-    portfolio: uk ? 'Портфоліо' : 'Portfolio',
-    about: uk ? 'Про мене' : 'About',
-    pricing: uk ? 'Ціни' : 'Pricing',
-    contacts: uk ? 'Контакти' : 'Contacts',
-    book: uk ? 'Забронювати зйомку' : 'Book a shoot',
-    photos: uk ? 'фото' : 'photos',
-    viewSeries: uk ? 'Дивитись серію' : 'View series',
-    close: uk ? 'Закрити' : 'Close',
-  }
-  const leadFormLabels = {
-    ...leadFormLabelsFromDict(dict),
-    title: uk ? 'Залишити заявку' : 'Get in touch',
-    name: uk ? 'Ваше імʼя' : 'Your name',
-    contact: uk ? 'Телефон або email' : 'Phone or email',
-    message: uk ? 'Кілька слів про зйомку' : 'A few words about the shoot',
-    send: uk ? 'Надіслати' : 'Send',
-    sent: uk ? 'Надіслано' : 'Sent',
-    error: uk ? 'Помилка' : 'Error',
-  }
+  const labels: SiteLabels = siteLabelsFromDict(dict, locale)
+  const leadFormLabels = leadFormLabelsFromDict(dict)
+  const name = { name: themeName(dict, demo.value, demo.name) }
 
   return (
     <>
@@ -67,17 +53,17 @@ export default async function ThemePreviewPage({
           line at a fixed height, so the web font arriving never shifts the page */}
       <div className="flex h-[52px] items-center justify-between gap-3 overflow-hidden border-b border-line bg-bg px-4 text-sm">
         <span className="min-w-0 truncate font-semibold">
-          {uk ? 'Демо теми' : 'Theme demo'}: «{demo.name}»
+          {formatMessage(dict.pages.themeDemoBanner, name, locale)}
         </span>
         <span className="flex shrink-0 items-center gap-4 whitespace-nowrap">
           <Link href={`/${locale}/themes`} className="hidden text-muted no-underline hover:text-fg sm:inline">
-            ← {uk ? 'Усі теми' : 'All themes'}
+            ← {dict.pages.themeDemoAll}
           </Link>
           <Link
             href={`/${locale}/login`}
             className="rounded-full bg-accent px-4 py-1.5 font-semibold text-white no-underline hover:bg-accent-deep"
           >
-            {uk ? `Обрати «${demo.name}»` : `Choose “${demo.name}”`}
+            {formatMessage(dict.pages.themeDemoChoose, name, locale)}
           </Link>
         </span>
       </div>
