@@ -187,6 +187,8 @@ export const pt: PartialDictionary = {
     dropHint: 'Arraste os ficheiros para aqui ou clique para os escolher. As fotos são carregadas diretamente para o armazenamento.',
     videoPlanNotice: 'O vídeo está disponível a partir do plano Básico.',
     videoPlanLink: 'Escolher plano',
+    uploadResumeHint: "Carregamentos por concluir: {count}. Escolha os mesmos ficheiros — continuarão a partir do ponto onde pararam:",
+    uploadNetworkWait: "Sem ligação — o carregamento continuará assim que a rede voltar.",
     deleteGallery: 'Eliminar galeria',
     deleteConfirm: 'A galeria e todas as fotos serão eliminadas para sempre. Esta ação não pode ser anulada.',
     settingsTitle: 'Palavra-passe e validade',

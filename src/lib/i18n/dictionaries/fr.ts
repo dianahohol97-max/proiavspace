@@ -185,6 +185,8 @@ export const fr: PartialDictionary = {
     dropHint: 'Glissez vos fichiers ici ou cliquez pour les choisir. Les photos sont envoyées directement dans le stockage.',
     videoPlanNotice: 'La vidéo est disponible à partir de l’offre Essentiel.',
     videoPlanLink: 'Choisir une offre',
+    uploadResumeHint: "Imports inachevés : {count}. Sélectionnez les mêmes fichiers — ils reprendront là où ils se sont arrêtés :",
+    uploadNetworkWait: "Pas de connexion — l’import reprendra dès que le réseau sera rétabli.",
     deleteGallery: 'Supprimer la galerie',
     deleteConfirm: 'La galerie et toutes ses photos seront supprimées définitivement. Cette action est irréversible.',
     settingsTitle: 'Mot de passe et expiration',

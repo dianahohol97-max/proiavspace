@@ -188,6 +188,8 @@ export const ro: PartialDictionary = {
     dropHint: 'Trageți fișierele aici sau dați clic pentru a le alege. Fotografiile se încarcă direct în spațiul de stocare.',
     videoPlanNotice: 'Clipurile video sunt disponibile începând cu planul Basic.',
     videoPlanLink: 'Alegeți un plan',
+    uploadResumeHint: "Încărcări neterminate: {count}. Alegeți aceleași fișiere — vor continua de unde s-au oprit:",
+    uploadNetworkWait: "Fără conexiune — încărcarea va continua imediat ce revine rețeaua.",
     deleteGallery: 'Șterge galeria',
     deleteConfirm: 'Galeria și toate fotografiile vor fi șterse definitiv. Acțiunea nu poate fi anulată.',
     settingsTitle: 'Parolă și valabilitate',

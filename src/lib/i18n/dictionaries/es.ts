@@ -182,6 +182,8 @@ export const es: PartialDictionary = {
     dropHint: 'Arrastra los archivos aquí o haz clic para elegirlos. Las fotos se suben directamente al almacenamiento.',
     videoPlanNotice: 'El vídeo está disponible a partir del plan Básico.',
     videoPlanLink: 'Elegir plan',
+    uploadResumeHint: "Subidas sin terminar: {count}. Elige los mismos archivos y continuarán donde se quedaron:",
+    uploadNetworkWait: "Sin conexión: la subida continuará en cuanto vuelva la red.",
     deleteGallery: 'Eliminar galería',
     deleteConfirm: 'La galería y todas sus fotos se eliminarán para siempre. Esta acción no se puede deshacer.',
     settingsTitle: 'Contraseña y caducidad',

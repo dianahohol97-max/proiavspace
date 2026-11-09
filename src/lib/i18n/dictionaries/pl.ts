@@ -182,6 +182,8 @@ export const pl: PartialDictionary = {
     dropHint: 'Pliki można przeciągnąć tutaj lub kliknąć, aby je wybrać. Zdjęcia trafiają prosto do chmury.',
     videoPlanNotice: 'Wideo jest dostępne od planu Podstawowego.',
     videoPlanLink: 'Wybierz plan',
+    uploadResumeHint: "Niedokończone przesyłanie: {count}. Wystarczy wybrać te same pliki — przesyłanie wznowi się od miejsca przerwania:",
+    uploadNetworkWait: "Brak połączenia — przesyłanie wznowi się, gdy tylko sieć wróci.",
     deleteGallery: 'Usuń galerię',
     deleteConfirm: 'Galeria i wszystkie zdjęcia zostaną usunięte na zawsze. Tej operacji nie można cofnąć.',
     settingsTitle: 'Hasło i ważność',

@@ -185,6 +185,8 @@ export const de: PartialDictionary = {
     dropHint: 'Dateien hierher ziehen oder klicken, um sie auszuwählen. Die Fotos werden direkt in den Speicher hochgeladen.',
     videoPlanNotice: 'Videos sind ab dem Tarif „Basis“ verfügbar.',
     videoPlanLink: 'Tarif wählen',
+    uploadResumeHint: "Unvollständige Uploads: {count}. Wählen Sie dieselben Dateien erneut aus — sie werden dort fortgesetzt, wo sie unterbrochen wurden:",
+    uploadNetworkWait: "Keine Verbindung — das Hochladen geht weiter, sobald das Netz wieder da ist.",
     deleteGallery: 'Galerie löschen',
     deleteConfirm: 'Die Galerie und alle Fotos werden endgültig gelöscht. Das lässt sich nicht rückgängig machen.',
     settingsTitle: 'Passwort und Ablaufdatum',

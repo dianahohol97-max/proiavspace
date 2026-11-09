@@ -185,6 +185,8 @@ export const it: PartialDictionary = {
     dropHint: 'Trascina qui i file o clicca per sceglierli. Le foto vengono caricate direttamente nello spazio di archiviazione.',
     videoPlanNotice: 'I video sono disponibili dal piano Base.',
     videoPlanLink: 'Scegli un piano',
+    uploadResumeHint: "Caricamenti non completati: {count}. Seleziona gli stessi file: riprenderanno da dove si erano fermati:",
+    uploadNetworkWait: "Nessuna connessione: il caricamento riprenderà appena torna la rete.",
     deleteGallery: 'Elimina galleria',
     deleteConfirm: 'La galleria e tutte le foto verranno eliminate per sempre. L’operazione non si può annullare.',
     settingsTitle: 'Password e scadenza',
