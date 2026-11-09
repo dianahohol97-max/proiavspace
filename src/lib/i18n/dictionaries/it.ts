@@ -794,6 +794,8 @@ export const it: PartialDictionary = {
     homeDescription: 'Consegna i servizi ai clienti in una bella galleria online: preferiti, password e scadenza, originali senza compressione e ZIP con un clic. 3 GB gratis.',
     homeAria: 'proiav — home',
     mainNavAria: 'Menu principale',
+    menuOpen: 'Menu',
+    menuClose: 'Chiudi menu',
     languageAria: 'Lingua',
     startFree: 'Inizia gratis',
     footerTagline: 'Gallerie online per i clienti dei fotografi',

@@ -756,6 +756,8 @@ export const es: PartialDictionary = {
     homeDescription: 'Entrega tus sesiones en una galería online preciosa: favoritos, contraseña y caducidad, originales sin compresión y ZIP en un clic. 3 GB gratis.',
     homeAria: 'proiav — inicio',
     mainNavAria: 'Menú principal',
+    menuOpen: 'Menú',
+    menuClose: 'Cerrar menú',
     languageAria: 'Idioma',
     startFree: 'Empieza gratis',
     footerTagline: 'Galerías online para clientes de fotógrafos',

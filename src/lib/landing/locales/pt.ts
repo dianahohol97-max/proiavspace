@@ -25,8 +25,7 @@ export const pt: LandingCopy = {
     statNumber: '30 000',
     statText: 'fotos entregues a clientes através das galerias proiav',
     status: { steps: ['Sessão', 'Edição', 'Pronta'], now: 'agora', eta: 'Prevista até 14 de dezembro' },
-    mockName: 'Olena Romaniuk',
-    mockTitle: 'Histórias de casamento',
+    galleryTitles: ['Histórias de casamento', 'Histórias de família', 'Retratos', 'Sessões em estúdio'],
   },
   strip: { label: 'Trabalhos de fotógrafos' },
   products: {

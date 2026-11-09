@@ -930,6 +930,8 @@ export const en: Dictionary = {
     homeDescription: "Deliver shoots to clients in a beautiful online gallery: favourites, a password and expiry, uncompressed originals and one-click zip. 3 GB free.",
     homeAria: "proiav — home",
     mainNavAria: "Main menu",
+    menuOpen: "Menu",
+    menuClose: "Close menu",
     languageAria: "Language",
     startFree: "Start for free",
     footerTagline: "Online client galleries for photographers",

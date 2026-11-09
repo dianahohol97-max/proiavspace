@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import s from '@/app/[locale]/landing.module.css'
 
 /**
  * Auth-aware header actions. A logged-in visitor who returns to the marketing
@@ -17,13 +16,8 @@ import s from '@/app/[locale]/landing.module.css'
  * never download it.
  */
 const SESSION_COOKIE = /(?:^|;\s*)sb-[^=;]+-auth-token(?:\.\d+)?=/
-export function AuthNav({
-  locale,
-  labels,
-}: {
-  locale: string
-  labels: { signIn: string; ctaShort: string; dashboard: string }
-}) {
+
+export function useAuthed(): boolean | null {
   const [authed, setAuthed] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -50,19 +44,47 @@ export function AuthNav({
     }
   }, [])
 
+  return authed
+}
+
+export interface AuthNavLabels {
+  signIn: string
+  ctaShort: string
+  dashboard: string
+}
+
+/**
+ * Header bar: «Увійти» + «Почати безкоштовно →», or «Кабінет →» once signed in.
+ * Class names come from the header that renders it.
+ */
+export function AuthNav({
+  locale,
+  labels,
+  authed,
+  linkClassName,
+  ctaClassName,
+}: {
+  locale: string
+  labels: AuthNavLabels
+  authed: boolean | null
+  linkClassName?: string
+  ctaClassName?: string
+}) {
   if (authed) {
     return (
-      <Link href={`/${locale}/dashboard`} className={s.pillHot}>
-        {labels.dashboard} <span>→</span>
+      <Link href={`/${locale}/dashboard`} className={ctaClassName}>
+        {labels.dashboard} <span aria-hidden="true">→</span>
       </Link>
     )
   }
 
   return (
     <>
-      <Link href={`/${locale}/login`}>{labels.signIn}</Link>
-      <Link href={`/${locale}/login`} className={s.pillHot}>
-        {labels.ctaShort} <span>→</span>
+      <Link href={`/${locale}/login`} className={linkClassName}>
+        {labels.signIn}
+      </Link>
+      <Link href={`/${locale}/login`} className={ctaClassName}>
+        {labels.ctaShort} <span aria-hidden="true">→</span>
       </Link>
     </>
   )

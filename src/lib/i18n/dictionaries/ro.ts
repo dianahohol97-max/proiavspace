@@ -806,6 +806,8 @@ export const ro: PartialDictionary = {
       'Livrați ședințele clienților într-o galerie online frumoasă: favorite, parolă și termen de valabilitate, originale necomprimate și zip dintr-un clic. 3 GB gratuit.',
     homeAria: 'proiav — pagina principală',
     mainNavAria: 'Meniu principal',
+    menuOpen: 'Meniu',
+    menuClose: 'Închide meniul',
     languageAria: 'Limbă',
     startFree: 'Începeți gratuit',
     footerTagline: 'Galerii online pentru clienții fotografilor',

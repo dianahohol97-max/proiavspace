@@ -43,7 +43,8 @@ for (const locale of ['uk', 'en'] as const) {
 
 test('/en: у макеті героя немає слотів із цінами', async ({ page }) => {
   await page.goto('/en')
-  await expect(page.locator('header')).not.toContainText('₴')
+  // Two <header>s: the sticky site header and the hero.
+  for (const header of await page.locator('header').all()) await expect(header).not.toContainText('₴')
 })
 
 test('llms.txt: без бронювання, з відбором і статусом', async ({ request }) => {
