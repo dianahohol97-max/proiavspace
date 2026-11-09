@@ -23,6 +23,7 @@ const LOCALES = ['pl', 'de', 'es', 'fr', 'it', 'ro', 'pt'] as const satisfies re
 const PAGES = [
   '',
   '/login',
+  '/contact',
   '/gallery-demo',
   '/gallery-demo/culling',
   '/oferta',

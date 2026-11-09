@@ -66,6 +66,15 @@ export default async function DashboardLayout({
     // «Партнер до DD.MM» (migration 0051); null when not a partner.
     supabase.rpc('my_partner_until'),
   ])
+  // Letters to the photographer go in the language they use the dashboard in
+  // (profiles.locale, 0072). Before the migration the column is not
+  // writable (no grant) — the error is ignored and letters stay as they were.
+  if (profile && profile.locale !== locale) {
+    await supabase.from('profiles').update({ locale }).eq('user_id', user.id).then(
+      () => null,
+      () => null
+    )
+  }
   const partnerBadge =
     typeof partnerUntil === 'string'
       ? dict.dashboard.partnerUntil.replace(

@@ -41,6 +41,7 @@ import {
   picksTxt,
 } from '@/lib/gallery/client-picks'
 import { loadClientEmailState } from '@/lib/gallery/ready-email-store'
+import { rememberShareLocale } from '@/lib/actions/client-email'
 import { countVisibleAssets, deliveryView, parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import type { ShareMessageStrings } from '@/lib/gallery/share'
 import { parseGalleryTab } from '@/lib/dashboard/tabs'
@@ -385,9 +386,10 @@ export default async function ManageGalleryPage({
             isPublished={gallery.is_published}
             hasPassword={hasPassword}
             inProgress={inProgress}
-            defaultLocale={locale}
+            defaultLocale={clientEmail.shareLocale && isLocale(clientEmail.shareLocale) ? clientEmail.shareLocale : locale}
             messages={shareMessages}
             publish={sharePublishAction}
+            rememberLocale={rememberShareLocale.bind(null, gallery.id)}
             initialOpen={searchParams.share === '1'}
             labels={{
               share: m.share,

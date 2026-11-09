@@ -7,6 +7,8 @@ import {
 } from '@/lib/lifecycle-emails'
 import { GRACE_PERIOD_DAYS } from '@/lib/plans'
 import { greetingName } from '@/lib/email-layout'
+import { emailLocale } from '@/lib/emails'
+import type { Locale } from '@/lib/i18n/config'
 import type { NoticeKind } from '@/lib/retention'
 
 /**
@@ -18,18 +20,20 @@ import type { NoticeKind } from '@/lib/retention'
 export interface Contact {
   email: string
   name: string | null
+  /** The photographer's language (profiles.locale) — letters go in it. */
+  locale: Locale
 }
 
 export async function contactOf(admin: SupabaseClient, userId: string): Promise<Contact | null> {
   const [{ data: email }, { data: profile }] = await Promise.all([
     admin.rpc('user_email', { p_user: userId }),
-    admin.from('profiles').select('display_name').eq('user_id', userId).maybeSingle(),
+    admin.from('profiles').select('display_name, locale').eq('user_id', userId).maybeSingle(),
   ])
   if (typeof email !== 'string' || !email) return null
   // Never «Привіт, dianahohol97!»: the signup default display_name is the
   // e-mail's local part, which is not a name (lib/email-layout).
   const name = greetingName(profile?.display_name as string | null | undefined, email)
-  return { email, name }
+  return { email, name, locale: emailLocale(profile?.locale) }
 }
 
 /** Journal a notice; false when it was already there (someone else sent it). */
@@ -97,6 +101,7 @@ export async function sendReceipt(admin: SupabaseClient, paymentId: string): Pro
   await send(
     contact,
     receiptEmail({
+      locale: contact.locale,
       name: contact.name,
       plan: payment.plan as string,
       period: payment.period === 'year' ? 'year' : 'month',
@@ -132,7 +137,7 @@ export async function sendFailedCharge(
     await send(
       contact,
       failedChargeEmail({
-        name: contact.name,
+        locale: contact.locale, name: contact.name,
         plan: input.plan,
         amountUah: input.amountUah,
         graceUntil: new Date(input.graceUntil),

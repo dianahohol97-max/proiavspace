@@ -262,7 +262,7 @@ export async function submitSupportRequest(
   }
 
   // A copy for the sender; replies to it reach us (Reply-To = hello@).
-  const copy = senderCopy(row, request.copy)
+  const copy = senderCopy(row, request.copy, request.locale)
   const copied = await deps.sendEmail({ to: email, replyTo: supportEmail(), ...copy })
   if (!copied) {
     await deps.reportError(new Error('support copy not sent'), { where: 'support copy', requestId: row.id })
@@ -320,14 +320,15 @@ function supportLetter(
   return { subject, text: renderText(doc), html: renderHtml(doc, subject) }
 }
 
-function senderCopy(row: SupportRow, copy: SupportCopy): { subject: string; text: string; html: string } {
+/** The sender's copy — in the language they wrote from (lang, footer too). */
+function senderCopy(row: SupportRow, copy: SupportCopy, locale: string): { subject: string; text: string; html: string } {
   const doc: EmailDoc = {
     greeting: copy.copyGreeting,
     lead: [copy.copyLead],
     rows: [[copy.copyTopic, copy.topics[row.topic]]],
     after: [copy.copyMessage, ...paragraphs(row.message), copy.copyAfter],
   }
-  return { subject: copy.copySubject, text: renderText(doc), html: renderHtml(doc, copy.copySubject) }
+  return { subject: copy.copySubject, text: renderText(doc, locale), html: renderHtml(doc, copy.copySubject, locale) }
 }
 
 /** Lines of the message as paragraphs (the HTML part drops bare newlines). */

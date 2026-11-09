@@ -1,4 +1,5 @@
 import { renderHtml, renderText } from '@/lib/email-layout'
+import { emailCopy, emailLocale } from '@/lib/emails'
 import type { EmailInput } from '@/lib/email'
 
 /**
@@ -14,6 +15,10 @@ import type { EmailInput } from '@/lib/email'
  *     and has an address, but not twice within a minute (double click);
  *   - never to an unpublished gallery (the link would be a 404).
  *
+ * Language: the one the photographer picked for the link in «Поділитися»
+ * (galleries.share_locale, 0072) — the letter and its link are in it; if they
+ * never picked one, the photographer's own language (profiles.locale).
+ *
  * Storage and e-mail are injected (ReadyEmailDeps) so the audit tests drive
  * the real logic without Supabase or Brevo.
  */
@@ -27,6 +32,8 @@ export interface ReadyEmailGallery {
   delivery_status: string | null
   client_email: string | null
   ready_email_sent_at: string | null
+  /** Language of the link picked in «Поділитися» (0072); null/absent → photographer's. */
+  share_locale?: string | null
 }
 
 export interface ReadyEmailDeps {
@@ -43,7 +50,7 @@ export interface ReadyEmailDeps {
   send(input: EmailInput): Promise<boolean>
   appUrl: string
   /** Photographer's public name and address (Reply-To). */
-  photographer: { name: string | null; email: string | null }
+  photographer: { name: string | null; email: string | null; locale?: string | null }
   now?: () => Date
 }
 
@@ -70,8 +77,13 @@ export function parseClientEmail(value: unknown): string | null {
   return email
 }
 
-export function galleryClientUrl(appUrl: string, slug: string): string {
-  return `${appUrl.replace(/\/+$/, '')}/uk/g/${slug}`
+export function galleryClientUrl(appUrl: string, slug: string, locale: string = 'uk'): string {
+  return `${appUrl.replace(/\/+$/, '')}/${emailLocale(locale)}/g/${slug}`
+}
+
+/** The letter's language: the shared link's, else the photographer's, else uk. */
+export function readyEmailLocale(gallery: { share_locale?: string | null }, photographerLocale?: string | null) {
+  return emailLocale(gallery.share_locale ?? photographerLocale ?? 'uk')
 }
 
 export function readyEmailMessage(input: {
@@ -79,29 +91,26 @@ export function readyEmailMessage(input: {
   url: string
   photographerName: string | null
   hasPassword: boolean
-}): { subject: string; text: string; html: string } {
-  const subject = `Ваші фото готові — ${input.galleryTitle}`
-  const name = input.photographerName?.trim() || null
-  const lead = [`Фото готові: галерея «${input.galleryTitle}» вже відкрита — можна дивитися, обирати улюблені й завантажувати.`]
-  if (input.hasPassword) {
-    lead.push('Галерея захищена паролем — фотограф надішле його окремо, якщо ще не надіслав.')
-  }
-  const doc = {
-    greeting: 'Вітаємо!',
-    lead,
-    rows: name ? ([['Фотограф', name]] as [string, string][]) : undefined,
-    button: { label: 'Відкрити галерею', url: input.url },
-    after: [
-      'Лист надіслано, бо фотограф вказав вашу адресу для повідомлення про готовність фото. Якщо відповісте на нього — відповідь отримає фотограф.',
-    ],
-  }
-  return { subject, text: renderText(doc), html: renderHtml(doc, subject) }
+  locale?: string
+}): { subject: string; text: string; html: string; locale: string } {
+  const locale = emailLocale(input.locale)
+  const copy = emailCopy(locale)
+  const { subject, ...rest } = copy.ready({
+    galleryTitle: input.galleryTitle,
+    url: input.url,
+    photographerName: input.photographerName?.trim() || null,
+    hasPassword: input.hasPassword,
+  })
+  const doc = { greeting: copy.helloClient, ...rest }
+  return { subject, text: renderText(doc, locale), html: renderHtml(doc, subject, locale), locale }
 }
 
 async function sendLetter(deps: ReadyEmailDeps, gallery: ReadyEmailGallery & { client_email: string }) {
+  const locale = readyEmailLocale(gallery, deps.photographer.locale)
   const message = readyEmailMessage({
+    locale,
     galleryTitle: gallery.title,
-    url: galleryClientUrl(deps.appUrl, gallery.slug),
+    url: galleryClientUrl(deps.appUrl, gallery.slug, locale),
     photographerName: deps.photographer.name,
     hasPassword: gallery.has_password,
   })

@@ -3,6 +3,7 @@ import { viewerCanSeeSites } from '@/lib/features/sites-server'
 import { waitUntil } from '@vercel/functions'
 import { sendEmail } from '@/lib/email'
 import { formatSlot } from '@/lib/booking/types'
+import { emailCopy, emailLocale, emailMoney } from '@/lib/emails'
 import { insertCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCalendar'
 import { notifyBooking } from '@/lib/push/events'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -77,19 +78,22 @@ export async function POST(request: NextRequest) {
         .eq('user_id', slot.owner_id)
         .single()
       if (settings?.notify_email) {
-        await sendEmail({
-          to: settings.notify_email,
-          subject: `Нове бронювання: ${formatSlot(slot.starts_at)}`,
-          text: [
-            `Щойно заброньовано зйомку на ${formatSlot(slot.starts_at)} (${slot.duration_minutes} хв, ${slot.price_uah} грн).`,
-            '',
-            `Клієнт: ${body.name.trim()}`,
-            `Телефон: ${body.phone.trim()}`,
-            `Пошта: ${body.email.trim()}`,
-            '',
-            'Статус оплати дивіться в кабінеті.',
-          ].join('\n'),
+        // In the photographer's language (profiles.locale, 0072).
+        const { data: owner } = await admin
+          .from('profiles')
+          .select('locale')
+          .eq('user_id', slot.owner_id)
+          .maybeSingle<{ locale: string | null }>()
+        const locale = emailLocale(owner?.locale)
+        const letter = emailCopy(locale).bookingNotify({
+          slot: formatSlot(slot.starts_at),
+          minutes: slot.duration_minutes,
+          price: locale === 'uk' ? `${slot.price_uah} грн` : emailMoney(Number(slot.price_uah), locale),
+          clientName: body.name.trim(),
+          clientPhone: body.phone.trim(),
+          clientEmail: body.email.trim(),
         })
+        await sendEmail({ to: settings.notify_email, subject: letter.subject, text: letter.lines.join('\n'), locale })
       }
 
       // Google Calendar sync (best-effort): push the booking into the

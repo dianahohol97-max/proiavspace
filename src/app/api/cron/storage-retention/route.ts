@@ -234,14 +234,14 @@ async function apply(
     const isPromo =
       !!promo && !promo.autopay_at && Math.abs(new Date(promo.ends_at).getTime() - endedAt.getTime()) < DAY_MS
     return notify(admin, userId, cycle, 'grace_start', [], summary, contact, () =>
-      graceStartEmail({ name: contact.name, plan: account.plan, promo: isPromo, endedAt, closesAt: action.closesAt })
+      graceStartEmail({ locale: contact.locale, name: contact.name, plan: account.plan, promo: isPromo, endedAt, closesAt: action.closesAt })
     )
   }
 
   if (action.type === 'close') {
     const galleryCount = await countGalleries(admin, userId)
     const sent = await notify(admin, userId, cycle, 'closed', [], summary, contact, () =>
-      closedEmail({ name: contact.name, plan: account.plan, galleryCount, deletesAt: action.deletesAt })
+      closedEmail({ locale: contact.locale, name: contact.name, plan: account.plan, galleryCount, deletesAt: action.deletesAt })
     )
     if (!sent) return false
     const { error } = await admin
@@ -259,7 +259,7 @@ async function apply(
     const [galleryCount, fileCount] = await Promise.all([countGalleries(admin, userId), countFiles(admin, userId)])
     return notify(admin, userId, cycle, action.kind, action.alsoMark, summary, contact, () =>
       deletionWarningEmail({
-        name: contact.name,
+        locale: contact.locale, name: contact.name,
         daysLeft,
         deletesAt: action.deletesAt,
         galleryCount,

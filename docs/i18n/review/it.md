@@ -52,3 +52,14 @@ Frasi su cui non sono del tutto sicuro. Formato: `chiave o posizione — traduzi
 - dictionary `galleryManage.shareVia` — «Invia con» — seguito dai nomi delle app; verificare con il layout (alternativa «Invia tramite»).
 - dictionary `galleryManage.shareQrHint` — «Stampalo su un biglietto…» — «biglietto» per «card» (biglietto da visita / cartoncino).
 - dictionary `publicGallery.shareInProgress` — «Sto ancora lavorando alle foto» — prima persona singolare del fotografo; per gli studi servirebbe il plurale.
+
+## Листи
+
+- emails `hello` — «Ciao Olena,» / «Ciao,» — saluto da e-mail con il «tu»; alternativa più formale «Buongiorno Olena,».
+- emails `helloClient` — «Buongiorno!» — scelto per il cliente del fotografo (meno confidenziale di «Ciao!»), ma il resto della mail dà del «tu».
+- emails `footerQuestions` — «Domande e fatture» — il sorgente ucraino parla di «рахунок для ФОП» (fattura per l’impresa individuale); verificare.
+- emails `includes.galleries` — «download in ZIP» — verificare la lunghezza nella ricevuta.
+- emails `closed` — «Le tue gallerie (3 gallerie)» — costruzione per evitare l’accordo del numero; un po’ ripetitiva.
+- emails date con articolo — «il 01.12.2026», «dal 01.12.2026» — in italiano con una data numerica è corretto ma suona burocratico; dipende dal formato delle date passate dal codice.
+- emails `referralReward` — «credito referral» / «ricompensa referral» — anglicismo «referral», coerente con la UI.
+- emails `bookingNotify` — «prenotato un servizio per 20.07.2026 · 14:00» — manca l’articolo davanti allo slot formattato; alternativa «per il giorno …».

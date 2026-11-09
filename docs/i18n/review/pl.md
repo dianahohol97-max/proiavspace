@@ -54,3 +54,17 @@ Format: `klucz / miejsce — tłumaczenie — dlaczego niepewne`
 - galleryManage.tabDesign / hintGoDesign — „Wygląd” / „Dopracuj wygląd” — „Design” jako „Wygląd”; czy zakładka nie powinna nazywać się „Projekt”/„Styl”?
 - galleryManage.shareQrHint — „Można go wydrukować na kartce albo otworzyć galerię na telefonie” — dość luźne oddanie oryginału.
 - dashboard.onboardStep2 / onboardStep3 — tryb rozkazujący w krokach onboardingu („Prześlij…”, „Udostępnij…”) — traktowane jak przyciski/kroki.
+
+## Листи
+
+- emails hello / helloClient — „Dzień dobry, {name}!” / „Dzień dobry!” — standardowe powitanie w mailu serwisowym; czy nie lepiej „Witamy”?
+- emails receipt lead — „Dziękujemy, że jesteście z nami!” — forma „wy” (zbiorowa), jedyne odstępstwo od bezosobowości; alternatywa „Dziękujemy za zaufanie!”.
+- emails planNames.site_basic / site_plus — „Strona · Podstawowy”, „Strona · Plus” — w słowniku UI plany stron nazywają się po prostu „Podstawowy”/„Plus”; w mailu potrzebne rozróżnienie od planów galerii.
+- emails footerQuestions — „Pytania i rachunki” — oryginał uk „Питання й рахунок для ФОП”.
+- emails receipt subject — „Potwierdzenie płatności” zamiast „Paragon/Pokwitowanie” — „paragon” w Polsce ma znaczenie fiskalne.
+- emails closed — „Galerie na koncie (5 galerii) są zamknięte” — konstrukcja z nawiasem, by uniknąć uzgadniania liczebnika z orzeczeniem.
+- emails freeExpiry subject — „za 7 dni 5 galerii zostanie zamkniętych” — szyk z okolicznikiem na początku.
+- emails freeExpiry — cytuje komunikat z galerii „Ta galeria jest już zamknięta. Prosimy o kontakt z fotografem.” dosłownie — kropka przed zamykającym cudzysłowem i po nim.
+- emails referralReward — „nagroda za polecenie” (ambasador) vs „bonus za polecenie” — rodzaj żeński/męski w „pierwsza/pierwszy”.
+- emails ready.after — „fotograf podał ten adres, aby powiadomić o gotowych zdjęciach” — sformułowanie RODO-podobne, do sprawdzenia.
+- emails — „z serwera” zamiast „z magazynu/przestrzeni” dla „зі сховища” — naturalniej, ale mniej dokładnie.

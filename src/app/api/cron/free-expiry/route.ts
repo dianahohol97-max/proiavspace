@@ -236,7 +236,7 @@ async function sendWarning(
     (await send(
       contact,
       freeExpiryWarningEmail({
-        name: contact.name,
+        locale: contact.locale, name: contact.name,
         daysLeft: kind === 'd1' ? 1 : 7,
         galleries: mine.map((i) => ({ title: i.candidate.title, closesAt: new Date(i.candidate.free_expires_at) })),
       })
