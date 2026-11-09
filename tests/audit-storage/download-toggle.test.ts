@@ -338,6 +338,8 @@ describe('кабінет, тексти, міграція', () => {
     assert.match(sql, /grant select \(downloads_enabled\) on public\.galleries to anon, authenticated/)
     const claude = source('CLAUDE.md')
     assert.match(claude, /`0070` — перемикач завантажень/)
-    assert.match(claude, /наступний вільний номер — `0071`/)
+    // реєстр росте з кожною гілкою — перевіряємо лише, що наступний вільний уже за 0070
+    const next = Number(claude.match(/наступний вільний номер — `(\d{4})`/)?.[1])
+    assert.ok(next > 70, `наступний вільний номер: ${next}`)
   })
 })
