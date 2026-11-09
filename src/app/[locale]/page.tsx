@@ -11,9 +11,11 @@ import { buildMetadata } from '@/lib/seo/metadata'
 import { brandOgImage } from '@/lib/seo/pages'
 import { faqNode, graph, softwareApplicationNode } from '@/lib/seo/structured-data'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { LangPicker } from '@/components/LangPicker'
 import { Logo } from '@/components/Logo'
-import { AuthNav } from '@/components/landing/AuthNav'
+import { MarketingHeader } from '@/components/marketing/MarketingHeader'
+import { marketingHeaderLabels } from '@/components/marketing/SiteHeader'
+import { HeroCategoryProvider, HeroGalleryTitle, HeroSlot, HeroStage, HeroTabs } from '@/components/landing/HeroCategories'
+import { HERO_CATEGORIES } from '@/lib/landing/hero-categories'
 import { primaryNav } from '@/lib/seo/nav'
 import { GalleryShowcase } from '@/components/landing/GalleryShowcase'
 import { showcaseLabels } from '@/lib/landing/showcase-labels'
@@ -116,6 +118,7 @@ export default async function LandingPage({ params }: { params: { locale: string
   const { pages } = dict
   const login = `/${locale}/login`
   const jsonLd = buildJsonLd(locale, t)
+  const headerLabels = await marketingHeaderLabels(locale)
   preloadBrandFonts(locale)
 
   // Screenshots exist in uk and en; other locales get the English landing copy.
@@ -130,42 +133,13 @@ export default async function LandingPage({ params }: { params: { locale: string
   return (
     <main className={s.page}>
       <JsonLd data={jsonLd} />
+      {/* ---------- nav (sticky, shared with the inner pages) ---------- */}
+      <MarketingHeader locale={locale} links={primaryNav(locale)} labels={headerLabels} onLanding />
       <div className={s.wrap}>
-        {/* ---------- nav ---------- */}
-        <nav className={s.nav}>
-          <Link href={`/${locale}`} className="text-fg no-underline">
-            <Logo />
-          </Link>
-          <span className={s.navLinks}>
-            {primaryNav(locale).map((link) =>
-              link.href.includes('#') ? (
-                <a key={link.href} href={link.href.slice(link.href.indexOf('#'))}>
-                  {link.label}
-                </a>
-              ) : (
-                <Link key={link.href} href={link.href}>
-                  {link.label}
-                </Link>
-              )
-            )}
-            <AuthNav
-              locale={locale}
-              labels={{ signIn: t.nav.signIn, ctaShort: t.nav.ctaShort, dashboard: t.nav.dashboard }}
-            />
-            <LangPicker current={locale} />
-          </span>
-        </nav>
-
         {/* ---------- hero ---------- */}
-        <header className={s.hero}>
+        <HeroCategoryProvider className={s.hero}>
           <div>
-            <div className={s.chips}>
-              {t.hero.chips.map((chip, index) => (
-                <span key={chip} className={index === 0 ? s.chipOn : s.chip}>
-                  {chip}
-                </span>
-              ))}
-            </div>
+            <HeroTabs labels={HERO_CATEGORIES.map((category) => t.hero.chips[category.index])} />
             <h1 className={s.h1}>
               {t.hero.titleBefore}
               <em>{t.hero.titleAccent}</em>
@@ -180,13 +154,19 @@ export default async function LandingPage({ params }: { params: { locale: string
               <span className={s.ctaNote}>{t.hero.ctaNote}</span>
             </div>
           </div>
-          <div className={s.stage} aria-hidden="true">
+          <HeroStage className={s.stage}>
             <div className={s.mockGallery}>
               <div className={s.mockGrid}>
-                <Ph n="01" sizes={SIZES.heroGrid} priority />
-                <Ph n="05" sizes={SIZES.heroGrid} eager />
-                <Ph n="03" sizes={SIZES.heroGrid} eager />
-                <Ph n="11" sizes={SIZES.heroGrid} eager />
+                {[0, 1, 2, 3].map((slot) => (
+                  <HeroSlot
+                    key={slot}
+                    categories={HERO_CATEGORIES}
+                    part="grid"
+                    slot={slot}
+                    sizes={SIZES.heroGrid}
+                    priority={slot === 0}
+                  />
+                ))}
               </div>
               <span className={s.heart}>♥</span>
             </div>
@@ -213,17 +193,24 @@ export default async function LandingPage({ params }: { params: { locale: string
               </div>
               <div className={s.pay}>{t.hero.status.eta}</div>
             </div>
-            <div className={s.themeChip}>
-              <div className={s.wm}>{t.hero.mockName}</div>
-              <div className={s.hl}>{t.hero.mockTitle}</div>
+            {/* A client gallery's look: its title in the chosen font, a few
+                frames, and the theme it uses. */}
+            <div className={s.galleryCard} data-testid="hero-gallery-card">
+              <HeroGalleryTitle
+                className={s.gcTitle}
+                titles={HERO_CATEGORIES.map((category) => t.hero.galleryTitles[category.index])}
+              />
               <div className={s.themeRow}>
-                <Ph n="02" sizes={SIZES.heroTheme} eager />
-                <Ph n="13" sizes={SIZES.heroTheme} eager />
-                <Ph n="10" sizes={SIZES.heroTheme} eager />
+                {[0, 1, 2].map((slot) => (
+                  <HeroSlot key={slot} categories={HERO_CATEGORIES} part="row" slot={slot} sizes={SIZES.heroTheme} />
+                ))}
+              </div>
+              <div className={s.gcMeta}>
+                {dict.designer.theme}: {dict.designer.themeCream} · {dict.designer.fontSerif}
               </div>
             </div>
-          </div>
-        </header>
+          </HeroStage>
+        </HeroCategoryProvider>
       </div>
 
       {/* ---------- marquee ---------- */}
@@ -297,7 +284,7 @@ export default async function LandingPage({ params }: { params: { locale: string
         {/* Header uses the landing's own secHead/h2 styles so typography
             matches the rest of the page; the interactive mock keeps the
             gallery's serif INSIDE the phone-style preview only. */}
-        <section id="galleries" className={s.products} style={{ scrollMarginTop: 90 }}>
+        <section id="galleries" className={s.products}>
           <Reveal>
             <div className={s.secHead}>
               <span className={s.lbl}>{pages.studioLabel}</span>

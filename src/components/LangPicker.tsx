@@ -63,3 +63,39 @@ export function LangPicker({
     </details>
   )
 }
+
+/**
+ * The same choice as a flat row of links — for the mobile menu panel, where a
+ * dropdown inside a dropdown is awkward to tap.
+ */
+export function LangList({
+  current,
+  label = 'Language',
+  className,
+  onNavigate,
+}: {
+  current: Locale
+  label?: string
+  className?: string
+  onNavigate?: () => void
+}) {
+  const pathname = usePathname()
+  const rest = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/'
+  return (
+    <ul aria-label={label} className={className}>
+      {locales.map((l) => (
+        <li key={l}>
+          <Link
+            href={`/${l}${rest}`}
+            hrefLang={l}
+            lang={l}
+            aria-current={l === current ? 'true' : undefined}
+            onClick={onNavigate}
+          >
+            {localeNames[l]}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}

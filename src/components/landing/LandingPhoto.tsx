@@ -36,6 +36,7 @@ export function LandingPhoto({
   eager = false,
   className,
   style,
+  dataState,
 }: {
   /** File stem, e.g. `showcase-01` or `themes-15`. */
   name: string
@@ -53,6 +54,8 @@ export function LandingPhoto({
   eager?: boolean
   className?: string
   style?: React.CSSProperties
+  /** Rendered as data-state on the <img> (crossfade layers in the hero). */
+  dataState?: string
 }) {
   const widths = LANDING_PHOTO_WIDTHS[kind]
   return (
@@ -75,6 +78,7 @@ export function LandingPhoto({
         fetchPriority={priority ? 'high' : eager ? 'low' : 'auto'}
         className={className}
         style={style}
+        data-state={dataState}
       />
     </picture>
   )

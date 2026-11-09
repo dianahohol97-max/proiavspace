@@ -794,6 +794,8 @@ export const fr: PartialDictionary = {
     homeDescription: 'Livrez vos séances dans une belle galerie en ligne : favoris, mot de passe et date d’expiration, originaux sans compression et ZIP en un clic. 3 Go offerts.',
     homeAria: 'proiav — accueil',
     mainNavAria: 'Menu principal',
+    menuOpen: 'Menu',
+    menuClose: 'Fermer le menu',
     languageAria: 'Langue',
     startFree: 'Commencer gratuitement',
     footerTagline: 'Galeries client en ligne pour photographes',

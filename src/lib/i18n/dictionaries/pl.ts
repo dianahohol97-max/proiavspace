@@ -756,6 +756,8 @@ export const pl: PartialDictionary = {
     homeDescription: 'Zdjęcia z sesji w pięknej galerii online: ulubione, hasło i data ważności, oryginały bez kompresji i ZIP jednym kliknięciem. 3 GB za darmo.',
     homeAria: 'proiav — strona główna',
     mainNavAria: 'Menu główne',
+    menuOpen: 'Menu',
+    menuClose: 'Zamknij menu',
     languageAria: 'Język',
     startFree: 'Zacznij za darmo',
     footerTagline: 'Galerie online dla klientów fotografów',

@@ -29,8 +29,9 @@ export interface LandingCopy {
     statText: string
     /** Hero card: the client's «Shoot → Editing → Ready» status. */
     status: { steps: [string, string, string]; now: string; eta: string }
-    mockName: string
-    mockTitle: string
+    /** Hero gallery card title per category, in the order of `chips`
+     *  (weddings, families, portraits, studios). */
+    galleryTitles: [string, string, string, string]
   }
   strip: { label: string }
   products: {
@@ -116,8 +117,7 @@ const uk: LandingCopy = {
     statNumber: '30 000',
     statText: 'фотографій передано клієнтам через галереї проЯв',
     status: { steps: ['Зйомка', 'Обробка', 'Готово'], now: 'зараз', eta: 'Орієнтовно до 14 грудня' },
-    mockName: 'Олена Романюк',
-    mockTitle: 'Весільні історії',
+    galleryTitles: ['Весільні історії', 'Сімейні історії', 'Портрети', 'Студійні зйомки'],
   },
   strip: { label: 'Роботи фотографів' },
   products: {
@@ -315,8 +315,7 @@ const en: LandingCopy = {
     statNumber: '30 000',
     statText: 'photos delivered to clients through proiav galleries',
     status: { steps: ['Shoot', 'Editing', 'Ready'], now: 'now', eta: 'Expected by 14 December' },
-    mockName: 'Olena Romaniuk',
-    mockTitle: 'Wedding stories',
+    galleryTitles: ['Wedding stories', 'Family stories', 'Portraits', 'Studio sessions'],
   },
   strip: { label: 'Photographers’ work' },
   products: {

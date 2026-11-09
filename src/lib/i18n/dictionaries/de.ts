@@ -794,6 +794,8 @@ export const de: PartialDictionary = {
     homeDescription: 'Übergeben Sie Shootings in einer schönen Online-Galerie: Favoriten, Passwort und Ablaufdatum, Originale ohne Komprimierung und ZIP-Download mit einem Klick. 3 GB kostenlos.',
     homeAria: 'proiav — Startseite',
     mainNavAria: 'Hauptmenü',
+    menuOpen: 'Menü',
+    menuClose: 'Menü schließen',
     languageAria: 'Sprache',
     startFree: 'Kostenlos starten',
     footerTagline: 'Online-Kundengalerien für Fotografen',

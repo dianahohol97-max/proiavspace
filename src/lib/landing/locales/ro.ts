@@ -25,8 +25,7 @@ export const ro: LandingCopy = {
     statNumber: '30.000',
     statText: 'de fotografii livrate clienților prin galeriile proiav',
     status: { steps: ['Ședința', 'Editare', 'Gata'], now: 'acum', eta: 'Estimat până la 14 decembrie' },
-    mockName: 'Olena Romaniuk',
-    mockTitle: 'Povești de nuntă',
+    galleryTitles: ['Povești de nuntă', 'Povești de familie', 'Portrete', 'Ședințe în studio'],
   },
   strip: { label: 'Lucrări ale fotografilor' },
   products: {
