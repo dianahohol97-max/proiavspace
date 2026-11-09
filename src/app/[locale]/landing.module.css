@@ -8,8 +8,14 @@
   font-size: 15px;
   font-weight: 500;
   line-height: 1.6;
+  /* clip, not hidden: `hidden` makes .page a scroll container, and the
+     sticky header would then stick to it instead of the viewport. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
+/* In-page anchors (#galleries, #pricing, #products) land below the sticky
+   header instead of under it. */
+.page [id] { scroll-margin-top: 88px; }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
 .lbl {
   font-weight: 800; font-size: 11px; letter-spacing: .14em;
@@ -22,25 +28,12 @@
 /* photo placeholders */
 /* Bias the crop toward the top: faces sit in the upper part of a frame, so
    center-cropping a `cover` background clips heads. 28% keeps them in view. */
-.ph { position: relative; overflow: hidden; background-color: #dedcd6; background-size: cover; background-position: center 28%; border-radius: 12px; }
+.ph { position: relative; overflow: hidden; background-color: #dedcd6; border-radius: 12px; }
 
-/* real showcase photography (one photographer's body of work) */
-.p01 { background-image: url("/showcase/01.webp"); }
-.p02 { background-image: url("/showcase/02.webp"); }
-.p03 { background-image: url("/showcase/03.webp"); }
-.p04 { background-image: url("/showcase/04.webp"); }
-.p05 { background-image: url("/showcase/05.webp"); }
-.p06 { background-image: url("/showcase/06.webp"); }
-.p07 { background-image: url("/showcase/07.webp"); }
-.p08 { background-image: url("/showcase/08.webp"); }
-.p09 { background-image: url("/showcase/09.webp"); }
-.p10 { background-image: url("/showcase/10.webp"); }
-.p11 { background-image: url("/showcase/11.webp"); }
-.p12 { background-image: url("/showcase/12.webp"); }
-.p13 { background-image: url("/showcase/13.webp"); }
-.p14 { background-image: url("/showcase/14.webp"); }
-.p15 { background-image: url("/showcase/15.webp"); }
-.p16 { background-image: url("/showcase/16.webp"); }
+/* Real showcase photography (one photographer's body of work) lives in a
+   responsive <picture> inside each .ph (see LandingPhoto) — not CSS
+   backgrounds, which every tile fetched at full 2000px on page load. */
+.ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 28%; }
 .ph::after {
   content: ""; position: absolute; inset: 0; opacity: .45; pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.13'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -51,11 +44,6 @@
 .g4 { background-image: radial-gradient(120% 85% at 25% 20%, rgba(255,255,255,.22), transparent 50%), linear-gradient(205deg, #a4a39f, #666561 60%, #2d2c2a); }
 .g5 { background-image: radial-gradient(140% 100% at 50% 0%, rgba(255,255,255,.5), transparent 60%), linear-gradient(180deg, #cfcecb, #a2a19d 60%, #747371); }
 
-/* nav */
-.nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
-.navLinks { display: flex; gap: 28px; align-items: center; }
-.navLinks a:not(.pill):not(.pillHot) { color: var(--color-muted); text-decoration: none; font-size: 14px; font-weight: 600; }
-.navLinks a:not(.pill):not(.pillHot):hover { color: var(--color-fg); }
 .pill {
   display: inline-flex; align-items: center; gap: 10px;
   background: var(--color-fg); color: #fff; border-radius: 999px;
@@ -71,6 +59,11 @@
 .pillGhost:hover { box-shadow: inset 0 0 0 1.5px var(--color-fg); background: transparent; }
 
 /* hero */
+/* Measures are in em, not ch: `ch` is the width of «0» in whatever face is
+   painting, so with ch every max-width changed when the fallback swapped for
+   Manrope — lines re-wrapped and the hero shifted (CLS). Values are the old
+   ch × Manrope's «0» (0.626em at 500, 0.658em at 700): identical once the
+   font is in. */
 .hero {
   display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: clamp(28px, 5vw, 64px); align-items: center;
@@ -80,26 +73,42 @@
 .chip {
   border-radius: 999px; padding: 8px 16px; font-size: 12.5px; font-weight: 700;
   color: var(--color-muted); background: #fff; border: 1px solid var(--color-border);
+  font-family: inherit; line-height: 1.6; cursor: pointer;
+  transition: background-color .2s, color .2s, border-color .2s;
 }
+.chip:hover { color: var(--color-fg); border-color: var(--color-fg); }
+.chip:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .chipOn { composes: chip; background: var(--color-fg); border-color: var(--color-fg); color: #fff; }
+.chipOn:hover { color: #fff; }
 .h1 {
   font-family: var(--font-brand); font-weight: 500; margin: 0 0 22px;
   font-size: clamp(28px, 3.9vw, 48px); line-height: 1.14; letter-spacing: -.01em;
   text-wrap: balance;
 }
 .h1 em, .accentWord { font-style: normal; color: var(--color-accent); }
-.subtitle { max-width: 40ch; margin: 18px 0 12px; font-size: clamp(17px, 1.6vw, 20px); font-weight: 700; line-height: 1.35; color: var(--color-fg); }
-.lede { max-width: 46ch; color: var(--color-muted); margin: 0 0 30px; font-size: 16px; }
+.subtitle { max-width: 26.33em; margin: 18px 0 12px; font-size: clamp(17px, 1.6vw, 20px); font-weight: 700; line-height: 1.35; color: var(--color-fg); }
+.lede { max-width: 28.8em; color: var(--color-muted); margin: 0 0 30px; font-size: 16px; }
 .ctaRow { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
-.ctaNote { font-size: 12.5px; color: var(--color-muted); max-width: 22ch; line-height: 1.5; }
+.ctaNote { font-size: 12.5px; color: var(--color-muted); max-width: 13.77em; line-height: 1.5; }
 
-.stage { position: relative; aspect-ratio: 5/5.1; }
+.stage { position: relative; }
+/* The four floating cards sit on a grid, not at absolute percentages: their
+   text decides their height, so no card can slide over another's caption at
+   any width. Overlaps are deliberate and photo-only — the gallery card's top
+   edge rests on the mock's bottom padding. */
+.stageInner {
+  display: grid;
+  grid-template-columns: minmax(0, 57fr) minmax(0, 43fr);
+  grid-template-rows: auto 1fr auto;
+  column-gap: 18px;
+  align-items: start;
+}
 .card {
-  position: absolute; background: #fff; border-radius: 22px;
+  position: relative; background: #fff; border-radius: 22px;
   box-shadow: 0 1px 0 rgba(13,12,10,.04), 0 30px 70px -38px rgba(13,12,10,.45);
   animation: float 11s ease-in-out infinite alternate;
 }
-.mockGallery { composes: card; width: 58%; top: 0; left: 0; z-index: 2; padding: 12px; }
+.mockGallery { composes: card; grid-column: 1; grid-row: 1 / 3; z-index: 2; padding: 12px; }
 .mockGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .mockGallery .ph { aspect-ratio: 4/5; }
 .mockGallery .ph:nth-child(2) { aspect-ratio: 4/3.4; align-self: end; }
@@ -109,25 +118,43 @@
   background: #fff; border-radius: 50%; box-shadow: 0 4px 14px rgba(13,12,10,.18);
   display: grid; place-items: center; color: var(--color-accent); font-size: 13px;
 }
-.statCard { composes: card; width: 42%; right: 0; top: 5%; z-index: 3; padding: 20px; animation-delay: -3s; }
-.statNum { font-family: var(--font-brand); font-weight: 600; font-size: clamp(22px, 2.6vw, 32px); line-height: 1; }
+.statCard { composes: card; grid-column: 2; grid-row: 1; margin-top: 10%; z-index: 3; padding: 20px; animation-delay: -3s; }
+.statNum { font-family: var(--font-brand); font-weight: 600; font-size: clamp(22px, 2.6vw, 32px); line-height: 1; white-space: nowrap; }
 .statNum i { font-style: normal; color: var(--color-accent); }
 .statCard p { margin: 10px 0 0; font-size: 12px; color: var(--color-muted); line-height: 1.5; font-weight: 600; }
-.mockStatus { composes: card; width: 47%; right: 4%; bottom: 13%; z-index: 4; padding: 12px; animation-delay: -6s; }
+.mockStatus { composes: card; grid-column: 2; grid-row: 2 / 4; align-self: center; margin-top: 22px; z-index: 4; padding: 12px; animation-delay: -6s; }
 .slot {
   background: var(--color-bg); border-radius: 10px; padding: 8px 11px; font-size: 10.5px; font-weight: 700;
-  display: flex; justify-content: space-between; color: var(--color-muted); margin-bottom: 6px;
+  display: flex; justify-content: space-between; gap: 8px; color: var(--color-muted); margin-bottom: 6px;
 }
 .slotOn { composes: slot; background: var(--color-fg); color: #fff; }
 .pay {
   background: var(--color-accent); color: #fff; text-align: center; border-radius: 10px;
   padding: 9px; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
 }
-.themeChip { composes: card; width: 46%; left: 4%; bottom: 0; z-index: 1; padding: 14px; animation-delay: -8s; }
-.wm { text-align: center; font-family: var(--font-brand); font-weight: 500; font-size: 8px; letter-spacing: .2em; text-transform: uppercase; }
-.hl { text-align: center; font-size: 12.5px; font-weight: 700; margin: 8px 0 10px; }
+.galleryCard {
+  composes: card; grid-column: 1; grid-row: 3; z-index: 3;
+  margin: -26px 8% 0 6%; padding: 14px 14px 12px; animation-delay: -8s;
+}
+/* The gallery's own title font (the «Серіф» option of the design studio). */
+.gcTitle {
+  display: grid; text-align: center; margin: 0 0 10px;
+  font-family: Georgia, 'Times New Roman', serif; font-size: 16px; font-weight: 400; line-height: 1.25;
+}
+.gcTitle > span { grid-area: 1 / 1; }
+.gcMeta { margin-top: 9px; text-align: center; font-size: 10.5px; font-weight: 700; color: var(--color-muted); letter-spacing: .02em; }
 .themeRow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-.themeChip .ph { aspect-ratio: 3/4; }
+.galleryCard .ph { aspect-ratio: 3/4; }
+
+/* Category crossfade: the picked layer fades in over the previous one, which
+   stays opaque underneath, so there's no dip to the placeholder grey. */
+.ph img.layer, .layerText { transition: opacity .45s ease; }
+.ph img.layer[data-state="off"], .layerText[data-state="off"] { opacity: 0; visibility: hidden; transition: none; }
+.ph img.layer[data-state="prev"], .layerText[data-state="prev"] { opacity: 1; z-index: 1; transition: none; }
+.ph img.layer[data-state="on"] { opacity: 1; z-index: 2; animation: fadeIn .45s ease; }
+.layerText[data-state="prev"] { opacity: 0; transition: opacity .3s ease; }
+.layerText[data-state="on"] { animation: fadeIn .45s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes float { from { transform: translateY(-7px); } to { transform: translateY(9px); } }
 
 /* marquee */
@@ -141,7 +168,7 @@
 
 /* sections */
 .products { padding: clamp(64px, 10vw, 120px) 0 clamp(40px, 7vw, 80px); }
-.secHead { max-width: 60ch; }
+.secHead { max-width: 37.57em; }
 .h2 {
   font-family: var(--font-brand); font-weight: 500; margin: 14px 0 12px;
   font-size: clamp(22px, 3vw, 34px); line-height: 1.22; letter-spacing: -.01em;
@@ -291,7 +318,23 @@
 .faqList summary::-webkit-details-marker { display: none; }
 .faqList summary::after { content: "+"; float: right; color: var(--color-accent); font-family: var(--font-brand); }
 .faqList details[open] summary::after { content: "–"; }
-.faqList p { color: var(--color-muted); font-size: 13.5px; margin: 12px 0 0; max-width: 62ch; }
+.faqList p { color: var(--color-muted); font-size: 13.5px; margin: 12px 0 0; max-width: 38.82em; }
+
+/* Off-screen sections (bento → FAQ, the final CTA, the footer) are skipped
+   by style/layout/paint until they near the viewport, so the first frame
+   only lays out the top of the page (~30% less work before first paint) —
+   and an English page doesn't fetch Cyrillic Manrope for the footer's
+   «проЯв» before anyone scrolls there. Sizes are the real desktop heights
+   (phones override in the 880px query); `auto` then remembers the real size
+   once rendered. Sections holding nav anchors (#products, #galleries) are
+   left alone; #pricing is itself a target, which the browser renders on jump. */
+.lazyBento { content-visibility: auto; contain-intrinsic-size: auto 940px; }
+.lazyPrinciples { content-visibility: auto; contain-intrinsic-size: auto 700px; }
+.lazyPricing { content-visibility: auto; contain-intrinsic-size: auto 920px; }
+.lazyReferral { content-visibility: auto; contain-intrinsic-size: auto 620px; }
+.lazyFaq { content-visibility: auto; contain-intrinsic-size: auto 600px; }
+.lazyFinal { content-visibility: auto; contain-intrinsic-size: auto 590px; }
+.lazyFoot { content-visibility: auto; contain-intrinsic-size: auto 90px; }
 
 /* final */
 .final { text-align: center; padding: clamp(48px, 8vw, 90px) 24px 0; overflow: hidden; }
@@ -301,7 +344,7 @@
 }
 .giant {
   margin: clamp(44px, 8vw, 80px) 0 -0.33em;
-  font-family: var(--font-brand); font-weight: 700; text-transform: uppercase;
+  font-family: 'Unbounded Wordmark', var(--font-brand); font-weight: 700; text-transform: uppercase;
   font-size: clamp(80px, 17vw, 230px); line-height: .9; letter-spacing: -.02em;
   color: var(--color-fg); white-space: nowrap; user-select: none;
 }
@@ -314,8 +357,15 @@
 }
 
 @media (max-width: 880px) {
+  .lazyBento { contain-intrinsic-size: auto 1450px; }
+  .lazyPrinciples { contain-intrinsic-size: auto 950px; }
+  .lazyPricing { contain-intrinsic-size: auto 2050px; }
+  .lazyReferral { contain-intrinsic-size: auto 720px; }
+  .lazyFaq { contain-intrinsic-size: auto 640px; }
+  .lazyFinal { contain-intrinsic-size: auto 570px; }
+  .lazyFoot { contain-intrinsic-size: auto 190px; }
   .hero { grid-template-columns: 1fr; }
-  .stage { max-width: 480px; margin: 0 auto; width: 100%; }
+  .stage { max-width: 520px; margin: 0 auto; width: 100%; }
   .prodGrid, .plans { grid-template-columns: 1fr; }
   /* Bento: on a narrow screen text wraps to more lines than a fixed 132px row
      fits, so let cards grow to their content instead of clipping. */
@@ -328,37 +378,29 @@
   .bWide { grid-column: span 2; }
   .b { min-height: 150px; }
   .prGrid { grid-template-columns: 1fr 1fr; }
-  /* Hide only the nav's own top-level links on mobile — NOT the links inside
-     the language dropdown (which live in a nested <details>). */
-  .navLinks > a:not(.pill):not(.pillHot) { display: none; }
-  /* Keep the header on one row on phones: the logo never shrinks, and the CTA
-     pill goes compact so it can't overlap the wordmark. */
-  .nav { gap: 12px; }
-  .nav > a:first-child { flex: none; }
-  .navLinks { gap: 12px; min-width: 0; }
-  .navLinks .pill, .navLinks .pillHot {
-    padding: 10px 16px; font-size: 12.5px; gap: 6px;
-  }
 }
-/* Phones: the stat card is ~150px wide — keep «30 000+» on one line and the
-   caption short enough not to slide under the booking card. */
+/* Phones: tighter cards so «30 000+» stays on one line and every caption fits. */
 @media (max-width: 520px) {
-  .statCard { padding: 12px 14px; top: 3%; }
-  .statNum { font-size: 21px; white-space: nowrap; }
+  .stageInner { column-gap: 10px; grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); }
+  .card { border-radius: 16px; }
+  .mockGallery { padding: 8px; }
+  .mockGrid { gap: 6px; }
+  .heart { right: 14px; top: 14px; width: 24px; height: 24px; font-size: 11px; }
+  .statCard { padding: 12px 12px; margin-top: 8%; }
+  .statNum { font-size: clamp(17px, 5.4vw, 22px); }
   .statCard p { font-size: 10.5px; margin-top: 6px; line-height: 1.4; }
-}
-/* The smallest phones (320–360px): shrink the floating mocks so nothing overlaps. */
-@media (max-width: 360px) {
-  .statCard { padding: 10px 11px; width: 44%; }
-  .statNum { font-size: 17px; }
-  .statCard p { font-size: 9.5px; }
-  .mockStatus { width: 52%; right: 0; padding: 8px; }
-  .mockStatus .slot, .mockStatus .slotOn { font-size: 9px; padding: 6px 8px; white-space: nowrap; }
-  .mockStatus .pay { font-size: 8.5px; padding: 7px; }
+  .mockStatus { padding: 8px; margin-top: 14px; }
+  .mockStatus .slot, .mockStatus .slotOn { font-size: 9.5px; padding: 6px 8px; margin-bottom: 5px; }
+  .mockStatus .pay { font-size: 8.5px; padding: 7px 6px; letter-spacing: .05em; }
+  .galleryCard { margin: -18px 4% 0 4%; padding: 10px 10px 9px; }
+  .gcTitle { font-size: 14px; margin-bottom: 8px; }
+  .gcMeta { font-size: 9.5px; margin-top: 7px; }
+  .themeRow { gap: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .card, .marquee { animation: none; }
+  .ph img.layer, .layerText { transition: none !important; animation: none !important; }
   .b:hover, .prod:hover, .pill:hover { transform: none; }
 }
 
@@ -396,7 +438,7 @@
 }
 .comingSoon p {
   margin: 0 auto 20px;
-  max-width: 62ch;
+  max-width: 38.82em;
   font-size: 15px;
   line-height: 1.65;
   color: var(--color-muted);

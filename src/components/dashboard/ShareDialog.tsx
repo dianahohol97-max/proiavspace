@@ -77,6 +77,7 @@ export function ShareDialog({
   messages,
   labels,
   publish,
+  rememberLocale,
   variant = 'primary',
   initialOpen = false,
 }: {
@@ -91,6 +92,8 @@ export function ShareDialog({
   messages: Record<Locale, ShareMessageStrings>
   labels: ShareLabels
   publish: () => Promise<void>
+  /** Saves the picked link language — «Ваші фото готові» goes in it (0072). */
+  rememberLocale?: (locale: Locale) => Promise<unknown>
   variant?: 'primary' | 'compact'
   /** ?share=1 — opened straight from the gallery list. */
   initialOpen?: boolean
@@ -251,7 +254,11 @@ export function ShareDialog({
                   <select
                     id="share-lang"
                     value={lang}
-                    onChange={(event) => setLang(event.target.value as Locale)}
+                    onChange={(event) => {
+                      const next = event.target.value as Locale
+                      setLang(next)
+                      rememberLocale?.(next).catch(() => null)
+                    }}
                     className="min-h-[44px] rounded-xl border border-line bg-white px-3 text-sm font-semibold"
                   >
                     {locales.map((code) => (

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { viewerCanSeeSites } from '@/lib/features/sites-server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -27,6 +28,8 @@ function isLeadBody(value: unknown): value is LeadBody {
  * owner enabled the form.
  */
 export async function POST(request: NextRequest) {
+  // Shelved (src/lib/features/sites.ts): 404 unless sites are on or it is the owner.
+  if (!(await viewerCanSeeSites())) return new NextResponse('Not found', { status: 404 })
   const body: unknown = await request.json().catch(() => null)
   if (!isLeadBody(body)) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })

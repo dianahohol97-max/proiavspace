@@ -138,13 +138,13 @@ test.describe('кабінет: головний шлях', () => {
     // Мова посилання → і посилання, і готовий текст мовою клієнта.
     await dialog.getByLabel('Мова галереї для клієнта').selectOption('pl')
     await expect(url).toHaveValue(/\/pl\/g\//)
-    await expect(dialog.locator('#share-message')).toHaveValue(/^Dzień dobry! Twoja galeria „Олена і Тарас · заручини” jest gotowa:/)
+    await expect(dialog.locator('#share-message')).toHaveValue(/^Dzień dobry! Galeria „Олена і Тарас · заручини” jest gotowa:/)
     const telegram = await dialog.locator('[data-channel=telegram]').getAttribute('href')
     expect(telegram).toContain('https://t.me/share/url?url=')
     expect(decodeURIComponent(telegram!)).toContain('/pl/g/')
     expect(await dialog.locator('[data-channel=whatsapp]').getAttribute('href')).toMatch(/^https:\/\/wa\.me\/\?text=/)
     expect(await dialog.locator('[data-channel=viber]').getAttribute('href')).toMatch(/^viber:\/\/forward\?text=/)
-    expect(await dialog.locator('[data-channel=email]').getAttribute('href')).toMatch(/^mailto:\?subject=Twoja%20galeria/)
+    expect(await dialog.locator('[data-channel=email]').getAttribute('href')).toMatch(/^mailto:\?subject=Galeria%20/)
     await noHorizontalOverflow(page)
     await shot(page, '04-share', info.project.name, false)
     await dialog.getByRole('button', { name: 'Закрити' }).first().click()
@@ -220,8 +220,9 @@ test.describe('кабінет: список галерей', () => {
     // On a phone the menu sits behind ☰.
     if (info.project.name === 'iphone') await page.getByRole('button', { name: 'Мої галереї' }).click()
     const menu = page.locator('nav:visible')
-    await expect(menu.getByRole('link', { name: 'Сайт', exact: true })).toBeVisible()
-    for (const name of ['Блог', 'Хаб', 'Контент', 'Сторіс', 'Threads', 'Статистика']) {
+    await expect(menu.getByRole('link', { name: 'Налаштування', exact: true })).toBeVisible()
+    // «Сайт» і «Бронювання» сховані до окремого релізу (tests/e2e/hide-sites.spec.ts).
+    for (const name of ['Блог', 'Хаб', 'Контент', 'Сторіс', 'Threads', 'Статистика', 'Сайт', 'Бронювання']) {
       await expect(page.getByRole('link', { name, exact: true })).toHaveCount(0)
     }
     const response = await page.goto('/uk/dashboard/blog')

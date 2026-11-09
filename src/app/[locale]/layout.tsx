@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isLocale, locales } from '@/lib/i18n/config'
+import { getDictionary } from '@/lib/i18n'
 import { brandOgImage } from '@/lib/seo/pages'
 import { BASE_URL, BRAND, OG_LOCALE, isIndexedLocale } from '@/lib/seo/site'
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics'
@@ -13,13 +14,11 @@ import '@/app/globals.css'
  * noindex and only need a sane title and share card. No canonical here: a
  * canonical inherited from the layout would point every child page at /uk.
  */
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale = isLocale(params.locale) ? params.locale : 'uk'
-  const uk = locale === 'uk'
-  const title = uk ? 'проЯв — онлайн-галереї для фотографів' : 'proiav — online client galleries for photographers'
-  const description = uk
-    ? 'Онлайн-галерея для фотографа: передайте зйомку клієнту красивим посиланням, з відбором фото, паролем і завантаженням оригіналів.'
-    : 'Online client galleries for photographers: deliver a shoot with a beautiful link, favourites, a password and full-resolution downloads.'
+  const { pages } = await getDictionary(locale)
+  const title = pages.siteTitle
+  const description = pages.siteDescription
 
   const verificationOther: Record<string, string> = {}
   if (process.env.BING_SITE_VERIFICATION) verificationOther['msvalidate.01'] = process.env.BING_SITE_VERIFICATION

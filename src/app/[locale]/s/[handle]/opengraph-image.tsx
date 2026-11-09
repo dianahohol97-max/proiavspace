@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
+import { sitesEnabled } from '@/lib/features/sites'
 import { localizedSiteContent, parseSiteContent } from '@/lib/site/content'
 import { isThemeId, resolveTokens, type SiteMode } from '@/lib/site/themes'
 
@@ -48,6 +49,8 @@ export default async function Image({
 }: {
   params: { locale: string; handle: string }
 }) {
+  // Shelved (src/lib/features/sites.ts): no preview card while sites are off.
+  if (!sitesEnabled()) return new Response('Not found', { status: 404 })
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   let site: SiteRow | null = null

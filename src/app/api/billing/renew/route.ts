@@ -445,7 +445,7 @@ async function sendRenewalNotices(admin: AdminClient): Promise<number> {
       (await send(
         contact,
         renewalNoticeEmail({
-          name: contact.name,
+          locale: contact.locale, name: contact.name,
           plan: sub.plan,
           period: sub.period,
           amountUah: amount,
@@ -552,7 +552,7 @@ async function sendPromoReminders(
         const delivered = await send(
           contact,
           promoEndingEmail({
-            name: contact.name,
+            locale: contact.locale, name: contact.name,
             endsAt: new Date(grant.ends_at),
             priceUah: IMPORT_PROMO.plan.priceUahMonth,
             storageGb: IMPORT_PROMO.plan.storageGb,

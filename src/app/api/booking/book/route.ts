@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { viewerCanSeeSites } from '@/lib/features/sites-server'
+import { waitUntil } from '@vercel/functions'
 import { sendEmail } from '@/lib/email'
 import { formatSlot } from '@/lib/booking/types'
+import { emailCopy, emailLocale, emailMoney } from '@/lib/emails'
 import { insertCalendarEvent, refreshAccessToken } from '@/lib/booking/googleCalendar'
+import { notifyBooking } from '@/lib/push/events'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -32,6 +36,8 @@ function isBookBody(value: unknown): value is BookBody {
  * The booking does not wait for payment.
  */
 export async function POST(request: NextRequest) {
+  // Shelved (src/lib/features/sites.ts): 404 unless sites are on or it is the owner.
+  if (!(await viewerCanSeeSites())) return new NextResponse('Not found', { status: 404 })
   const body: unknown = await request.json().catch(() => null)
   if (!isBookBody(body) || !body.name.trim() || !body.phone.trim() || !body.email.trim()) {
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
@@ -62,25 +68,32 @@ export async function POST(request: NextRequest) {
       .eq('id', body.slotId)
       .single()
     if (slot) {
+      // «Нова заявка» on the photographer's phone (if they turned it on).
+      waitUntil(
+        notifyBooking({ id: body.slotId, owner_id: slot.owner_id, starts_at: slot.starts_at }, body.name).catch(() => null)
+      )
       const { data: settings } = await admin
         .from('booking_settings')
         .select('notify_email, google_refresh_token, google_calendar_id')
         .eq('user_id', slot.owner_id)
         .single()
       if (settings?.notify_email) {
-        await sendEmail({
-          to: settings.notify_email,
-          subject: `Нове бронювання: ${formatSlot(slot.starts_at)}`,
-          text: [
-            `Щойно заброньовано зйомку на ${formatSlot(slot.starts_at)} (${slot.duration_minutes} хв, ${slot.price_uah} грн).`,
-            '',
-            `Клієнт: ${body.name.trim()}`,
-            `Телефон: ${body.phone.trim()}`,
-            `Пошта: ${body.email.trim()}`,
-            '',
-            'Статус оплати дивіться в кабінеті.',
-          ].join('\n'),
+        // In the photographer's language (profiles.locale, 0072).
+        const { data: owner } = await admin
+          .from('profiles')
+          .select('locale')
+          .eq('user_id', slot.owner_id)
+          .maybeSingle<{ locale: string | null }>()
+        const locale = emailLocale(owner?.locale)
+        const letter = emailCopy(locale).bookingNotify({
+          slot: formatSlot(slot.starts_at),
+          minutes: slot.duration_minutes,
+          price: locale === 'uk' ? `${slot.price_uah} грн` : emailMoney(Number(slot.price_uah), locale),
+          clientName: body.name.trim(),
+          clientPhone: body.phone.trim(),
+          clientEmail: body.email.trim(),
         })
+        await sendEmail({ to: settings.notify_email, subject: letter.subject, text: letter.lines.join('\n'), locale })
       }
 
       // Google Calendar sync (best-effort): push the booking into the

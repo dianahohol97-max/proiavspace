@@ -12,12 +12,14 @@ export function galleryLabels(dict: Dictionary): GalleryLabels {
     downloadHint: t.downloadHint,
     preparingArchive: t.preparingArchive,
     archiveError: t.archiveError,
+    downloadsDisabled: t.downloadsDisabled,
     savePart: t.savePart,
     downloadOriginal: t.downloadOriginal,
     favoriteToggle: t.favoriteToggle,
     madeOn: t.madeOn,
     tip: t.tip,
     slideshow: t.slideshow,
+    contactPhotographer: t.contactPhotographer,
     viewer: {
       lightbox: t.viewer,
       close: t.viewerClose,
@@ -34,7 +36,7 @@ export function galleryLabels(dict: Dictionary): GalleryLabels {
   }
 }
 
-/** «Статус зйомки» screen and banner strings (uk/en; other languages fall back to en). */
+/** «Статус зйомки» screen and banner strings, in the visitor's language. */
 export function deliveryLabels(dict: Dictionary): DeliveryLabels {
   const t = dict.publicGallery
   return {

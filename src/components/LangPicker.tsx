@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { locales, localeLabels, type Locale } from '@/lib/i18n/config'
+import { locales, localeLabels, localeNames, type Locale } from '@/lib/i18n/config'
 
 /**
  * Language switcher as a compact dropdown: the trigger shows the current
@@ -10,18 +10,32 @@ import { locales, localeLabels, type Locale } from '@/lib/i18n/config'
  * leading /{locale} segment, so a visitor stays on the same page in their
  * language. Uses a native <details> so it works without extra JS state.
  */
-export function LangPicker({ current }: { current: Locale }) {
+export function LangPicker({
+  current,
+  full = false,
+  label = 'Language',
+  up = false,
+}: {
+  current: Locale
+  /** Endonyms («Polski», «Deutsch») instead of codes — the dashboard. */
+  full?: boolean
+  /** Accessible name of the trigger, in the page language. */
+  label?: string
+  /** Open the menu upwards (pickers at the bottom of a sidebar). */
+  up?: boolean
+}) {
+  const names = full ? localeNames : localeLabels
   const pathname = usePathname()
   const rest = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/'
 
   return (
     <details className="group relative inline-block text-sm [&_summary::-webkit-details-marker]:hidden">
       <summary
-        aria-label="Language"
+        aria-label={label}
         className="flex cursor-pointer select-none list-none items-center gap-1.5"
         style={{ color: 'inherit' }}
       >
-        {localeLabels[current]}
+        {names[current]}
         <svg
           width="10"
           height="7"
@@ -32,7 +46,7 @@ export function LangPicker({ current }: { current: Locale }) {
           <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" />
         </svg>
       </summary>
-      <div className="absolute right-0 z-50 mt-2 flex min-w-[8rem] flex-col overflow-hidden rounded-xl border border-line bg-white py-1 text-fg shadow-[0_12px_32px_rgba(0,0,0,0.12)]">
+      <div className={`absolute z-50 flex ${up ? 'bottom-full left-0 mb-2' : 'right-0 mt-2'} min-w-[8rem] flex-col overflow-hidden rounded-xl border border-line bg-white py-1 text-fg shadow-[0_12px_32px_rgba(0,0,0,0.12)]`}>
         {locales.map((l) => (
           <Link
             key={l}
@@ -42,10 +56,46 @@ export function LangPicker({ current }: { current: Locale }) {
             className="px-4 py-2 no-underline transition-colors hover:bg-[#0d0c0a0a]"
             style={{ fontWeight: l === current ? 700 : 500, color: l === current ? '#2f55ff' : undefined }}
           >
-            {localeLabels[l]}
+            {names[l]}
           </Link>
         ))}
       </div>
     </details>
+  )
+}
+
+/**
+ * The same choice as a flat row of links — for the mobile menu panel, where a
+ * dropdown inside a dropdown is awkward to tap.
+ */
+export function LangList({
+  current,
+  label = 'Language',
+  className,
+  onNavigate,
+}: {
+  current: Locale
+  label?: string
+  className?: string
+  onNavigate?: () => void
+}) {
+  const pathname = usePathname()
+  const rest = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/'
+  return (
+    <ul aria-label={label} className={className}>
+      {locales.map((l) => (
+        <li key={l}>
+          <Link
+            href={`/${l}${rest}`}
+            hrefLang={l}
+            lang={l}
+            aria-current={l === current ? 'true' : undefined}
+            onClick={onNavigate}
+          >
+            {localeNames[l]}
+          </Link>
+        </li>
+      ))}
+    </ul>
   )
 }

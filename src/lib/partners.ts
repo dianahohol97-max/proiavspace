@@ -91,7 +91,7 @@ export async function syncPartners(admin: SupabaseClient, options: { dryRun?: bo
     const contact = await contactOf(admin, period.user_id)
     const delivered =
       !!contact &&
-      (await send(contact, partnerEndingEmail({ name: contact.name, plan: period.plan, endsAt: new Date(period.ends_at) })))
+      (await send(contact, partnerEndingEmail({ locale: contact.locale, name: contact.name, plan: period.plan, endsAt: new Date(period.ends_at) })))
     if (delivered) {
       summary.notified += 1
     } else {

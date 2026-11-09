@@ -36,6 +36,12 @@ export interface SignedReadUrlOptions {
    * (Content-Disposition: attachment).
    */
   downloadFileName?: string
+  /**
+   * Sign at this moment instead of the start of the caching window, so the
+   * URL lives the full expiresInSeconds (links mailed to support: 7 days,
+   * the S3 maximum — a window-aligned URL would expire up to 1.75 days early).
+   */
+  signFromNow?: boolean
 }
 
 export interface MultipartUpload {

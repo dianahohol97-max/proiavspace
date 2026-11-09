@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
 
 /**
@@ -10,8 +12,23 @@ import { defineConfig, devices } from '@playwright/test'
 const PORT = Number(process.env.E2E_PORT || 3100)
 const baseURL = `http://localhost:${PORT}`
 
+/**
+ * Sites and booking are shelved by default (src/lib/features/sites.ts), so
+ * `npm run test:e2e` runs twice: first as production (flag off) — everything
+ * but the theme suites; then with E2E_SITES=1 (NEXT_PUBLIC_SITES_ENABLED=1) —
+ * the theme suites and the «the flag brings it back» checks
+ * (tests/e2e/hide-sites.spec.ts). A theme suite is any spec that opens the
+ * theme demos (/e2e/themes) or uses cardSuite.
+ */
+const SITES = process.env.E2E_SITES === '1'
+const E2E_DIR = join(__dirname, 'tests', 'e2e')
+const THEME_SPECS = readdirSync(E2E_DIR).filter(
+  (file) => file.endsWith('.spec.ts') && /e2e\/themes|cardSuite/.test(readFileSync(join(E2E_DIR, file), 'utf8'))
+)
+
 export default defineConfig({
   testDir: './tests/e2e',
+  ...(SITES ? { testMatch: [...THEME_SPECS, 'hide-sites.spec.ts'] } : { testIgnore: THEME_SPECS }),
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
@@ -59,6 +76,8 @@ export default defineConfig({
         // Opens /[locale]/e2e/themes/[value] — the theme demos, which the
         // public /themes routes redirect away from (tests/e2e/tysha.spec.ts).
         E2E_THEME_PREVIEW: '1',
+        // Sites and booking: off as in production, on for the second run (see above).
+        NEXT_PUBLIC_SITES_ENABLED: SITES ? '1' : '',
         // Dashboard e2e: thumbnails are «CDN» URLs served by the fake Supabase;
         // the R2 values only let getStorage() start, nothing reaches R2.
         MEDIA_CDN_URL: 'http://127.0.0.1:54321/media',

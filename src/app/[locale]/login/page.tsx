@@ -202,7 +202,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="border border-line bg-transparent px-4 py-3 outline-none focus:border-fg"
-              placeholder="you@example.com"
+              placeholder={dict.support.emailPlaceholder}
             />
 
             {mode === 'reset' && <p className="text-sm text-muted">{dict.auth.resetLede}</p>}

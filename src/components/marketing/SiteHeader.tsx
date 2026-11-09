@@ -1,33 +1,36 @@
-import Link from 'next/link'
-import { Logo } from '@/components/Logo'
 import { primaryNav } from '@/lib/seo/nav'
+import { getDictionary } from '@/lib/i18n'
+import { isLocale, type Locale } from '@/lib/i18n/config'
+import { getLandingCopy } from '@/lib/landing/copy'
+import { MarketingHeader, type MarketingHeaderLabels } from './MarketingHeader'
 
-/** Header for inner marketing pages (blog, product pages). */
-export function SiteHeader({ locale, current }: { locale: string; current?: string }) {
-  const uk = locale === 'uk'
+/** Labels of the shared marketing header, in the page's language. */
+export async function marketingHeaderLabels(locale: Locale): Promise<MarketingHeaderLabels> {
+  const { pages } = await getDictionary(locale)
+  const { nav } = getLandingCopy(locale)
+  return {
+    signIn: nav.signIn,
+    ctaShort: nav.ctaShort,
+    dashboard: nav.dashboard,
+    homeAria: pages.homeAria,
+    mainNavAria: pages.mainNavAria,
+    menuOpen: pages.menuOpen,
+    menuClose: pages.menuClose,
+    language: pages.languageAria,
+  }
+}
+
+/** Header for inner marketing pages (pricing, blog, help, product pages) — the landing's header. */
+export async function SiteHeader({ locale: requested, current }: { locale: string; current?: string }) {
+  const locale: Locale = isLocale(requested) ? requested : 'uk'
   return (
-    <header className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-6">
-      <Link href={`/${locale}`} className="text-fg no-underline" aria-label={uk ? 'проЯв — на головну' : 'proiav — home'}>
-        <Logo />
-      </Link>
-      <nav aria-label={uk ? 'Головне меню' : 'Main'} className="hidden items-center gap-7 text-sm text-muted sm:flex">
-        {primaryNav(locale).map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            aria-current={current === link.href ? 'page' : undefined}
-            className={current === link.href ? 'font-semibold text-fg no-underline' : 'no-underline hover:text-fg'}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
-      <Link
-        href={`/${locale}/login`}
-        className="shrink-0 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white no-underline transition-colors hover:bg-accent-deep"
-      >
-        {uk ? 'Почати безкоштовно' : 'Start for free'}
-      </Link>
-    </header>
+    <MarketingHeader
+      locale={locale}
+      links={primaryNav(locale)}
+      labels={await marketingHeaderLabels(locale)}
+      current={current}
+      // Inner pages sit in max-w-5xl columns.
+      maxWidth={1024}
+    />
   )
 }

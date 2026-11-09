@@ -15,6 +15,12 @@
 //   GET  /media/<key>                     → a demo photo (MEDIA_CDN_URL)
 //   POST /__e2e/reset   {scenario}        → reseed the tables
 //   POST /__e2e/insert  {table,row}       → add a row (the tests' «upload»)
+//   POST /__e2e/schema  {downloadsColumn} → pretend migration 0070 is (not) applied
+//
+// The client gallery (/g/[slug]) and the download routes read with the anon
+// and service keys. Those requests are answered only when they are about an
+// e2e gallery or photo (its id or slug is in the URL or body), with the anon
+// key seeing published galleries only (RLS). Everything else is still dropped.
 //   GET  /__e2e/state                     → dump the tables
 import { createServer } from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
@@ -26,6 +32,10 @@ const PORT = Number(process.env.FAKE_SUPABASE_PORT || 54321)
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 export const E2E_TOKEN = 'e2e-photographer-token'
 export const E2E_USER = { id: '00000000-0000-4000-8000-0000000000e2', email: 'olha@e2e.test' }
+// The platform owner (src/lib/admin.ts DEFAULT_ADMINS): sees sections hidden
+// from photographers (tests/e2e/hide-sites.spec.ts). Owns no galleries here.
+export const E2E_OWNER_TOKEN = 'e2e-owner-token'
+export const E2E_OWNER = { id: '00000000-0000-4000-8000-0000000000e3', email: 'dianahohol97@gmail.com' }
 
 const now = () => new Date().toISOString()
 const daysAgo = (n) => new Date(Date.now() - n * 86400_000).toISOString()
@@ -45,6 +55,7 @@ function gallery(id, title, extra = {}) {
     free_expired_at: null,
     free_purged_at: null,
     is_published: false,
+    downloads_enabled: true,
     delivery_status: null,
     delivery_eta: null,
     view_count: 0,
@@ -142,6 +153,8 @@ function seed(scenario) {
 }
 
 let db = seed(process.env.FAKE_SUPABASE_SCENARIO || 'full')
+/** false — galleries.downloads_enabled does not exist (0070 not applied). */
+let downloadsColumn = true
 
 // ---------------------------------------------------------------- PostgREST
 
@@ -274,14 +287,59 @@ function respondRows(req, res, rows, total) {
   return send(res, 200, rows, headers)
 }
 
-async function rest(req, res, url) {
+const MISSING_COLUMN = {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column galleries.downloads_enabled does not exist',
+}
+
+const ANON_KEY = 'e2e-placeholder-anon-key'
+const SERVICE_KEY = 'e2e-placeholder-service-key'
+
+/** Does this request name an e2e gallery (id or slug) or one of its photos? */
+function aboutE2E(text) {
+  const keys = [
+    ...db.galleries.flatMap((g) => [g.id, g.slug]),
+    ...db.assets.map((a) => a.id),
+  ].filter(Boolean)
+  return keys.some((key) => text.includes(key))
+}
+
+async function rest(req, res, url, role = 'user', body = undefined) {
   const table = url.pathname.replace('/rest/v1/', '')
-  if (table.startsWith('rpc/')) return send(res, 200, null)
+  if (table === 'rpc/get_gallery_branding') {
+    // As the SQL function: the owner's profile, for published galleries only.
+    const target = db.galleries.find((g) => g.slug === body?.gallery_slug && g.is_published)
+    const owner = target && db.profiles.find((p) => p.user_id === target.owner_id)
+    return send(
+      res,
+      200,
+      owner
+        ? [{ display_name: owner.display_name, display_name_en: null, logo_key: null, plan: owner.plan, grace_until: null, site_theme: null, site_mode: null, tip_link: null, contact_url: null }]
+        : []
+    )
+  }
+  if (table.startsWith('rpc/')) {
+    // get_gallery_branding returns a set; the rest are scalars or void.
+    return send(res, 200, table === 'rpc/get_gallery_branding' || table === 'rpc/list_selections' ? [] : null)
+  }
   if (!db[table]) db[table] = []
   const params = [...url.searchParams.entries()]
+  const select = url.searchParams.get('select') ?? ''
+  if (table === 'galleries' && !downloadsColumn && select.includes('downloads_enabled')) {
+    return send(res, 400, MISSING_COLUMN)
+  }
+  // RLS: the anon key sees published galleries only.
+  const visible = (rows) =>
+    role === 'anon' && table === 'galleries' ? rows.filter((row) => row.is_published) : rows
+  const strip = (rows) =>
+    !downloadsColumn && table === 'galleries'
+      ? rows.map(({ downloads_enabled, ...rest }) => rest)
+      : rows
 
   if (req.method === 'GET' || req.method === 'HEAD') {
-    let rows = filterRows(db[table], params)
+    let rows = strip(visible(filterRows(db[table], params)))
     const total = rows.length
     rows = orderRows(rows, url.searchParams.get('order'))
     const offset = Number(url.searchParams.get('offset') || 0)
@@ -289,8 +347,10 @@ async function rest(req, res, url) {
     rows = rows.slice(offset, limit ? offset + Number(limit) : undefined)
     return respondRows(req, res, rows, total)
   }
+  if (role !== 'user' && req.method !== 'GET' && req.method !== 'HEAD') {
+    return send(res, 401, { message: 'e2e fake: writes only for the photographer' })
+  }
   if (req.method === 'POST') {
-    const body = await readBody(req)
     const input = Array.isArray(body) ? body : [body]
     const created = input.map((row) => {
       const full = { id: randomUUID(), created_at: now(), updated_at: now(), ...row }
@@ -305,7 +365,10 @@ async function rest(req, res, url) {
     return respondRows(req, res, created, created.length)
   }
   if (req.method === 'PATCH') {
-    const patch = (await readBody(req)) ?? {}
+    const patch = body ?? {}
+    if (table === 'galleries' && !downloadsColumn && 'downloads_enabled' in patch) {
+      return send(res, 400, MISSING_COLUMN)
+    }
     const rows = filterRows(db[table], params)
     for (const row of rows) {
       Object.assign(row, patch, { updated_at: now() })
@@ -340,6 +403,7 @@ const server = createServer(async (req, res) => {
   if (url.pathname === '/__e2e/reset' && req.method === 'POST') {
     const body = (await readBody(req)) ?? {}
     db = seed(body.scenario ?? 'full')
+    downloadsColumn = true
     return send(res, 200, { ok: true })
   }
   if (url.pathname === '/__e2e/insert' && req.method === 'POST') {
@@ -349,30 +413,45 @@ const server = createServer(async (req, res) => {
     return send(res, 200, row)
   }
   if (url.pathname === '/__e2e/state') return send(res, 200, db)
+  if (url.pathname === '/__e2e/schema' && req.method === 'POST') {
+    const body = (await readBody(req)) ?? {}
+    downloadsColumn = body.downloadsColumn !== false
+    return send(res, 200, { ok: true })
+  }
   if (url.pathname.startsWith('/media/')) {
     res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' })
     return res.end(readFileSync(mediaFile(url.pathname)))
   }
 
-  // Everyone but the e2e photographer: behave as if nothing listened here.
   const auth = req.headers.authorization ?? ''
-  if (auth !== `Bearer ${E2E_TOKEN}`) {
+  // The platform owner (tests/e2e/hide-sites.spec.ts) is a signed-in user too.
+  const asOwner = auth === `Bearer ${E2E_OWNER_TOKEN}`
+  const role =
+    auth === `Bearer ${E2E_TOKEN}` || asOwner ? 'user' : auth === `Bearer ${ANON_KEY}` ? 'anon' : auth === `Bearer ${SERVICE_KEY}` ? 'service' : null
+  const body = ['POST', 'PATCH'].includes(req.method ?? '') ? await readBody(req) : undefined
+  // Anon / service: only questions about an e2e gallery or photo get answers;
+  // everything else behaves as if nothing listened here (as before).
+  if (role !== 'user') {
+    if (role && url.pathname.startsWith('/rest/v1/') && aboutE2E(`${decodeURIComponent(url.search)} ${JSON.stringify(body ?? '')}`)) {
+      return rest(req, res, url, role, body)
+    }
     req.socket.destroy()
     return
   }
 
   if (url.pathname === '/auth/v1/user') {
+    const who = asOwner ? E2E_OWNER : E2E_USER
     return send(res, 200, {
-      id: E2E_USER.id,
+      id: who.id,
       aud: 'authenticated',
       role: 'authenticated',
-      email: E2E_USER.email,
+      email: who.email,
       app_metadata: { provider: 'email' },
       user_metadata: {},
       created_at: daysAgo(90),
     })
   }
-  if (url.pathname.startsWith('/rest/v1/')) return rest(req, res, url)
+  if (url.pathname.startsWith('/rest/v1/')) return rest(req, res, url, 'user', body)
   if (url.pathname.startsWith('/auth/v1/')) return send(res, 200, {})
   return send(res, 404, { message: 'not found' })
 })

@@ -48,6 +48,8 @@ export interface GalleryLabels {
   downloadHint: string
   preparingArchive: string
   archiveError: string
+  /** 403 from the archive list when the photographer turned downloads off (0070). */
+  downloadsDisabled?: string
   /** «Зберегти частину {i} з {n}» — shown when the archive comes in parts. */
   savePart: string
   downloadOriginal: string
@@ -56,6 +58,7 @@ export interface GalleryLabels {
   tip: string
   /** «Слайд-шоу» button in the bar. */
   slideshow?: string
+  contactPhotographer?: string
   /** Full-screen viewer controls (aria labels / tooltips). */
   viewer?: ViewerLabels
 }
@@ -133,6 +136,7 @@ export function GalleryExperience({
   style,
   demo = false,
   deliveryNotice = null,
+  downloadsEnabled = true,
 }: {
   locale: string
   slug: string
@@ -163,6 +167,12 @@ export function GalleryExperience({
    * shoot is still in progress but some previews are already visible.
    */
   deliveryNotice?: { text: string; etaText: string | null } | null
+  /**
+   * «Клієнт може завантажувати фото» (0070). false — no «↓» on tiles, no
+   * download in the viewer, no «Завантажити все» and no download hint; the
+   * download routes answer 403 as well, so this is not the only guard.
+   */
+  downloadsEnabled?: boolean
 }) {
   const tokens = resolveGalleryTokens(theme, mode)
   // Default accent: on «Опівніч» (night) the theme's own flame gold, so hearts
@@ -194,11 +204,10 @@ export function GalleryExperience({
       window.clearTimeout(timer)
     }
   }, [mediaReleased])
-  const [archive, setArchive] = useState<'idle' | 'working' | 'error'>('idle')
+  const [archive, setArchive] = useState<'idle' | 'working' | 'error' | 'disabled'>('idle')
   const [done, setDone] = useState(0)
   const [total, setTotal] = useState(0)
   const [partReady, setPartReady] = useState<PartReady | null>(null)
-  const uk = locale === 'uk'
 
   async function toggleFavorite(assetId: string) {
     const selected = !favorites.has(assetId)
@@ -231,6 +240,14 @@ export function GalleryExperience({
     setTotal(0)
     try {
       const listResponse = await fetch(`/api/galleries/${slug}/archive-urls`)
+      if (listResponse.status === 403) {
+        // Turned off by the photographer while this page was open.
+        const body = (await listResponse.json().catch(() => null)) as { error?: string } | null
+        if (body?.error === 'downloads_disabled') {
+          setArchive('disabled')
+          return
+        }
+      }
       if (!listResponse.ok) throw new Error('archive-urls')
       const { files } = (await listResponse.json()) as { files: ArchiveFile[] }
       setTotal(files.length)
@@ -434,6 +451,7 @@ export function GalleryExperience({
     <figure
       key={item.id}
       data-i={index}
+      data-id={item.id}
       className={`${s.shot}${tile.fill ? ` ${s.shotFill}` : ''}${tile.contain ? ` ${s.shotContain}` : ''}`}
       // The proportions are known before the photo loads: the server-rendered
       // grid has its final layout, with a placeholder background, at once.
@@ -454,14 +472,16 @@ export function GalleryExperience({
         // whole connection. Without JavaScript <noscript> shows them at once.
         mediaReleased ? media : <noscript>{media}</noscript>
       }
-      <a
-        href={item.downloadHref}
-        className={s.dlOne}
-        title={labels.downloadOriginal}
-        onClick={(event) => event.stopPropagation()}
-      >
-        ↓
-      </a>
+      {downloadsEnabled && (
+        <a
+          href={item.downloadHref}
+          className={s.dlOne}
+          title={labels.downloadOriginal}
+          onClick={(event) => event.stopPropagation()}
+        >
+          ↓
+        </a>
+      )}
       <button
         type="button"
         aria-label={labels.favoriteToggle}
@@ -572,10 +592,10 @@ export function GalleryExperience({
         </span>
         {items.length > 0 && (
           <button type="button" className={s.slideBtn} onClick={startSlideshow}>
-            ▶ {labels.slideshow ?? (uk ? 'Слайд-шоу' : 'Slideshow')}
+            ▶ {labels.slideshow ?? 'Slideshow'}
           </button>
         )}
-        {partReady ? (
+        {!downloadsEnabled ? null : partReady ? (
           <button
             type="button"
             className={s.dlAll}
@@ -594,7 +614,9 @@ export function GalleryExperience({
           >
             {archive === 'working'
               ? `${labels.preparingArchive} ${done}/${total || '…'}`
-              : archive === 'error'
+              : archive === 'disabled'
+                ? (labels.downloadsDisabled ?? labels.archiveError)
+                : archive === 'error'
                 ? labels.archiveError
                 : `${labels.downloadAll} · ${items.length}`}
           </button>
@@ -602,6 +624,7 @@ export function GalleryExperience({
       </div>
 
       {/* download hint — so clients never have to ask how to save photos */}
+      {downloadsEnabled && (
       <p
         style={{
           textAlign: 'center',
@@ -613,6 +636,7 @@ export function GalleryExperience({
       >
         {labels.downloadHint}
       </p>
+      )}
 
       {/* -------- grid (virtualized: only rows near the screen are in the DOM) -------- */}
       <GalleryGrid
@@ -645,7 +669,7 @@ export function GalleryExperience({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {uk ? 'Звʼязатися з фотографом' : 'Contact the photographer'}
+                {labels.contactPhotographer ?? 'Contact the photographer'}
               </a>
             )}
             {tipUrl && (
@@ -675,6 +699,7 @@ export function GalleryExperience({
           onClose={closeViewer}
           onView={onView}
           onToggleFavorite={(id) => void toggleFavorite(id)}
+          downloadsEnabled={downloadsEnabled}
         />
       )}
     </div>

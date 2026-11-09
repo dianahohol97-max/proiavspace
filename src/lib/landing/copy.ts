@@ -1,5 +1,12 @@
 import type { Locale } from '@/lib/i18n/config'
 import type { GalleryPlanId } from '@/lib/plans'
+import { pl } from './locales/pl'
+import { de } from './locales/de'
+import { es } from './locales/es'
+import { fr } from './locales/fr'
+import { it } from './locales/it'
+import { ro } from './locales/ro'
+import { pt } from './locales/pt'
 
 /**
  * Marketing landing copy. Kept apart from the app dictionaries — this text
@@ -22,8 +29,9 @@ export interface LandingCopy {
     statText: string
     /** Hero card: the client's «Shoot → Editing → Ready» status. */
     status: { steps: [string, string, string]; now: string; eta: string }
-    mockName: string
-    mockTitle: string
+    /** Hero gallery card title per category, in the order of `chips`
+     *  (weddings, families, portraits, studios). */
+    galleryTitles: [string, string, string, string]
   }
   strip: { label: string }
   products: {
@@ -82,7 +90,7 @@ export interface LandingCopy {
   }
   faq: { label: string; title: string; items: { q: string; a: string }[] }
   final: { label: string; titleBefore: string; titleAccent: string; cta: string }
-  footer: { tagline: string; blog: string; terms: string; privacy: string }
+  footer: { tagline: string; blog: string; terms: string; privacy: string; support: string }
 }
 
 const uk: LandingCopy = {
@@ -109,8 +117,7 @@ const uk: LandingCopy = {
     statNumber: '30 000',
     statText: 'фотографій передано клієнтам через галереї проЯв',
     status: { steps: ['Зйомка', 'Обробка', 'Готово'], now: 'зараз', eta: 'Орієнтовно до 14 грудня' },
-    mockName: 'Олена Романюк',
-    mockTitle: 'Весільні історії',
+    galleryTitles: ['Весільні історії', 'Сімейні історії', 'Портрети', 'Студійні зйомки'],
   },
   strip: { label: 'Роботи фотографів' },
   products: {
@@ -289,6 +296,7 @@ const uk: LandingCopy = {
     blog: 'Блог',
     terms: 'Публічна оферта',
     privacy: 'Політика конфіденційності',
+    support: 'Підтримка',
   },
 }
 
@@ -307,8 +315,7 @@ const en: LandingCopy = {
     statNumber: '30 000',
     statText: 'photos delivered to clients through proiav galleries',
     status: { steps: ['Shoot', 'Editing', 'Ready'], now: 'now', eta: 'Expected by 14 December' },
-    mockName: 'Olena Romaniuk',
-    mockTitle: 'Wedding stories',
+    galleryTitles: ['Wedding stories', 'Family stories', 'Portraits', 'Studio sessions'],
   },
   strip: { label: 'Photographers’ work' },
   products: {
@@ -487,11 +494,13 @@ const en: LandingCopy = {
     blog: 'Blog',
     terms: 'Public offer',
     privacy: 'Privacy policy',
+    support: 'Support',
   },
 }
 
+const BY_LOCALE: Record<Locale, LandingCopy> = { uk, en, pl, de, es, fr, it, ro, pt }
+
+/** Landing copy in the page language (all 9 are translated; see ./locales). */
 export function getLandingCopy(locale: Locale): LandingCopy {
-  // Only Ukrainian is fully authored for marketing; every other locale gets
-  // English (client languages don't have a translated landing page).
-  return locale === 'uk' ? uk : en
+  return BY_LOCALE[locale] ?? en
 }

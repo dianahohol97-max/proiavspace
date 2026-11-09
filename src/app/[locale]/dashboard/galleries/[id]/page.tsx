@@ -5,29 +5,35 @@ import {
   setAssetFocal,
   setGalleryCover,
   sortGalleryAssets,
+  afterUploadBatch,
   setGalleryDelivery,
+  setGalleryDownloads,
   setGalleryPublished,
   setGalleryTheme,
   saveGalleryAccess,
   updateGalleryDetails,
 } from '@/lib/actions/galleries'
 import { getDictionary } from '@/lib/i18n'
+import { formatMessage, intlLocale } from '@/lib/i18n/format'
 import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
 import { GallerySortControl } from '@/components/gallery/GallerySortControl'
+import { readGallerySortMode } from '@/lib/gallery/sortMode'
 import { CullingPanel } from '@/components/gallery/CullingPanel'
 import type { CullingPhoto } from '@/lib/culling/types'
 import { setHiddenFromClient } from '@/lib/actions/culling'
 import { GalleryDesigner } from '@/components/gallery/GalleryDesigner'
+import { PREVIEW_PHOTO_LIMIT, clientVisible, type PreviewPhoto } from '@/components/gallery/previewLayout'
+import { galleryEventLine } from '@/lib/gallery/event-line'
 import { DeliveryStatusControl } from '@/components/gallery/DeliveryStatusControl'
 import { ClientEmailControl } from '@/components/gallery/ClientEmailControl'
 import { ClientPicksExport } from '@/components/gallery/ClientPicksExport'
 import { sendClientReadyEmailAgain, setClientEmail } from '@/lib/actions/client-email'
 import {
-  PICK_LABELS,
+  pickLabels as buildPickLabels,
   assetOriginalName,
   buildClientPicks,
   lightroomFilterLine,
@@ -35,11 +41,14 @@ import {
   picksTxt,
 } from '@/lib/gallery/client-picks'
 import { loadClientEmailState } from '@/lib/gallery/ready-email-store'
+import { rememberShareLocale } from '@/lib/actions/client-email'
 import { countVisibleAssets, deliveryView, parseDeliveryEta, parseDeliveryStatus } from '@/lib/gallery/delivery'
 import type { ShareMessageStrings } from '@/lib/gallery/share'
 import { parseGalleryTab } from '@/lib/dashboard/tabs'
 import { GalleryTabs, GoToTabButton } from '@/components/dashboard/GalleryTabs'
 import { OpenShareButton, ShareDialog } from '@/components/dashboard/ShareDialog'
+import { DownloadsToggle } from '@/components/dashboard/DownloadsToggle'
+import { readDownloadsSetting } from '@/lib/gallery/downloads'
 import { DeleteGalleryButton, GalleryAccessForm, GalleryDetailsForm } from '@/components/dashboard/GalleryForms'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { Uploader } from '@/components/Uploader'
@@ -81,19 +90,21 @@ export default async function ManageGalleryPage({
   // Statistics are a «Плюс»+ feature; selection/favorites are free for all.
   const { data: planRow } = await supabase
     .from('profiles')
-    .select('plan, grace_until, watermark_enabled, display_name')
+    .select('plan, grace_until, watermark_enabled, display_name, display_name_en, logo_url')
     .eq('user_id', user.id)
     .single<{
       plan: string
       grace_until: string | null
       watermark_enabled: boolean
       display_name: string | null
+      display_name_en?: string | null
+      logo_url?: string | null
     }>()
   const ownerPlan = effectiveGalleryPlan(planRow?.plan ?? 'free', planRow?.grace_until)
   const watermarkText =
     planRow?.watermark_enabled && planRow.display_name ? planRow.display_name : undefined
 
-  const [{ data: assets }, { count: downloadCount }, { data: selections }, clientEmail] = await Promise.all([
+  const [{ data: assets }, { count: downloadCount }, { data: selections }, clientEmail, downloads] = await Promise.all([
     supabase
       .from('assets')
       .select('*')
@@ -112,6 +123,7 @@ export default async function ManageGalleryPage({
       .eq('gallery_id', gallery.id)
       .returns<{ asset_id: string; kind: string; client_token: string }[]>(),
     loadClientEmailState(params.id, user.id),
+    readDownloadsSetting(supabase, params.id),
   ])
 
   const favoriteCounts = new Map<string, number>()
@@ -129,7 +141,7 @@ export default async function ManageGalleryPage({
   const pickClients = new Set((selections ?? []).map((s) => s.client_token))
   const retouchCount = picks.filter((p) => p.retouch > 0).length
   const lightroom = lightroomFilterLine(picks)
-  const pickLabels = PICK_LABELS[locale === 'uk' ? 'uk' : 'en']
+  const pickLabels = buildPickLabels(dict.designer)
 
   // Per-photo engagement (a «Плюс»+ stat): download and view events carry the
   // asset id in meta, so we can show views + downloads on each individual photo.
@@ -201,6 +213,53 @@ export default async function ManageGalleryPage({
     )
   ).filter((p): p is CullingPhoto => p !== null)
 
+  // «Дизайн» preview: exactly the frames the client sees (no hidden ones), in
+  // the client's order, with their proportions; the cover as the client page
+  // picks it (lib: previewLayout.clientVisible).
+  const clientView = clientVisible(
+    previews.map(({ asset, url }) => ({ ...asset, url })),
+    gallery.cover_asset_id
+  )
+  const designPhotos: PreviewPhoto[] = clientView.visible
+    .slice(0, PREVIEW_PHOTO_LIMIT)
+    .map((asset) => ({
+      id: asset.id,
+      url: asset.url,
+      width: asset.width,
+      height: asset.height,
+      focalX: asset.focal_x ?? null,
+      focalY: asset.focal_y ?? null,
+    }))
+  const coverAsset = clientView.cover
+  const designCoverUrl = coverAsset
+    ? await storage
+        .getSignedReadUrl(
+          (coverAsset.kind === 'video' ? coverAsset.variants.poster : coverAsset.variants.mobile) ??
+            coverAsset.variants.preview ??
+            coverAsset.r2_key,
+          { expiresInSeconds: 60 * 60 }
+        )
+        .catch(() => coverAsset.url || null)
+    : null
+  // Brand on the cover: what get_gallery_branding gives the client page. It
+  // answers for published galleries only, so a draft takes the same fields
+  // straight from the profile — what the client will see once it is shared.
+  const designBrand = await (async () => {
+    const { data } = await supabase.rpc('get_gallery_branding', { gallery_slug: gallery.slug })
+    const row =
+      (data as { display_name: string | null; display_name_en: string | null; logo_key: string | null }[] | null)?.[0] ?? {
+        display_name: planRow?.display_name ?? null,
+        display_name_en: planRow?.display_name_en ?? null,
+        logo_key: planRow?.logo_url ?? null,
+      }
+    const name = (locale !== 'uk' ? row.display_name_en : null) ?? row.display_name ?? null
+    const logoUrl =
+      row.logo_key && ownerPlan.features.photographerLogo
+        ? await storage.getSignedReadUrl(row.logo_key, { expiresInSeconds: 60 * 60 }).catch(() => null)
+        : null
+    return { name, logoUrl }
+  })()
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
 
   const publishAction = setGalleryPublished.bind(null, locale, gallery.id, !gallery.is_published)
@@ -211,6 +270,8 @@ export default async function ManageGalleryPage({
   const hasPassword = gallery.has_password
   const expiryDefault = gallery.expires_at ? gallery.expires_at.slice(0, 10) : ''
   const m = dict.galleryManage
+  // Order mode (0071); 'manual' until the migration is applied.
+  const sortState = await readGallerySortMode(supabase, gallery.id)
   const photoCount = assets?.length ?? 0
   const deliveryStatus = parseDeliveryStatus(gallery.delivery_status)
   const statsOn = ownerPlan.features.stats
@@ -237,9 +298,9 @@ export default async function ManageGalleryPage({
   // studio, so the picker is reduced to three clearly distinct moods. Legacy
   // stored themes stay valid and are normalized to the nearest mood below.
   const themeOptions: { value: string; label: string }[] = [
-    { value: 'tysha', label: locale === 'uk' ? 'Світла' : 'Light' },
-    { value: 'opivnich', label: locale === 'uk' ? 'Темна' : 'Dark' },
-    { value: 'plivka', label: locale === 'uk' ? 'Крем' : 'Cream' },
+    { value: 'tysha', label: dict.designer.themeLight },
+    { value: 'opivnich', label: dict.designer.themeDark },
+    { value: 'plivka', label: dict.designer.themeCream },
   ]
   const themeMood: Record<string, string> = {
     tysha: 'tysha',
@@ -252,7 +313,7 @@ export default async function ManageGalleryPage({
     arkhiv: 'plivka',
   }
 
-  const dateLocale = locale === 'uk' ? 'uk-UA' : 'en-GB'
+  const dateLocale = intlLocale(locale)
   const freeNotice = (gallery.free_expires_at || gallery.free_expired_at) && (
     <section className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-50 p-5 text-sm leading-relaxed">
       <p className="font-extrabold text-fg">
@@ -265,7 +326,7 @@ export default async function ManageGalleryPage({
               )}`
             : daysLeft(gallery.free_expires_at!) === 0
               ? dict.dashboard.freeClosesToday
-              : dict.dashboard.freeClosesIn.replace('{n}', String(daysLeft(gallery.free_expires_at!)))}
+              : formatMessage(dict.dashboard.freeClosesIn, { n: daysLeft(gallery.free_expires_at!) }, locale)}
       </p>
       <p className="mt-2 text-muted">{dict.dashboard.freeExplain}</p>
       <Link
@@ -325,9 +386,10 @@ export default async function ManageGalleryPage({
             isPublished={gallery.is_published}
             hasPassword={hasPassword}
             inProgress={inProgress}
-            defaultLocale={locale}
+            defaultLocale={clientEmail.shareLocale && isLocale(clientEmail.shareLocale) ? clientEmail.shareLocale : locale}
             messages={shareMessages}
             publish={sharePublishAction}
+            rememberLocale={rememberShareLocale.bind(null, gallery.id)}
             initialOpen={searchParams.share === '1'}
             labels={{
               share: m.share,
@@ -389,6 +451,7 @@ export default async function ManageGalleryPage({
         ) : (
           <Uploader
             galleryId={gallery.id}
+            onBatchDone={afterUploadBatch.bind(null, locale, gallery.id)}
             dropHint={m.dropHint}
             watermarkText={watermarkText}
             videoPlanNotice={m.videoPlanNotice}
@@ -397,6 +460,9 @@ export default async function ManageGalleryPage({
             networkWait={m.uploadNetworkWait}
             billingHref={`/${locale}/dashboard/billing`}
             emphasis={photoCount === 0}
+            pickPhoneLabel={dict.app.uploadPickPhone}
+            backgroundHint={dict.app.uploadBackgroundHint}
+            pausedHint={dict.app.uploadPaused}
             progressLabel={m.uploadProgress}
             retryLabel={m.uploadRetry}
             errorLabels={{
@@ -430,7 +496,8 @@ export default async function ManageGalleryPage({
           <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">{m.photosFocusHint}</p>
           {previews.length > 1 && (
             <GallerySortControl
-              locale={locale}
+              mode={sortState.mode}
+              labels={m}
               total={previews.length}
               withTakenAt={previews.filter(({ asset }) => asset.taken_at).length}
               action={sortGalleryAssets.bind(null, locale, gallery.id)}
@@ -448,7 +515,7 @@ export default async function ManageGalleryPage({
                     initialX={asset.focal_x ?? null}
                     initialY={asset.focal_y ?? null}
                     action={setAssetFocal.bind(null, locale, asset.id)}
-                    title={locale === 'uk' ? 'Клацни, щоб задати фокус кадру' : 'Click to set crop focus'}
+                    title={dict.designer.focalHint}
                   />
                   {(favoritedBy > 0 ||
                     (downloadCounts.get(asset.id) ?? 0) > 0 ||
@@ -473,13 +540,13 @@ export default async function ManageGalleryPage({
                       className="absolute left-2 top-2 flex flex-col items-start gap-1"
                     >
                       <span className="rounded-full bg-neutral-900/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                        {locale === 'uk' ? 'Сховано від клієнта' : 'Hidden from client'}
+                        {dict.designer.hiddenFromClient}
                       </span>
                       <button
                         type="submit"
                         className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-900 hover:text-accent"
                       >
-                        {locale === 'uk' ? 'Повернути клієнту' : 'Show to client'}
+                        {dict.designer.showToClient}
                       </button>
                     </form>
                   )}
@@ -544,20 +611,28 @@ export default async function ManageGalleryPage({
         themeOptions={themeOptions}
         initialTheme={themeMood[gallery.theme ?? ''] ?? 'tysha'}
         initialStyle={parseGalleryStyle(gallery.style)}
-        coverUrl={previews.find((p) => p.asset.id === gallery.cover_asset_id)?.url ?? previews[0]?.url ?? null}
-        photos={previews.slice(0, 8).map((p) => p.url).filter(Boolean)}
+        coverUrl={designCoverUrl}
+        photos={designPhotos}
+        totalPhotos={clientView.visible.length}
         galleryTitle={gallery.title}
+        eventLine={galleryEventLine(gallery.event_date, gallery.description, locale)}
+        brandName={designBrand.name}
+        logoUrl={designBrand.logoUrl}
+        downloadsEnabled={downloads.enabled}
+        clientUrl={`/api/galleries/${encodeURIComponent(gallery.slug)}/owner-view?locale=${locale}`}
+        clientLabels={{
+          scrollHint: dict.publicGallery.scrollHint,
+          selected: dict.publicGallery.selected,
+          slideshow: dict.publicGallery.slideshow,
+          downloadAll: dict.publicGallery.downloadAll,
+          downloadHint: dict.publicGallery.downloadHint,
+        }}
         locale={locale}
         labels={{
+          ...dict.designer,
           styleLabel: m.styleLabel,
           styleSave: m.styleSave,
           styleSaved: m.styleSaved,
-          accent: locale === 'uk' ? 'Акцент' : 'Accent',
-          columns: locale === 'uk' ? 'Колонки' : 'Columns',
-          radius: locale === 'uk' ? 'Кути' : 'Corners',
-          font: locale === 'uk' ? 'Шрифт' : 'Font',
-          preview: locale === 'uk' ? 'Превʼю' : 'Preview',
-          focal: locale === 'uk' ? 'Фокус обкладинки' : 'Cover focus',
         }}
       />
     </>
@@ -608,15 +683,27 @@ export default async function ManageGalleryPage({
           }}
         />
       </section>
-      <section className={card}>
-        <h2 className={cardTitle}>{m.accessDownloadsTitle}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted">{m.accessDownloadsText}</p>
+      <DownloadsToggle
+        initialEnabled={downloads.enabled}
+        available={downloads.available}
+        save={setGalleryDownloads.bind(null, locale, gallery.id)}
+        labels={{
+          title: m.accessDownloadsTitle,
+          label: m.downloadsToggle,
+          onHint: m.downloadsOnHint,
+          offHint: m.downloadsOffHint,
+          unavailable: m.downloadsUnavailable,
+          saving: m.saving,
+          saved: m.saved,
+          error: m.saveError,
+        }}
+      >
         {statsOn && (
-          <p className="mt-2 text-sm font-bold text-fg">
-            {m.accessDownloadsCount.replace('{n}', String(downloadCount ?? 0))}
+          <p className="text-sm font-bold text-fg" data-testid="downloads-count">
+            {formatMessage(m.accessDownloadsCount, { n: downloadCount ?? 0 }, locale)}
           </p>
         )}
-      </section>
+      </DownloadsToggle>
       <section className={`${card} border-red-600/20`}>
         <h2 className={cardTitle}>{m.dangerTitle}</h2>
         <p className="mb-4 mt-2 text-sm leading-relaxed text-muted">{m.deleteConfirm}</p>
@@ -665,7 +752,7 @@ export default async function ManageGalleryPage({
         initialEmail={clientEmail.email}
         sentAtText={
           clientEmail.sentAt
-            ? new Date(clientEmail.sentAt).toLocaleString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
+            ? new Date(clientEmail.sentAt).toLocaleString(intlLocale(locale), {
                 timeZone: 'Europe/Kyiv',
                 day: '2-digit',
                 month: '2-digit',
@@ -763,7 +850,7 @@ export default async function ManageGalleryPage({
                         )}
                         {pick.retouch > 0 && (
                           <span className="rounded-full bg-white/90 px-2 py-0.5 text-xs text-fg">
-                            {locale === 'uk' ? 'ретуш' : 'retouch'}
+                            {dict.designer.picksRetouch}
                             {pick.retouch > 1 ? ` ×${pick.retouch}` : ''}
                           </span>
                         )}

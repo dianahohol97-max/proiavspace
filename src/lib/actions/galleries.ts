@@ -7,6 +7,7 @@ import { slugify } from '@/lib/slug'
 import { galleryPrefix, getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Locale } from '@/lib/i18n/config'
+import { readGallerySortMode, resortAfterUpload, type GallerySortMode } from '@/lib/gallery/sortMode'
 
 async function requireUser() {
   const supabase = createSupabaseServerClient()
@@ -269,6 +270,34 @@ export async function setGalleryDelivery(
   return { ok: true }
 }
 
+/**
+ * «Клієнт може завантажувати фото» (galleries.downloads_enabled, 0070). Saved
+ * on every flip of the switch. Without the migration the column is missing:
+ * answer `migration` so the switch can say so, and change nothing.
+ */
+export async function setGalleryDownloads(
+  locale: Locale,
+  galleryId: string,
+  enabled: boolean
+): Promise<{ ok: boolean; error?: 'migration' | 'failed' }> {
+  const { supabase, user } = await requireUser()
+  const { isMissingDownloadsColumn } = await import('@/lib/gallery/downloads')
+  const { data, error } = await supabase
+    .from('galleries')
+    .update({ downloads_enabled: enabled === true })
+    .eq('id', galleryId)
+    .eq('owner_id', user.id)
+    .select('id')
+  if (error) {
+    if (isMissingDownloadsColumn(error)) return { ok: false, error: 'migration' }
+    console.error('setGalleryDownloads failed', galleryId, error.message)
+    return { ok: false, error: 'failed' }
+  }
+  if (!data?.length) return { ok: false, error: 'failed' }
+  revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  return { ok: true }
+}
+
 export async function setGalleryPublished(
   locale: Locale,
   galleryId: string,
@@ -371,13 +400,18 @@ export async function signOut(locale: Locale): Promise<void> {
 }
 
 export type SortMode = 'taken' | 'uploaded'
-export type SortResult = { ok: true; changed: number } | { ok: false; error: 'not_ready' | 'failed' }
+export type SortResult =
+  | { ok: true; changed: number; mode: GallerySortMode; modeStored: boolean }
+  | { ok: false; error: 'not_ready' | 'failed' }
 
 /**
  * «Впорядкувати за часом зйомки» / «за часом завантаження»: rewrites the
  * gallery's order (assets.position) in one call to sort_gallery_assets
  * (migration 0067), which checks ownership itself. Photos from several
  * cameras end up interleaved by capture time; ones without EXIF time go last.
+ * With 0071 the call also switches the gallery's mode: «за часом зйомки» →
+ * 'taken_at' (later uploads take their places), «за часом завантаження» →
+ * 'manual'. Any future manual reorder (drag and drop) must set 'manual' too.
  */
 export async function sortGalleryAssets(locale: Locale, galleryId: string, mode: SortMode): Promise<SortResult> {
   if (mode !== 'taken' && mode !== 'uploaded') return { ok: false, error: 'failed' }
@@ -390,5 +424,17 @@ export async function sortGalleryAssets(locale: Locale, galleryId: string, mode:
     return { ok: false, error: missing ? 'not_ready' : 'failed' }
   }
   revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
-  return { ok: true, changed: typeof data === 'number' ? data : 0 }
+  const state = await readGallerySortMode(supabase, galleryId)
+  return { ok: true, changed: typeof data === 'number' ? data : 0, mode: state.mode, modeStored: state.stored }
+}
+
+/**
+ * The Uploader calls this when a batch of uploads has finished: in shot order
+ * the gallery is sorted again, so the new frames stand among their neighbours.
+ */
+export async function afterUploadBatch(locale: Locale, galleryId: string): Promise<{ resorted: boolean }> {
+  const { supabase } = await requireUser()
+  const { resorted } = await resortAfterUpload(supabase, galleryId)
+  if (resorted) revalidatePath(`/${locale}/dashboard/galleries/${galleryId}`)
+  return { resorted }
 }

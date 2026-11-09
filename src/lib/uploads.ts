@@ -250,11 +250,15 @@ export async function registerAsset(
     // counted against the quota to keep accounting simple for now.
     size_bytes: stored.sizeBytes,
     variants: input.variants ?? {},
+    // New photos go to the END of the gallery, never to the start: after a
+    // sort or a zip import positions are 1..n, and the column default (0)
+    // would put a later upload before all of them. A zip keeps its own name
+    // order after whatever the gallery already holds.
+    position: await nextPosition(admin, input.galleryId, input.importId, input.position),
     ...(input.importId
       ? {
           original_name: input.originalName ?? null,
           import_id: input.importId,
-          position: input.position ?? 0,
         }
       : {}),
     ...(sourceFileName ? { source_file_name: sourceFileName } : {}),
@@ -289,6 +293,27 @@ export async function registerAsset(
     return { ok: false, status: 500, error: error?.message ?? 'insert_failed' }
   }
   return { ok: true, assetId: (data as { id: string }).id }
+}
+
+/**
+ * Position for a new photo: after the last one in the gallery. A zip import
+ * passes the file's place in the zip (1, 2, …) and is laid out after the
+ * photos that were there before the import (other imports' and plain uploads),
+ * so its own files keep the zip's name order whatever order they finish in.
+ * If the lookup fails, falls back to the old behaviour (0 / the zip index).
+ */
+export async function nextPosition(
+  admin: SupabaseClient,
+  galleryId: string,
+  importId?: string,
+  indexInImport?: number
+): Promise<number> {
+  let query = admin.from('assets').select('position').eq('gallery_id', galleryId)
+  if (importId) query = query.or(`import_id.is.null,import_id.neq.${importId}`)
+  const { data, error } = await query.order('position', { ascending: false }).limit(1)
+  const last = !error && Array.isArray(data) && data.length ? Number((data[0] as { position: unknown }).position) || 0 : 0
+  if (importId) return last + Math.max(indexInImport ?? 0, 0)
+  return error ? 0 : last + 1
 }
 
 /** PostgREST / Postgres «no such column» (a migration not applied yet). */

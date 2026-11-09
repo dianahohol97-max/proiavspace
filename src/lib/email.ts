@@ -20,6 +20,8 @@ export interface EmailInput {
   html?: string
   /** Where replies go; the support address by default. */
   replyTo?: string
+  /** The letter's language — HTML lang and footer of the wrapped text. */
+  locale?: string
 }
 
 export interface EmailResult {
@@ -67,7 +69,7 @@ export async function sendEmailDetailed(input: EmailInput): Promise<EmailResult>
         subject: input.subject,
         // Both parts, same content (lib/email-layout), and replies go to the
         // support address rather than bouncing off a no-reply.
-        htmlContent: input.html ?? wrapText(input.text, input.subject),
+        htmlContent: input.html ?? wrapText(input.text, input.subject, input.locale),
         textContent: input.text,
         replyTo: { email: input.replyTo ?? supportEmail() },
       }),

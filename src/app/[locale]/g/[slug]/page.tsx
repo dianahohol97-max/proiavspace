@@ -5,11 +5,16 @@ import { galleryAssetsClient, isGalleryUnlocked } from '@/lib/gallery-access'
 import { getDictionary } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/config'
 import { effectiveGalleryPlan } from '@/lib/plans'
+import { notifyFirstView } from '@/lib/push/events'
+import { getVapidConfig } from '@/lib/push/send'
 import { resolveGalleryTheme } from '@/lib/site/themes'
 import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { parseGalleryStyle } from '@/lib/gallery/style'
 import { deliveryLabels, galleryLabels } from '@/lib/gallery/labels'
+import { readDownloadsSetting } from '@/lib/gallery/downloads'
+import { galleryEventLine } from '@/lib/gallery/event-line'
+import { isOwnerPreview } from '@/lib/gallery/owner-preview'
 import {
   countVisibleAssets,
   deliveryCoverKey,
@@ -44,7 +49,7 @@ export default async function PublicGalleryPage({
   searchParams,
 }: {
   params: { locale: string; slug: string }
-  searchParams: { error?: string }
+  searchParams: { error?: string; preview?: string }
 }) {
   if (!isLocale(params.locale)) notFound()
   const locale = params.locale
@@ -57,11 +62,12 @@ export default async function PublicGalleryPage({
     supabase
       .from('galleries')
       .select(
-        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style, delivery_status, delivery_eta'
+        'id, slug, title, description, event_date, has_password, is_published, cover_asset_id, theme, style, view_count, delivery_status, delivery_eta'
       )
       .eq('slug', params.slug)
       .single<{
         id: string
+        view_count: number
         slug: string
         title: string
         description: string | null
@@ -137,9 +143,14 @@ export default async function PublicGalleryPage({
     )
   }
 
+  // «Відкрити як клієнт» from the designer (owner-view route) adds ?preview=1:
+  // the photographer looking at their own gallery is not a client's view.
+  // Trusted only when the signed-in user owns this gallery (lib/gallery/owner-preview).
+  const ownerPreview = await isOwnerPreview(searchParams.preview, gallery.id, supabase)
+
   // Basic stats: count the view without holding up the page. waitUntil keeps
   // the function alive until the write lands; a failure is only logged.
-  waitUntil(
+  if (!ownerPreview) waitUntil(
     Promise.resolve(supabase.rpc('record_gallery_view', { gallery_slug: gallery.slug })).then(
       ({ error }) => {
         if (error) console.error('record_gallery_view failed', gallery.slug, error.message)
@@ -148,12 +159,23 @@ export default async function PublicGalleryPage({
     )
   )
 
+  // «Галерею вперше переглянули» (photographer's phone app). Only while the
+  // gallery is fresh: a gallery viewed 20+ times has had its first visitor.
+  if (!ownerPreview && gallery.view_count < 20 && getVapidConfig()) {
+    waitUntil(
+      notifyFirstView(gallery.id, async () => {
+        const { data } = await supabase.auth.getUser()
+        return data.user?.id ?? null
+      }).catch(() => null)
+    )
+  }
+
   // This client's current favorites (scoped by the middleware-minted token).
   const clientToken = cookies().get('ct')?.value
 
   // Independent reads, in parallel: assets, branding (plan gates + site theme
   // for style inheritance) and this client's picks.
-  const [{ data: assets }, { data: brandingData }, { data: selections }] = await Promise.all([
+  const [{ data: assets }, { data: brandingData }, { data: selections }, downloads] = await Promise.all([
     galleryAssetsClient(supabase, gallery)
       .from('assets')
       .select('*')
@@ -170,6 +192,9 @@ export default async function PublicGalleryPage({
     clientToken
       ? supabase.rpc('list_selections', { p_gallery: gallery.id, p_token: clientToken })
       : Promise.resolve({ data: null }),
+    // «Клієнт може завантажувати фото» (0070) — own query, so a database
+    // without the column still renders the gallery (downloads allowed).
+    readDownloadsSetting(supabase, gallery.id),
   ])
   const initialFavorites = ((selections ?? []) as { asset_id: string; kind: string }[])
     .filter((s) => s.kind === 'favorite')
@@ -194,7 +219,7 @@ export default async function PublicGalleryPage({
   // English-locale galleries show the Latin-script name when the photographer
   // set one — «Діана Гоголь» reads wrong under an English UI.
   const brandName =
-    (locale === 'en' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
+    (locale !== 'uk' ? branding?.display_name_en : null) ?? branding?.display_name ?? null
   // Honour the grace window: once a canceled plan's grace expires, the public
   // gallery must fall back to free (badge returns, custom logo drops) instead of
   // keeping paid perks forever. grace_until comes from get_gallery_branding
@@ -294,25 +319,14 @@ export default async function PublicGalleryPage({
       })
     : null
 
-  const eventLine = [
-    gallery.event_date
-      ? new Date(gallery.event_date).toLocaleDateString(locale === 'uk' ? 'uk-UA' : 'en-GB', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })
-      : null,
-    gallery.description,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const eventLine = galleryEventLine(gallery.event_date, gallery.description, locale)
 
   return (
     <GalleryExperience
       locale={locale}
       slug={gallery.slug}
       title={gallery.title}
-      eventLine={eventLine || null}
+      eventLine={eventLine}
       brandName={brandName}
       contactUrl={branding?.contact_url ?? null}
       logoUrl={logoUrl}
@@ -327,6 +341,7 @@ export default async function PublicGalleryPage({
       mode={mode}
       style={galleryStyle}
       labels={galleryLabels(dict)}
+      downloadsEnabled={downloads.enabled}
       deliveryNotice={
         view === 'banner'
           ? { text: dLabels.banner, etaText: etaText ? dLabels.bannerEta.replace('{date}', etaText) : null }
