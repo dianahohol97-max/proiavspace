@@ -379,12 +379,15 @@ test.describe('застосунок фотографа на телефоні', (
     const chooser = page.waitForEvent('filechooser')
     await pick.click()
     await (await chooser).setFiles([path.join(fixtures, 'iphone.heic'), path.join(fixtures, 'canon-rotated.jpg')])
-    await expect(uploader.getByTestId('upload-paused')).toBeVisible({ timeout: 30_000 })
+    // Offline is caught by the transfer layer (release/5): «Немає з'єднання»;
+    // a cut-off it can't wait out pauses the file («на паузі»). Either one.
+    const pausedOrWaiting = uploader.locator('[data-testid="upload-paused"], [data-testid="upload-network-wait"]')
+    await expect(pausedOrWaiting.first()).toBeVisible({ timeout: 30_000 })
     expect(completes).toBe(0)
 
     offline = false
     await context.setOffline(false)
-    await expect(uploader.getByTestId('upload-paused')).toHaveCount(0, { timeout: 60_000 })
+    await expect(pausedOrWaiting).toHaveCount(0, { timeout: 60_000 })
     await expect(uploader.locator('li')).toHaveCount(2)
     await expect(uploader.locator('li').filter({ hasText: '✓' })).toHaveCount(2, { timeout: 60_000 })
     expect(completes).toBe(2)
