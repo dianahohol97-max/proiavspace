@@ -5,6 +5,7 @@ import {
   setAssetFocal,
   setGalleryCover,
   sortGalleryAssets,
+  afterUploadBatch,
   setGalleryDelivery,
   setGalleryDownloads,
   setGalleryPublished,
@@ -20,6 +21,7 @@ import { getStorage } from '@/lib/storage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { AssetFocusTile } from '@/components/gallery/AssetFocusTile'
 import { GallerySortControl } from '@/components/gallery/GallerySortControl'
+import { readGallerySortMode } from '@/lib/gallery/sortMode'
 import { CullingPanel } from '@/components/gallery/CullingPanel'
 import type { CullingPhoto } from '@/lib/culling/types'
 import { setHiddenFromClient } from '@/lib/actions/culling'
@@ -267,6 +269,8 @@ export default async function ManageGalleryPage({
   const hasPassword = gallery.has_password
   const expiryDefault = gallery.expires_at ? gallery.expires_at.slice(0, 10) : ''
   const m = dict.galleryManage
+  // Order mode (0071); 'manual' until the migration is applied.
+  const sortState = await readGallerySortMode(supabase, gallery.id)
   const photoCount = assets?.length ?? 0
   const deliveryStatus = parseDeliveryStatus(gallery.delivery_status)
   const statsOn = ownerPlan.features.stats
@@ -445,6 +449,7 @@ export default async function ManageGalleryPage({
         ) : (
           <Uploader
             galleryId={gallery.id}
+            onBatchDone={afterUploadBatch.bind(null, locale, gallery.id)}
             dropHint={m.dropHint}
             watermarkText={watermarkText}
             videoPlanNotice={m.videoPlanNotice}
@@ -487,7 +492,8 @@ export default async function ManageGalleryPage({
           <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">{m.photosFocusHint}</p>
           {previews.length > 1 && (
             <GallerySortControl
-              locale={locale}
+              mode={sortState.mode}
+              labels={m}
               total={previews.length}
               withTakenAt={previews.filter(({ asset }) => asset.taken_at).length}
               action={sortGalleryAssets.bind(null, locale, gallery.id)}
